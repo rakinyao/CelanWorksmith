@@ -213,6 +213,10 @@ const WidgetLoaders = new Map<string, () => Promise<typeof BaseWidget>>([
     "FILTER_LIST_WIDGET",
     async () => import("./FilterListWidget").then((m) => m.default),
   ],
+  [
+    "ACTION_BUTTON_WIDGET",
+    async () => import("./ActionButtonWidget").then((m) => m.default),
+  ],
   ["TABLE_WIDGET", async () => import("./TableWidget").then((m) => m.default)],
   [
     "CHECKBOX_WIDGET",
