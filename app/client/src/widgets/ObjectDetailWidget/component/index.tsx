@@ -114,7 +114,7 @@ export default function ObjectDetailComponent({
 
     clearLinkedSelection(updateWidgetMetaProperty);
     setActiveLinkTypeId(undefined);
-  }, [identity, object, updateWidgetMetaProperty]);
+  }, [identity, updateWidgetMetaProperty]);
 
   useEffect(() => {
     if (!object) return;
