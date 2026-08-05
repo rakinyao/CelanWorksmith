@@ -18,6 +18,9 @@ export const celanworksmithLinkMetadataLoadRequested = (typeId: string) => ({
   payload: typeId,
 });
 
+export const celanworksmithLinkMetadataRequested =
+  celanworksmithLinkMetadataLoadRequested;
+
 export const celanworksmithLinkMetadataLoadSuccess = (
   typeId: string,
   links: CelanworksmithLinkType[],

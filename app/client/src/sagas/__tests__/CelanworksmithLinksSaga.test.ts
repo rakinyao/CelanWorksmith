@@ -65,6 +65,17 @@ describe("loadCelanworksmithLinkMetadata", () => {
     );
   });
 
+  it("does not reload metadata while the source type is already loading", () => {
+    const iterator = loadCelanworksmithLinkMetadata(
+      celanworksmithLinkMetadataLoadRequested("PurchaseOrder"),
+    );
+
+    expect(iterator.next().value).toEqual(
+      select(getCelanworksmithLinkMetadata, "PurchaseOrder"),
+    );
+    expect(iterator.next({ status: "loading" }).done).toBe(true);
+  });
+
   it("normalizes metadata errors", () => {
     const iterator = loadCelanworksmithLinkMetadata(
       celanworksmithLinkMetadataLoadRequested("PurchaseOrder"),

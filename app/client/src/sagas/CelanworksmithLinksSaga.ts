@@ -43,7 +43,7 @@ export function* loadCelanworksmithLinkMetadata(action: ReduxAction<string>) {
     typeId,
   );
 
-  if (metadata?.updatedAt) return;
+  if (metadata?.updatedAt || metadata?.status === "loading") return;
 
   try {
     const response: ApiResponse<CelanworksmithLinkType[]> = yield call(
