@@ -131,4 +131,43 @@ describe("FilterListComponent", () => {
       version: 1,
     });
   });
+
+  test("syncs externally changed properties and metadata validity", () => {
+    const updateWidgetMetaProperty = jest.fn();
+    const view = render(
+      <Provider store={mockStore(state())}>
+        <FilterListComponent
+          initialConditions={[
+            { propertyId: "supplierName", operator: "equals", value: "Acme" },
+          ]}
+          initialObjectTypeId="PurchaseOrder"
+          updateWidgetMetaProperty={updateWidgetMetaProperty}
+        />
+      </Provider>,
+    );
+
+    view.rerender(
+      <Provider
+        store={mockStore(
+          state({
+            metadata: undefined,
+            items: [],
+            total: 0,
+            offset: 0,
+            limit: 100,
+            status: "ready",
+          }),
+        )}
+      >
+        <FilterListComponent
+          initialConditions={[]}
+          initialObjectTypeId=""
+          updateWidgetMetaProperty={updateWidgetMetaProperty}
+        />
+      </Provider>,
+    );
+
+    expect(screen.getByLabelText("Object type")).toHaveValue("");
+    expect(updateWidgetMetaProperty).toHaveBeenCalledWith("isValid", false);
+  });
 });

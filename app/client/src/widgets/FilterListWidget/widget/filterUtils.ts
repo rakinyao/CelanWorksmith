@@ -63,7 +63,11 @@ const isValueValid = (dataType: string, condition: FilterCondition) => {
 
   if (dataType === "INTEGER") return Number.isInteger(condition.value);
 
-  if (dataType === "DECIMAL") return typeof condition.value === "number";
+  if (dataType === "DECIMAL") {
+    return (
+      typeof condition.value === "number" && Number.isFinite(condition.value)
+    );
+  }
 
   if (dataType === "BOOLEAN") return typeof condition.value === "boolean";
 

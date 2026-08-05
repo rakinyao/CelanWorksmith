@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
@@ -15,6 +15,8 @@ export interface FilterListComponentProps {
   updateWidgetMetaProperty: (propertyName: string, value: unknown) => void;
 }
 
+const EMPTY_CONDITIONS: FilterCondition[] = [];
+
 const createCondition = (): FilterCondition => ({
   propertyId: "",
   operator: "equals",
@@ -30,7 +32,7 @@ const getValue = (dataType: string | undefined, value: string) => {
 };
 
 export default function FilterListComponent({
-  initialConditions = [],
+  initialConditions = EMPTY_CONDITIONS,
   initialObjectTypeId,
   updateWidgetMetaProperty,
 }: FilterListComponentProps) {
@@ -40,11 +42,37 @@ export default function FilterListComponent({
   const [objectTypeId, setObjectTypeId] = useState(initialObjectTypeId || "");
   const [conditions, setConditions] =
     useState<FilterCondition[]>(initialConditions);
+  const conditionsRef = useRef(conditions);
+
+  conditionsRef.current = conditions;
   const metadata = objectsState.types[objectTypeId]?.metadata;
   const result = useMemo(
     () => buildFilter(metadata, conditions),
     [conditions, metadata],
   );
+
+  useEffect(() => {
+    const nextObjectTypeId = initialObjectTypeId || "";
+
+    if (nextObjectTypeId !== objectTypeId) setObjectTypeId(nextObjectTypeId);
+  }, [initialObjectTypeId, objectTypeId]);
+
+  useEffect(() => {
+    const nextConditions = initialConditions || [];
+
+    if (
+      JSON.stringify(nextConditions) !== JSON.stringify(conditionsRef.current)
+    ) {
+      setConditions(nextConditions);
+    }
+  }, [initialConditions]);
+
+  useEffect(() => {
+    updateWidgetMetaProperty("objectTypeId", objectTypeId || undefined);
+    updateWidgetMetaProperty("filter", result.filter);
+    updateWidgetMetaProperty("isValid", result.isValid);
+  }, [objectTypeId, result, updateWidgetMetaProperty]);
+
   const objectTypes = Object.values(objectsState.types)
     .map((typeState) => typeState.metadata)
     .filter((type): type is NonNullable<typeof type> => !!type);

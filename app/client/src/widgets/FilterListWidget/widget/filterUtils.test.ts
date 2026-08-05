@@ -83,4 +83,21 @@ describe("FilterList filter utilities", () => {
       },
     });
   });
+
+  test("rejects non-finite decimal values", () => {
+    expect(
+      buildFilter(metadata, [
+        { propertyId: "amount", operator: "equals", value: Number.NaN },
+      ]).isValid,
+    ).toBe(false);
+    expect(
+      buildFilter(metadata, [
+        {
+          propertyId: "amount",
+          operator: "equals",
+          value: Number.POSITIVE_INFINITY,
+        },
+      ]).isValid,
+    ).toBe(false);
+  });
 });
