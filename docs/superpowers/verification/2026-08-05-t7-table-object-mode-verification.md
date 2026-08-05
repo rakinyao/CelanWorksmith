@@ -22,7 +22,7 @@ yarn jest --no-cache --runInBand --silent \
   src/widgets/TableWidget/widget/propertyConfig.test.ts
 ```
 
-结果：3 个 suite、5 个测试通过。
+结果：3 个 suite、5 个测试通过；另有查询 Saga Filter 白名单回归测试 1 个通过。
 
 新增 Object Table 文件及 Table loader 静态检查：Prettier 通过，ESLint 0 errors；Table 原文件保留仓库既有 objectKeys/perf warning。
 

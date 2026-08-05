@@ -21,7 +21,7 @@ yarn jest --no-cache --runInBand --silent \
   src/sagas/__tests__/CelanworksmithObjectQuerySaga.test.ts
 ```
 
-结果：2 个 suite、4 个测试通过。
+结果：2 个 suite、5 个测试通过。
 
 ActionButton 回归测试：3 个 suite、6 个测试通过。新增查询层和 ActionButton 相关文件 Prettier 通过；ESLint 0 errors，剩余 warning 为仓库既有 JSX/useEffect 性能规则。
 
@@ -30,3 +30,4 @@ ActionButton 回归测试：3 个 suite、6 个测试通过。新增查询层和
 - T7 Table Object 模式消费 query selector，使用 Table 的 pageNo、sortOrder、filters 生成 query intent。
 - T7 Form Object 模式不直接使用分页查询；表单提交复用 T5 Action 执行链。
 - 当前 query layer 尚未绑定具体 Table UI，暂不改变原生 Query Table/Form 行为。
+- Saga 只接受版本为 1、typeId 匹配、propertyId 和 operator 均在白名单内的结构化 Filter JSON。

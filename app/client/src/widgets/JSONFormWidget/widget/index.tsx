@@ -5,6 +5,7 @@ import { debounce, difference, isEmpty, merge, noop } from "lodash";
 import type { WidgetProps, WidgetState } from "widgets/BaseWidget";
 import BaseWidget from "widgets/BaseWidget";
 import JSONFormComponent from "../component";
+import ObjectFormMode from "../component/ObjectFormMode";
 import { contentConfig, styleConfig } from "./propertyConfig";
 import type { DerivedPropertiesMap } from "WidgetProvider/factory/types";
 import type { ExecuteTriggerPayload } from "constants/AppsmithActionConstants/ActionConstants";
@@ -59,6 +60,7 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 
 import { RenderModes, WIDGET_TAGS } from "constants/WidgetConstants";
+import { ValidationTypes } from "constants/WidgetValidation";
 import type {
   WidgetQueryConfig,
   WidgetQueryGenerationFormConfig,
@@ -83,6 +85,10 @@ const RESET_BUTTON_DEFAULT_STYLES = {
 };
 
 export interface JSONFormWidgetProps extends WidgetProps {
+  formMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
+  objectData?: unknown;
+  objectActionId?: string;
   autoGenerateForm?: boolean;
   borderColor?: string;
   borderRadius?: number;
@@ -183,6 +189,10 @@ class JSONFormWidget extends BaseWidget<
       responsiveBehavior: ResponsiveBehavior.Fill,
       minWidth: FILL_WIDGET_MIN_WIDTH,
       useSourceData: false,
+      formMode: "QUERY",
+      objectTypeId: undefined,
+      objectData: undefined,
+      objectActionId: undefined,
       animateLoading: true,
       backgroundColor: "#fff",
       columns: 25,
@@ -344,7 +354,50 @@ class JSONFormWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
-    return contentConfig;
+    return [
+      {
+        sectionName: "CelanWorksmith Object form",
+        children: [
+          {
+            propertyName: "formMode",
+            label: "Form mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Query", value: "QUERY" },
+              { label: "Object", value: "OBJECT" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Object type",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectData",
+            label: "Object data",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
+          },
+          {
+            propertyName: "objectActionId",
+            label: "Submit Action",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+        ],
+      },
+      ...contentConfig,
+    ];
   }
 
   static getPropertyPaneStyleConfig() {
@@ -365,6 +418,7 @@ class JSONFormWidget extends BaseWidget<
     return {
       formData: {},
       fieldState: {},
+      executionStatus: "idle",
     };
   }
 
@@ -477,6 +531,7 @@ class JSONFormWidget extends BaseWidget<
         fieldState: generateTypeDef(widget.fieldState),
         isValid: "bool",
         isVisible: DefaultAutocompleteDefinitions.isVisible,
+        executionStatus: "string",
       };
 
       return definitions;
@@ -829,6 +884,17 @@ class JSONFormWidget extends BaseWidget<
   };
 
   getWidgetView() {
+    if (this.props.formMode === "OBJECT") {
+      return (
+        <ObjectFormMode
+          actionId={this.props.objectActionId}
+          objectData={this.props.objectData}
+          objectTypeId={this.props.objectTypeId}
+          updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
+        />
+      );
+    }
+
     const isAutoHeightEnabled = isAutoHeightEnabledForWidget(this.props);
 
     return (

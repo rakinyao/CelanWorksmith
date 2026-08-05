@@ -26,7 +26,7 @@ class FilterListWidget extends BaseWidget<FilterListWidgetProps, WidgetState> {
       name: "Filter List",
       iconSVG: IconSVG,
       thumbnailSVG: ThumbnailSVG,
-      tags: [WIDGET_TAGS.DATA],
+      tags: [WIDGET_TAGS.DISPLAY],
       searchTags: ["filter", "list", "object", "ontology"],
       needsMeta: true,
     };

@@ -22,7 +22,9 @@ export const getObjectTableColumns = (
   })),
 ];
 
-export const getObjectTableRows = (result?: CelanworksmithObjectSet) =>
+export const getObjectTableRows = (
+  result?: CelanworksmithObjectSet,
+): Array<Record<string, unknown>> =>
   (result?.items || []).map((item) => ({
     id: item.id,
     typeId: item.typeId,

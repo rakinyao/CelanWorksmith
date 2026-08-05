@@ -17,6 +17,16 @@ import { call, put, select, takeEvery } from "redux-saga/effects";
 
 export const CELANWORKSMITH_OBJECT_QUERY_MAX_LIMIT = 100;
 const inFlight = new Set<string>();
+const FILTER_OPERATORS = new Set([
+  "equals",
+  "contains",
+  "startsWith",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "isEmpty",
+]);
 
 const getKey = (request: CelanworksmithObjectQueryRequest) =>
   `${request.widgetId}/${request.typeId}/${JSON.stringify(request.query || {})}`;
@@ -40,6 +50,38 @@ const normalizeQuery = (
       code: "INVALID_ARGUMENT",
       message: "The sort property is invalid.",
     };
+  }
+
+  if (query.filter !== undefined) {
+    const filter = query.filter;
+    const conditions =
+      typeof filter === "object" && !Array.isArray(filter)
+        ? (filter as Record<string, unknown>).conditions
+        : undefined;
+
+    if (
+      typeof filter !== "object" ||
+      Array.isArray(filter) ||
+      (filter as Record<string, unknown>).typeId !== request.typeId ||
+      (filter as Record<string, unknown>).version !== 1 ||
+      !Array.isArray(conditions) ||
+      conditions.some(
+        (condition) =>
+          !condition ||
+          typeof condition !== "object" ||
+          !propertyIds.has(
+            String((condition as Record<string, unknown>).propertyId),
+          ) ||
+          !FILTER_OPERATORS.has(
+            String((condition as Record<string, unknown>).operator),
+          ),
+      )
+    ) {
+      throw {
+        code: "INVALID_ARGUMENT",
+        message: "The object filter is invalid.",
+      };
+    }
   }
 
   return { ...query, offset, limit };

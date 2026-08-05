@@ -73,4 +73,25 @@ describe("loadCelanworksmithObjectQuery", () => {
     );
     expect(iterator.next().value).toMatchObject({ type: "PUT" });
   });
+
+  test("rejects an unversioned or unsupported object filter", () => {
+    const invalidRequest = {
+      ...request,
+      query: {
+        ...request.query,
+        filter: {
+          typeId: "PurchaseOrder",
+          version: 2,
+          conditions: [{ propertyId: "status", operator: "raw" }],
+        },
+      },
+    };
+    const iterator = loadCelanworksmithObjectQuery(
+      celanworksmithObjectQueryRequested(invalidRequest),
+    );
+
+    iterator.next();
+    iterator.next({ types: { PurchaseOrder: { metadata } } });
+    expect(iterator.next().value).toMatchObject({ type: "PUT" });
+  });
 });
