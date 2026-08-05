@@ -14,6 +14,8 @@ public class UserUpdateCE_DTO {
 
     private String useCase;
 
+    private String locale;
+
     @JsonProperty("intercomConsentGiven")
     private boolean isIntercomConsentGiven;
 
@@ -22,6 +24,6 @@ public class UserUpdateCE_DTO {
     }
 
     public boolean hasUserDataUpdates() {
-        return proficiency != null || useCase != null || isIntercomConsentGiven;
+        return proficiency != null || useCase != null || locale != null || isIntercomConsentGiven;
     }
 }

@@ -13,6 +13,7 @@ import {
   JS_COLLECTION_ID_PATH,
   QUERIES_EDITOR_ID_ADD_PATH,
   QUERIES_EDITOR_ID_PATH,
+  ONTOLOGY_EDITOR_PATH,
   WIDGETS_EDITOR_ID_PATH,
 } from "ee/constants/routes/appRoutes";
 import {
@@ -37,6 +38,7 @@ export const EntityPaths: string[] = [
   JS_COLLECTION_ID_ADD_PATH,
   WIDGETS_EDITOR_ID_PATH,
   WIDGETS_EDITOR_ID_PATH + ADD_PATH,
+  ONTOLOGY_EDITOR_PATH,
   ENTITY_PATH,
 ];
 export const IDEBasePaths: Readonly<Record<IDEType, string[]>> = {

@@ -9,7 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@ComponentScan({"com.appsmith"})
+@ComponentScan({"com.appsmith", "com.celanworksmith"})
 @EnableScheduling
 @Slf4j
 public class ServerApplication {

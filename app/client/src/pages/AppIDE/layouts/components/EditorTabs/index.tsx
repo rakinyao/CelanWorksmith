@@ -97,7 +97,8 @@ const EditorTabs = () => {
     dispatch(setListViewActiveState(false));
   });
 
-  if (segment === EditorEntityTab.UI) return null;
+  if (segment === EditorEntityTab.UI || segment === EditorEntityTab.ONTOLOGY)
+    return null;
 
   return (
     <>

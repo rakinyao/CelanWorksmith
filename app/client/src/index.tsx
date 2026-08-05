@@ -31,6 +31,9 @@ import GlobalStyles from "globalStyles";
 import AppErrorBoundary from "./AppErrorBoundry";
 import log from "loglevel";
 import { FaroErrorBoundary } from "@grafana/faro-react";
+import { I18nextProvider } from "react-i18next";
+import i18n from "./i18n";
+import LocaleSync from "./i18n/LocaleSync";
 
 runSagaMiddleware();
 
@@ -48,9 +51,12 @@ function App() {
   return (
     <FaroErrorBoundary fallback={<div>An error has occured</div>}>
       <Provider store={store}>
-        <LayersContext.Provider value={Layers}>
-          <ThemedAppWithProps />
-        </LayersContext.Provider>
+        <I18nextProvider i18n={i18n}>
+          <LocaleSync />
+          <LayersContext.Provider value={Layers}>
+            <ThemedAppWithProps />
+          </LayersContext.Provider>
+        </I18nextProvider>
       </Provider>
     </FaroErrorBoundary>
   );

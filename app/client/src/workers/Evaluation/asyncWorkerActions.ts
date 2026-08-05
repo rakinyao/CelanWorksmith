@@ -11,7 +11,7 @@ export async function UNSTABLE_executeDynamicTrigger(dynamicTrigger: string) {
 
   await registerAllWidgets();
 
-  const unEvalTree = getUnevaluatedDataTree(state);
+  const unEvalTree = getUnevaluatedDataTree(state, store.dispatch);
 
   const result = runSaga(
     {},

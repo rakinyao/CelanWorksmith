@@ -6,6 +6,8 @@ import {
   VERIFICATION_PENDING_NOT_YOU,
   VERIFICATION_PENDING_RESEND_LINK,
   VERIFICATION_PENDING_TITLE,
+  AUTH_VERIFICATION_EMAIL_BODY,
+  AUTH_VERIFICATION_TROUBLE,
 } from "ee/constants/messages";
 import type { RouteComponentProps } from "react-router-dom";
 import { Button, Callout, Link, Text } from "@appsmith/ads";
@@ -19,10 +21,6 @@ const Body = styled.div`
   align-items: center;
   text-align: center;
 `;
-const Email = styled(Text)`
-  font-weight: var(--ads-v2-font-weight-bold);
-`;
-
 const VerificationPending = (props: RouteComponentProps<{ email: string }>) => {
   const queryParams = new URLSearchParams(props.location.search);
   const email = queryParams.get("email");
@@ -44,8 +42,7 @@ const VerificationPending = (props: RouteComponentProps<{ email: string }>) => {
     >
       <Body>
         <Text kind={"body-m"}>
-          Click the verification link sent to <Email>{email}</Email> to finish
-          setting up your account.
+          {createMessage(AUTH_VERIFICATION_EMAIL_BODY, email || "")}
         </Text>
       </Body>
       <Body>
@@ -63,8 +60,7 @@ const VerificationPending = (props: RouteComponentProps<{ email: string }>) => {
       </Button>
       {clicks > 1 ? (
         <Callout kind="warning">
-          Still having trouble with the email? Reach out to the instance admin,
-          and they can help you get started
+          {createMessage(AUTH_VERIFICATION_TROUBLE)}
         </Callout>
       ) : null}
     </Container>

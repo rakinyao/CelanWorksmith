@@ -469,7 +469,7 @@ export function* inviteUsers(
 
 export function* updateUserDetailsSaga(action: ReduxAction<UpdateUserRequest>) {
   try {
-    const { email, intercomConsentGiven, name, proficiency, useCase } =
+    const { email, intercomConsentGiven, locale, name, proficiency, useCase } =
       action.payload;
 
     const response: ApiResponse = yield callAPI(UserApi.updateUser, {
@@ -478,6 +478,7 @@ export function* updateUserDetailsSaga(action: ReduxAction<UpdateUserRequest>) {
       proficiency,
       useCase,
       intercomConsentGiven,
+      locale,
     });
     const isValidResponse: boolean = yield validateResponse(response);
 

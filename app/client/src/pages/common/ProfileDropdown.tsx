@@ -19,8 +19,9 @@ import {
 } from "./CustomizedDropdown/dropdownHelpers";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import { ADMIN_SETTINGS_CATEGORY_PROFILE_PATH } from "constants/routes";
-import { ACCOUNT_TOOLTIP, createMessage } from "ee/constants/messages";
 import type { NavigationSetting } from "constants/AppConstants";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "i18n/LanguageSwitcher";
 
 type TagProps = CommonComponentProps & {
   onClick?: (text: string) => void;
@@ -68,6 +69,8 @@ const UserNameWrapper = styled.div`
 `;
 
 export default function ProfileDropdown(props: TagProps) {
+  const { t } = useTranslation();
+
   function Profile(label?: string) {
     return (
       <Avatar
@@ -82,7 +85,7 @@ export default function ProfileDropdown(props: TagProps) {
 
   return (
     <Menu>
-      <MenuTrigger>{Profile(createMessage(ACCOUNT_TOOLTIP))}</MenuTrigger>
+      <MenuTrigger>{Profile(t("navigation.account"))}</MenuTrigger>
       <MenuContent align="end">
         <MenuItem className="menuitem-nohover">
           <UserInformation>
@@ -101,6 +104,9 @@ export default function ProfileDropdown(props: TagProps) {
           </UserInformation>
         </MenuItem>
         <MenuSeparator />
+        <MenuItem className="menuitem-nohover">
+          <LanguageSwitcher />
+        </MenuItem>
         {!props.hideEditProfileLink && (
           <MenuItem
             className={`t--edit-profile ${BlueprintClasses.POPOVER_DISMISS}`}
@@ -111,7 +117,7 @@ export default function ProfileDropdown(props: TagProps) {
             }}
             startIcon="pencil-line"
           >
-            Edit profile
+            {t("navigation.editProfile")}
           </MenuItem>
         )}
         <MenuItem
@@ -123,7 +129,7 @@ export default function ProfileDropdown(props: TagProps) {
           }
           startIcon="logout"
         >
-          Sign out
+          {t("navigation.signOut")}
         </MenuItem>
       </MenuContent>
     </Menu>

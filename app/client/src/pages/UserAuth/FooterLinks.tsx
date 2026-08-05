@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "@appsmith/ads";
 import styled from "styled-components";
+import { useTranslation } from "react-i18next";
 
 const FooterWrapper = styled.div`
   width: 85%;
@@ -18,15 +19,17 @@ const FooterWrapper = styled.div`
 `;
 
 function FooterLinks() {
+  const { t } = useTranslation();
+
   return (
     <FooterWrapper>
-      By using Appsmith, you are agreeing to our &nbsp;
+      {t("footer.usingAppsmithAgreement")} &nbsp;
       <Link target="_blank" to="/privacy-policy.html">
-        privacy policy
+        {t("footer.privacyPolicy")}
       </Link>
-      &nbsp; and &nbsp;
+      &nbsp; {t("footer.and")} &nbsp;
       <Link target="_blank" to="/terms-and-conditions.html">
-        terms of service
+        {t("footer.termsOfService")}
       </Link>
       .
     </FooterWrapper>

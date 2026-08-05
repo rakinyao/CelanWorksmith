@@ -29,6 +29,7 @@ import {
   RESET_PASSWORD_INVALID_TOKEN,
   RESET_PASSWORD_RESET_SUCCESS,
   RESET_PASSWORD_RESET_SUCCESS_LOGIN_LINK,
+  AUTH_BACK_TO,
   createMessage,
 } from "ee/constants/messages";
 import Container from "./Container";
@@ -166,7 +167,7 @@ export function ResetPassword(props: ResetPasswordProps) {
   const footerSection = (
     <div className="px-2 flex items-center justify-center text-center text-[color:var(--ads-v2\-color-fg)] text-[14px]">
       <Icon name="arrow-left-line" size="md" />
-      &nbsp; Back to &nbsp;
+      &nbsp; {createMessage(AUTH_BACK_TO)} &nbsp;
       <Link
         className="text-sm justify-center"
         kind="primary"

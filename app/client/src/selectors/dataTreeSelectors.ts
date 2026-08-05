@@ -45,6 +45,14 @@ import { getCurrentAppWorkspace } from "ee/selectors/selectedWorkspaceSelectors"
 import type { PageListReduxState } from "reducers/entityReducers/pageListReducer";
 import { getCurrentEnvironmentName } from "ee/selectors/dataTreeCyclicSelectors";
 import { objectKeys } from "@appsmith/utils";
+import { generateCelanworksmithObjectsDataTree } from "entities/DataTree/dataTreeCelanworksmith";
+import type { CelanworksmithObjectsState } from "reducers/celanworksmithObjectsReducer";
+import { generateCelanworksmithExecutionDataTree } from "entities/DataTree/dataTreeCelanworksmithExecution";
+import type { CelanworksmithDataTreeDispatch } from "ee/entities/DataTree/types";
+import {
+  getCelanworksmithExecutionState,
+  getCelanworksmithOntologyState,
+} from "selectors/celanworksmithSelectors";
 
 export const getLoadingEntities = (state: DefaultRootState) =>
   state.evaluations.loadingEntities;
@@ -143,6 +151,58 @@ const getCurrentPageName = createSelector(
       ?.pageName,
 );
 
+export const getCelanworksmithObjectsState = (
+  state: DefaultRootState,
+): CelanworksmithObjectsState =>
+  (state.celanworksmithObjects as CelanworksmithObjectsState | undefined) || {
+    status: "idle",
+    types: {},
+  };
+
+export const getCelanworksmithObjectsDataTree = createSelector(
+  getCelanworksmithObjectsState,
+  generateCelanworksmithObjectsDataTree,
+);
+
+const getCelanworksmithDataTreeDispatch = (
+  _state: DefaultRootState,
+  dispatch?: unknown,
+): CelanworksmithDataTreeDispatch =>
+  typeof dispatch === "function"
+    ? (dispatch as CelanworksmithDataTreeDispatch)
+    : () => undefined;
+
+const selectCelanworksmithOntologyState = (state: DefaultRootState) =>
+  getCelanworksmithOntologyState(state);
+const selectCelanworksmithExecutionState = (state: DefaultRootState) =>
+  getCelanworksmithExecutionState(state);
+
+export const getCelanworksmithExecutionDataTree = createSelector(
+  selectCelanworksmithOntologyState,
+  selectCelanworksmithExecutionState,
+  getCelanworksmithDataTreeDispatch,
+  (ontology, execution, dispatch) =>
+    generateCelanworksmithExecutionDataTree({ ontology, execution }, dispatch),
+);
+
+const getCelanworksmithDataTree = createSelector(
+  getCelanworksmithObjectsDataTree,
+  getCelanworksmithExecutionDataTree,
+  (objects, execution) => ({ objects, execution }),
+);
+
+export const buildDataTreeForAutocomplete = (
+  tree: DataTree,
+  celanworksmithObjects: ReturnType<typeof getCelanworksmithObjectsDataTree>,
+  celanworksmithExecution: ReturnType<
+    typeof getCelanworksmithExecutionDataTree
+  >,
+): DataTree => ({
+  ..._.omit(tree, objectKeys(DATATREE_INTERNAL_KEYWORDS)),
+  $objects: celanworksmithObjects,
+  ...celanworksmithExecution,
+});
+
 export const getUnevaluatedDataTree = createSelector(
   getActionsFromUnevaluatedDataTree,
   getJSActionsFromUnevaluatedDataTree,
@@ -155,6 +215,8 @@ export const getUnevaluatedDataTree = createSelector(
   getCurrentApplication,
   getCurrentPageName,
   getCurrentEnvironmentName,
+  getCelanworksmithDataTree,
+  getCelanworksmithDataTreeDispatch,
   (
     actions,
     jsActions,
@@ -167,7 +229,10 @@ export const getUnevaluatedDataTree = createSelector(
     currentApplication,
     getCurrentPageName,
     currentEnvironmentName,
+    celanworksmithDataTree,
+    _dispatch,
   ) => {
+    void _dispatch;
     let dataTree: UnEvalTree = {
       ...actions.dataTree,
       ...jsActions.dataTree,
@@ -192,6 +257,8 @@ export const getUnevaluatedDataTree = createSelector(
       currentEnvironmentName,
       ENTITY_TYPE: ENTITY_TYPE.APPSMITH,
     } as AppsmithEntity;
+    dataTree.$objects = celanworksmithDataTree.objects;
+    dataTree = { ...dataTree, ...celanworksmithDataTree.execution };
     dataTree = { ...dataTree, ...metaWidgets.dataTree };
     configTree = { ...configTree, ...metaWidgets.configTree };
 
@@ -234,8 +301,14 @@ export const getWidgetEvalValues = createSelector(
 // there isn't a response already
 export const getDataTreeForAutocomplete = createSelector(
   getDataTree,
-  (tree: DataTree) => {
-    return _.omit(tree, objectKeys(DATATREE_INTERNAL_KEYWORDS));
+  getCelanworksmithObjectsDataTree,
+  getCelanworksmithExecutionDataTree,
+  (tree: DataTree, celanworksmithObjects, celanworksmithExecution) => {
+    return buildDataTreeForAutocomplete(
+      tree,
+      celanworksmithObjects,
+      celanworksmithExecution,
+    );
   },
 );
 

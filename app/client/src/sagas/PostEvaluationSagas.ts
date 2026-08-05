@@ -12,7 +12,6 @@ import type {
 import type { DataTreeDiff } from "ee/workers/Evaluation/evaluationUtils";
 import {
   DataTreeDiffEvent,
-  getDataTreeForAutocomplete,
   getEntityNameAndPropertyPath,
   isAction,
   isJSAction,
@@ -30,6 +29,7 @@ import {
   race,
   all,
   debounce,
+  takeLatest,
 } from "redux-saga/effects";
 import type { AnyReduxAction, ReduxAction } from "actions/ReduxActionTypes";
 import AppsmithConsole from "utils/AppsmithConsole";
@@ -53,7 +53,10 @@ import { getJSActionPathNameToDisplay } from "ee/utils/actionExecutionUtils";
 import { showToastOnExecutionError } from "./ActionExecution/errorUtils";
 import { waitForFetchEnvironments } from "ee/sagas/EnvironmentSagas";
 import { startExecutingJSFunction } from "actions/jsPaneActions";
-import { getJSCollection } from "ee/selectors/entitiesSelector";
+import {
+  getAllJSActionsData,
+  getJSCollection,
+} from "ee/selectors/entitiesSelector";
 import {
   ReduxActionErrorTypes,
   ReduxActionTypes,
@@ -63,6 +66,13 @@ import { ActionRunBehaviour } from "PluginActionEditor/types/PluginActionTypes";
 import { getOnLoadActionsWithExecutionStatus } from "selectors/editorSelectors";
 import { executionForJSModuleInstance } from "ee/sagas/moduleInstanceSagaUtils";
 import { runAction } from "actions/pluginActionActions";
+import {
+  buildDataTreeForAutocomplete,
+  getCelanworksmithObjectsDataTree,
+  getCelanworksmithExecutionDataTree,
+  getConfigTree,
+  getDataTree,
+} from "selectors/dataTreeSelectors";
 
 let successfulBindingsMap: SuccessfulBindingMap | undefined;
 
@@ -237,20 +247,31 @@ export function* updateTernDefinitions(
   updates: DataTreeDiff[],
   isCreateFirstTree: boolean,
   jsData: Record<string, unknown> = {},
+  forceUpdate = false,
 ) {
   const span = startRootSpan("updateTernDefinitions");
   const shouldUpdate: boolean =
+    forceUpdate ||
     isCreateFirstTree ||
     some(updates, (update) => {
       if (update.event === DataTreeDiffEvent.NEW) return true;
 
       if (update.event === DataTreeDiffEvent.DELETE) return true;
 
-      if (update.event === DataTreeDiffEvent.EDIT) return false;
-
       const { entityName } = getEntityNameAndPropertyPath(
         update.payload.propertyPath,
       );
+
+      if (
+        entityName === "$objects" ||
+        entityName === "$functions" ||
+        entityName === "$actions"
+      ) {
+        return true;
+      }
+
+      if (update.event === DataTreeDiffEvent.EDIT) return false;
+
       const entity = dataTree[entityName];
 
       if (!entity || !isWidget(entity)) return false;
@@ -270,9 +291,16 @@ export function* updateTernDefinitions(
   const start = performance.now();
 
   // remove private and suppressAutoComplete widgets from dataTree used for autocompletion
-  const dataTreeForAutocomplete = getDataTreeForAutocomplete(
+  const celanworksmithObjects: ReturnType<
+    typeof getCelanworksmithObjectsDataTree
+  > = yield select(getCelanworksmithObjectsDataTree);
+  const celanworksmithExecution: ReturnType<
+    typeof getCelanworksmithExecutionDataTree
+  > = yield select(getCelanworksmithExecutionDataTree);
+  const dataTreeForAutocomplete = buildDataTreeForAutocomplete(
     dataTree,
-    configTree,
+    celanworksmithObjects,
+    celanworksmithExecution,
   );
   const { def, entityInfo } = dataTreeTypeDefCreator(
     dataTreeForAutocomplete,
@@ -286,6 +314,22 @@ export function* updateTernDefinitions(
   log.debug("Tern", { updates });
   log.debug("Tern definitions updated took ", (end - start).toFixed(2));
   endSpan(span);
+}
+
+export function* refreshCelanworksmithTernDefinitions() {
+  const dataTree: DataTree = yield select(getDataTree);
+  const configTree: ConfigTree = getConfigTree();
+  const jsData: Record<string, unknown> = yield select(getAllJSActionsData);
+
+  yield call(
+    updateTernDefinitions,
+    dataTree,
+    configTree,
+    [],
+    false,
+    jsData,
+    true,
+  );
 }
 
 export function* handleJSFunctionExecutionErrorLog(
@@ -458,6 +502,14 @@ export default function* PostEvaluationSagas() {
       1000,
       ReduxActionTypes.EXECUTE_REACTIVE_QUERIES,
       executeReactiveQueries,
+    ),
+    takeLatest(
+      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_SUCCESS,
+      refreshCelanworksmithTernDefinitions,
+    ),
+    takeLatest(
+      ReduxActionTypes.CELANWORKSMITH_ONTOLOGY_LOAD_SUCCESS,
+      refreshCelanworksmithTernDefinitions,
     ),
   ]);
 }

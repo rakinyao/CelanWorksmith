@@ -42,6 +42,7 @@ public class FieldNameCE {
     public static final String SIZE = "size";
     public static final String ROLE = "role";
     public static final String PROFICIENCY = "proficiency";
+    public static final String LOCALE = "locale";
     public static final String DEFAULT_WIDGET_NAME = "MainContainer";
     public static final String DEFAULT_PAGE_LAYOUT = "{\n" + "        \"widgetName\": \"MainContainer\",\n"
             + "        \"backgroundColor\": \"none\",\n"

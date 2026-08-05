@@ -1,4 +1,5 @@
 import type { PageErrorMessageProps } from "pages/common/ErrorPages/Components/PageErrorMessage";
+import i18n from "i18n";
 
 export // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,108 +44,125 @@ export const NAME_SPACE_ERROR = () => `Name must not have spaces`;
 export const APLHANUMERIC_HYPHEN_SLASH_SPACE_ERROR = () =>
   `Name must only contain alphanumeric characters, hyphen, slash, and space`;
 
-export const FORM_VALIDATION_EMPTY_EMAIL = () => `Please enter an email`;
-export const FORM_VALIDATION_INVALID_EMAIL = () =>
-  `Please provide a valid email address`;
+export const FORM_VALIDATION_EMPTY_EMAIL = () => i18n.t("auth.emailRequired");
+export const FORM_VALIDATION_INVALID_EMAIL = () => i18n.t("auth.invalidEmail");
 export const ENTER_VIDEO_URL = () => `Please provide a valid url`;
 export const ENTER_AUDIO_URL = () => `Please provide a valid url`;
 
-export const FORM_VALIDATION_EMPTY_PASSWORD = () => `Please enter the password`;
-export const FORM_VALIDATION_PASSWORD_RULE = () =>
-  `Please provide a password between 8 and 48 characters`;
+export const FORM_VALIDATION_EMPTY_PASSWORD = () =>
+  i18n.t("auth.passwordRequired");
+export const FORM_VALIDATION_PASSWORD_RULE = () => i18n.t("auth.passwordRule");
 export const FORM_VALIDATION_INVALID_PASSWORD = FORM_VALIDATION_PASSWORD_RULE;
 
-export const LOGIN_PAGE_EMAIL_INPUT_LABEL = () => `Email`;
-export const LOGIN_PAGE_PASSWORD_INPUT_LABEL = () => `Password`;
-export const LOGIN_PAGE_EMAIL_INPUT_PLACEHOLDER = () => `Enter your email`;
+export const LOGIN_PAGE_EMAIL_INPUT_LABEL = () => i18n.t("auth.email");
+export const LOGIN_PAGE_PASSWORD_INPUT_LABEL = () => i18n.t("auth.password");
+export const LOGIN_PAGE_EMAIL_INPUT_PLACEHOLDER = () =>
+  i18n.t("auth.enterYourEmail");
 export const LOGIN_PAGE_PASSWORD_INPUT_PLACEHOLDER = () =>
-  `Enter your password`;
+  i18n.t("auth.enterYourPassword");
 export const LOGIN_PAGE_INVALID_CREDS_ERROR = () =>
-  `It looks like you may have entered incorrect/invalid credentials. Please try again or reset password using the button below.`;
+  i18n.t("auth.invalidCredentials");
 export const LOGIN_PAGE_INVALID_CREDS_FORGOT_PASSWORD_LINK = () =>
-  `Reset password`;
-export const NEW_TO_APPSMITH = () => `Don't have an account?`;
-export const LOGIN_PAGE_TITLE = () => `Sign in to your account`;
-export const LOGIN_PAGE_SUBTITLE = () => `Sign in to your account`;
+  i18n.t("auth.forgotPassword");
+export const NEW_TO_APPSMITH = () => i18n.t("auth.newToAppsmith");
+export const LOGIN_PAGE_TITLE = () => i18n.t("auth.signInTitle");
+export const LOGIN_PAGE_SUBTITLE = () => i18n.t("auth.signInTitle");
 
-export const LOGIN_PAGE_LOGIN_BUTTON_TEXT = () => `Sign in`;
-export const LOGIN_PAGE_FORGOT_PASSWORD_TEXT = () => `Forgot password`;
-export const LOGIN_PAGE_REMEMBER_ME_LABEL = () => `Remember`;
-export const LOGIN_PAGE_SIGN_UP_LINK_TEXT = () => `Sign up`;
-export const SIGNUP_PAGE_TITLE = () => `Create your account`;
-export const SIGNUP_PAGE_SUBTITLE = () => `Use your workspace email`;
-export const SIGNUP_PAGE_EMAIL_INPUT_LABEL = () => `Email`;
-export const SIGNUP_PAGE_EMAIL_INPUT_PLACEHOLDER = () => `Enter your email`;
-export const SIGNUP_PAGE_NAME_INPUT_PLACEHOLDER = () => `Name`;
-export const SIGNUP_PAGE_NAME_INPUT_LABEL = () => `Name`;
-export const SIGNUP_PAGE_PASSWORD_INPUT_LABEL = () => `Password`;
+export const LOGIN_PAGE_LOGIN_BUTTON_TEXT = () => i18n.t("auth.signIn");
+export const LOGIN_PAGE_FORGOT_PASSWORD_TEXT = () =>
+  i18n.t("auth.forgotPassword");
+export const LOGIN_PAGE_REMEMBER_ME_LABEL = () => i18n.t("auth.remember");
+export const LOGIN_PAGE_SIGN_UP_LINK_TEXT = () => i18n.t("auth.signUp");
+export const SIGNUP_PAGE_TITLE = () => i18n.t("auth.createAccount");
+export const SIGNUP_PAGE_SUBTITLE = () => i18n.t("auth.workspaceEmail");
+export const SIGNUP_PAGE_EMAIL_INPUT_LABEL = () => i18n.t("auth.email");
+export const SIGNUP_PAGE_EMAIL_INPUT_PLACEHOLDER = () =>
+  i18n.t("auth.enterYourEmail");
+export const SIGNUP_PAGE_NAME_INPUT_PLACEHOLDER = () => i18n.t("auth.name");
+export const SIGNUP_PAGE_NAME_INPUT_LABEL = () => i18n.t("auth.name");
+export const SIGNUP_PAGE_PASSWORD_INPUT_LABEL = () => i18n.t("auth.password");
 export const SIGNUP_PAGE_PASSWORD_INPUT_PLACEHOLDER = () =>
-  `Enter your password`;
-export const SIGNUP_PAGE_LOGIN_LINK_TEXT = () => `Sign in`;
-export const SIGNUP_PAGE_NAME_INPUT_SUBTEXT = () => `How should we call you?`;
-export const SIGNUP_PAGE_SUBMIT_BUTTON_TEXT = () => `Sign up`;
-export const ALREADY_HAVE_AN_ACCOUNT = () => `Already have an account?`;
-export const LOOKING_TO_SELF_HOST = () => "Looking to self-host Appsmith?";
-export const VISIT_OUR_DOCS = () => "Visit our docs";
-export const ALREADY_USING_APPSMITH = () => `Already using Appsmith?`;
-export const USING_APPSMITH = () => `Using Appsmith?`;
-export const YOU_VE_ALREADY_SIGNED_INTO = () => `You've already signed into`;
+  i18n.t("auth.enterYourPassword");
+export const SIGNUP_PAGE_LOGIN_LINK_TEXT = () => i18n.t("auth.signIn");
+export const SIGNUP_PAGE_NAME_INPUT_SUBTEXT = () =>
+  i18n.t("auth.howShouldWeCallYou");
+export const SIGNUP_PAGE_SUBMIT_BUTTON_TEXT = () => i18n.t("auth.signUp");
+export const ALREADY_HAVE_AN_ACCOUNT = () => i18n.t("auth.alreadyHaveAccount");
+export const LOOKING_TO_SELF_HOST = () => i18n.t("auth.lookingToSelfHost");
+export const VISIT_OUR_DOCS = () => i18n.t("auth.visitOurDocs");
+export const ALREADY_USING_APPSMITH = () => i18n.t("auth.alreadyUsingAppsmith");
+export const USING_APPSMITH = () => i18n.t("auth.usingAppsmith");
+export const YOU_VE_ALREADY_SIGNED_INTO = () =>
+  i18n.t("auth.alreadySignedInto");
 export const SIGN_IN_TO_AN_EXISTING_ORGANISATION = () =>
-  `Sign in to an existing organisation`;
+  i18n.t("auth.signInToExistingOrganisation");
 
-export const SIGNUP_PAGE_SUCCESS = () =>
-  `Awesome! You have successfully registered.`;
-export const SIGNUP_PAGE_SUCCESS_LOGIN_BUTTON_TEXT = () => `Login`;
+export const SIGNUP_PAGE_SUCCESS = () => i18n.t("auth.signupSuccess");
+export const SIGNUP_PAGE_SUCCESS_LOGIN_BUTTON_TEXT = () => i18n.t("auth.login");
 
-export const RESET_PASSWORD_PAGE_PASSWORD_INPUT_LABEL = () => `New password`;
+export const RESET_PASSWORD_PAGE_PASSWORD_INPUT_LABEL = () =>
+  i18n.t("auth.newPassword");
 export const RESET_PASSWORD_PAGE_PASSWORD_INPUT_PLACEHOLDER = () =>
-  `New Password`;
-export const RESET_PASSWORD_LOGIN_LINK_TEXT = () => `Back to sign in`;
-export const RESET_PASSWORD_PAGE_TITLE = () => `Reset password`;
-export const RESET_PASSWORD_SUBMIT_BUTTON_TEXT = () => `Reset`;
+  i18n.t("auth.newPassword");
+export const RESET_PASSWORD_LOGIN_LINK_TEXT = () => i18n.t("auth.backToSignIn");
+export const RESET_PASSWORD_PAGE_TITLE = () => i18n.t("auth.resetPassword");
+export const RESET_PASSWORD_SUBMIT_BUTTON_TEXT = () => i18n.t("auth.reset");
 export const RESET_PASSWORD_PAGE_SUBTITLE = () =>
-  `Create a new password for your account `;
+  i18n.t("auth.createNewPassword");
 
 export const RESET_PASSWORD_RESET_SUCCESS = () =>
-  `Your password has been reset`; //`Your password has been reset. Please login` (see next entry));
-export const RESET_PASSWORD_RESET_SUCCESS_LOGIN_LINK = () => `Login`;
+  i18n.t("auth.passwordResetSuccess");
+export const RESET_PASSWORD_RESET_SUCCESS_LOGIN_LINK = () =>
+  i18n.t("auth.login");
 
 export const RESET_PASSWORD_EXPIRED_TOKEN = () =>
-  `The password reset link has expired. Please try generating a new link`;
+  i18n.t("auth.passwordResetExpired");
 export const RESET_PASSWORD_INVALID_TOKEN = () =>
-  `The password reset link is invalid. Please try generating a new link`;
-export const RESET_PASSWORD_FORGOT_PASSWORD_LINK = () => `Forgot password`;
+  i18n.t("auth.passwordResetInvalid");
+export const RESET_PASSWORD_FORGOT_PASSWORD_LINK = () =>
+  i18n.t("auth.forgotPassword");
 
-export const FORGOT_PASSWORD_PAGE_EMAIL_INPUT_LABEL = () => `Email`;
+export const FORGOT_PASSWORD_PAGE_EMAIL_INPUT_LABEL = () =>
+  i18n.t("auth.email");
 export const FORGOT_PASSWORD_PAGE_EMAIL_INPUT_PLACEHOLDER = () =>
-  `Enter your email`;
-export const FORGOT_PASSWORD_PAGE_TITLE = () => `Reset password`;
+  i18n.t("auth.enterYourEmail");
+export const FORGOT_PASSWORD_PAGE_TITLE = () => i18n.t("auth.resetPassword");
 export const FORGOT_PASSWORD_PAGE_SUB_TITLE = () =>
-  `Enter the email address associated with your account`;
+  i18n.t("auth.forgotPasswordSubtitle");
 export const FORGOT_PASSWORD_PAGE_SUBTITLE = () =>
-  `We will send a reset link to the email below`;
-export const FORGOT_PASSWORD_PAGE_SUBMIT_BUTTON_TEXT = () => `Send reset link`;
+  i18n.t("auth.forgotPasswordDescription");
+export const FORGOT_PASSWORD_PAGE_SUBMIT_BUTTON_TEXT = () =>
+  i18n.t("auth.sendResetLink");
 export const FORGOT_PASSWORD_SUCCESS_TEXT = (email: string) =>
-  `A password reset link has been sent to your email address ${email} registered with Appsmith.`;
+  i18n.t("auth.forgotPasswordSuccess", { email });
 
-export const VERIFICATION_PENDING_TITLE = () => `Check your inbox`;
+export const VERIFICATION_PENDING_TITLE = () => i18n.t("auth.checkYourInbox");
 export const VERIFICATION_PENDING_BODY = () =>
-  `To finish your account setup click on the verification link we have sent in an email to `;
+  i18n.t("auth.verificationPendingBody");
 
-export const VERIFICATION_PENDING_NOT_YOU = () => `Not you?`;
+export const VERIFICATION_PENDING_NOT_YOU = () => i18n.t("auth.notYou");
 
 export const VERIFICATION_PENDING_NO_EMAIL = () =>
-  `No email in your inbox or spam folder?`;
+  i18n.t("auth.noEmailInInbox");
 
-export const VERIFICATION_PENDING_RESEND_LINK = () => `Resend link`;
+export const VERIFICATION_PENDING_RESEND_LINK = () => i18n.t("auth.resendLink");
 
 export const VERIFY_ERROR_ALREADY_VERIFIED_TITLE = () =>
-  `Email already verified`;
+  i18n.t("auth.emailAlreadyVerified");
 
-export const VERIFY_ERROR_EXPIRED_TITLE = () => "Oops, this link has expired";
+export const VERIFY_ERROR_EXPIRED_TITLE = () => i18n.t("auth.linkExpired");
 
-export const VERIFY_ERROR_MISMATCH_TITLE = () =>
-  "This link seems damaged. Please request a new link";
+export const VERIFY_ERROR_MISMATCH_TITLE = () => i18n.t("auth.linkDamaged");
+export const AUTH_BACK_TO = () => i18n.t("auth.backTo");
+export const AUTH_CONFIGURE_EMAIL_SERVICE = () =>
+  i18n.t("auth.configureEmailService");
+export const AUTH_EMAIL_SERVICE_MISSING = () =>
+  i18n.t("auth.emailServiceMissing");
+export const AUTH_SEND_NEW_LINK = () => i18n.t("auth.sendNewLink");
+export const AUTH_VERIFICATION_EMAIL_BODY = (email: string) =>
+  i18n.t("auth.verificationEmailBody", { email });
+export const AUTH_VERIFICATION_TROUBLE = () =>
+  i18n.t("auth.verificationTrouble");
 
 export const PRIVACY_POLICY_LINK = () => `Privacy policy`;
 export const TERMS_AND_CONDITIONS_LINK = () => `Terms and conditions`;
@@ -1466,7 +1484,7 @@ export const WELCOME_FORM_NEWLETTER_LABEL = () =>
 export const WELCOME_FORM_SUBMIT_LABEL = () => "Make your first app";
 
 //help tooltips
-export const ACCOUNT_TOOLTIP = () => "Your account";
+export const ACCOUNT_TOOLTIP = () => i18n.t("navigation.account");
 export const RENAME_APPLICATION_TOOLTIP = () => "Rename application";
 export const LOGO_TOOLTIP = () => "Back to homepage";
 export const ADD_PAGE_TOOLTIP = () => "Add a new page";
@@ -2509,6 +2527,7 @@ export const EDITOR_PANE_TEXTS = {
   queries_tab: () => "Queries",
   js_tab: () => "JS",
   ui_tab: () => "UI",
+  ontology_tab: () => "Ontology / 本体",
   query_blank_state: () => "No queries to display",
   js_blank_state: () => "No JS objects to display",
   query_blank_state_description: () =>

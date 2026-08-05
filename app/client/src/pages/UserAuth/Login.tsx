@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Redirect, useLocation } from "react-router-dom";
 import { connect, useSelector } from "react-redux";
 import type { InjectedFormProps, DecoratedFormProps } from "redux-form";
@@ -97,6 +98,7 @@ type ValidateProps = {
 >;
 
 export function Login(props: LoginFormProps) {
+  const { t } = useTranslation();
   const { emailValue: email, error, valid } = props;
   const isFormValid = valid && email && !isEmptyString(email);
   const location = useLocation();
@@ -226,7 +228,7 @@ export function Login(props: LoginFormProps) {
     if (isMultiOrgEnabled && withinOrg && displayName) {
       return (
         <>
-          Sign in to{" "}
+          {t("auth.signInTo")}{" "}
           <span style={{ color: "var(--ads-v2-color-fg-brand)" }}>
             {displayName}
           </span>

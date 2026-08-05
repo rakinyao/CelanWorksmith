@@ -1,3 +1,5 @@
+import type { Locale } from "i18n/types";
+
 export const ANONYMOUS_USERNAME = "anonymousUser";
 
 type Gender = "MALE" | "FEMALE";
@@ -19,6 +21,7 @@ export interface User {
   adminSettingsVisible?: boolean;
   isAnonymous?: boolean;
   isIntercomConsentGiven?: boolean;
+  locale?: Locale;
   emailVerified: boolean;
   // HMAC-SHA256 of the user's email computed server-side using the Pylon identity
   // secret. Used to enable Pylon chat widget identity verification on boot.

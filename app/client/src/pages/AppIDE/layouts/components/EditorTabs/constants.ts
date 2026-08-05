@@ -36,4 +36,9 @@ export const TabSelectors: Record<
     listSelector: () => [],
     itemUrlSelector: () => "",
   },
+  [EditorEntityTab.ONTOLOGY]: {
+    tabsSelector: () => [],
+    listSelector: () => [],
+    itemUrlSelector: () => "",
+  },
 };

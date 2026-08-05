@@ -5,6 +5,7 @@ import {
   jsSegmentRoutes,
   querySegmentRoutes,
   widgetSegmentRoutes,
+  ontologySegmentRoutes,
 } from "ee/pages/AppIDE/layouts/constants";
 import { JSExplorer } from "../../components/JSExplorer";
 import { QueryExplorer } from "../../components/QueryExplorer";
@@ -22,6 +23,7 @@ import { EditorEntityTab, EditorViewMode } from "IDE/Interfaces/EditorTypes";
 import { DEFAULT_EXPLORER_PANE_WIDTH } from "constants/AppConstants";
 import { useCurrentEditorState } from "../../hooks/useCurrentEditorState";
 import { SentryRoute } from "components/SentryRoute";
+import OntologyExplorer from "../../components/OntologyExplorer";
 
 const EditorPaneExplorer = () => {
   const { path } = useRouteMatch();
@@ -56,6 +58,10 @@ const EditorPaneExplorer = () => {
     >
       <SegmentSwitcher />
       <Switch>
+        <SentryRoute
+          component={OntologyExplorer}
+          path={ontologySegmentRoutes.map((route) => `${path}${route}`)}
+        />
         <SentryRoute
           component={JSExplorer}
           path={jsSegmentRoutes.map((route) => `${path}${route}`)}

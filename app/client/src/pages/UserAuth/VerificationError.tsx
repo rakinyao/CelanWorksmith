@@ -9,6 +9,8 @@ import {
   VERIFY_ERROR_ALREADY_VERIFIED_TITLE,
   VERIFY_ERROR_EXPIRED_TITLE,
   VERIFY_ERROR_MISMATCH_TITLE,
+  AUTH_BACK_TO,
+  AUTH_SEND_NEW_LINK,
 } from "ee/constants/messages";
 import { useResendEmailVerification } from "./helpers";
 import type { RouteComponentProps } from "react-router-dom";
@@ -66,7 +68,7 @@ const VerificationError = (
             onClick={resendVerificationLink}
             size="md"
           >
-            Send new link
+            {createMessage(AUTH_SEND_NEW_LINK)}
           </Button>
         </Body>
       </Container>
@@ -87,7 +89,7 @@ const VerificationError = (
             onClick={resendVerificationLink}
             size="md"
           >
-            Send new link
+            {createMessage(AUTH_SEND_NEW_LINK)}
           </Button>
         </Body>
       </Container>
@@ -100,7 +102,7 @@ const VerificationError = (
         footer={
           <div className="px-2 py-4 flex items-center justify-center text-base text-center text-[color:var(--ads-v2\-color-fg)] text-[14px]">
             <Icon name="arrow-left-line" size="md" />
-            &nbsp; Back to &nbsp;
+            &nbsp; {createMessage(AUTH_BACK_TO)} &nbsp;
             <Link
               className="text-sm justify-center pl-[var(--ads-v2\-spaces-3)]"
               kind="primary"
@@ -141,7 +143,7 @@ const VerificationError = (
             onClick={resendVerificationLink}
             size="md"
           >
-            Send new link
+            {createMessage(AUTH_SEND_NEW_LINK)}
           </Button>
         </Body>
       </Container>

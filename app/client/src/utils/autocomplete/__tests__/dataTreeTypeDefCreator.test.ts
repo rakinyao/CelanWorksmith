@@ -13,6 +13,7 @@ import {
   getFunctionsArgsType,
 } from "../defCreatorUtils";
 import { EvaluationSubstitutionType } from "constants/EvaluationConstants";
+import tern from "tern";
 
 describe("dataTreeTypeDefCreator", () => {
   it("creates the right def for a widget", () => {
@@ -265,5 +266,125 @@ describe("getFunctionsArgsType", () => {
     expect(getFunctionsArgsType(testCases.testCase3.arguments)).toEqual(
       testCases.testCase3.expectedOutput,
     );
+  });
+});
+
+describe("CelanWorksmith execution definitions", () => {
+  it("defines known Function and Action execution paths", () => {
+    const { def, entityInfo } = dataTreeTypeDefCreator(
+      {
+        $functions: {
+          ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
+          CalculateDelayDays: {
+            run: jest.fn(),
+            data: undefined,
+            _meta: {
+              status: "idle",
+              requestId: "",
+              parametersHash: "",
+            },
+            ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
+            __metadata: {
+              returnType: "INTEGER",
+              parameters: [
+                { id: "poId", dataType: "REFERENCE", required: true },
+              ],
+            },
+          },
+        },
+        $actions: {
+          ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_ACTION,
+          UpdateProductionSchedule: {
+            run: jest.fn(),
+            data: undefined,
+            changedObjects: [],
+            sideEffects: [],
+            _meta: {
+              status: "idle",
+              requestId: "",
+              parametersHash: "",
+            },
+            ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_ACTION,
+            __metadata: {
+              objectTypeId: "PurchaseOrder",
+              parameters: [
+                {
+                  id: "newScheduleDate",
+                  dataType: "DATETIME",
+                  required: true,
+                },
+              ],
+            },
+          },
+        },
+      } as never,
+      {},
+      {},
+    );
+
+    expect(def).toHaveProperty(
+      "$functions.CalculateDelayDays.run.!type",
+      "fn(parameters?: {poId: string}) -> string",
+    );
+    expect(def).toHaveProperty("$functions.CalculateDelayDays.data", "number");
+    expect(def).toHaveProperty(
+      "$functions.CalculateDelayDays._meta.status",
+      "string",
+    );
+    expect(def).toHaveProperty(
+      "$actions.UpdateProductionSchedule.run.!type",
+      "fn(request: {objectTypeId: string, objectId: string, parameters: {newScheduleDate: string}}) -> string",
+    );
+    expect(def).toHaveProperty(
+      "$actions.UpdateProductionSchedule.changedObjects",
+    );
+    expect(def).toHaveProperty("$actions.UpdateProductionSchedule.sideEffects");
+    expect(def).toHaveProperty(
+      "$actions.UpdateProductionSchedule._meta.executionId",
+      "string",
+    );
+    expect(entityInfo.get("$functions")).toEqual({
+      type: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
+      subType: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
+    });
+    expect(entityInfo.get("$actions")).toEqual({
+      type: ENTITY_TYPE.CELANWORKSMITH_ACTION,
+      subType: ENTITY_TYPE.CELANWORKSMITH_ACTION,
+    });
+  });
+
+  it("generates definitions accepted by Tern", () => {
+    const { def } = dataTreeTypeDefCreator(
+      {
+        $functions: {
+          ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
+          CalculateDelayDays: {
+            ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
+            __metadata: {
+              returnType: "INTEGER",
+              parameters: [
+                { id: "poId", dataType: "REFERENCE", required: true },
+              ],
+            },
+          },
+        },
+        $actions: {
+          ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_ACTION,
+          UpdateProductionSchedule: {
+            ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_ACTION,
+            __metadata: {
+              objectTypeId: "PurchaseOrder",
+              parameters: [
+                { id: "newScheduleDate", dataType: "DATETIME", required: true },
+              ],
+            },
+          },
+        },
+      } as never,
+      {},
+      {},
+    );
+
+    expect(() => new tern.Server({ defs: [def] })).not.toThrow();
   });
 });

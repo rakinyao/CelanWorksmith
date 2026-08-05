@@ -76,6 +76,7 @@ import {
 import { validate } from "workers/Evaluation/validations";
 import { REPLAY_DELAY } from "entities/Replay/replayUtils";
 import type { EvaluationVersion } from "constants/EvalConstants";
+import store from "store";
 
 import type { LogObject } from "entities/AppsmithConsole";
 import { ENTITY_TYPE } from "ee/entities/AppsmithConsole/utils";
@@ -641,7 +642,7 @@ export function* getUnevalTreeWithWidgetsRegistered() {
   yield call(loadAndRegisterOnlyCanvasWidgets);
 
   const unEvalAndConfigTree: ReturnType<typeof getUnevaluatedDataTree> =
-    yield select(getUnevaluatedDataTree);
+    yield select(getUnevaluatedDataTree, store.dispatch);
 
   return unEvalAndConfigTree;
 }

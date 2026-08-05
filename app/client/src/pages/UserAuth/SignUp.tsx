@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import type { InjectedFormProps } from "redux-form";
 import { reduxForm, formValueSelector } from "redux-form";
 import { AUTH_LOGIN_URL, ORG_LOGIN_PATH } from "constants/routes";
@@ -101,6 +102,7 @@ type SignUpFormProps = InjectedFormProps<
   RouteComponentProps<{ email: string }> & { emailValue: string };
 
 export function SignUp(props: SignUpFormProps) {
+  const { t } = useTranslation();
   const history = useHistory();
   const isFormLoginEnabled = useSelector(getIsFormLoginEnabled);
   const isAiAgentInstanceEnabled = useSelector(getIsAiAgentInstanceEnabled);
@@ -230,7 +232,7 @@ export function SignUp(props: SignUpFormProps) {
 
       {cloudHosting && !isAiAgentInstanceEnabled && (
         <>
-          <OrWithLines>or</OrWithLines>
+          <OrWithLines>{t("auth.or")}</OrWithLines>
           <div className="px-2 text-center text-[color:var(--ads-v2\-color-fg)] text-[14px]">
             {createMessage(LOOKING_TO_SELF_HOST)}
             <Link

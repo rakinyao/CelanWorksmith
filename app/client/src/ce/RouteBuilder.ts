@@ -191,6 +191,12 @@ export const queryListURL = (props: URLBuilderParams): string =>
     suffix: `queries`,
   });
 
+export const ontologyListURL = (props: URLBuilderParams): string =>
+  urlBuilder.build({
+    ...props,
+    suffix: "ontology",
+  });
+
 export const queryAddURL = (props: URLBuilderParams): string =>
   urlBuilder.build({
     ...props,

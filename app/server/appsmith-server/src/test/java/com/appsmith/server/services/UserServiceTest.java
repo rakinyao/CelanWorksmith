@@ -636,6 +636,40 @@ public class UserServiceTest {
                 .verifyComplete();
     }
 
+    @Test
+    @WithUserDetails(value = "api_user")
+    public void updateLocaleOfUserAndExposeItInProfile() {
+        UserUpdateDTO updateUser = new UserUpdateDTO();
+        updateUser.setLocale("zh-CN");
+
+        StepVerifier.create(userService.updateCurrentUser(updateUser, null))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        StepVerifier.create(userDataService.getForUserEmail("api_user"))
+                .assertNext(userData -> assertThat(userData.getLocale()).isEqualTo("zh-CN"))
+                .verifyComplete();
+
+        StepVerifier.create(
+                        sessionUserService.getCurrentUser().flatMap(userService::buildUserProfileDTO))
+                .assertNext(profile -> assertThat(profile.getLocale()).isEqualTo("zh-CN"))
+                .verifyComplete();
+    }
+
+    @Test
+    @WithUserDetails(value = "api_user")
+    public void updateLocaleOfUserWithUnsupportedLocaleFails() {
+        UserUpdateDTO updateUser = new UserUpdateDTO();
+        updateUser.setLocale("fr-FR");
+
+        StepVerifier.create(userService.updateCurrentUser(updateUser, null))
+                .expectErrorMatches(throwable -> throwable instanceof AppsmithException
+                        && throwable
+                                .getMessage()
+                                .contains(AppsmithError.INVALID_PARAMETER.getMessage(FieldName.LOCALE)))
+                .verify();
+    }
+
     /**
      * Regression for the secondary enumeration oracle (CWE-204, GHSA-fvrq-g89c-fgg6): a known account
      * driven over its reset limit (4th request within 24h) previously surfaced HTTP 429

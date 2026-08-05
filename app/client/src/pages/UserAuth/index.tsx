@@ -19,8 +19,11 @@ import { getAssetUrl } from "ee/utils/airgapHelpers";
 import { getOrganizationConfig } from "ee/selectors/organizationSelectors";
 import { getAppsmithConfigs } from "ee/configs";
 import { SentryRoute } from "components/SentryRoute";
+import LanguageSwitcher from "i18n/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 export function UserAuth() {
+  useTranslation();
   const { path } = useRouteMatch();
   const location = useLocation();
   const lightTheme = useSelector((state: DefaultRootState) =>
@@ -38,6 +41,9 @@ export function UserAuth() {
           !isMobileDevice ? "p-4" : "px-6 py-12"
         } t--auth-container justify-between`}
       >
+        <div className="absolute right-4 top-4 z-10">
+          <LanguageSwitcher />
+        </div>
         {isMobileDevice && (
           <img
             className="h-8 mx-auto"

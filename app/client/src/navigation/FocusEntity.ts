@@ -33,6 +33,7 @@ export enum FocusEntity {
   JS_OBJECT_ADD = "JS_OBJECT_ADD",
   PAGE = "PAGE",
   TRIGGER_SETTINGS = "TRIGGER_SETTINGS",
+  ONTOLOGY = "ONTOLOGY",
 }
 
 export const FocusStoreHierarchy: Partial<Record<FocusEntity, FocusEntity>> = {
@@ -146,6 +147,15 @@ export function identifyEntityFromPath(path: string): FocusEntityInfo {
     return {
       entity: FocusEntity.QUERY,
       id: match.params.baseApiId,
+      appState: EditorState.EDITOR,
+      params: match.params,
+    };
+  }
+
+  if (match.url.endsWith("/ontology")) {
+    return {
+      entity: FocusEntity.ONTOLOGY,
+      id: "",
       appState: EditorState.EDITOR,
       params: match.params,
     };

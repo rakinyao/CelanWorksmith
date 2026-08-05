@@ -48,6 +48,8 @@ public class UserProfileCE_DTO {
 
     String useCase;
 
+    String locale;
+
     boolean enableTelemetry = false;
 
     List<String> roles;

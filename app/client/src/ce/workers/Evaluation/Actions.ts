@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 import set from "lodash/set";
-import type { DataTreeEntityConfig } from "ee/entities/DataTree/types";
+import {
+  CELANWORKSMITH_ACTION_TRIGGER_PREFIX,
+  CELANWORKSMITH_FUNCTION_TRIGGER_PREFIX,
+  ENTITY_TYPE,
+  type DataTreeEntityConfig,
+} from "ee/entities/DataTree/types";
 import type {
   ConfigTree,
   DataTree,
@@ -10,6 +15,11 @@ import type {
 import type { EvalContext } from "workers/Evaluation/evaluate";
 import type { EvaluationVersion } from "constants/EvalConstants";
 import { addFn } from "workers/Evaluation/fns/utils/fnGuard";
+import {
+  getFnWithGuards,
+  isAsyncGuard,
+} from "workers/Evaluation/fns/utils/fnGuard";
+import { promisify } from "workers/Evaluation/fns/utils/Promisify";
 import {
   getEntityFunctions,
   getPlatformFunctions,
@@ -66,6 +76,46 @@ export const getDataTreeContext = (args: {
     const skipEntityFunctions = !removeEntityFunctions && !isTriggerBased;
 
     if (skipEntityFunctions) continue;
+
+    if (!removeEntityFunctions) {
+      const executionPrefix =
+        entity.ENTITY_TYPE === ENTITY_TYPE.CELANWORKSMITH_FUNCTION
+          ? CELANWORKSMITH_FUNCTION_TRIGGER_PREFIX
+          : entity.ENTITY_TYPE === ENTITY_TYPE.CELANWORKSMITH_ACTION
+            ? CELANWORKSMITH_ACTION_TRIGGER_PREFIX
+            : undefined;
+
+      if (executionPrefix) {
+        Object.entries(entity).forEach(([executionId, executionEntity]) => {
+          if (executionId === "ENTITY_TYPE") return;
+
+          if (!executionEntity || typeof executionEntity !== "object") return;
+
+          const run = async (...args: unknown[]) => {
+            const payload =
+              executionPrefix === CELANWORKSMITH_FUNCTION_TRIGGER_PREFIX
+                ? { parameters: args[0] || {} }
+                : { request: args[0] };
+
+            return promisify(() => ({
+              type: "RUN_PLUGIN_ACTION",
+              payload: {
+                actionId: `${executionPrefix}${executionId}`,
+                params: payload,
+              },
+            }))();
+          };
+
+          set(
+            entityFunctionCollection,
+            `${entityName}.${executionId}.run`,
+            getFnWithGuards(run, `${entityName}.${executionId}.run`, [
+              isAsyncGuard,
+            ]),
+          );
+        });
+      }
+    }
 
     for (const entityFn of getEntityFunctions()) {
       if (!entityFn.qualifier(entity)) continue;

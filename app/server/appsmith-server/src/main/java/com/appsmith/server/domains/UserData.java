@@ -41,6 +41,9 @@ public class UserData extends BaseDomain {
     @JsonView(Views.Public.class)
     private String useCase;
 
+    @JsonView(Views.Public.class)
+    private String locale;
+
     // The ID of the asset which has the profile photo of this user.
     @JsonView(Views.Public.class)
     private String profilePhotoAssetId;

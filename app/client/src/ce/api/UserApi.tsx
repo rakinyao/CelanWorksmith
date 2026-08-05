@@ -3,6 +3,7 @@ import Api from "api/Api";
 import type { ApiResponse } from "api/ApiResponses";
 import type { FeatureFlags } from "ee/entities/FeatureFlag";
 import type { ProductAlert } from "../../reducers/uiReducers/usersReducer";
+import type { Locale } from "i18n/types";
 
 export interface ForgotPasswordRequest {
   email: string;
@@ -36,6 +37,7 @@ export interface UpdateUserRequest {
   proficiency?: string;
   useCase?: string;
   intercomConsentGiven?: boolean;
+  locale?: Locale;
 }
 
 export interface SendTestEmailPayload {

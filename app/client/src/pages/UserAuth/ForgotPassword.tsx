@@ -16,6 +16,9 @@ import {
   FORGOT_PASSWORD_SUCCESS_TEXT,
   createMessage,
   FORGOT_PASSWORD_PAGE_SUB_TITLE,
+  AUTH_BACK_TO,
+  AUTH_CONFIGURE_EMAIL_SERVICE,
+  AUTH_EMAIL_SERVICE_MISSING,
 } from "ee/constants/messages";
 import { AUTH_LOGIN_URL } from "constants/routes";
 import { FORGOT_PASSWORD_FORM_NAME } from "ee/constants/forms";
@@ -63,7 +66,7 @@ export const ForgotPassword = (props: ForgotPasswordProps) => {
   const footerSection = (
     <div className="px-2 flex items-center justify-center text-center text-[color:var(--ads-v2\-color-fg)] text-[14px]">
       <Icon name="arrow-left-line" size="md" />
-      &nbsp;Back to&nbsp;
+      &nbsp;{createMessage(AUTH_BACK_TO)}&nbsp;
       <Link
         className="text-sm justify-center"
         kind="primary"
@@ -94,12 +97,11 @@ export const ForgotPassword = (props: ForgotPasswordProps) => {
               {
                 to: "https://docs.appsmith.com/getting-started/setup/instance-configuration/email#configure-email",
                 target: "_blank",
-                children: "Configure email service",
+                children: createMessage(AUTH_CONFIGURE_EMAIL_SERVICE),
               },
             ]}
           >
-            You haven’t setup any email service yet. Please configure your email
-            service to receive a reset link
+            {createMessage(AUTH_EMAIL_SERVICE_MISSING)}
           </Callout>
         )}
         {submitFailed && error && <Callout kind="warning">{error}</Callout>}

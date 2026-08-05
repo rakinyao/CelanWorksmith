@@ -1,0 +1,98 @@
+const enUS = {
+  common: {
+    yes: "Yes",
+    no: "No",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    save: "Save",
+    close: "Close",
+    search: "Search",
+    loading: "Loading",
+  },
+  language: {
+    label: "Language",
+    english: "English",
+    chinese: "Chinese",
+    switchTo: "Switch language",
+  },
+  navigation: {
+    editProfile: "Edit profile",
+    signOut: "Sign out",
+    account: "Account",
+  },
+  footer: {
+    usingAppsmithAgreement: "By using Appsmith, you are agreeing to our",
+    privacyPolicy: "privacy policy",
+    and: "and",
+    termsOfService: "terms of service",
+  },
+  auth: {
+    signInTitle: "Sign in to your account",
+    signIn: "Sign in",
+    email: "Email",
+    emailRequired: "Please enter an email",
+    password: "Password",
+    passwordRule: "Please provide a password between 8 and 48 characters",
+    name: "Name",
+    remember: "Remember",
+    howShouldWeCallYou: "How should we call you?",
+    enterYourEmail: "Enter your email",
+    enterYourPassword: "Enter your password",
+    forgotPassword: "Forgot password",
+    signUp: "Sign up",
+    newToAppsmith: "Don't have an account?",
+    lookingToSelfHost: "Looking to self-host Appsmith?",
+    visitOurDocs: "Visit our docs",
+    alreadyUsingAppsmith: "Already using Appsmith?",
+    usingAppsmith: "Using Appsmith?",
+    alreadySignedInto: "You've already signed into",
+    signInToExistingOrganisation: "Sign in to an existing organisation",
+    signupSuccess: "Awesome! You have successfully registered.",
+    invalidEmail: "Please provide a valid email address",
+    passwordRequired: "Please enter the password",
+    invalidCredentials:
+      "It looks like you may have entered incorrect/invalid credentials. Please try again or reset password using the button below.",
+    createAccount: "Create your account",
+    workspaceEmail: "Use your workspace email",
+    alreadyHaveAccount: "Already have an account?",
+    login: "Login",
+    newPassword: "New password",
+    backToSignIn: "Back to sign in",
+    resetPassword: "Reset password",
+    reset: "Reset",
+    createNewPassword: "Create a new password for your account",
+    passwordResetSuccess: "Your password has been reset",
+    passwordResetExpired:
+      "The password reset link has expired. Please try generating a new link",
+    passwordResetInvalid:
+      "The password reset link is invalid. Please try generating a new link",
+    forgotPasswordSubtitle:
+      "Enter the email address associated with your account",
+    forgotPasswordDescription: "We will send a reset link to the email below",
+    sendResetLink: "Send reset link",
+    forgotPasswordSuccess:
+      "A password reset link has been sent to your email address {{email}} registered with Appsmith.",
+    checkYourInbox: "Check your inbox",
+    verificationPendingBody:
+      "To finish your account setup click on the verification link we have sent in an email to",
+    notYou: "Not you?",
+    noEmailInInbox: "No email in your inbox or spam folder?",
+    resendLink: "Resend link",
+    emailAlreadyVerified: "Email already verified",
+    linkExpired: "Oops, this link has expired",
+    linkDamaged: "This link seems damaged. Please request a new link",
+    backTo: "Back to",
+    configureEmailService: "Configure email service",
+    emailServiceMissing:
+      "You haven't setup any email service yet. Please configure your email service to receive a reset link",
+    signInTo: "Sign in to",
+    or: "or",
+    sendNewLink: "Send new link",
+    verificationEmailBody:
+      "Click the verification link sent to {{email}} to finish setting up your account.",
+    verificationTrouble:
+      "Still having trouble with the email? Reach out to the instance admin, and they can help you get started",
+  },
+} as const;
+
+export default enUS;

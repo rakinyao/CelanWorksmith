@@ -72,6 +72,12 @@ import type { OneClickBindingState } from "reducers/uiReducers/oneClickBindingRe
 import type { IDEState } from "reducers/uiReducers/ideReducer";
 import type { PluginActionEditorState } from "PluginActionEditor";
 import type { FirstEvaluationState } from "reducers/evaluationReducers/firstEvaluationReducer";
+import celanworksmithObjectsReducer from "reducers/celanworksmithObjectsReducer";
+import type { CelanworksmithObjectsState } from "reducers/celanworksmithObjectsReducer";
+import celanworksmithOntologyReducer from "reducers/celanworksmithOntologyReducer";
+import type { CelanworksmithOntologyState } from "reducers/celanworksmithOntologyReducer";
+import celanworksmithExecutionReducer from "reducers/celanworksmithExecutionReducer";
+import type { CelanworksmithExecutionState } from "reducers/celanworksmithExecutionReducer";
 
 /* Reducers which are integrated into the core system when registering a pluggable module
     or done so by a module that is designed to be eventually pluggable */
@@ -91,6 +97,9 @@ export const reducerObject = {
   entities: entityReducer,
   ui: uiReducer,
   evaluations: evaluationsReducer,
+  celanworksmithObjects: celanworksmithObjectsReducer,
+  celanworksmithOntology: celanworksmithOntologyReducer,
+  celanworksmithExecution: celanworksmithExecutionReducer,
   form: formReducer,
   settings: SettingsReducer,
   organization: organizationReducer,
@@ -178,6 +187,9 @@ export interface AppState {
     triggers: TriggerValuesEvaluationState;
     firstEvaluation: FirstEvaluationState;
   };
+  celanworksmithObjects: CelanworksmithObjectsState;
+  celanworksmithOntology: CelanworksmithOntologyState;
+  celanworksmithExecution: CelanworksmithExecutionState;
   linting: {
     errors: LintErrorsStore;
   };

@@ -118,6 +118,8 @@ public class UserServiceCEImpl extends BaseService<UserRepository, User, String>
     private static final String FORGOT_PASSWORD_CLIENT_URL_FORMAT = "%s/user/resetPassword?token=%s";
     private static final Pattern ALLOWED_ACCENTED_CHARACTERS_PATTERN = Pattern.compile("^[\\p{L} 0-9 .\'\\-]+$");
 
+    private static final Set<String> SUPPORTED_LOCALES = Set.of("en-US", "zh-CN");
+
     private static final String EMAIL_VERIFICATION_CLIENT_URL_FORMAT =
             "%s/user/verify?token=%s&email=%s&organizationId=%s&redirectUrl=%s";
 
@@ -765,6 +767,12 @@ public class UserServiceCEImpl extends BaseService<UserRepository, User, String>
             if (StringUtils.hasLength(allUpdates.getUseCase())) {
                 updates.setUseCase(allUpdates.getUseCase());
             }
+            if (StringUtils.hasLength(allUpdates.getLocale())) {
+                if (!SUPPORTED_LOCALES.contains(allUpdates.getLocale())) {
+                    return Mono.error(new AppsmithException(AppsmithError.INVALID_PARAMETER, FieldName.LOCALE));
+                }
+                updates.setLocale(allUpdates.getLocale());
+            }
             if (allUpdates.getIsIntercomConsentGiven()) {
                 updates.setIsIntercomConsentGiven(true);
             }
@@ -828,6 +836,7 @@ public class UserServiceCEImpl extends BaseService<UserRepository, User, String>
                     profile.setIsAnonymous(userFromDb.isAnonymous());
                     profile.setIsEnabled(userFromDb.isEnabled());
                     profile.setUseCase(userData.getUseCase());
+                    profile.setLocale(userData.getLocale());
                     profile.setPhotoId(userData.getProfilePhotoAssetId());
                     profile.setEnableTelemetry(!commonConfig.getIsTelemetryDisabled());
                     // Intercom consent is defaulted to true on cloud hosting
