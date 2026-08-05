@@ -20,6 +20,7 @@ import type { WidgetState } from "widgets/BaseWidget";
 import BaseWidget from "widgets/BaseWidget";
 import { RenderModes } from "constants/WidgetConstants";
 import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
+import { ValidationTypes } from "constants/WidgetValidation";
 import type { RenderMenuButtonProps } from "../component/TableUtilities";
 import {
   getDefaultColumnProperties,
@@ -79,6 +80,7 @@ import type {
   PropertyUpdates,
 } from "WidgetProvider/types";
 import IconSVG from "../icon.svg";
+import ObjectTableMode from "../component/ObjectTableMode";
 
 const ReactTableComponent = lazy(async () =>
   retryPromise(async () => import("../component")),
@@ -109,6 +111,9 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
   static getDefaults() {
     return {
       responsiveBehavior: ResponsiveBehavior.Fill,
+      dataMode: "QUERY",
+      objectTypeId: undefined,
+      objectFilter: undefined,
       rows: 28,
       columns: 34,
       animateLoading: true,
@@ -357,6 +362,8 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
       selectedRowIndices: generateTypeDef(widget.selectedRowIndices),
       triggeredRow: generateTypeDef(widget.triggeredRow),
       selectedRowIndex: "number",
+      selectedObject: "?",
+      selectedObjects: "[]",
       tableData: generateTypeDef(widget.tableData, extraDefsToDefine),
       filteredTableData: generateTypeDef(
         widget.filteredTableData,
@@ -378,7 +385,44 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
     throw new Error("Method not implemented.");
   }
   static getPropertyPaneConfig() {
-    return tablePropertyPaneConfig;
+    return [
+      {
+        sectionName: "CelanWorksmith Object data",
+        children: [
+          {
+            propertyName: "dataMode",
+            label: "Data mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Query", value: "QUERY" },
+              { label: "Object", value: "OBJECT" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Object type",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+          },
+          {
+            propertyName: "objectFilter",
+            label: "Object filter",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
+            dependencies: ["dataMode"],
+          },
+        ],
+      },
+      ...tablePropertyPaneConfig,
+    ];
   }
 
   static getStylesheetConfig(): Stylesheet {
@@ -421,6 +465,8 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
         column: "",
         order: null,
       },
+      selectedObject: undefined,
+      selectedObjects: [],
     };
   }
 
@@ -1225,6 +1271,22 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
   };
 
   getWidgetView() {
+    if (this.props.dataMode === "OBJECT") {
+      return (
+        <ObjectTableMode
+          multiRowSelection={this.props.multiRowSelection}
+          objectFilter={this.props.objectFilter}
+          objectTypeId={this.props.objectTypeId}
+          pageNo={this.props.pageNo}
+          pageSize={this.props.pageSize}
+          selectedRowIndex={this.props.selectedRowIndex}
+          sortOrder={this.props.sortOrder}
+          updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
+          widgetId={this.props.widgetId}
+        />
+      );
+    }
+
     const {
       delimiter,
       filteredTableData = [],
