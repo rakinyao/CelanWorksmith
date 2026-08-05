@@ -25,6 +25,11 @@ describe("ActionButton input mapping", () => {
 
   test("rejects missing identity, type mismatch, and non-object parameters", () => {
     expect(
+      createActionRequest(undefined, {
+        objectData: { id: "PO001", typeId: "PurchaseOrder" },
+      }),
+    ).toBeUndefined();
+    expect(
       createActionRequest(action, { objectData: undefined }),
     ).toBeUndefined();
     expect(

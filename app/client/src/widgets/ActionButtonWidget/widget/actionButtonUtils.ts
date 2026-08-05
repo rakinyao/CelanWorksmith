@@ -19,8 +19,9 @@ export const createActionRequest = (
   const object = normalizeObjectData(input.objectData);
 
   if (
+    !action ||
     !object ||
-    (action?.objectTypeId && action.objectTypeId !== object.typeId)
+    (action.objectTypeId && action.objectTypeId !== object.typeId)
   ) {
     return undefined;
   }

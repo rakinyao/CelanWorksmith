@@ -15,6 +15,7 @@ export interface ActionButtonComponentProps {
   label?: string;
   isDisabled?: boolean;
   updateWidgetMetaProperty: (propertyName: string, value: unknown) => void;
+  updateWidgetProperty?: (propertyName: string, value: unknown) => void;
 }
 
 export default function ActionButtonComponent({
@@ -24,6 +25,7 @@ export default function ActionButtonComponent({
   objectData,
   parameters,
   updateWidgetMetaProperty,
+  updateWidgetProperty,
 }: ActionButtonComponentProps) {
   const dispatch = useDispatch();
   const ontology = useSelector((state: DefaultRootState) =>
@@ -59,6 +61,23 @@ export default function ActionButtonComponent({
 
   return (
     <div className="t--action-button-widget">
+      {ontology.actions.length > 0 && (
+        <select
+          aria-label="Action type"
+          disabled={!updateWidgetProperty}
+          onChange={(event) =>
+            updateWidgetProperty?.("actionId", event.target.value || undefined)
+          }
+          value={actionId || ""}
+        >
+          <option value="">Select an Action</option>
+          {ontology.actions.map((candidate) => (
+            <option key={candidate.id} value={candidate.id}>
+              {candidate.displayName}
+            </option>
+          ))}
+        </select>
+      )}
       <button
         disabled={isDisabled || !isValid || isRunning}
         onClick={run}

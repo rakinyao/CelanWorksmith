@@ -21,7 +21,7 @@ yarn jest --no-cache --runInBand --silent \
   src/widgets/ActionButtonWidget/widget/index.test.tsx
 ```
 
-结果：3 个 suite、5 个测试通过。
+结果：3 个 suite、6 个测试通过。
 
 ```bash
 yarn exec eslint src/widgets/ActionButtonWidget src/widgets/index.ts
@@ -29,7 +29,7 @@ yarn exec prettier --check src/widgets/ActionButtonWidget src/widgets/index.ts
 git diff --check
 ```
 
-结果：ESLint 0 errors、4 个既有风格性能 warning；Prettier 和 `git diff --check` 通过。
+结果：ESLint 0 errors、5 个既有风格性能 warning；Prettier 和 `git diff --check` 通过。
 
 ## 3. 手工验收建议
 
@@ -41,6 +41,7 @@ git diff --check
 
 ## 4. 当前边界
 
-- Action Type 当前通过属性输入 Action ID，动态 metadata 选择控件留待后续属性面板增强。
+- 属性面板当前通过稳定 Action ID 文本配置，动态属性面板控件留待后续增强。
+- 运行态已提供 ontology-backed Action 下拉选择；属性面板仍保留稳定 ID 文本配置，便于绑定和 DSL 导入导出。
 - requiresConfirmation 尚未增加二次确认弹窗；第一版沿用 Action 执行链的参数校验和状态模型。
 - 当前 UI 文案沿用英文，业务全量中文化不在本迭代范围。

@@ -148,6 +148,7 @@ class ActionButtonWidget extends BaseWidget<
         objectData={this.props.objectData}
         parameters={this.props.parameters}
         updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
+        updateWidgetProperty={this.props.updateWidgetProperty}
       />
     );
   }
