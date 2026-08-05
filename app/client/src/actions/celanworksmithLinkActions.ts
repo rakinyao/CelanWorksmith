@@ -11,11 +11,16 @@ export interface CelanworksmithLinkRequest {
   objectId: string;
   linkTypeId: string;
   prefetch?: boolean;
+  force?: boolean;
 }
 
-export const celanworksmithLinkMetadataLoadRequested = (typeId: string) => ({
+export const celanworksmithLinkMetadataLoadRequested = (
+  typeId: string,
+  force = false,
+) => ({
   type: ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_REQUESTED,
   payload: typeId,
+  ...(force ? { meta: { force: true } } : {}),
 });
 
 export const celanworksmithLinkMetadataRequested =

@@ -184,7 +184,28 @@ describe("ObjectDetailWidget", () => {
         typeId: "PurchaseOrder",
         objectId: "PO001",
         linkTypeId: "purchase-order-delivery",
+        force: true,
       },
+    });
+  });
+
+  it("prefetches only the first Link after metadata is ready", () => {
+    const { store } = renderComponent();
+
+    expect(store.getActions()).toContainEqual({
+      type: "CELANWORKSMITH_LINK_LOAD_REQUESTED",
+      payload: {
+        typeId: "PurchaseOrder",
+        objectId: "PO001",
+        linkTypeId: "purchase-order-supplier",
+        prefetch: true,
+      },
+    });
+    expect(store.getActions()).not.toContainEqual({
+      type: "CELANWORKSMITH_LINK_LOAD_REQUESTED",
+      payload: expect.objectContaining({
+        linkTypeId: "purchase-order-delivery",
+      }),
     });
   });
 

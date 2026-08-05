@@ -26,6 +26,9 @@ import { all, call, put, select, takeEvery } from "redux-saga/effects";
 
 export const CELANWORKSMITH_LINK_QUERY_LIMIT = 100;
 
+const inFlightMetadataTypes = new Set<string>();
+const inFlightLinkKeys = new Set<string>();
+
 const assertApiSuccess = <T>(response: ApiResponse<T>): T => {
   if (!response?.responseMeta?.success) {
     throw (
@@ -36,14 +39,23 @@ const assertApiSuccess = <T>(response: ApiResponse<T>): T => {
   return response.data;
 };
 
-export function* loadCelanworksmithLinkMetadata(action: ReduxAction<string>) {
+export function* loadCelanworksmithLinkMetadata(
+  action: ReduxAction<string> & { meta?: { force?: boolean } },
+) {
   const typeId = action.payload;
   const metadata: CelanworksmithLinkMetadataState | undefined = yield select(
     getCelanworksmithLinkMetadata,
     typeId,
   );
 
-  if (metadata?.updatedAt || metadata?.status === "loading") return;
+  if (
+    inFlightMetadataTypes.has(typeId) ||
+    (metadata?.updatedAt && !action.meta?.force)
+  ) {
+    return;
+  }
+
+  inFlightMetadataTypes.add(typeId);
 
   try {
     const response: ApiResponse<CelanworksmithLinkType[]> = yield call(
@@ -61,6 +73,8 @@ export function* loadCelanworksmithLinkMetadata(action: ReduxAction<string>) {
         normalizeCelanworksmithError(error),
       ),
     );
+  } finally {
+    inFlightMetadataTypes.delete(typeId);
   }
 }
 
@@ -73,7 +87,16 @@ export function* loadCelanworksmithLink(
     request,
   );
 
-  if (entry?.status === "loading") return;
+  const key = `${request.typeId}/${request.objectId}/${request.linkTypeId}`;
+
+  if (
+    inFlightLinkKeys.has(key) ||
+    (!request.force && ["ready", "empty"].includes(entry?.status || ""))
+  ) {
+    return;
+  }
+
+  inFlightLinkKeys.add(key);
 
   yield put(celanworksmithLinkLoadStart(request));
 
@@ -93,6 +116,8 @@ export function* loadCelanworksmithLink(
     yield put(
       celanworksmithLinkLoadError(request, normalizeCelanworksmithError(error)),
     );
+  } finally {
+    inFlightLinkKeys.delete(key);
   }
 }
 

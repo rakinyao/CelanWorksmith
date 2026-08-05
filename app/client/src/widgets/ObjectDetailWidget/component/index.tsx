@@ -195,6 +195,21 @@ export default function ObjectDetailComponent({
       {!metadata && (
         <MetadataNotice>Object metadata is unavailable.</MetadataNotice>
       )}
+      {linkMetadata?.status === "error" && (
+        <MetadataNotice>
+          <div>{linkMetadata.error?.message || "Unable to load links."}</div>
+          <button
+            onClick={() =>
+              dispatch(
+                celanworksmithLinkMetadataLoadRequested(objectTypeId!, true),
+              )
+            }
+            type="button"
+          >
+            Retry links
+          </button>
+        </MetadataNotice>
+      )}
       {groups.map((group) => (
         <PropertyGroup key={group.id}>
           <GroupTitle>{group.label}</GroupTitle>
@@ -232,7 +247,12 @@ export default function ObjectDetailComponent({
               </div>
               <button
                 onClick={() =>
-                  dispatch(celanworksmithLinkLoadRequested(activeRequest))
+                  dispatch(
+                    celanworksmithLinkLoadRequested({
+                      ...activeRequest,
+                      force: true,
+                    }),
+                  )
                 }
                 type="button"
               >

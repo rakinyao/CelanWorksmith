@@ -28,6 +28,8 @@ ObjectDetail 不直接调用 API，统一使用 `CelanworksmithAPI` 与 Redux/Sa
 | `acc9526b19` | Widget loader、Factory 测试、DSL 兼容配置 |
 | `7199f666a4` | 空绑定清理选择状态、稳定 Link 请求对象 |
 
+本次收尾修复尚未提交，内容包括：Link metadata/link 请求的 force retry、in-flight 去重、Object Type 刷新时的关联缓存失效，以及 Link metadata 和 Link 数据的局部 Retry UI。
+
 ## 3. 自动化验证
 
 从 `app/client` 执行：
@@ -58,6 +60,8 @@ git diff --check
 
 结果：ESLint 0 errors、10 warnings；warning 来自 named useEffect 和 JSX inline callback/object 性能规则。Prettier 与 `git diff --check` 通过。
 
+收尾修复重新执行的定向验证：3 个 suite、26 个测试通过；Prettier 通过，ESLint 0 errors、11 warnings。新增的 1 个 warning 来自本次测试代码附近的既有性能规则，未引入 error。
+
 ## 4. 环境验证
 
 - 前端开发服务通过 `cd app/client && yarn start` 恢复，监听 `0.0.0.0:3000`。
@@ -82,3 +86,11 @@ git diff --check
 - Object-aware Table 完整列表能力保留到 T7。
 - FilterList 和 ActionButton 属于后续 T6.2/T6.3，不应在 ObjectDetail 内重复实现。
 - T5 Action 成功/失败浏览器验证仍按 T5 检查点记录执行，与本阶段 Link 状态测试相互独立。
+
+## 7. Link 加载问题与解决方式
+
+- 首次 metadata 请求会先被 reducer 标记为 `loading`，如果 Saga 只依据 Redux 状态短路，会导致首次请求永远不发出。现在由 Saga 自己维护短生命周期的 in-flight key，并允许首次请求继续执行。
+- `takeEvery` 可能同时收到相同 Link 请求。现在以 `typeId/objectId/linkTypeId` 组成 key 去重；已缓存的 `ready/empty` 结果不重复请求，显式 `force` 才刷新。
+- Object Type 刷新后，关联对象的 source/target 缓存可能过期。刷新开始时 reducer 清理相关 Link entry，避免展示旧关系。
+- Link metadata 或 Link data 请求失败只显示局部错误并提供 Retry，不清空主对象内容；Retry 使用 force 标记，确保错误状态不会被缓存短路。
+- Saga 的 in-flight 集合在成功、失败和 generator 取消路径统一通过 `finally` 清理；测试必须完整推进或关闭 generator，避免测试之间残留并发状态。

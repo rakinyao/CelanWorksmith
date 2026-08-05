@@ -63,9 +63,10 @@ describe("loadCelanworksmithLinkMetadata", () => {
     ).toEqual(
       put(celanworksmithLinkMetadataLoadSuccess("PurchaseOrder", [linkType])),
     );
+    iterator.next();
   });
 
-  it("does not reload metadata while the source type is already loading", () => {
+  it("loads metadata after Redux marks the initial request as loading", () => {
     const iterator = loadCelanworksmithLinkMetadata(
       celanworksmithLinkMetadataLoadRequested("PurchaseOrder"),
     );
@@ -73,7 +74,19 @@ describe("loadCelanworksmithLinkMetadata", () => {
     expect(iterator.next().value).toEqual(
       select(getCelanworksmithLinkMetadata, "PurchaseOrder"),
     );
-    expect(iterator.next({ status: "loading" }).done).toBe(true);
+    expect(iterator.next({ status: "loading" }).value).toEqual(
+      call(
+        [CelanworksmithAPI, CelanworksmithAPI.getLinkTypes],
+        "PurchaseOrder",
+      ),
+    );
+    expect(
+      iterator.next({ responseMeta: { success: true }, data: [linkType] })
+        .value,
+    ).toEqual(
+      put(celanworksmithLinkMetadataLoadSuccess("PurchaseOrder", [linkType])),
+    );
+    iterator.next();
   });
 
   it("normalizes metadata errors", () => {
@@ -92,6 +105,7 @@ describe("loadCelanworksmithLinkMetadata", () => {
         }),
       ),
     );
+    iterator.next();
   });
 });
 
@@ -118,6 +132,7 @@ describe("loadCelanworksmithLink", () => {
     expect(
       iterator.next({ responseMeta: { success: true }, data: result }).value,
     ).toEqual(put(celanworksmithLinkLoadSuccess(request, result)));
+    iterator.next();
   });
 
   it("does not reload an in-flight link key", () => {
@@ -128,7 +143,60 @@ describe("loadCelanworksmithLink", () => {
     expect(iterator.next().value).toEqual(
       select(getCelanworksmithLinkEntry, request),
     );
-    expect(iterator.next({ status: "loading" }).done).toBe(true);
+    expect(iterator.next(undefined).value).toEqual(
+      put(celanworksmithLinkLoadStart(request)),
+    );
+
+    const duplicateIterator = loadCelanworksmithLink(
+      celanworksmithLinkLoadRequested(request),
+    );
+
+    duplicateIterator.next();
+    expect(duplicateIterator.next({ status: "loading" }).done).toBe(true);
+
+    expect(iterator.next().value).toEqual(
+      call(
+        [CelanworksmithAPI, CelanworksmithAPI.getLinkedObjects],
+        "PurchaseOrder",
+        "PO001",
+        "po_production",
+        { offset: 0, limit: 100 },
+      ),
+    );
+    expect(
+      iterator.next({ responseMeta: { success: true }, data: result }).value,
+    ).toEqual(put(celanworksmithLinkLoadSuccess(request, result)));
+    iterator.next();
+  });
+
+  it("does not reload a cached link unless forced", () => {
+    const iterator = loadCelanworksmithLink(
+      celanworksmithLinkLoadRequested(request),
+    );
+
+    iterator.next();
+    expect(iterator.next({ status: "ready", result }).done).toBe(true);
+  });
+
+  it("reloads a cached link when forced", () => {
+    const iterator = loadCelanworksmithLink(
+      celanworksmithLinkLoadRequested({ ...request, force: true }),
+    );
+
+    iterator.next();
+    expect(iterator.next({ status: "ready", result }).value).toEqual(
+      put(celanworksmithLinkLoadStart({ ...request, force: true })),
+    );
+    expect(iterator.next().value).toEqual(
+      call(
+        [CelanworksmithAPI, CelanworksmithAPI.getLinkedObjects],
+        "PurchaseOrder",
+        "PO001",
+        "po_production",
+        { offset: 0, limit: 100 },
+      ),
+    );
+    iterator.return(undefined);
   });
 
   it("loads a prefetched link with the same API request", () => {
@@ -150,6 +218,7 @@ describe("loadCelanworksmithLink", () => {
         { offset: 0, limit: 100 },
       ),
     );
+    iterator.return(undefined);
   });
 
   it("normalizes linked-object errors", () => {
@@ -169,6 +238,7 @@ describe("loadCelanworksmithLink", () => {
         }),
       ),
     );
+    iterator.next();
   });
 });
 

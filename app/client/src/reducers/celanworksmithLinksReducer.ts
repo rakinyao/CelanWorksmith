@@ -53,7 +53,25 @@ const initialEntryState = (): CelanworksmithLinkEntryState => ({
   status: "idle",
 });
 
+const invalidateEntriesForObjectType = (
+  entries: Record<string, CelanworksmithLinkEntryState>,
+  typeId: string,
+) =>
+  Object.fromEntries(
+    Object.entries(entries).filter(
+      ([key, entry]) =>
+        !key.startsWith(`${typeId}/`) && entry.result?.typeId !== typeId,
+    ),
+  );
+
 const celanworksmithLinksReducer = createReducer(initialState, {
+  [ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_REFRESH_START]: (
+    state: CelanworksmithLinksState,
+    action: ReduxAction<string>,
+  ) => ({
+    ...state,
+    entries: invalidateEntriesForObjectType(state.entries, action.payload),
+  }),
   [ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_REQUESTED]: (
     state: CelanworksmithLinksState,
     action: ReduxAction<string>,

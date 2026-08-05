@@ -11,6 +11,7 @@ import {
   celanworksmithLinkMetadataLoadRequested,
   celanworksmithLinkMetadataLoadSuccess,
 } from "actions/celanworksmithLinkActions";
+import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import reducer, {
   getCelanworksmithLinkKey,
 } from "./celanworksmithLinksReducer";
@@ -136,5 +137,34 @@ describe("celanworksmithLinksReducer", () => {
       status: "error",
       links: [purchaseOrderLink],
     });
+  });
+
+  test("invalidates source and target link entries when an object type refreshes", () => {
+    let state = reducer(undefined, celanworksmithLinkLoadStart(key));
+
+    state = reducer(state, celanworksmithLinkLoadSuccess(key, linkedObjects));
+
+    const targetEntry = {
+      typeId: "Supplier",
+      objectId: "S001",
+      linkTypeId: "supplier_rating",
+    };
+
+    state = reducer(state, celanworksmithLinkLoadStart(targetEntry));
+    state = reducer(
+      state,
+      celanworksmithLinkLoadSuccess(targetEntry, {
+        ...linkedObjects,
+        typeId: "SupplierRating",
+      }),
+    );
+
+    state = reducer(state, {
+      type: ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_REFRESH_START,
+      payload: "ProductionOrder",
+    });
+
+    expect(state.entries[getCelanworksmithLinkKey(key)]).toBeUndefined();
+    expect(state.entries[getCelanworksmithLinkKey(targetEntry)]).toBeDefined();
   });
 });
