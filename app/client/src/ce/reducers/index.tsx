@@ -80,6 +80,8 @@ import celanworksmithExecutionReducer from "reducers/celanworksmithExecutionRedu
 import type { CelanworksmithExecutionState } from "reducers/celanworksmithExecutionReducer";
 import celanworksmithLinksReducer from "reducers/celanworksmithLinksReducer";
 import type { CelanworksmithLinksState } from "reducers/celanworksmithLinksReducer";
+import celanworksmithObjectQueryReducer from "reducers/celanworksmithObjectQueryReducer";
+import type { CelanworksmithObjectQueryState } from "reducers/celanworksmithObjectQueryReducer";
 
 /* Reducers which are integrated into the core system when registering a pluggable module
     or done so by a module that is designed to be eventually pluggable */
@@ -103,6 +105,7 @@ export const reducerObject = {
   celanworksmithOntology: celanworksmithOntologyReducer,
   celanworksmithExecution: celanworksmithExecutionReducer,
   celanworksmithLinks: celanworksmithLinksReducer,
+  celanworksmithObjectQueries: celanworksmithObjectQueryReducer,
   form: formReducer,
   settings: SettingsReducer,
   organization: organizationReducer,
@@ -194,6 +197,7 @@ export interface AppState {
   celanworksmithOntology: CelanworksmithOntologyState;
   celanworksmithExecution: CelanworksmithExecutionState;
   celanworksmithLinks: CelanworksmithLinksState;
+  celanworksmithObjectQueries: CelanworksmithObjectQueryState;
   linting: {
     errors: LintErrorsStore;
   };
