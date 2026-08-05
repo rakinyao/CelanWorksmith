@@ -76,18 +76,24 @@ export default function ObjectDetailComponent({
       ? getCelanworksmithObjectsState(state).types[object.typeId]?.metadata
       : undefined,
   );
+  const objectTypeId = object?.typeId;
+  const objectId = object?.id;
   const linkMetadata = useSelector((state: DefaultRootState) =>
-    getCelanworksmithLinkMetadata(state, object?.typeId || ""),
+    getCelanworksmithLinkMetadata(state, objectTypeId || ""),
   );
-  const firstLinkRequest: CelanworksmithLinkRequest | undefined =
-    object && linkMetadata?.links[0]
-      ? {
-          typeId: object.typeId,
-          objectId: object.id,
-          linkTypeId: linkMetadata.links[0].id,
-          prefetch: true,
-        }
-      : undefined;
+  const firstLinkTypeId = linkMetadata?.links[0]?.id;
+  const firstLinkRequest = useMemo<CelanworksmithLinkRequest | undefined>(
+    () =>
+      objectTypeId && objectId && firstLinkTypeId
+        ? {
+            typeId: objectTypeId,
+            objectId,
+            linkTypeId: firstLinkTypeId,
+            prefetch: true,
+          }
+        : undefined,
+    [firstLinkTypeId, objectId, objectTypeId],
+  );
   const firstLinkEntry = useSelector((state: DefaultRootState) =>
     firstLinkRequest
       ? getCelanworksmithLinkEntry(state, firstLinkRequest)
@@ -97,35 +103,32 @@ export default function ObjectDetailComponent({
   const activeLinkType = linkMetadata?.links.find(
     (link) => link.id === activeLinkTypeId,
   );
-  const activeRequest: CelanworksmithLinkRequest | undefined =
-    object && activeLinkType
-      ? {
-          typeId: object.typeId,
-          objectId: object.id,
-          linkTypeId: activeLinkType.id,
-        }
-      : undefined;
+  const activeRequest = useMemo<CelanworksmithLinkRequest | undefined>(
+    () =>
+      objectTypeId && objectId && activeLinkType
+        ? { typeId: objectTypeId, objectId, linkTypeId: activeLinkType.id }
+        : undefined,
+    [activeLinkType, objectId, objectTypeId],
+  );
   const activeLinkEntry = useSelector((state: DefaultRootState) =>
     activeRequest ? getCelanworksmithLinkEntry(state, activeRequest) : undefined,
   );
 
   useEffect(() => {
-    if (!object || !identity) return;
-
     clearLinkedSelection(updateWidgetMetaProperty);
     setActiveLinkTypeId(undefined);
   }, [identity, updateWidgetMetaProperty]);
 
   useEffect(() => {
-    if (!object) return;
+    if (!objectTypeId) return;
 
     if (!linkMetadata || linkMetadata.status === "idle") {
-      dispatch(celanworksmithLinkMetadataLoadRequested(object.typeId));
+      dispatch(celanworksmithLinkMetadataLoadRequested(objectTypeId));
     }
-  }, [dispatch, linkMetadata, object]);
+  }, [dispatch, linkMetadata, objectTypeId]);
 
   useEffect(() => {
-    if (!object || !linkMetadata?.links.length) return;
+    if (!objectTypeId || !objectId || !linkMetadata?.links.length) return;
 
     const firstLinkType = linkMetadata.links[0];
     setActiveLinkTypeId((current) => current || firstLinkType.id);
@@ -138,7 +141,8 @@ export default function ObjectDetailComponent({
     firstLinkRequest,
     identity,
     linkMetadata,
-    object,
+    objectId,
+    objectTypeId,
   ]);
 
   const groups = object

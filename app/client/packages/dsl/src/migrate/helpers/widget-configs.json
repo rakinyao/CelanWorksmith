@@ -251,6 +251,67 @@
       }
     }
   },
+  "OBJECT_DETAIL_WIDGET": {
+    "propertyPaneConfig": [],
+    "propertyPaneContentConfig": [
+      {
+        "sectionName": "Data",
+        "children": [
+          {
+            "propertyName": "objectData",
+            "label": "Object data",
+            "controlType": "INPUT_TEXT",
+            "isBindProperty": true,
+            "isTriggerProperty": false,
+            "validation": {
+              "type": "TEXT"
+            }
+          },
+          {
+            "propertyName": "displayMode",
+            "label": "Display mode",
+            "controlType": "DROP_DOWN",
+            "options": [
+              {
+                "label": "Business only",
+                "value": "BUSINESS_ONLY"
+              },
+              {
+                "label": "Business and derived",
+                "value": "BUSINESS_AND_DERIVED"
+              },
+              {
+                "label": "All metadata",
+                "value": "ALL_METADATA"
+              }
+            ],
+            "isBindProperty": false,
+            "isTriggerProperty": false,
+            "validation": {
+              "type": "TEXT"
+            }
+          }
+        ]
+      },
+      {
+        "sectionName": "General",
+        "children": [
+          {
+            "propertyName": "isVisible",
+            "label": "Visible",
+            "controlType": "SWITCH",
+            "isBindProperty": true,
+            "isTriggerProperty": false,
+            "validation": {
+              "type": "BOOLEAN"
+            }
+          }
+        ]
+      }
+    ],
+    "propertyPaneStyleConfig": [],
+    "features": {}
+  },
   "TEXT_WIDGET": {
     "propertyPaneConfig": [],
     "propertyPaneContentConfig": [

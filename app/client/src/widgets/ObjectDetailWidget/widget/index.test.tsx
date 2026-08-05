@@ -275,6 +275,56 @@ describe("ObjectDetailWidget", () => {
     expect(updateWidgetMetaProperty.mock.calls.length).toBe(callsAfterSelection);
   });
 
+  it("clears linked selection when the bound object is removed", () => {
+    const { rerender, store, updateWidgetMetaProperty } = renderComponent(
+      {},
+      buildState({
+        celanworksmithLinks: {
+          metadata: { PurchaseOrder: { links, status: "ready" } },
+          entries: {
+            "PurchaseOrder/PO001/purchase-order-supplier": {
+              status: "ready",
+              result: {
+                typeId: "Supplier",
+                offset: 0,
+                limit: 100,
+                total: 1,
+                items: [
+                  {
+                    id: "S001",
+                    typeId: "Supplier",
+                    properties: { name: "Acme Corp" },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "S001" }));
+    rerender(
+      <Provider store={store}>
+        <ThemeProvider
+          theme={{ ...theme, colors: { ...theme.colors, ...dark } }}
+        >
+          <ObjectDetailComponent
+            displayMode="BUSINESS_ONLY"
+            objectData={undefined}
+            updateWidgetMetaProperty={updateWidgetMetaProperty}
+            widgetId="ObjectDetail1"
+          />
+        </ThemeProvider>
+      </Provider>,
+    );
+
+    expect(updateWidgetMetaProperty).toHaveBeenLastCalledWith(
+      "selectedLinkType",
+      undefined,
+    );
+  });
+
   it("declares linked selection meta and autocomplete outputs", () => {
     expect(ObjectDetailWidget.getMetaPropertiesMap()).toMatchObject({
       selectedLinkedObject: undefined,
