@@ -4,7 +4,7 @@
 
 ## 1. 检查点定位
 
-当前检查点用于固化 T0-T5 的本地开发成果，作为进入 T6 Object-aware Widget 开发前的恢复基线。
+当前检查点用于固化 T0-T5 的本地开发成果，并记录 T6.1 ObjectDetail 的增量实现，作为继续 T6.2/T6.3 开发的恢复基线。
 
 本检查点基于 `release` 的提交 `665fbf1f33`，包含此前的中英双语改造、T0-T4 本体能力、T5 Function/Action 执行链以及相关文档和测试。
 
@@ -101,14 +101,15 @@ Nginx 配置保存在 `.local/dev-nginx.conf`。该文件没有敏感信息，�
 - Appsmith 全量 Maven 测试需要完整的 `APPSMITH_MONGODB_URI` 等环境变量；当前环境下无关基线测试会因 Spring 上下文初始化失败，T5 放行以 CelanWorksmith 定向测试为准。
 - Appsmith datasource template 的 PF4J 插件错误仍属于已知问题，不影响当前 CelanWorksmith 本体绑定和 Function 基础链路。
 - Mock Action 数据保存在内存中，后端重启后恢复 fixture，不应把它当作持久化业务数据。
-- 当前未创建生产 Provider、Object-aware Widget 或发布态 DSL 兼容能力，这些属于后续阶段。
+- T6.1 已完成 ObjectDetail 基础 Widget、Link 异步状态、loader 注册和 DSL migration 配置；验证详情见 `docs/superpowers/verification/2026-08-05-t6-1-object-detail-verification.md`。
+- ObjectDetail 当前只接收单一 Object Data 动态绑定；Object-aware Table 完整列表能力仍属于 T7。
+- 当前未创建生产 Provider、FilterList 或 ActionButton；这些属于后续阶段。
 
 ## 7. 后续开发入口
 
-完成 Action 手工验证后，建议进入 T6：
+完成 Action 手工验证后，继续进入 T6.2/T6.3：
 
-1. ObjectDetail Widget。
-2. FilterList Widget。
-3. ActionButton Widget。
+1. FilterList Widget。
+2. ActionButton Widget。
 
 T6 必须复用当前 API Client、DataTree、执行 Saga 和刷新机制，不应在新 Widget 内重复实现请求、缓存或 Action 执行逻辑。
