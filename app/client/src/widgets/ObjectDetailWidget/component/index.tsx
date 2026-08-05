@@ -111,7 +111,9 @@ export default function ObjectDetailComponent({
     [activeLinkType, objectId, objectTypeId],
   );
   const activeLinkEntry = useSelector((state: DefaultRootState) =>
-    activeRequest ? getCelanworksmithLinkEntry(state, activeRequest) : undefined,
+    activeRequest
+      ? getCelanworksmithLinkEntry(state, activeRequest)
+      : undefined,
   );
 
   useEffect(() => {
@@ -131,7 +133,9 @@ export default function ObjectDetailComponent({
     if (!objectTypeId || !objectId || !linkMetadata?.links.length) return;
 
     const firstLinkType = linkMetadata.links[0];
+
     setActiveLinkTypeId((current) => current || firstLinkType.id);
+
     if (firstLinkRequest && !firstLinkEntry) {
       dispatch(celanworksmithLinkLoadRequested(firstLinkRequest));
     }
@@ -149,7 +153,9 @@ export default function ObjectDetailComponent({
     ? groupObjectProperties(
         object,
         metadata,
-        metadata ? getDisplayMode(displayMode) : ObjectDetailDisplayMode.ALL_METADATA,
+        metadata
+          ? getDisplayMode(displayMode)
+          : ObjectDetailDisplayMode.ALL_METADATA,
       )
     : [];
 
@@ -221,9 +227,13 @@ export default function ObjectDetailComponent({
           {activeLinkEntry?.status === "empty" && <div>No linked objects.</div>}
           {activeLinkEntry?.status === "error" && activeRequest && (
             <LinkError>
-              <div>{activeLinkEntry.error?.message || "Unable to load links."}</div>
+              <div>
+                {activeLinkEntry.error?.message || "Unable to load links."}
+              </div>
               <button
-                onClick={() => dispatch(celanworksmithLinkLoadRequested(activeRequest))}
+                onClick={() =>
+                  dispatch(celanworksmithLinkLoadRequested(activeRequest))
+                }
                 type="button"
               >
                 Retry

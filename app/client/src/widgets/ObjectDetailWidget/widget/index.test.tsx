@@ -122,14 +122,18 @@ describe("ObjectDetailWidget", () => {
   it("renders an empty state without requesting links", () => {
     const { store } = renderComponent({ objectData: undefined });
 
-    expect(screen.getByText("Select an object to view its details.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Select an object to view its details."),
+    ).toBeInTheDocument();
     expect(store.getActions()).toEqual([]);
   });
 
   it("renders an input error for invalid object data without requesting links", () => {
     const { store } = renderComponent({ objectData: { id: "PO001" } });
 
-    expect(screen.getByText("Object data must include both id and typeId.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Object data must include both id and typeId."),
+    ).toBeInTheDocument();
     expect(store.getActions()).toEqual([]);
   });
 
@@ -144,7 +148,9 @@ describe("ObjectDetailWidget", () => {
       }),
     );
 
-    expect(screen.getByText("Object metadata is unavailable.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Object metadata is unavailable."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Priority")).toBeInTheDocument();
     expect(screen.getByText("HIGH")).toBeInTheDocument();
   });
@@ -264,7 +270,10 @@ describe("ObjectDetailWidget", () => {
         >
           <ObjectDetailComponent
             displayMode="BUSINESS_ONLY"
-            objectData={{ ...defaultObject, properties: { ...defaultObject.properties } }}
+            objectData={{
+              ...defaultObject,
+              properties: { ...defaultObject.properties },
+            }}
             updateWidgetMetaProperty={updateWidgetMetaProperty}
             widgetId="ObjectDetail1"
           />
@@ -272,7 +281,9 @@ describe("ObjectDetailWidget", () => {
       </Provider>,
     );
 
-    expect(updateWidgetMetaProperty.mock.calls.length).toBe(callsAfterSelection);
+    expect(updateWidgetMetaProperty.mock.calls.length).toBe(
+      callsAfterSelection,
+    );
   });
 
   it("clears linked selection when the bound object is removed", () => {

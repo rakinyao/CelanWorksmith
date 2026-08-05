@@ -106,7 +106,8 @@ class ObjectDetailWidget extends BaseWidget<
 
   static getAutocompleteDefinitions(): AutocompletionDefinitions {
     return {
-      "!doc": "Object Detail renders a CelanWorksmith object and linked object selection.",
+      "!doc":
+        "Object Detail renders a CelanWorksmith object and linked object selection.",
       isVisible: DefaultAutocompleteDefinitions.isVisible,
       objectData: "?",
       selectedLinkedObject: "?",
