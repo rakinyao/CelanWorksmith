@@ -1291,6 +1291,7 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
           pageNo={this.props.pageNo}
           pageSize={this.props.pageSize}
           selectedRowIndex={this.props.selectedRowIndex}
+          selectedRowIndices={this.props.selectedRowIndices}
           sortOrder={this.props.sortOrder}
           updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
           widgetId={this.props.widgetId}

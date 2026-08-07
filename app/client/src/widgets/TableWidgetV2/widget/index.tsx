@@ -429,6 +429,8 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       pageNo: 1,
       selectedRowIndex: undefined,
       selectedRowIndices: undefined,
+      selectedObject: undefined,
+      selectedObjects: [],
       searchText: undefined,
       triggeredRowIndex: undefined,
       filters: [],
@@ -461,6 +463,8 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
         triggeredRow: generateTypeDef(widget.triggeredRow),
         updatedRow: generateTypeDef(widget.updatedRow),
         selectedRowIndex: "number",
+        selectedObject: "?",
+        selectedObjects: "[]",
         tableData: generateTypeDef(widget.tableData, extraDefsToDefine),
         pageNo: "number",
         pageSize: "number",
@@ -1303,6 +1307,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
           pageNo={this.props.pageNo}
           pageSize={this.props.pageSize}
           selectedRowIndex={this.props.selectedRowIndex}
+          selectedRowIndices={this.props.selectedRowIndices}
           sortOrder={{
             column: this.props.sortOrder.column,
             order: this.props.sortOrder.order as "asc" | "desc" | null,

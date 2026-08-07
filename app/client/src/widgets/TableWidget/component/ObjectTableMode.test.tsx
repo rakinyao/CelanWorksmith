@@ -80,6 +80,127 @@ test("renders metadata columns and emits the standard selected object", () => {
   });
 });
 
+test.each([
+  ["the query has not been created", {}],
+  [
+    "the query reducer is idle",
+    {
+      [getObjectQueryKey(request)]: {
+        request,
+        status: "idle",
+      },
+    },
+  ],
+])("shows loading while $s", (_description, entries) => {
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          status: "ready",
+          metadata: { id: "PurchaseOrder", properties: [] },
+        },
+      },
+    },
+    celanworksmithObjectQueries: { entries },
+  });
+
+  render(
+    <Provider store={store}>
+      <ObjectTableMode
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={jest.fn()}
+        widgetId="Table1"
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByText("Loading objects...")).toBeInTheDocument();
+  expect(store.getActions()).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        payload: expect.objectContaining(request),
+      }),
+    ]),
+  );
+});
+
+test("maintains multi-row indices and selected object metadata", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const result = {
+    typeId: "PurchaseOrder",
+    items: [
+      { id: "PO001", typeId: "PurchaseOrder", properties: {} },
+      { id: "PO002", typeId: "PurchaseOrder", properties: {} },
+    ],
+    offset: 0,
+    limit: 10,
+    total: 2,
+  };
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          status: "ready",
+          metadata: { id: "PurchaseOrder", properties: [] },
+        },
+      },
+    },
+    celanworksmithObjectQueries: {
+      entries: {
+        [getObjectQueryKey(request)]: { request, result, status: "ready" },
+      },
+    },
+  });
+  const view = render(
+    <Provider store={store}>
+      <ObjectTableMode
+        multiRowSelection
+        objectTypeId="PurchaseOrder"
+        selectedRowIndices={[]}
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+        widgetId="Table1"
+      />
+    </Provider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "PO001" }));
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("selectedRowIndices", [
+    0,
+  ]);
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("selectedObjects", [
+    result.items[0],
+  ]);
+
+  updateWidgetMetaProperty.mockClear();
+  view.rerender(
+    <Provider store={store}>
+      <ObjectTableMode
+        multiRowSelection
+        objectTypeId="PurchaseOrder"
+        selectedRowIndices={[0]}
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+        widgetId="Table1"
+      />
+    </Provider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "PO002" }));
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "selectedRowIndices",
+    [0, 1],
+  );
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "selectedObjects",
+    result.items,
+  );
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "selectedObject",
+    result.items[1],
+  );
+});
+
 test("clears selection when the object query changes", () => {
   const updateWidgetMetaProperty = jest.fn();
   const store = mockStore({
@@ -125,6 +246,10 @@ test("clears selection when the object query changes", () => {
   );
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith("selectedObjects", []);
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith("selectedRowIndex", -1);
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "selectedRowIndices",
+    [],
+  );
 });
 
 test("clears selection when the object query is removed", () => {
@@ -165,6 +290,10 @@ test("clears selection when the object query is removed", () => {
   );
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith("selectedObjects", []);
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith("selectedRowIndex", -1);
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "selectedRowIndices",
+    [],
+  );
 });
 
 test("keeps selection while an equivalent structured filter is refreshed", () => {
@@ -211,6 +340,78 @@ test("keeps selection while an equivalent structured filter is refreshed", () =>
   );
   expect(updateWidgetMetaProperty).not.toHaveBeenCalledWith(
     "selectedObjects",
+    [],
+  );
+});
+
+test("keeps selection while object metadata refreshes for the same query", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const result = {
+    typeId: "PurchaseOrder",
+    items: [{ id: "PO001", typeId: "PurchaseOrder", properties: {} }],
+    offset: 0,
+    limit: 10,
+    total: 1,
+  };
+  const queryEntries = {
+    [getObjectQueryKey(request)]: { request, result, status: "ready" },
+  };
+  const readyState = {
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          status: "ready",
+          metadata: { id: "PurchaseOrder", properties: [] },
+        },
+      },
+    },
+    celanworksmithObjectQueries: { entries: queryEntries },
+  };
+  const view = render(
+    <Provider store={mockStore(readyState)}>
+      <ObjectTableMode
+        objectTypeId="PurchaseOrder"
+        selectedRowIndex={0}
+        selectedRowIndices={[0]}
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+        widgetId="Table1"
+      />
+    </Provider>,
+  );
+
+  updateWidgetMetaProperty.mockClear();
+  view.rerender(
+    <Provider
+      store={mockStore({
+        ...readyState,
+        celanworksmithObjects: {
+          status: "loading",
+          types: { PurchaseOrder: { status: "loading" } },
+        },
+      })}
+    >
+      <ObjectTableMode
+        objectTypeId="PurchaseOrder"
+        selectedRowIndex={0}
+        selectedRowIndices={[0]}
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+        widgetId="Table1"
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByText("Loading object metadata...")).toBeInTheDocument();
+  expect(updateWidgetMetaProperty).not.toHaveBeenCalledWith(
+    "selectedObject",
+    undefined,
+  );
+  expect(updateWidgetMetaProperty).not.toHaveBeenCalledWith(
+    "selectedObjects",
+    [],
+  );
+  expect(updateWidgetMetaProperty).not.toHaveBeenCalledWith(
+    "selectedRowIndices",
     [],
   );
 });

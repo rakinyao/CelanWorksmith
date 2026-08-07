@@ -80,3 +80,35 @@ test("TableV2 keeps a legacy DSL in Query mode", () => {
   expect(legacyTable.getWidgetView().type).not.toBe(ObjectTableMode);
   expect(legacyTable.props.tableData).toEqual([{ id: "native-row" }]);
 });
+
+test("TableV2 keeps an explicit Query DSL in native mode", () => {
+  const explicitQueryTable = new TableWidgetV2({
+    ...queryTableProps,
+    dataMode: "QUERY",
+  } as unknown as TableWidgetV2Props);
+
+  expect(explicitQueryTable.getWidgetView().type).not.toBe(ObjectTableMode);
+  expect(explicitQueryTable.props.tableData).toEqual([{ id: "native-row" }]);
+});
+
+test("TableV2 mode changes keep the inactive Query and Object user values", () => {
+  const objectFilter = {
+    conditions: [],
+    typeId: "PurchaseOrder",
+    version: 1,
+  };
+  const objectTable = new TableWidgetV2({
+    ...queryTableProps,
+    dataMode: "OBJECT",
+    objectFilter,
+    objectTypeId: "PurchaseOrder",
+  } as unknown as TableWidgetV2Props);
+  const queryTable = new TableWidgetV2({
+    ...objectTable.props,
+    dataMode: "QUERY",
+  });
+
+  expect(queryTable.props.tableData).toEqual([{ id: "native-row" }]);
+  expect(queryTable.props.objectTypeId).toBe("PurchaseOrder");
+  expect(queryTable.props.objectFilter).toEqual(objectFilter);
+});

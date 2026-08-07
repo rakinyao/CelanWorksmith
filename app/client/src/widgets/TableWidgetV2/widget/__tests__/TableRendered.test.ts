@@ -119,9 +119,28 @@ describe("TableWidgetV2 getWidgetView", () => {
         ...tableWidgetProps,
         dataMode: "OBJECT",
         objectTypeId: "PurchaseOrder",
+        multiRowSelection: true,
+        selectedRowIndices: [1],
       });
 
-      expect(tableWidget.getWidgetView().type).toBe(ObjectTableMode);
+      const objectTable = tableWidget.getWidgetView();
+
+      expect(objectTable.type).toBe(ObjectTableMode);
+      expect(objectTable.props).toMatchObject({
+        multiRowSelection: true,
+        selectedRowIndices: [1],
+      });
+    });
+
+    it("declares object selection outputs for autocomplete", () => {
+      const autocomplete =
+        TableWidgetV2.getAutocompleteDefinitions()(tableWidgetProps);
+
+      expect(autocomplete).toMatchObject({
+        selectedObject: "?",
+        selectedObjects: "[]",
+        selectedRowIndices: expect.anything(),
+      });
     });
 
     describe("When custom loading logic is not provided", () => {

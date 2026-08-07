@@ -78,3 +78,21 @@ Not executed. This environment has no authenticated running application plus ont
 - Full `yarn check-types` remains blocked by unrelated pre-existing design-system and T8 errors.
 - Browser manual gate remains required in an authenticated app session before release.
 - The checkout includes extensive T-Foundation/T8 dirty baseline changes; this task did not modify unrelated Widgets or baseline files.
+
+## Fix Round 1
+
+### Scope
+
+- Treat absent and `idle` Object Query entries as loading so the first request never renders an empty table.
+- Preserve single-selection behavior and add multi-selection index/object meta updates in shared ObjectTableMode.
+- Expose and initialize TableV2 `selectedObject` and `selectedObjects`, and pass `selectedRowIndices` to ObjectTableMode.
+- Add coverage for the request lifecycle, multi-selection, metadata refresh retention, TableV2 explicit Query routing, and mode-value retention.
+
+### Verification
+
+- Focused Jest: `25 passed, 25 total` across ObjectTableMode, object binding, and TableV2 rendering tests.
+- Reference Jest command: exit `0`; its wrapper again omitted the object-binding suite line, which passed in the focused run.
+- Full `yarn prettier`: exit `1` from five unrelated dirty-baseline source files; all six Task 4 files were run through Prettier.
+- Full `yarn lint`: completed without reported lint errors; output contains only the existing Browserslist data warning.
+- Full `yarn check-types`: exit `1` from the existing broad WDS/JSX environment and T8 `DataTree` failures, including baseline diagnostics projected into Table files.
+- `git diff --check`: exit `0`.

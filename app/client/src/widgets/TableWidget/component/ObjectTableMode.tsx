@@ -27,6 +27,7 @@ interface ObjectTableModeProps {
   pageSize?: number;
   sortOrder?: { column: string; order: "asc" | "desc" | null };
   selectedRowIndex?: number;
+  selectedRowIndices?: number[];
   multiRowSelection?: boolean;
   widgetType?: "TABLE_WIDGET" | "TABLE_WIDGET_V2";
   updateWidgetMetaProperty: (propertyName: string, value: unknown) => void;
@@ -44,6 +45,7 @@ export default function ObjectTableMode({
   pageNo = 1,
   pageSize = 10,
   selectedRowIndex = -1,
+  selectedRowIndices = [],
   sortOrder = DEFAULT_SORT_ORDER,
   updateWidgetMetaProperty,
   widgetId,
@@ -112,6 +114,7 @@ export default function ObjectTableMode({
         updateWidgetMetaProperty("selectedObject", undefined);
         updateWidgetMetaProperty("selectedObjects", []);
         updateWidgetMetaProperty("selectedRowIndex", -1);
+        updateWidgetMetaProperty("selectedRowIndices", []);
       }
 
       return;
@@ -128,6 +131,7 @@ export default function ObjectTableMode({
       updateWidgetMetaProperty("selectedObject", undefined);
       updateWidgetMetaProperty("selectedObjects", []);
       updateWidgetMetaProperty("selectedRowIndex", -1);
+      updateWidgetMetaProperty("selectedRowIndices", []);
     }
 
     previousQueryKeyRef.current = queryKey;
@@ -163,6 +167,10 @@ export default function ObjectTableMode({
     );
   }
 
+  if (!queryState || queryState.status === "idle") {
+    return <div>Loading objects...</div>;
+  }
+
   if (queryState?.status === "loading" && !queryState.result) {
     return <div>Loading objects...</div>;
   }
@@ -176,15 +184,35 @@ export default function ObjectTableMode({
 
   const selectRow = (index: number) => {
     const selected = rows[index];
-    const selectedObject = queryState?.result?.items[index];
+    const selectedObject = queryState.result?.items[index];
 
     if (!selected || !selectedObject) return;
 
+    if (multiRowSelection) {
+      const nextSelectedRowIndices = selectedRowIndices.includes(index)
+        ? selectedRowIndices.filter(
+            (selectedRowIndex) => selectedRowIndex !== index,
+          )
+        : [...selectedRowIndices, index];
+      const nextSelectedObjects = nextSelectedRowIndices
+        .map((selectedRowIndex) => queryState.result?.items[selectedRowIndex])
+        .filter(
+          (object): object is NonNullable<typeof object> =>
+            object !== undefined,
+        );
+
+      updateWidgetMetaProperty(
+        "selectedObject",
+        nextSelectedObjects[nextSelectedObjects.length - 1],
+      );
+      updateWidgetMetaProperty("selectedObjects", nextSelectedObjects);
+      updateWidgetMetaProperty("selectedRowIndices", nextSelectedRowIndices);
+
+      return;
+    }
+
     updateWidgetMetaProperty("selectedObject", selectedObject);
-    updateWidgetMetaProperty(
-      "selectedObjects",
-      multiRowSelection ? [selectedObject] : [selectedObject],
-    );
+    updateWidgetMetaProperty("selectedObjects", [selectedObject]);
     updateWidgetMetaProperty("selectedRowIndex", index);
   };
 
@@ -215,7 +243,14 @@ export default function ObjectTableMode({
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr aria-selected={selectedRowIndex === index} key={String(row.id)}>
+            <tr
+              aria-selected={
+                multiRowSelection
+                  ? selectedRowIndices.includes(index)
+                  : selectedRowIndex === index
+              }
+              key={String(row.id)}
+            >
               {columns.map((column) => (
                 <td key={column.id}>
                   <button onClick={() => selectRow(index)} type="button">
