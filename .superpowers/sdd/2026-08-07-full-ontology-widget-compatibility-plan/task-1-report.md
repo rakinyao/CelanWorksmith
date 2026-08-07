@@ -37,8 +37,41 @@ Command:
 rg -n "Table|FilterList|ObjectDetail|JSONForm|Select|Dropdown|Chart|Statbox|Progress|Text|Input" docs/superpowers/specs/2026-08-07-widget-compatibility-matrix.md
 ```
 
-Output: all required category names matched, including TableV2, Form, List,
-MultiSelect, ActionButton, Button, and Input.
+Output: the original broad search matched all required names. The reviewer fix
+also added the following per-category assertions, each returning `present`:
+
+```text
+Table: present
+TableV2: present
+FilterList: present
+ObjectDetail: present
+JSONForm: present
+Form: present
+List: present
+Select: present
+Dropdown: present
+MultiSelect: present
+ActionButton: present
+Button: present
+Chart: present
+Statbox: present
+Progress: present
+Text: present
+Input: present
+```
+
+Per-category assertion command:
+
+```bash
+for w in Table TableV2 FilterList ObjectDetail JSONForm Form List Select Dropdown MultiSelect ActionButton Button Chart Statbox Progress Text Input; do
+  if rg -q "\|[[:space:]]*$w[[:space:]]*\|" docs/superpowers/specs/2026-08-07-widget-compatibility-matrix.md; then
+    printf '%s: present\n' "$w"
+  else
+    printf '%s: missing\n' "$w"
+    exit 1
+  fi
+done
+```
 
 ### Required whitespace check
 
@@ -99,14 +132,16 @@ Markdown contract document and no implementation behavior.
   per-category table assigns Widget rendering responsibility.
 - Confirmed the matrix references the T-Foundation checkpoint and the five
   Widget implementation files named by the brief.
-- Confirmed `git status` still contains the pre-existing T-Foundation/T8
-  changes and the only Task 1 additions are the matrix and this report.
+- Confirmed in this Agent session that `git status --short` shows the existing
+  T-Foundation/T8 implementation changes plus the two Task 1 documents; no
+  unrelated path was staged for the follow-up commit.
 
 ## Risks / Questions
 
-- FilterList currently has no explicit mode property. The matrix records its
-  legacy normalization as `QUERY` while preserving its Object filter contract;
-  Task 5 must implement this without breaking the existing structured output.
+- FilterList now explicitly uses `dataMode`: new ontology-capable instances
+  default to `OBJECT`; old DSL without the field normalizes to `QUERY` and
+  preserves its legacy structured filter output without issuing an Object
+  Query. Task 5 must implement this without breaking that output.
 - The Object defaults and shared normalization described here are contracts for
   later tasks, not claims that all listed Widgets already implement Object
   mode.
@@ -116,3 +151,30 @@ Markdown contract document and no implementation behavior.
 - No browser verification is applicable to this document-only task. The
   existing T-Foundation manual scenarios remain the baseline for later Widget
   implementation gates.
+
+## Reviewer Fix Follow-up
+
+- Added a `Mode field / default` column to every inventory row. Each row now
+  names its explicit mode field, old-DSL normalized value, and new-instance
+  default.
+- Defined FilterList as Object-capable with new-instance `OBJECT` default,
+  legacy missing-field `QUERY` normalization, and a canonical internal Object
+  binding.
+- Added inherited state group contracts plus one owner, all six exact states,
+  and a focused verification case for every listed Widget.
+- Replaced the broad-only category evidence with explicit per-category
+  assertion results and narrowed the status statement to this Agent session.
+
+Follow-up commands:
+
+```bash
+rg -n "Mode field / default|FilterList Mode Semantics|Per-Widget Render Owner and Verification" docs/superpowers/specs/2026-08-07-widget-compatibility-matrix.md
+git diff --check
+app/client/node_modules/.bin/prettier --check \
+  docs/superpowers/specs/2026-08-07-widget-compatibility-matrix.md \
+  .superpowers/sdd/2026-08-07-full-ontology-widget-compatibility-plan/task-1-report.md
+```
+
+Recorded result: all three anchors matched, `git diff --check` returned no
+output with exit code `0`, and Prettier reported `All matched files use
+Prettier code style!`.
