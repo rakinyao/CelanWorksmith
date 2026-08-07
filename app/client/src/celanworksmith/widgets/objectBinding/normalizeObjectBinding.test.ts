@@ -92,6 +92,26 @@ describe("normalizeObjectBinding", () => {
     });
   });
 
+  it("does not infer a type from an unstructured filter with only a type ID", () => {
+    expect(
+      normalizeObjectBinding(
+        "FILTER_LIST_WIDGET",
+        {
+          dataMode: "OBJECT",
+          filter: { typeId: "PurchaseOrder" },
+        },
+        metadata,
+      ),
+    ).toEqual({
+      mode: "OBJECT",
+      binding: {
+        filter: { typeId: "PurchaseOrder" },
+        source: "FILTER",
+      },
+      issues: [{ code: "MISSING_OBJECT_TYPE" }],
+    });
+  });
+
   it("does not guess an object type for an unknown expression", () => {
     expect(
       normalizeObjectBinding(

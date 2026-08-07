@@ -1,9 +1,8 @@
 import { cloneDeep, noop } from "lodash";
 import type { DSLWidget } from "WidgetProvider/types";
-import {
-  migrateLegacyObjectBindingModes,
-  traverseDSLAndMigrate,
-} from "./WidgetMigrationUtils";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
+import { extractCurrentDSL } from "./WidgetPropsUtils";
+import { traverseDSLAndMigrate } from "./WidgetMigrationUtils";
 
 const dsl = {
   children: [
@@ -75,30 +74,46 @@ describe("traverseDSLAndMigrate", () => {
   });
 });
 
-describe("migrateLegacyObjectBindingModes", () => {
-  it("sets QUERY only for legacy ontology-capable widgets without a mode", () => {
+describe("legacy object binding modes", () => {
+  it("normalizes a loaded legacy widget without writing a mode into its DSL", async () => {
     const legacyDsl = {
       type: "CANVAS_WIDGET",
-      children: [
-        { type: "TABLE_WIDGET", tableData: "{{GetOrders.data}}" },
-        { formMode: "OBJECT", type: "JSON_FORM_WIDGET" },
-        { type: "FORM_WIDGET" },
-        { type: "TEXT_WIDGET", text: "unchanged" },
-      ],
-    } as unknown as DSLWidget;
-
-    expect(migrateLegacyObjectBindingModes(legacyDsl)).toEqual({
-      type: "CANVAS_WIDGET",
+      widgetId: "Canvas1",
+      widgetName: "Canvas1",
       children: [
         {
-          dataMode: "QUERY",
+          columns: 24,
+          rows: 16,
           tableData: "{{GetOrders.data}}",
           type: "TABLE_WIDGET",
+          widgetId: "Table1",
+          widgetName: "Table1",
         },
-        { formMode: "OBJECT", type: "JSON_FORM_WIDGET" },
-        { formMode: "QUERY", type: "FORM_WIDGET" },
-        { text: "unchanged", type: "TEXT_WIDGET" },
       ],
+    } as unknown as DSLWidget;
+    const originalDsl = cloneDeep(legacyDsl);
+
+    const { dsl: loadedDsl } = await extractCurrentDSL({
+      response: {
+        data: {
+          layouts: [{ id: "layout-1", dsl: legacyDsl }],
+        },
+      } as never,
     });
+
+    const originalTableDsl = originalDsl.children?.[0];
+    const loadedTableDsl = loadedDsl.children?.[0];
+
+    expect(legacyDsl.children?.[0]).toMatchObject(originalTableDsl);
+    expect(legacyDsl.children?.[0]).not.toHaveProperty("dataMode");
+    expect(loadedTableDsl).toMatchObject(originalTableDsl);
+    expect(loadedTableDsl).not.toHaveProperty("dataMode");
+    expect(
+      normalizeObjectBinding(
+        "TABLE_WIDGET",
+        loadedTableDsl as Record<string, unknown>,
+        { objectTypes: [] },
+      ).mode,
+    ).toBe("QUERY");
   });
 });

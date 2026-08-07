@@ -33,8 +33,30 @@ const getMode = (
   return mode === "OBJECT" ? "OBJECT" : "QUERY";
 };
 
+const FILTER_OPERATORS = new Set([
+  "equals",
+  "contains",
+  "startsWith",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "isEmpty",
+]);
+
 const getFilterTypeId = (filter: unknown) =>
-  isRecord(filter) ? asString(filter.typeId) : undefined;
+  isRecord(filter) &&
+  typeof filter.typeId === "string" &&
+  filter.version === 1 &&
+  Array.isArray(filter.conditions) &&
+  filter.conditions.every(
+    (condition) =>
+      isRecord(condition) &&
+      typeof condition.propertyId === "string" &&
+      FILTER_OPERATORS.has(String(condition.operator)),
+  )
+    ? filter.typeId
+    : undefined;
 
 const getSource = (binding: ObjectBinding): ObjectBindingSource | string => {
   if (binding.source) return binding.source;

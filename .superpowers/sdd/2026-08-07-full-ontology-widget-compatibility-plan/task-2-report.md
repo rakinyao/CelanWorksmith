@@ -76,3 +76,34 @@ exit 0
 - Inference is intentionally conservative and only recognizes data shapes confirmed by the DataTree contract. Later Widget tasks must pass their expected Property data types when they require data-type validation.
 - The working tree contains unrelated T-Foundation/T8 changes. This task stages and commits only the files listed above plus this report.
 - The repository pre-commit hook could not create its lint-staged backup in the existing dirty worktree. The focused Jest, Prettier, ESLint, TypeScript, and diff checks above were run manually before the commit.
+
+## Fix Round 1
+
+- Removed the load-time legacy mode migration. `extractCurrentDSL` now leaves legacy DSL mode fields absent; `normalizeObjectBinding` continues to interpret missing modes as `QUERY` without mutating the caller's object.
+- Tightened type inference to recognized, complete DataTree shapes only: `$objects.<typeId>.all` requires the CelanWorksmith Objects entity marker; Object Query results require their entity marker and full result shape; Widget selection output requires a Widget marker, recognized table type, and complete object instance shape.
+- Tightened FilterList inference to the versioned structured-filter contract. A bare `{ typeId }` no longer becomes an inferred binding.
+- Added regression tests covering non-mutating legacy load normalization, pseudo `$objects` subpaths, ordinary Query data with `typeId`, non-Widget `selectedObject`, and unstructured filters while retaining the positive inference cases.
+
+### Fix Round 1 Verification
+
+```text
+./node_modules/.bin/jest --config jest.config.js \
+  src/celanworksmith/widgets/objectBinding/normalizeObjectBinding.test.ts \
+  src/celanworksmith/widgets/objectBinding/objectBindingValidation.test.ts \
+  src/celanworksmith/widgets/objectBinding/objectBindingSelectors.test.ts \
+  src/utils/WidgetMigrationUtils.test.ts \
+  --runInBand --no-cache
+PASS: 4 suites, 24 tests
+
+./node_modules/.bin/prettier --check <Task 2 files>
+PASS
+
+./node_modules/.bin/eslint <Task 2 files>
+exit 0; only the existing stale caniuse-lite Browserslist notice was emitted.
+
+yarn check-types
+exit 0
+
+git diff --check
+exit 0
+```

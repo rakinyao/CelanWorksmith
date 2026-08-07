@@ -2,13 +2,27 @@ import { inferObjectTypeId } from "./objectBindingSelectors";
 
 const dataTree = {
   $objects: {
+    ENTITY_TYPE: "CELANWORKSMITH_OBJECTS",
     PurchaseOrder: { _meta: { status: "ready" }, all: [] },
   },
   ObjectQuery1: {
-    data: { items: [], typeId: "PurchaseOrder" },
+    ENTITY_TYPE: "CELANWORKSMITH_OBJECT_QUERY",
+    data: {
+      items: [],
+      limit: 100,
+      offset: 0,
+      total: 0,
+      typeId: "PurchaseOrder",
+    },
   },
   Table1: {
-    selectedObject: { id: "po-1", typeId: "PurchaseOrder" },
+    ENTITY_TYPE: "WIDGET",
+    selectedObject: {
+      id: "po-1",
+      properties: {},
+      typeId: "PurchaseOrder",
+    },
+    type: "TABLE_WIDGET",
   },
 };
 
@@ -33,5 +47,37 @@ describe("inferObjectTypeId", () => {
 
   it("does not infer from an arbitrary expression", () => {
     expect(inferObjectTypeId("{{GetOrders.data}}", dataTree)).toBeUndefined();
+  });
+
+  it("does not infer from a pseudo $objects subpath", () => {
+    expect(
+      inferObjectTypeId("{{$objects.PurchaseOrder._meta}}", dataTree),
+    ).toBeUndefined();
+  });
+
+  it("does not infer from a normal Query data value with a type ID", () => {
+    expect(
+      inferObjectTypeId("{{GetOrders.data}}", {
+        GetOrders: {
+          ENTITY_TYPE: "ACTION",
+          data: { typeId: "PurchaseOrder" },
+        },
+      }),
+    ).toBeUndefined();
+  });
+
+  it("does not infer selectedObject from a non-Widget entity", () => {
+    expect(
+      inferObjectTypeId("{{Action1.selectedObject}}", {
+        Action1: {
+          ENTITY_TYPE: "ACTION",
+          selectedObject: {
+            id: "po-1",
+            properties: {},
+            typeId: "PurchaseOrder",
+          },
+        },
+      }),
+    ).toBeUndefined();
   });
 });
