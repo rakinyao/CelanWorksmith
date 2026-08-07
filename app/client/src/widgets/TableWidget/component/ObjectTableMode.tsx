@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import {
@@ -8,10 +8,16 @@ import {
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
 import { getCelanworksmithObjectQuery } from "selectors/celanworksmithObjectQuerySelectors";
 import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
+import {
   createObjectTableQueryRequest,
   getObjectTableColumns,
   getObjectTableRows,
 } from "../widget/objectTableUtils";
+import { getObjectQueryKey } from "reducers/celanworksmithObjectQueryReducer";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
 
 interface ObjectTableModeProps {
   widgetId: string;
@@ -22,6 +28,7 @@ interface ObjectTableModeProps {
   sortOrder?: { column: string; order: "asc" | "desc" | null };
   selectedRowIndex?: number;
   multiRowSelection?: boolean;
+  widgetType?: "TABLE_WIDGET" | "TABLE_WIDGET_V2";
   updateWidgetMetaProperty: (propertyName: string, value: unknown) => void;
 }
 
@@ -40,37 +47,113 @@ export default function ObjectTableMode({
   sortOrder = DEFAULT_SORT_ORDER,
   updateWidgetMetaProperty,
   widgetId,
+  widgetType = "TABLE_WIDGET",
 }: ObjectTableModeProps) {
   const dispatch = useDispatch();
   const objectState = useSelector(getCelanworksmithObjectsState);
-  const metadata = objectTypeId
-    ? objectState.types[objectTypeId]?.metadata
+  const applicationId = useSelector(getCelanworksmithCurrentApplicationId);
+  const bindingState = useSelector(getCelanworksmithApplicationBindingState);
+  const bindingResolved =
+    !applicationId ||
+    (bindingState.applicationId === applicationId &&
+      ["ready", "unbound"].includes(bindingState.status));
+  const normalizedBinding = useMemo(
+    () =>
+      normalizeObjectBinding(
+        widgetType,
+        { dataMode: "OBJECT", objectFilter, objectTypeId },
+        { types: objectState.types },
+      ),
+    [objectFilter, objectState.types, objectTypeId, widgetType],
+  );
+  const normalizedObjectTypeId = normalizedBinding.binding.objectTypeId;
+  const metadata = normalizedObjectTypeId
+    ? objectState.types[normalizedObjectTypeId]?.metadata
     : undefined;
+  const metadataStatus = normalizedObjectTypeId
+    ? objectState.types[normalizedObjectTypeId]?.status
+    : undefined;
+  const hasMetadataIssue = normalizedBinding.issues.some(
+    (issue) => issue.code === "DELETED_OBJECT_TYPE",
+  );
   const request = useMemo<CelanworksmithObjectQueryRequest | undefined>(
     () =>
-      objectTypeId
+      normalizedObjectTypeId && !normalizedBinding.issues.length
         ? createObjectTableQueryRequest(
             widgetId,
-            objectTypeId,
+            normalizedObjectTypeId,
             pageNo,
             pageSize,
             sortOrder,
-            objectFilter,
+            normalizedBinding.binding.filter,
           )
         : undefined,
-    [objectFilter, objectTypeId, pageNo, pageSize, sortOrder, widgetId],
+    [
+      normalizedBinding.binding.filter,
+      normalizedBinding.issues.length,
+      normalizedObjectTypeId,
+      pageNo,
+      pageSize,
+      sortOrder,
+      widgetId,
+    ],
   );
   const queryState = useSelector((state: DefaultRootState) =>
     request ? getCelanworksmithObjectQuery(state, request) : undefined,
   );
   const columns = getObjectTableColumns(metadata);
   const rows = getObjectTableRows(queryState?.result);
+  const previousQueryKeyRef = useRef<string>();
 
   useEffect(() => {
-    if (request) dispatch(celanworksmithObjectQueryRequested(request));
-  }, [dispatch, request]);
+    if (!request) {
+      if (!normalizedObjectTypeId && previousQueryKeyRef.current) {
+        previousQueryKeyRef.current = undefined;
+        updateWidgetMetaProperty("selectedObject", undefined);
+        updateWidgetMetaProperty("selectedObjects", []);
+        updateWidgetMetaProperty("selectedRowIndex", -1);
+      }
 
-  if (!objectTypeId) return <div>Select an Object Type.</div>;
+      return;
+    }
+
+    if (!bindingResolved) return;
+
+    const queryKey = getObjectQueryKey(request);
+
+    if (
+      previousQueryKeyRef.current &&
+      previousQueryKeyRef.current !== queryKey
+    ) {
+      updateWidgetMetaProperty("selectedObject", undefined);
+      updateWidgetMetaProperty("selectedObjects", []);
+      updateWidgetMetaProperty("selectedRowIndex", -1);
+    }
+
+    previousQueryKeyRef.current = queryKey;
+    dispatch(celanworksmithObjectQueryRequested(request));
+  }, [
+    bindingResolved,
+    dispatch,
+    normalizedObjectTypeId,
+    request,
+    updateWidgetMetaProperty,
+  ]);
+
+  if (!normalizedObjectTypeId)
+    return <div>Select an ontology object collection.</div>;
+
+  if (hasMetadataIssue || !metadata) {
+    if (objectState.status === "loading" || metadataStatus === "loading") {
+      return <div>Loading object metadata...</div>;
+    }
+
+    return (
+      <div role="alert">The selected ontology object type is unavailable.</div>
+    );
+  }
+
+  if (!bindingResolved) return <div>Loading object data...</div>;
 
   if (queryState?.status === "error") {
     return (
@@ -82,6 +165,13 @@ export default function ObjectTableMode({
 
   if (queryState?.status === "loading" && !queryState.result) {
     return <div>Loading objects...</div>;
+  }
+
+  if (
+    queryState?.status === "empty" ||
+    (queryState?.status === "ready" && queryState.result?.items.length === 0)
+  ) {
+    return <div>No objects found.</div>;
   }
 
   const selectRow = (index: number) => {

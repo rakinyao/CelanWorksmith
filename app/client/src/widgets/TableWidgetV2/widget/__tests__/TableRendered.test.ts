@@ -1,6 +1,7 @@
 import { ResponsiveBehavior } from "layoutSystems/common/utils/constants";
 import TableWidgetV2 from "..";
 import type { TableWidgetProps } from "../../constants";
+import ObjectTableMode from "widgets/TableWidget/component/ObjectTableMode";
 
 describe("TableWidgetV2 getWidgetView", () => {
   const tableWidgetProps: TableWidgetProps = {
@@ -113,6 +114,16 @@ describe("TableWidgetV2 getWidgetView", () => {
   };
 
   describe("TableWidgetV2 loading checks", () => {
+    it("renders the object table mode when data mode is OBJECT", () => {
+      const tableWidget = new TableWidgetV2({
+        ...tableWidgetProps,
+        dataMode: "OBJECT",
+        objectTypeId: "PurchaseOrder",
+      });
+
+      expect(tableWidget.getWidgetView().type).toBe(ObjectTableMode);
+    });
+
     describe("When custom loading logic is not provided", () => {
       it("Should not be loading with built-in property isLoading is set to false", () => {
         const tableWidget = new TableWidgetV2(tableWidgetProps);

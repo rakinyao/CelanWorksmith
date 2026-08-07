@@ -81,6 +81,7 @@ import type {
 } from "WidgetProvider/types";
 import IconSVG from "../icon.svg";
 import ObjectTableMode from "../component/ObjectTableMode";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
 
 const ReactTableComponent = lazy(async () =>
   retryPromise(async () => import("../component")),
@@ -111,7 +112,7 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
   static getDefaults() {
     return {
       responsiveBehavior: ResponsiveBehavior.Fill,
-      dataMode: "QUERY",
+      dataMode: "OBJECT",
       objectTypeId: undefined,
       objectFilter: undefined,
       rows: 28,
@@ -403,12 +404,15 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
           },
           {
             propertyName: "objectTypeId",
-            label: "Object type",
-            controlType: "INPUT_TEXT",
-            isBindProperty: true,
+            label: "Ontology Object / 本体对象",
+            helpText:
+              "Select the ontology object collection that supplies table rows.",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
             dependencies: ["dataMode"],
+            hidden: (props: TableWidgetProps) => props.dataMode !== "OBJECT",
           },
           {
             propertyName: "objectFilter",
@@ -418,6 +422,7 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
             isTriggerProperty: false,
             validation: { type: ValidationTypes.OBJECT },
             dependencies: ["dataMode"],
+            hidden: (props: TableWidgetProps) => props.dataMode !== "OBJECT",
           },
         ],
       },
@@ -1271,7 +1276,13 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
   };
 
   getWidgetView() {
-    if (this.props.dataMode === "OBJECT") {
+    const objectBinding = normalizeObjectBinding(
+      TableWidget.type,
+      this.props as unknown as Record<string, unknown>,
+      {},
+    );
+
+    if (objectBinding.mode === "OBJECT") {
       return (
         <ObjectTableMode
           multiRowSelection={this.props.multiRowSelection}
@@ -1283,6 +1294,7 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
           sortOrder={this.props.sortOrder}
           updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
           widgetId={this.props.widgetId}
+          widgetType={TableWidget.type}
         />
       );
     }

@@ -111,6 +111,8 @@ import {
 } from "../constants";
 import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
+import ObjectTableMode from "widgets/TableWidget/component/ObjectTableMode";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
 import derivedProperties from "./parseDerivedProperties";
 import contentConfig from "./propertyConfig/contentConfig";
 import styleConfig from "./propertyConfig/styleConfig";
@@ -232,6 +234,9 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       customIsLoadingValue: "",
       cachedTableData: {},
       endOfData: false,
+      dataMode: "OBJECT",
+      objectTypeId: undefined,
+      objectFilter: undefined,
     };
   }
 
@@ -1283,6 +1288,32 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
   };
 
   getWidgetView() {
+    const objectBinding = normalizeObjectBinding(
+      TableWidgetV2.type,
+      this.props as unknown as Record<string, unknown>,
+      {},
+    );
+
+    if (objectBinding.mode === "OBJECT") {
+      return (
+        <ObjectTableMode
+          multiRowSelection={this.props.multiRowSelection}
+          objectFilter={this.props.objectFilter}
+          objectTypeId={this.props.objectTypeId}
+          pageNo={this.props.pageNo}
+          pageSize={this.props.pageSize}
+          selectedRowIndex={this.props.selectedRowIndex}
+          sortOrder={{
+            column: this.props.sortOrder.column,
+            order: this.props.sortOrder.order as "asc" | "desc" | null,
+          }}
+          updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
+          widgetId={this.props.widgetId}
+          widgetType={TableWidgetV2.type}
+        />
+      );
+    }
+
     const {
       customIsLoading,
       customIsLoadingValue,

@@ -3,6 +3,29 @@ import type { TableWidgetProps } from "../../../constants";
 import type { PropertyPaneSectionConfig } from "constants/PropertyControlConstants";
 
 describe("TableWidgetV2 contentConfig tests", () => {
+  it("exposes the CelanWorksmith object data mode controls", () => {
+    const objectDataSection = contentConfig.find(
+      (section) =>
+        (section as PropertyPaneSectionConfig).sectionName ===
+        "CelanWorksmith Object data",
+    ) as PropertyPaneSectionConfig;
+
+    expect(objectDataSection).toBeDefined();
+    expect(
+      objectDataSection.children?.map((child) => child.propertyName),
+    ).toEqual(["dataMode", "objectTypeId", "objectFilter"]);
+    const objectTypeControl = objectDataSection.children?.find(
+      (child) => child.propertyName === "objectTypeId",
+    );
+
+    expect(objectTypeControl).toMatchObject({
+      controlType: "CELANWORKSMITH_OBJECT_TYPE",
+      helpText:
+        "Select the ontology object collection that supplies table rows.",
+      label: "Ontology Object / 本体对象",
+    });
+  });
+
   it("should disable relevant sections when infinite scroll is enabled", () => {
     const sectionsToCheck = ["Search & filters", "Sorting", "Adding a row"];
 

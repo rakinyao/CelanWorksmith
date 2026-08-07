@@ -123,6 +123,9 @@ export interface TableWidgetProps
   infiniteScrollEnabled: boolean;
   cachedTableData: Record<number, Array<Record<string, unknown>>>;
   endOfData: boolean;
+  dataMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
+  objectFilter?: unknown;
 }
 
 export enum TableVariantTypes {
