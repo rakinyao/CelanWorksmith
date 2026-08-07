@@ -23,6 +23,7 @@ import type {
   XYCord,
 } from "layoutSystems/common/canvasArenas/ArenaTypes";
 import { migrateDSL } from "@shared/dsl";
+import { cloneDeep } from "lodash";
 import type { ContainerWidgetProps } from "widgets/ContainerWidget/widget";
 
 export interface WidgetOperationParams {
@@ -59,11 +60,11 @@ export const extractCurrentDSL = async ({
     ...defaultDSL,
   };
 
-  let dsl = currentDSL as DSLWidget;
+  let dsl = cloneDeep(currentDSL) as DSLWidget;
 
   // Run all the migrations on this DSL
   dsl = (await migrateDSL(
-    currentDSL as ContainerWidgetProps<WidgetProps>,
+    dsl as ContainerWidgetProps<WidgetProps>,
     newPage,
   )) as DSLWidget;
 

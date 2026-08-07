@@ -83,6 +83,8 @@ describe("legacy object binding modes", () => {
       children: [
         {
           columns: 24,
+          legacyColumnWidths: [120, 240],
+          legacyTableStyle: { compact: true, zebra: false },
           rows: 16,
           tableData: "{{GetOrders.data}}",
           type: "TABLE_WIDGET",
@@ -92,6 +94,60 @@ describe("legacy object binding modes", () => {
       ],
     } as unknown as DSLWidget;
     const originalDsl = cloneDeep(legacyDsl);
+    const expectedLoadedTableDsl = {
+      accentColor: "{{appsmith.theme.colors.primaryColor}}",
+      borderRadius: "0px",
+      bottomRow: Number.NaN,
+      boxShadow: "none",
+      childStylesheet: {
+        button: {
+          borderRadius: "{{appsmith.theme.borderRadius.appBorderRadius}}",
+          boxShadow: "none",
+          buttonColor: "{{appsmith.theme.colors.primaryColor}}",
+        },
+        iconButton: {
+          borderRadius: "{{appsmith.theme.borderRadius.appBorderRadius}}",
+          boxShadow: "none",
+          menuColor: "{{appsmith.theme.colors.primaryColor}}",
+        },
+        menuButton: {
+          borderRadius: "{{appsmith.theme.borderRadius.appBorderRadius}}",
+          boxShadow: "none",
+          menuColor: "{{appsmith.theme.colors.primaryColor}}",
+        },
+      },
+      children: undefined,
+      columnOrder: [],
+      columns: 24,
+      defaultSelectedRow: undefined,
+      delimiter: ",",
+      derivedColumns: {},
+      dynamicBindingPathList: [{ key: "tableData" }, { key: "accentColor" }],
+      dynamicTriggerPathList: [],
+      fontStyle: "REGULAR",
+      horizontalAlignment: "LEFT",
+      isSortable: true,
+      isVisibleDownload: true,
+      isVisibleFilters: true,
+      isVisiblePagination: true,
+      isVisibleSearch: true,
+      labelTextSize: "0.875rem",
+      leftColumn: Number.NaN,
+      legacyColumnWidths: [120, 240],
+      legacyTableStyle: { compact: true, zebra: false },
+      migrated: false,
+      primaryColumns: {},
+      rightColumn: Number.NaN,
+      rows: 16,
+      tableData: "{{GetOrders.data}}",
+      textSize: "0.875rem",
+      topRow: Number.NaN,
+      type: "TABLE_WIDGET",
+      version: 3,
+      verticalAlignment: "CENTER",
+      widgetId: "Table1",
+      widgetName: "Table1",
+    };
 
     const { dsl: loadedDsl } = await extractCurrentDSL({
       response: {
@@ -101,19 +157,15 @@ describe("legacy object binding modes", () => {
       } as never,
     });
 
-    const originalTableDsl = originalDsl.children?.[0];
-    const loadedTableDsl = loadedDsl.children?.[0];
+    const loadedTableDsl = loadedDsl.children?.[0] as Record<string, unknown>;
 
-    expect(legacyDsl.children?.[0]).toMatchObject(originalTableDsl);
-    expect(legacyDsl.children?.[0]).not.toHaveProperty("dataMode");
-    expect(loadedTableDsl).toMatchObject(originalTableDsl);
-    expect(loadedTableDsl).not.toHaveProperty("dataMode");
+    expect(legacyDsl).toEqual(originalDsl);
+    expect(loadedTableDsl).toEqual(expectedLoadedTableDsl);
     expect(
-      normalizeObjectBinding(
-        "TABLE_WIDGET",
-        loadedTableDsl as Record<string, unknown>,
-        { objectTypes: [] },
-      ).mode,
+      normalizeObjectBinding("TABLE_WIDGET", loadedTableDsl, {
+        objectTypes: [],
+      }).mode,
     ).toBe("QUERY");
+    expect(loadedTableDsl).toEqual(expectedLoadedTableDsl);
   });
 });

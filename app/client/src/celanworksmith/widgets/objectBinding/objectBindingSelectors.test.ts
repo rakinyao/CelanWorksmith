@@ -3,7 +3,7 @@ import { inferObjectTypeId } from "./objectBindingSelectors";
 const dataTree = {
   $objects: {
     ENTITY_TYPE: "CELANWORKSMITH_OBJECTS",
-    PurchaseOrder: { _meta: { status: "ready" }, all: [] },
+    PurchaseOrder: { _meta: { status: "ready", total: 0 }, all: [] },
   },
   ObjectQuery1: {
     ENTITY_TYPE: "CELANWORKSMITH_OBJECT_QUERY",
@@ -52,6 +52,38 @@ describe("inferObjectTypeId", () => {
   it("does not infer from a pseudo $objects subpath", () => {
     expect(
       inferObjectTypeId("{{$objects.PurchaseOrder._meta}}", dataTree),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    {
+      all: [],
+      _meta: {},
+    },
+    {
+      all: [],
+      _meta: { status: "ready" },
+    },
+    {
+      all: [],
+      _meta: { status: "ready", total: "0" },
+    },
+    {
+      all: [],
+      _meta: { status: "unknown", total: 0 },
+    },
+    {
+      all: ["not an object instance"],
+      _meta: { status: "ready", total: 1 },
+    },
+  ])("does not infer from an incomplete $objects type entry: %p", (entry) => {
+    expect(
+      inferObjectTypeId("{{$objects.PurchaseOrder.all}}", {
+        $objects: {
+          ENTITY_TYPE: "CELANWORKSMITH_OBJECTS",
+          PurchaseOrder: entry,
+        },
+      }),
     ).toBeUndefined();
   });
 

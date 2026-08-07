@@ -2,6 +2,13 @@ import { ENTITY_TYPE } from "ee/entities/DataTree/types";
 
 const OBJECT_QUERY_ENTITY_TYPE = "CELANWORKSMITH_OBJECT_QUERY";
 const OBJECT_QUERY_RESULT_FIELDS = ["items", "limit", "offset", "total"];
+const OBJECT_LOAD_STATUSES = new Set([
+  "idle",
+  "loading",
+  "ready",
+  "empty",
+  "error",
+]);
 const WIDGET_OBJECT_META_OUTPUTS = new Set([
   "selectedObject",
   "selectedObjects",
@@ -10,6 +17,26 @@ const WIDGET_OBJECT_OUTPUT_TYPES = new Set(["TABLE_WIDGET", "TABLE_WIDGET_V2"]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
+
+const isObjectTypeDataTreeEntry = (value: unknown): boolean => {
+  if (!isRecord(value) || !Array.isArray(value.all) || !isRecord(value._meta)) {
+    return false;
+  }
+
+  const { _meta: meta } = value;
+
+  return (
+    value.all.every(isRecord) &&
+    typeof meta.status === "string" &&
+    OBJECT_LOAD_STATUSES.has(meta.status) &&
+    typeof meta.total === "number" &&
+    (meta.updatedAt === undefined || typeof meta.updatedAt === "number") &&
+    (meta.error === undefined ||
+      (isRecord(meta.error) &&
+        typeof meta.error.code === "string" &&
+        typeof meta.error.message === "string"))
+  );
+};
 
 const getExpressionPath = (expression: unknown) => {
   if (typeof expression !== "string") return undefined;
@@ -71,16 +98,12 @@ export const inferObjectTypeId = (
       objects.ENTITY_TYPE !== ENTITY_TYPE.CELANWORKSMITH_OBJECTS ||
       !objectTypeId ||
       outputName !== "all" ||
-      !isRecord(objects[objectTypeId])
+      !isObjectTypeDataTreeEntry(objects[objectTypeId])
     ) {
       return undefined;
     }
 
-    const objectType = objects[objectTypeId];
-
-    return Array.isArray(objectType.all) && isRecord(objectType._meta)
-      ? objectTypeId
-      : undefined;
+    return objectTypeId;
   }
 
   if (path.length !== 2) return undefined;

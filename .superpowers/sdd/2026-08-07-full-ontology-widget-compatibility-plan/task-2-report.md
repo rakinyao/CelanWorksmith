@@ -107,3 +107,34 @@ exit 0
 git diff --check
 exit 0
 ```
+
+## Fix Round 2
+
+- Replaced partial legacy DSL assertions with exact equality checks. The regression fixture includes additional legacy Table fields and verifies that `extractCurrentDSL` does not mutate the complete input DSL, while the fully migrated legacy Table remains unchanged by normalization and has no `dataMode` written back.
+- Cloned the loaded DSL before applying the shared `migrateDSL` pipeline so the page response DSL remains immutable at the loading boundary.
+- Defined the recognized `$objects.<typeId>` contract used for inference: the `$objects` entity marker, an `all` array of records, and `_meta` with a supported load-status string and numeric `total`; optional `updatedAt` and `error` fields are type-checked when present.
+- Added negative inference cases for empty or partial metadata, invalid metadata types/statuses, and non-record entries in `all`. Each now returns `undefined`; a complete empty object set remains a valid inference source.
+
+### Fix Round 2 Verification
+
+```text
+./node_modules/.bin/jest --config jest.config.js \
+  src/celanworksmith/widgets/objectBinding/normalizeObjectBinding.test.ts \
+  src/celanworksmith/widgets/objectBinding/objectBindingValidation.test.ts \
+  src/celanworksmith/widgets/objectBinding/objectBindingSelectors.test.ts \
+  src/utils/WidgetMigrationUtils.test.ts \
+  --runInBand --no-cache --coverage
+PASS: 4 suites, 29 tests
+
+./node_modules/.bin/prettier --check <Task 2 Fix Round 2 files>
+PASS
+
+./node_modules/.bin/eslint <Task 2 Fix Round 2 files>
+exit 0; only the existing stale caniuse-lite Browserslist notice was emitted.
+
+yarn check-types
+exit 0
+
+git diff --check
+exit 0
+```

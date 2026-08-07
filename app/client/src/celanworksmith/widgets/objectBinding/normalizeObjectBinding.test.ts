@@ -13,6 +13,7 @@ const metadata = {
 describe("normalizeObjectBinding", () => {
   it("normalizes a legacy widget without dataMode to QUERY without changing its DSL", () => {
     const widgetProps = {
+      legacyTableStyle: { compact: true, zebra: false },
       objectTypeId: "PurchaseOrder",
       tableData: "{{GetOrders.data}}",
     };
@@ -25,6 +26,7 @@ describe("normalizeObjectBinding", () => {
       issues: [],
     });
     expect(widgetProps).toEqual({
+      legacyTableStyle: { compact: true, zebra: false },
       objectTypeId: "PurchaseOrder",
       tableData: "{{GetOrders.data}}",
     });
