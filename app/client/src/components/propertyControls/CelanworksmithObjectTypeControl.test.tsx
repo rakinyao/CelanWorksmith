@@ -1,7 +1,6 @@
 import React from "react";
 import { fireEvent, render } from "test/testUtils";
 import { EditorTheme } from "components/editorComponents/CodeEditor/EditorConfig";
-import { celanworksmithApplicationBindingLoadRequest } from "actions/celanworksmithApplicationBindingActions";
 import { celanworksmithObjectsLoadRequest } from "actions/celanworksmithObjectActions";
 import CelanworksmithObjectTypeControl from "./CelanworksmithObjectTypeControl";
 
@@ -61,17 +60,10 @@ const getControlProps = (propertyValue = "") => ({
 
 const setMetadataState = (status: string, types = objectTypes) => {
   state = {
-    celanworksmithApplicationBinding: {
-      status: "ready",
-      applicationId: "app-1",
-      binding: {
+    entities: {
+      pageList: {
         applicationId: "app-1",
-        projectId: "project-1",
-        projectVersion: "1.0.0",
-        providerId: "mongodb-readonly",
       },
-      projects: [],
-      versions: [],
     },
     celanworksmithObjects: { status, types },
   };
@@ -144,17 +136,60 @@ describe("CelanworksmithObjectTypeControl", () => {
     expect(error.getByText("Metadata unavailable")).toBeTruthy();
     fireEvent.click(error.getByText("Retry / 重试"));
 
-    expect(dispatch).toHaveBeenCalledWith(
-      celanworksmithObjectsLoadRequest("app-1"),
-    );
+    expect(dispatch).toHaveBeenCalledWith(celanworksmithObjectsLoadRequest());
   });
 
-  it("retries an App Binding error through the existing binding loader", () => {
+  it("keeps cached metadata selectable after an object refresh error", () => {
+    setMetadataState("error");
+    state = {
+      ...state,
+      celanworksmithObjects: {
+        status: "error",
+        types: objectTypes,
+        error: { code: "REFRESH_ERROR", message: "Refresh failed" },
+      },
+    };
+    const view = render(
+      <CelanworksmithObjectTypeControl {...getControlProps()} />,
+    );
+
+    expect(
+      (view.getByLabelText("Object type / 对象类型") as HTMLSelectElement)
+        .disabled,
+    ).toBe(false);
+    expect(view.getByText("Refresh failed")).toBeTruthy();
+    fireEvent.click(view.getByText("Retry / 重试"));
+
+    expect(dispatch).toHaveBeenCalledWith(celanworksmithObjectsLoadRequest());
+  });
+
+  it("shows a binding prompt for an unbound application", () => {
     state = {
       ...state,
       celanworksmithApplicationBinding: {
-        ...state.celanworksmithApplicationBinding,
+        status: "unbound",
+        applicationId: "app-1",
+      },
+    };
+    const view = render(
+      <CelanworksmithObjectTypeControl {...getControlProps()} />,
+    );
+
+    expect(
+      (view.getByLabelText("Object type / 对象类型") as HTMLSelectElement)
+        .disabled,
+    ).toBe(true);
+    expect(
+      view.getByText("Bind an ontology project / 请先绑定本体工程"),
+    ).toBeTruthy();
+  });
+
+  it("retries an App Binding error through its action contract", () => {
+    state = {
+      ...state,
+      celanworksmithApplicationBinding: {
         status: "error",
+        applicationId: "app-1",
         error: { code: "BINDING_ERROR", message: "Binding unavailable" },
       },
     };
@@ -164,8 +199,9 @@ describe("CelanworksmithObjectTypeControl", () => {
 
     fireEvent.click(error.getByText("Retry / 重试"));
 
-    expect(dispatch).toHaveBeenCalledWith(
-      celanworksmithApplicationBindingLoadRequest("app-1"),
-    );
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "CELANWORKSMITH_APPLICATION_BINDING_LOAD_REQUEST",
+      payload: { applicationId: "app-1" },
+    });
   });
 });

@@ -5,17 +5,10 @@ import {
 } from "./celanworksmithObjectMetadataSelectors";
 
 const readyState = {
-  celanworksmithApplicationBinding: {
-    status: "ready",
-    applicationId: "app-1",
-    binding: {
+  entities: {
+    pageList: {
       applicationId: "app-1",
-      projectId: "project-1",
-      projectVersion: "1.0.0",
-      providerId: "mongodb-readonly",
     },
-    projects: [],
-    versions: [],
   },
   celanworksmithObjects: {
     status: "ready",
@@ -138,6 +131,24 @@ describe("celanworksmithObjectMetadataSelectors", () => {
         celanworksmithObjects: { status: "empty", types: {} },
       } as never),
     ).toMatchObject({ status: "empty", isBound: true });
+  });
+
+  it("keeps cached metadata ready when an object refresh reports an error", () => {
+    expect(
+      getCelanworksmithObjectMetadataState({
+        ...readyState,
+        celanworksmithObjects: {
+          ...readyState.celanworksmithObjects,
+          status: "error",
+          error: { code: "REFRESH_ERROR", message: "Refresh failed" },
+        },
+      } as never),
+    ).toEqual({
+      status: "ready",
+      isBound: true,
+      applicationId: "app-1",
+      error: { code: "REFRESH_ERROR", message: "Refresh failed" },
+    });
   });
 
   it("returns no Property options for a missing Object Type", () => {

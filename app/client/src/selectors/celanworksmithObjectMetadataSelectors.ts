@@ -1,6 +1,6 @@
 import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
 import type { DefaultRootState } from "react-redux";
-import { getCelanworksmithApplicationBindingState } from "./celanworksmithApplicationBindingSelectors";
+import { getCurrentApplicationId } from "selectors/editorSelectors";
 import { getCelanworksmithObjectsState } from "./dataTreeSelectors";
 
 export type CelanworksmithObjectMetadataStatus =
@@ -13,7 +13,7 @@ export interface CelanworksmithObjectMetadataState {
   status: CelanworksmithObjectMetadataStatus;
   isBound: boolean;
   applicationId?: string;
-  error?: { message: string };
+  error?: { code?: string; message: string };
 }
 
 export interface CelanworksmithObjectTypeOption {
@@ -50,43 +50,74 @@ const getUniqueProperties = (properties: CelanworksmithProperty[]) => {
   return [...propertiesById.values()];
 };
 
+interface CelanworksmithApplicationBindingSnapshot {
+  status: "idle" | "loading" | "ready" | "unbound" | "error";
+  applicationId?: string;
+  error?: { code?: string; message: string };
+}
+
+const getCelanworksmithApplicationBindingSnapshot = (
+  state: DefaultRootState,
+): CelanworksmithApplicationBindingSnapshot | undefined =>
+  (
+    state as DefaultRootState & {
+      celanworksmithApplicationBinding?: CelanworksmithApplicationBindingSnapshot;
+    }
+  ).celanworksmithApplicationBinding;
+
 export const getCelanworksmithObjectMetadataState = (
   state: DefaultRootState,
 ): CelanworksmithObjectMetadataState => {
-  const bindingState = getCelanworksmithApplicationBindingState(state);
+  const bindingState = getCelanworksmithApplicationBindingSnapshot(state);
+  const applicationId =
+    bindingState?.applicationId || getCurrentApplicationId(state);
 
-  if (bindingState.status === "loading") {
+  if (bindingState?.status === "loading") {
     return {
       status: "loading",
       isBound: false,
-      applicationId: bindingState.applicationId,
+      applicationId,
     };
   }
 
-  if (bindingState.status === "error") {
+  if (bindingState?.status === "error") {
     return {
       status: "error",
       isBound: false,
-      applicationId: bindingState.applicationId,
+      applicationId,
       error: bindingState.error,
     };
   }
 
-  if (bindingState.status !== "ready") {
+  if (bindingState && bindingState.status !== "ready") {
     return {
       status: "empty",
       isBound: false,
-      applicationId: bindingState.applicationId,
+      applicationId,
     };
   }
 
   const objectsState = getCelanworksmithObjectsState(state);
+  const hasMetadata = Object.values(objectsState.types).some(
+    (typeState) => typeState.metadata,
+  );
+
+  if (hasMetadata) {
+    return {
+      status: "ready",
+      isBound: true,
+      applicationId,
+      ...(objectsState.status === "error" && objectsState.error
+        ? { error: objectsState.error }
+        : {}),
+    };
+  }
 
   if (objectsState.status === "error") {
     return {
       status: "error",
       isBound: true,
-      applicationId: bindingState.applicationId,
+      applicationId,
       error: objectsState.error,
     };
   }
@@ -95,18 +126,14 @@ export const getCelanworksmithObjectMetadataState = (
     return {
       status: "loading",
       isBound: true,
-      applicationId: bindingState.applicationId,
+      applicationId,
     };
   }
 
   return {
-    status: Object.values(objectsState.types).some(
-      (typeState) => typeState.metadata,
-    )
-      ? "ready"
-      : "empty",
+    status: "empty",
     isBound: true,
-    applicationId: bindingState.applicationId,
+    applicationId,
   };
 };
 

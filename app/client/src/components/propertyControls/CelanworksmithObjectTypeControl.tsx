@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { celanworksmithApplicationBindingLoadRequest } from "actions/celanworksmithApplicationBindingActions";
-import { celanworksmithObjectsLoadRequest } from "actions/celanworksmithObjectActions";
 import type { ControlData, ControlProps } from "./BaseControl";
 import BaseControl from "./BaseControl";
+import { getCelanworksmithObjectMetadataRetryAction } from "./celanworksmithObjectMetadataRetry";
 import {
   getCelanworksmithObjectMetadataState,
   getCelanworksmithObjectTypeOptions,
@@ -45,13 +44,7 @@ const CelanworksmithObjectTypeSelector = ({
   const retry = () => {
     if (!metadataState.applicationId) return;
 
-    dispatch(
-      metadataState.isBound
-        ? celanworksmithObjectsLoadRequest(metadataState.applicationId)
-        : celanworksmithApplicationBindingLoadRequest(
-            metadataState.applicationId,
-          ),
-    );
+    dispatch(getCelanworksmithObjectMetadataRetryAction(metadataState));
   };
 
   return (
@@ -90,7 +83,7 @@ const CelanworksmithObjectTypeSelector = ({
       {metadataState.status === "empty" && metadataState.isBound ? (
         <div>No object types / 没有对象类型</div>
       ) : null}
-      {metadataState.status === "error" ? (
+      {metadataState.error ? (
         <div>
           <div>{metadataState.error?.message || "Metadata unavailable"}</div>
           <button

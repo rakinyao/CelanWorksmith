@@ -52,17 +52,10 @@ const getControlProps = (propertyValue = "") => ({
 
 const setMetadataState = (status: string, objectTypeId = "customer") => {
   state = {
-    celanworksmithApplicationBinding: {
-      status: "ready",
-      applicationId: "app-1",
-      binding: {
+    entities: {
+      pageList: {
         applicationId: "app-1",
-        projectId: "project-1",
-        projectVersion: "1.0.0",
-        providerId: "mongodb-readonly",
       },
-      projects: [],
-      versions: [],
     },
     celanworksmithObjects: {
       status,
@@ -136,7 +129,7 @@ describe("CelanworksmithObjectPropertyControl", () => {
   });
 
   it("disables while loading and preserves invalid IDs with an error retry", () => {
-    setMetadataState("loading");
+    setMetadataState("loading", "deleted-type");
     const loading = render(
       <CelanworksmithObjectPropertyControl {...getControlProps()} />,
     );
@@ -164,8 +157,27 @@ describe("CelanworksmithObjectPropertyControl", () => {
     expect(error.getByText("deleted-property (missing / 已删除)")).toBeTruthy();
     fireEvent.click(error.getByText("Retry / 重试"));
 
-    expect(dispatch).toHaveBeenCalledWith(
-      celanworksmithObjectsLoadRequest("app-1"),
+    expect(dispatch).toHaveBeenCalledWith(celanworksmithObjectsLoadRequest());
+  });
+
+  it("retries an App Binding error through its action contract", () => {
+    state = {
+      ...state,
+      celanworksmithApplicationBinding: {
+        status: "error",
+        applicationId: "app-1",
+        error: { code: "BINDING_ERROR", message: "Binding unavailable" },
+      },
+    };
+    const error = render(
+      <CelanworksmithObjectPropertyControl {...getControlProps()} />,
     );
+
+    fireEvent.click(error.getByText("Retry / 重试"));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "CELANWORKSMITH_APPLICATION_BINDING_LOAD_REQUEST",
+      payload: { applicationId: "app-1" },
+    });
   });
 });
