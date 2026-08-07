@@ -17,6 +17,7 @@ import type { DSLWidget } from "WidgetProvider/types";
 import type { BlockSpace, GridProps } from "reflow/reflowTypes";
 import type { Rect } from "./boxHelpers";
 import { areIntersecting } from "./boxHelpers";
+import { migrateLegacyObjectBindingModes } from "./WidgetMigrationUtils";
 
 import type {
   WidgetDraggingBlock,
@@ -66,6 +67,7 @@ export const extractCurrentDSL = async ({
     currentDSL as ContainerWidgetProps<WidgetProps>,
     newPage,
   )) as DSLWidget;
+  dsl = migrateLegacyObjectBindingModes(dsl);
 
   // If this DSL is meant to be transformed
   // then the dslTransformer would have been passed by the caller

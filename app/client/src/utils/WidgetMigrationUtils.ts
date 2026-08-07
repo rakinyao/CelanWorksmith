@@ -1,5 +1,6 @@
 import type { WidgetProps } from "widgets/BaseWidget";
 import type { DSLWidget } from "WidgetProvider/types";
+import { getObjectBindingModeProperty } from "celanworksmith/widgets/objectBinding/types";
 
 /*
  * Function to traverse the DSL tree and execute the given migration function for each widget present in
@@ -20,4 +21,18 @@ export const traverseDSLAndMigrate = (
   });
 
   return DSL;
+};
+
+const migrateLegacyObjectBindingMode = (widget: WidgetProps) => {
+  const modeProperty = getObjectBindingModeProperty(widget.type);
+
+  if (modeProperty && widget[modeProperty] === undefined) {
+    widget[modeProperty] = "QUERY";
+  }
+};
+
+export const migrateLegacyObjectBindingModes = (DSL: DSLWidget) => {
+  migrateLegacyObjectBindingMode(DSL);
+
+  return traverseDSLAndMigrate(DSL, migrateLegacyObjectBindingMode);
 };

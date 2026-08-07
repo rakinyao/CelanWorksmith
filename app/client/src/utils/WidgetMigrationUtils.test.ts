@@ -1,6 +1,9 @@
 import { cloneDeep, noop } from "lodash";
 import type { DSLWidget } from "WidgetProvider/types";
-import { traverseDSLAndMigrate } from "./WidgetMigrationUtils";
+import {
+  migrateLegacyObjectBindingModes,
+  traverseDSLAndMigrate,
+} from "./WidgetMigrationUtils";
 
 const dsl = {
   children: [
@@ -67,6 +70,34 @@ describe("traverseDSLAndMigrate", () => {
           name: "widget4",
           type: "widget",
         },
+      ],
+    });
+  });
+});
+
+describe("migrateLegacyObjectBindingModes", () => {
+  it("sets QUERY only for legacy ontology-capable widgets without a mode", () => {
+    const legacyDsl = {
+      type: "CANVAS_WIDGET",
+      children: [
+        { type: "TABLE_WIDGET", tableData: "{{GetOrders.data}}" },
+        { formMode: "OBJECT", type: "JSON_FORM_WIDGET" },
+        { type: "FORM_WIDGET" },
+        { type: "TEXT_WIDGET", text: "unchanged" },
+      ],
+    } as unknown as DSLWidget;
+
+    expect(migrateLegacyObjectBindingModes(legacyDsl)).toEqual({
+      type: "CANVAS_WIDGET",
+      children: [
+        {
+          dataMode: "QUERY",
+          tableData: "{{GetOrders.data}}",
+          type: "TABLE_WIDGET",
+        },
+        { formMode: "OBJECT", type: "JSON_FORM_WIDGET" },
+        { formMode: "QUERY", type: "FORM_WIDGET" },
+        { text: "unchanged", type: "TEXT_WIDGET" },
       ],
     });
   });
