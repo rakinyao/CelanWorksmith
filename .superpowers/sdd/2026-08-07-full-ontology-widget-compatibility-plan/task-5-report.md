@@ -94,3 +94,26 @@ ESLint: exit 0 (existing warnings only)
 yarn check-types: exit 0
 git diff --check: exit 0
 ```
+
+## Fix Round 2
+
+- Replaced direct List/ListV2 item-handler coverage with mounted Object mode
+  views that render template rows through the Canvas test harness, expose
+  native pagination, publish normalized current rows, and trigger item clicks
+  to assert stable selected Object/meta output.
+- Added mounted ObjectSet option interaction coverage for Select, Dropdown,
+  and MultiSelect. Each test opens the real control, chooses the rendered
+  Supplier option, and asserts its stable `supplierId` output.
+- Added Dropdown required-validity checks proving `false` and `0` remain valid
+  selected Object values. Existing real Object mode type-mismatch, error, and
+  empty-state coverage remains in place.
+
+### Fix Round 2 Verification
+
+```text
+Focused Task 5 Jest suite: PASS 11 suites, 79 tests
+Prettier check: PASS
+ESLint: exit 0 (Browserslist caniuse-lite age warning only)
+yarn check-types: exit 0
+git diff --check: exit 0
+```

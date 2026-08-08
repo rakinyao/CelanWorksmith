@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
 import { dark, theme } from "constants/DefaultTheme";
 import ListWidget, { type ListWidgetProps } from ".";
@@ -6,6 +7,40 @@ import React from "react";
 import { Provider } from "react-redux";
 import configureStore from "redux-mock-store";
 import { ThemeProvider } from "styled-components";
+
+jest.mock("layoutSystems/CanvasFactory", () => {
+  const React = jest.requireActual("react");
+
+  const collectInteractiveRows = (node: Record<string, unknown>) => {
+    const rows: Array<Record<string, unknown>> = [];
+    const children = (node.children || []) as Array<Record<string, unknown>>;
+
+    if (node.onClickCapture) rows.push(node);
+
+    children.forEach((child) => rows.push(...collectInteractiveRows(child)));
+
+    return rows;
+  };
+
+  return {
+    renderAppsmithCanvas: (props: Record<string, unknown>) =>
+      React.createElement(
+        React.Fragment,
+        null,
+        ...collectInteractiveRows(props).map((row, index) =>
+          React.createElement(
+            "button",
+            {
+              key: String(index),
+              onClick: row.onClickCapture,
+              type: "button",
+            },
+            "Supplier template row",
+          ),
+        ),
+      ),
+  };
+});
 
 const objectSetState = {
   celanworksmithObjects: {
@@ -37,6 +72,11 @@ const objectSetState = {
               id: "supplier-acme",
               typeId: "Supplier",
               properties: { supplierName: "Acme" },
+            },
+            {
+              id: "supplier-globex",
+              typeId: "Supplier",
+              properties: { supplierName: "Globex" },
             },
           ],
           offset: 0,
@@ -70,7 +110,7 @@ test("List defaults to Object mode and keeps a legacy Query list native", () => 
   ).toBe(ObjectCollectionMode);
 });
 
-test("List renders ObjectSet rows through its native view and selects the stable ID", () => {
+test("List renders ObjectSet template rows, paginates, and selects a stable object", () => {
   const updateWidgetMetaProperty = jest.fn();
   const widget = new ListWidget({
     backgroundColor: "transparent",
@@ -78,6 +118,28 @@ test("List renders ObjectSet rows through its native view and selects the stable
     componentHeight: 400,
     componentWidth: 600,
     dataMode: "OBJECT",
+    childWidgets: [
+      {
+        children: [
+          {
+            bottomRow: 10,
+            children: [
+              {
+                children: [],
+                type: "CANVAS_WIDGET",
+                widgetId: "SupplierTemplateCanvas",
+                widgetName: "SupplierTemplateCanvas",
+              },
+            ],
+            type: "CONTAINER_WIDGET",
+            widgetId: "SupplierTemplate",
+            widgetName: "SupplierTemplate",
+          },
+        ],
+        type: "CANVAS_WIDGET",
+        widgetId: "ListCanvas",
+      },
+    ],
     objectTypeId: "Supplier",
     pageSize: 1,
     renderMode: "PAGE",
@@ -98,9 +160,25 @@ test("List renders ObjectSet rows through its native view and selects the stable
     ),
   );
 
-  expect(screen.queryByRole("button", { name: /supplierName/i })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Supplier template row" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("2")).toBeInTheDocument();
 
-  widget.onItemClick(0, undefined);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Supplier template row" }),
+  );
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "listData",
+    expect.arrayContaining([
+      expect.objectContaining({ id: "supplier-acme", supplierName: "Acme" }),
+      expect.objectContaining({
+        id: "supplier-globex",
+        supplierName: "Globex",
+      }),
+    ]),
+  );
 
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
     "selectedItem",

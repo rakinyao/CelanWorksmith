@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ObjectSelectionMode from "celanworksmith/widgets/objectBinding/ObjectSelectionMode";
 import { dark, theme } from "constants/DefaultTheme";
@@ -43,7 +43,7 @@ test("Select preserves Query options and exposes Object property mappings", () =
   ]);
 });
 
-test("Select consumes an ObjectSet and emits its stable property value", () => {
+test("Select renders ObjectSet options and emits the selected stable property value", () => {
   const updateWidgetMetaProperty = jest.fn();
   const widget = new SelectWidget({
     ...queryProps,
@@ -116,7 +116,11 @@ test("Select consumes an ObjectSet and emits its stable property value", () => {
     ),
   );
 
-  widget.onOptionSelected({ label: "Acme", value: "supplier-acme" });
+  fireEvent.click(screen.getByTestId("selectbutton.btn.main"));
+
+  expect(screen.getByText("Acme")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText("Acme"));
 
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
     "value",

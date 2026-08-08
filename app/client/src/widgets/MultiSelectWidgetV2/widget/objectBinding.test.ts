@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ObjectSelectionMode from "celanworksmith/widgets/objectBinding/ObjectSelectionMode";
 import MultiSelectWidget, { type MultiSelectWidgetProps } from ".";
@@ -98,4 +98,91 @@ test("MultiSelect renders an empty ObjectSet from its actual Object mode view", 
   );
 
   expect(screen.getByText("No objects found.")).toBeInTheDocument();
+});
+
+test("MultiSelect renders ObjectSet options and emits selected stable property values", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const widget = new MultiSelectWidget({
+    ...queryProps,
+    accentColor: "#000000",
+    borderRadius: "0px",
+    componentHeight: 40,
+    componentWidth: 300,
+    dataMode: "OBJECT",
+    displayPropertyId: "supplierName",
+    isFilterable: false,
+    isValid: true,
+    objectTypeId: "Supplier",
+    selectedOptionLabels: [],
+    selectedOptionValues: [],
+    updateWidgetMetaProperty,
+    valuePropertyId: "supplierId",
+  } as unknown as MultiSelectWidgetProps);
+
+  render(
+    React.createElement(
+      Provider,
+      {
+        store: configureStore()({
+          celanworksmithObjects: {
+            status: "ready",
+            types: {
+              Supplier: {
+                metadata: {
+                  id: "Supplier",
+                  displayName: "Supplier",
+                  properties: [
+                    { id: "supplierName", dataType: "STRING" },
+                    { id: "supplierId", dataType: "STRING" },
+                  ],
+                },
+                status: "ready",
+              },
+            },
+          },
+          celanworksmithObjectQueries: {
+            entries: {
+              'MultiSelect1/Supplier/{"limit":100,"offset":0}': {
+                request: {
+                  widgetId: "MultiSelect1",
+                  typeId: "Supplier",
+                  query: { limit: 100, offset: 0 },
+                },
+                status: "ready",
+                result: {
+                  typeId: "Supplier",
+                  items: [
+                    {
+                      id: "supplier-acme",
+                      typeId: "Supplier",
+                      properties: {
+                        supplierId: "supplier-acme",
+                        supplierName: "Acme",
+                      },
+                    },
+                  ],
+                  offset: 0,
+                  limit: 100,
+                  total: 1,
+                },
+              },
+            },
+          },
+        }),
+      },
+      widget.getWidgetView(),
+    ),
+  );
+
+  fireEvent.mouseDown(screen.getByRole("combobox"));
+
+  expect(screen.getByText("Acme")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText("Acme"));
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "selectedOptions",
+    [expect.objectContaining({ label: "Acme", value: "supplier-acme" })],
+    expect.objectContaining({ triggerPropertyName: "onOptionChange" }),
+  );
 });

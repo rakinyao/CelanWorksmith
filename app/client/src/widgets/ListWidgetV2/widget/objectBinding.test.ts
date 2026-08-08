@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
 import { EditorContext } from "components/editorComponents/EditorContextProvider";
 import { dark, theme } from "constants/DefaultTheme";
@@ -7,6 +8,40 @@ import React from "react";
 import { Provider } from "react-redux";
 import configureStore from "redux-mock-store";
 import { ThemeProvider } from "styled-components";
+
+jest.mock("layoutSystems/CanvasFactory", () => {
+  const React = jest.requireActual("react");
+
+  const collectInteractiveRows = (node: Record<string, unknown>) => {
+    const rows: Array<Record<string, unknown>> = [];
+    const children = (node.children || []) as Array<Record<string, unknown>>;
+
+    if (node.onClick) rows.push(node);
+
+    children.forEach((child) => rows.push(...collectInteractiveRows(child)));
+
+    return rows;
+  };
+
+  return {
+    renderAppsmithCanvas: (props: Record<string, unknown>) =>
+      React.createElement(
+        React.Fragment,
+        { key: String(props.widgetId) },
+        ...collectInteractiveRows(props).map((row, index) =>
+          React.createElement(
+            "button",
+            {
+              key: String(index),
+              onClick: row.onClick,
+              type: "button",
+            },
+            "Supplier template row",
+          ),
+        ),
+      ),
+  };
+});
 
 const objectSetState = {
   celanworksmithObjects: {
@@ -39,6 +74,11 @@ const objectSetState = {
               typeId: "Supplier",
               properties: { supplierName: "Acme" },
             },
+            {
+              id: "supplier-globex",
+              typeId: "Supplier",
+              properties: { supplierName: "Globex" },
+            },
           ],
           offset: 0,
           limit: 100,
@@ -70,15 +110,28 @@ test("ListV2 defaults to Object mode and keeps a legacy Query list native", () =
   ).toBe(ObjectCollectionMode);
 });
 
-test("ListV2 renders ObjectSet rows through its native view and selects the stable ID", () => {
+test("ListV2 renders ObjectSet template rows, paginates, and selects a stable object", () => {
   const updateWidgetMetaProperty = jest.fn();
   const widget = new ListWidgetV2({
     accentColor: "#000000",
     backgroundColor: "transparent",
     borderRadius: "0px",
-    componentHeight: 400,
+    componentHeight: 180,
     componentWidth: 600,
     dataMode: "OBJECT",
+    metaWidgetChildrenStructure: [
+      {
+        children: [
+          {
+            children: [],
+            type: "CONTAINER_WIDGET",
+            widgetId: "SupplierTemplate",
+          },
+        ],
+        type: "CANVAS_WIDGET",
+        widgetId: "ListCanvas",
+      },
+    ],
     objectTypeId: "Supplier",
     pageNo: 1,
     pageSize: 1,
@@ -104,9 +157,25 @@ test("ListV2 renders ObjectSet rows through its native view and selects the stab
     ),
   );
 
-  expect(screen.queryByRole("button", { name: /supplierName/i })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Supplier template row" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("2")).toBeInTheDocument();
 
-  widget.onItemClick(0);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Supplier template row" }),
+  );
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "listData",
+    expect.arrayContaining([
+      expect.objectContaining({ id: "supplier-acme", supplierName: "Acme" }),
+      expect.objectContaining({
+        id: "supplier-globex",
+        supplierName: "Globex",
+      }),
+    ]),
+  );
 
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
     "selectedItemKey",

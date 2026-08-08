@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ObjectSelectionMode from "celanworksmith/widgets/objectBinding/ObjectSelectionMode";
 import DropdownWidget, { type DropdownWidgetProps } from ".";
@@ -43,26 +43,103 @@ test("Dropdown preserves Query options and exposes Object property mappings", ()
 });
 
 describe("Dropdown Object value handling", () => {
-  test.each([false, 0])(
-    "does not treat the required Object value %p as unselected",
-    (value) => {
-      const updateWidgetMetaProperty = jest.fn();
-      const widget = new DropdownWidget({
-        ...queryProps,
-        dataMode: "OBJECT",
-        isDirty: true,
+  test.each([false, 0])("keeps the required Object value %p valid", (value) => {
+    const isValid = DropdownWidget.getDerivedPropertiesMap().isValid;
+    const expression = isValid.slice(2, -2);
+    const evaluateIsValid = new Function(`return ${expression};`);
+
+    expect(
+      evaluateIsValid.call({
+        isRequired: true,
         selectedOptionValue: value,
-        updateWidgetMetaProperty,
-      } as unknown as DropdownWidgetProps);
+      }),
+    ).toBe(true);
+  });
+});
 
-      widget.onOptionSelected({ label: "Existing", value });
+test("Dropdown renders ObjectSet options and emits the selected stable property value", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const widget = new DropdownWidget({
+    ...queryProps,
+    accentColor: "#000000",
+    backgroundColor: "transparent",
+    borderRadius: "0px",
+    componentHeight: 40,
+    componentWidth: 300,
+    dataMode: "OBJECT",
+    displayPropertyId: "supplierName",
+    isFilterable: false,
+    isValid: true,
+    objectTypeId: "Supplier",
+    updateWidgetMetaProperty,
+    valuePropertyId: "supplierId",
+  } as unknown as DropdownWidgetProps);
 
-      expect(updateWidgetMetaProperty).not.toHaveBeenCalledWith(
-        "value",
-        value,
-        expect.anything(),
-      );
-    },
+  render(
+    React.createElement(
+      Provider,
+      {
+        store: configureStore()({
+          celanworksmithObjects: {
+            status: "ready",
+            types: {
+              Supplier: {
+                metadata: {
+                  id: "Supplier",
+                  displayName: "Supplier",
+                  properties: [
+                    { id: "supplierName", dataType: "STRING" },
+                    { id: "supplierId", dataType: "STRING" },
+                  ],
+                },
+                status: "ready",
+              },
+            },
+          },
+          celanworksmithObjectQueries: {
+            entries: {
+              'Dropdown1/Supplier/{"limit":100,"offset":0}': {
+                request: {
+                  widgetId: "Dropdown1",
+                  typeId: "Supplier",
+                  query: { limit: 100, offset: 0 },
+                },
+                status: "ready",
+                result: {
+                  typeId: "Supplier",
+                  items: [
+                    {
+                      id: "supplier-acme",
+                      typeId: "Supplier",
+                      properties: {
+                        supplierId: "supplier-acme",
+                        supplierName: "Acme",
+                      },
+                    },
+                  ],
+                  offset: 0,
+                  limit: 100,
+                  total: 1,
+                },
+              },
+            },
+          },
+        }),
+      },
+      widget.getWidgetView(),
+    ),
+  );
+
+  fireEvent.click(screen.getByText("-- Select --"));
+
+  expect(screen.getByText("Acme")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText("Acme"));
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "value",
+    "supplier-acme",
+    expect.objectContaining({ triggerPropertyName: "onOptionChange" }),
   );
 });
 
