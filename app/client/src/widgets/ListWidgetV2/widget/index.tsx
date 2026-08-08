@@ -58,6 +58,8 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { renderAppsmithCanvas } from "layoutSystems/CanvasFactory";
 import { klonaRegularWithTelemetry } from "utils/helpers";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
+import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
 
 const getCurrentItemsViewBindingTemplate = () => ({
   prefix: "{{[",
@@ -1452,6 +1454,26 @@ class ListWidget extends BaseWidget<
   };
 
   getWidgetView() {
+    const objectBinding = normalizeObjectBinding(
+      ListWidget.type,
+      this.props as unknown as Record<string, unknown>,
+      {},
+    );
+
+    if (objectBinding.mode === "OBJECT") {
+      return (
+        <ObjectCollectionMode
+          objectTypeId={objectBinding.binding.objectTypeId}
+          onSelect={(object) => {
+            this.props.updateWidgetMetaProperty("selectedItem", object);
+            this.props.updateWidgetMetaProperty("selectedItemKey", object.id);
+          }}
+          widgetId={this.props.widgetId}
+          widgetType={ListWidget.type}
+        />
+      );
+    }
+
     const { componentHeight, componentWidth } = this.props;
     const { infiniteScroll, isLoading, parentColumnSpace, selectedItemKey } =
       this.props;
@@ -1519,6 +1541,8 @@ class ListWidget extends BaseWidget<
 
 export interface ListWidgetProps<T extends WidgetProps = WidgetProps>
   extends WidgetProps {
+  dataMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
   accentColor: string;
   backgroundColor: string;
   borderRadius: string;

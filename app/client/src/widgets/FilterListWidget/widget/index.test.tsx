@@ -5,6 +5,7 @@ import configureStore from "redux-mock-store";
 import { ThemeProvider } from "styled-components";
 import { dark, theme } from "constants/DefaultTheme";
 import FilterListComponent from "../component";
+import FilterListWidget, { type FilterListWidgetProps } from ".";
 import "@testing-library/jest-dom";
 
 const mockStore = configureStore([]);
@@ -169,5 +170,37 @@ describe("FilterListComponent", () => {
 
     expect(screen.getByLabelText("Object type")).toHaveValue("");
     expect(updateWidgetMetaProperty).toHaveBeenCalledWith("isValid", false);
+  });
+});
+
+describe("FilterListWidget object binding", () => {
+  test("defaults new widgets to Object mode while keeping legacy Query props", () => {
+    expect(FilterListWidget.getDefaults().dataMode).toBe("OBJECT");
+
+    const legacyWidget = new FilterListWidget({
+      filter: { typeId: "PurchaseOrder", conditions: [], version: 1 },
+      objectTypeId: "PurchaseOrder",
+      updateWidgetMetaProperty: jest.fn(),
+      widgetId: "FilterList1",
+      widgetName: "FilterList1",
+    } as unknown as FilterListWidgetProps);
+
+    expect(legacyWidget.getWidgetView().props.initialObjectTypeId).toBe(
+      "PurchaseOrder",
+    );
+  });
+
+  test("uses the shared Object Type control only for Object mode", () => {
+    const dataControls = FilterListWidget.getPropertyPaneContentConfig().find(
+      (section) => section.sectionName === "Data",
+    )?.children;
+    const objectTypeControl = dataControls?.find(
+      (control) => control.propertyName === "objectTypeId",
+    );
+
+    expect(objectTypeControl).toMatchObject({
+      controlType: "CELANWORKSMITH_OBJECT_TYPE",
+      dependencies: ["dataMode"],
+    });
   });
 });

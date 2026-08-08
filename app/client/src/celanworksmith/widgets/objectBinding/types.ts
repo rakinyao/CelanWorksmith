@@ -71,6 +71,11 @@ export const getObjectBindingModeProperty = (widgetType: string) => {
     case "TABLE_WIDGET":
     case "TABLE_WIDGET_V2":
     case "FILTER_LIST_WIDGET":
+    case "LIST_WIDGET":
+    case "LIST_WIDGET_V2":
+    case "SELECT_WIDGET":
+    case "DROP_DOWN_WIDGET":
+    case "MULTI_SELECT_WIDGET_V2":
       return "dataMode";
     case "JSON_FORM_WIDGET":
     case "FORM_WIDGET":

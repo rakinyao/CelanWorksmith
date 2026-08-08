@@ -72,6 +72,8 @@ import {
   PropertyPaneContentConfig,
   PropertyPaneStyleConfig,
 } from "./propertyConfig";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
+import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
 
 const LIST_WIDGET_PAGINATION_HEIGHT = 36;
 
@@ -105,6 +107,8 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
   static getDefaults() {
     return {
       backgroundColor: "transparent",
+      dataMode: "OBJECT",
+      objectTypeId: undefined,
       itemBackgroundColor: "#FFFFFF",
       rows: 40,
       columns: 24,
@@ -1442,6 +1446,25 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
    * view that is rendered in editor
    */
   getWidgetView() {
+    const objectBinding = normalizeObjectBinding(
+      ListWidget.type,
+      this.props as unknown as Record<string, unknown>,
+      {},
+    );
+
+    if (objectBinding.mode === "OBJECT") {
+      return (
+        <ObjectCollectionMode
+          objectTypeId={objectBinding.binding.objectTypeId}
+          onSelect={(object) =>
+            this.props.updateWidgetMetaProperty("selectedItem", object)
+          }
+          widgetId={this.props.widgetId}
+          widgetType={ListWidget.type}
+        />
+      );
+    }
+
     const children = this.renderChildren();
     const { componentHeight } = this.props;
     const { pageNo, serverSidePaginationEnabled } = this.props;
@@ -1538,6 +1561,8 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
 }
 
 export interface ListWidgetProps<T extends WidgetProps> extends WidgetProps {
+  dataMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
   children?: T[];
   shouldScrollContents?: boolean;
   onListItemClick?: string;

@@ -127,4 +127,21 @@ describe("normalizeObjectBinding", () => {
       issues: [{ code: "MISSING_OBJECT_TYPE" }],
     });
   });
+
+  it("recognizes explicit Object mode for collection and selection widgets", () => {
+    expect(
+      normalizeObjectBinding(
+        "SELECT_WIDGET",
+        { dataMode: "OBJECT", objectTypeId: "PurchaseOrder" },
+        metadata,
+      ),
+    ).toMatchObject({ mode: "OBJECT", issues: [] });
+    expect(
+      normalizeObjectBinding(
+        "LIST_WIDGET_V2",
+        { objectTypeId: "PurchaseOrder", listData: "{{Query1.data}}" },
+        metadata,
+      ),
+    ).toMatchObject({ mode: "QUERY", issues: [] });
+  });
 });

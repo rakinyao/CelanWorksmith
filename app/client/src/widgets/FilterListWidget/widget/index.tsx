@@ -14,6 +14,7 @@ import { FILTER_LIST_WIDGET_TYPE } from "../constants";
 import type { FilterCondition } from "./filterUtils";
 
 export interface FilterListWidgetProps extends WidgetProps {
+  dataMode?: "QUERY" | "OBJECT";
   objectTypeId?: string;
   filter?: { typeId: string; conditions: FilterCondition[]; version: 1 };
 }
@@ -39,6 +40,7 @@ class FilterListWidget extends BaseWidget<FilterListWidgetProps, WidgetState> {
       widgetName: "FilterList",
       isVisible: true,
       version: 1,
+      dataMode: "OBJECT",
       objectTypeId: undefined,
       responsiveBehavior: ResponsiveBehavior.Fill,
       minWidth: FILL_WIDGET_MIN_WIDTH,
@@ -51,13 +53,28 @@ class FilterListWidget extends BaseWidget<FilterListWidgetProps, WidgetState> {
         sectionName: "Data",
         children: [
           {
-            propertyName: "objectTypeId",
-            label: "Object type",
-            helpText: "Selects the CelanWorksmith object type to filter",
-            controlType: "INPUT_TEXT",
-            isBindProperty: true,
+            propertyName: "dataMode",
+            label: "Data mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Object", value: "OBJECT" },
+              { label: "Query", value: "QUERY" },
+            ],
+            isBindProperty: false,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Ontology Object / 本体对象",
+            helpText: "Select the ontology object collection to filter.",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+            hidden: (props: FilterListWidgetProps) =>
+              props.dataMode !== "OBJECT",
           },
         ],
       },

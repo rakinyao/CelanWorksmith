@@ -26,6 +26,8 @@ import BaseWidget from "../../BaseWidget";
 import DropDownComponent from "../component";
 import type { DropdownOption } from "../constants";
 import IconSVG from "../icon.svg";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
+import ObjectSelectionMode from "celanworksmith/widgets/objectBinding/ObjectSelectionMode";
 
 function defaultOptionValueValidation(value: unknown): ValidationResponse {
   if (typeof value === "string") return { isValid: true, parsed: value.trim() };
@@ -64,6 +66,10 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
     return {
       rows: 7,
       columns: 20,
+      dataMode: "OBJECT",
+      objectTypeId: undefined,
+      displayPropertyId: undefined,
+      valuePropertyId: undefined,
       placeholderText: "Select option",
       labelText: "Label",
       labelPosition: LabelPosition.Left,
@@ -138,6 +144,57 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
 
   static getPropertyPaneConfig() {
     return [
+      {
+        sectionName: "CelanWorksmith Object data",
+        children: [
+          {
+            propertyName: "dataMode",
+            label: "Data mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Object", value: "OBJECT" },
+              { label: "Query", value: "QUERY" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Ontology Object / 本体对象",
+            helpText:
+              "Select the ontology object collection that supplies options.",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+            hidden: (props: DropdownWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "displayPropertyId",
+            label: "Display property",
+            helpText: "Select the stable property ID shown to users.",
+            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode", "objectTypeId"],
+            hidden: (props: DropdownWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "valuePropertyId",
+            label: "Value property",
+            helpText: "Select the stable property ID returned by this widget.",
+            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode", "objectTypeId"],
+            hidden: (props: DropdownWidgetProps) => props.dataMode !== "OBJECT",
+          },
+        ],
+      },
       {
         sectionName: "General",
         children: [
@@ -455,8 +512,8 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
   static getDerivedPropertiesMap() {
     return {
       isValid: `{{this.isRequired  ? !!this.selectedOptionValue || this.selectedOptionValue === 0 : true}}`,
-      selectedOptionLabel: `{{(()=>{const index = _.findIndex(this.options, { value: this.value }); return this.options[index]?.label; })()}}`,
-      selectedOptionValue: `{{(()=>{const index = _.findIndex(this.options, { value: this.value }); return this.options[index]?.value; })()}}`,
+      selectedOptionLabel: `{{this.dataMode === "OBJECT" ? this.label : (()=>{const index = _.findIndex(this.options, { value: this.value }); return this.options[index]?.label; })()}}`,
+      selectedOptionValue: `{{this.dataMode === "OBJECT" ? this.value : (()=>{const index = _.findIndex(this.options, { value: this.value }); return this.options[index]?.value; })()}}`,
     };
   }
 
@@ -499,14 +556,42 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
   }
 
   getWidgetView() {
-    const options = _.isArray(this.props.options) ? this.props.options : [];
+    const objectBinding = normalizeObjectBinding(
+      DropdownWidget.type,
+      this.props as unknown as Record<string, unknown>,
+      {},
+    );
+
+    if (objectBinding.mode === "OBJECT") {
+      return (
+        <ObjectSelectionMode
+          displayPropertyId={objectBinding.binding.displayPropertyId}
+          objectTypeId={objectBinding.binding.objectTypeId}
+          valuePropertyId={objectBinding.binding.valuePropertyId}
+          widgetId={this.props.widgetId}
+          widgetType={DropdownWidget.type}
+        >
+          {(options, isLoading) =>
+            this.getWidgetViewForOptions(options as DropdownOption[], isLoading)
+          }
+        </ObjectSelectionMode>
+      );
+    }
+
+    return this.getWidgetViewForOptions(
+      _.isArray(this.props.options) ? this.props.options : [],
+      this.props.isLoading,
+    );
+  }
+
+  getWidgetViewForOptions(options: DropdownOption[], isLoading?: boolean) {
     const isInvalid =
       "isValid" in this.props && !this.props.isValid && !!this.props.isDirty;
     const dropDownWidth =
       (MinimumPopupWidthInPercentage / 100) *
       (this.props.mainCanvasWidth ?? layoutConfigurations.MOBILE.maxWidth);
 
-    const selectedIndex = _.findIndex(this.props.options, {
+    const selectedIndex = _.findIndex(options, {
       value: this.props.selectedOptionValue,
     });
 
@@ -524,7 +609,7 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
         hasError={isInvalid}
         height={componentHeight}
         isFilterable={this.props.isFilterable}
-        isLoading={this.props.isLoading}
+        isLoading={isLoading}
         isValid={this.props.isValid}
         labelAlignment={this.props.labelAlignment}
         labelPosition={this.props.labelPosition}
@@ -559,6 +644,13 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
     }
 
     if (isChanged) {
+      if (this.props.dataMode === "OBJECT") {
+        this.props.updateWidgetMetaProperty(
+          "label",
+          selectedOption.label ?? "",
+        );
+      }
+
       this.props.updateWidgetMetaProperty("value", selectedOption.value, {
         triggerPropertyName: "onOptionChange",
         dynamicString: this.props.onOptionChange as string,
@@ -591,6 +683,10 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
 }
 
 export interface DropdownWidgetProps extends WidgetProps {
+  dataMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
+  displayPropertyId?: string;
+  valuePropertyId?: string;
   placeholderText?: string;
   labelText: string;
   labelPosition?: LabelPosition;

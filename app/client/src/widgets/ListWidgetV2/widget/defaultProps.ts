@@ -45,6 +45,8 @@ const LIST_WIDGET_NESTING_ERROR =
 
 export default {
   backgroundColor: "transparent",
+  dataMode: "OBJECT",
+  objectTypeId: undefined,
   itemBackgroundColor: "#FFFFFF",
   requiresFlatWidgetChildren: true,
   hasMetaWidgets: true,

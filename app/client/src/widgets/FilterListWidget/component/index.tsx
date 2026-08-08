@@ -3,6 +3,10 @@ import { useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
 import {
+  getCelanworksmithObjectTypeOptions,
+  getCelanworksmithPropertyOptions,
+} from "selectors/celanworksmithObjectMetadataSelectors";
+import {
   buildFilter,
   FILTER_OPERATORS,
   type FilterCondition,
@@ -46,6 +50,10 @@ export default function FilterListComponent({
 
   conditionsRef.current = conditions;
   const metadata = objectsState.types[objectTypeId]?.metadata;
+  const objectTypes = useSelector(getCelanworksmithObjectTypeOptions);
+  const propertyOptions = useSelector((state: DefaultRootState) =>
+    getCelanworksmithPropertyOptions(state, objectTypeId),
+  );
   const result = useMemo(
     () => buildFilter(metadata, conditions),
     [conditions, metadata],
@@ -72,10 +80,6 @@ export default function FilterListComponent({
     updateWidgetMetaProperty("filter", result.filter);
     updateWidgetMetaProperty("isValid", result.isValid);
   }, [objectTypeId, result, updateWidgetMetaProperty]);
-
-  const objectTypes = Object.values(objectsState.types)
-    .map((typeState) => typeState.metadata)
-    .filter((type): type is NonNullable<typeof type> => !!type);
 
   const publish = (
     nextObjectTypeId: string,
@@ -125,8 +129,8 @@ export default function FilterListComponent({
         >
           <option value="">Select an object type</option>
           {objectTypes.map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.displayName}
+            <option key={type.value} value={type.value}>
+              {type.label}
             </option>
           ))}
         </select>
@@ -159,9 +163,12 @@ export default function FilterListComponent({
                     value={condition.propertyId}
                   >
                     <option value="">Select a property</option>
-                    {metadata?.properties.map((candidate) => (
-                      <option key={candidate.id} value={candidate.id}>
-                        {candidate.displayName}
+                    {propertyOptions.map((propertyOption) => (
+                      <option
+                        key={propertyOption.value}
+                        value={propertyOption.value}
+                      >
+                        {propertyOption.label}
                       </option>
                     ))}
                   </select>
