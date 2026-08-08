@@ -1,44 +1,40 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
 import { EditorContext } from "components/editorComponents/EditorContextProvider";
-import { dark, theme } from "constants/DefaultTheme";
 import ListWidgetV2, { type ListWidgetProps } from ".";
 import React from "react";
-import { Provider } from "react-redux";
-import configureStore from "redux-mock-store";
-import { ThemeProvider } from "styled-components";
+import { render } from "test/testUtils";
 
 jest.mock("layoutSystems/CanvasFactory", () => {
   const React = jest.requireActual("react");
 
-  const collectInteractiveRows = (node: Record<string, unknown>) => {
-    const rows: Array<Record<string, unknown>> = [];
-    const children = (node.children || []) as Array<Record<string, unknown>>;
-
-    if (node.onClick) rows.push(node);
-
-    children.forEach((child) => rows.push(...collectInteractiveRows(child)));
-
-    return rows;
-  };
-
   return {
-    renderAppsmithCanvas: (props: Record<string, unknown>) =>
+    renderAppsmithCanvas: (canvas: {
+      children?: Array<{
+        children?: Array<{ children?: Array<{ text?: string }> }>;
+        onClick?: () => void;
+        widgetId: string;
+      }>;
+    }) =>
       React.createElement(
         React.Fragment,
-        { key: String(props.widgetId) },
-        ...collectInteractiveRows(props).map((row, index) =>
-          React.createElement(
-            "button",
-            {
-              key: String(index),
-              onClick: row.onClick,
-              type: "button",
-            },
-            "Supplier template row",
-          ),
-        ),
+        null,
+        ...(canvas.children || []).map((row) => {
+          const templateWidgets = row.children?.[0]?.children || [];
+
+          return React.createElement(
+            "div",
+            { key: row.widgetId, onClick: row.onClick },
+            ...templateWidgets.map((templateWidget, index) =>
+              React.createElement(
+                "button",
+                { key: String(index), type: "button" },
+                templateWidget.text,
+              ),
+            ),
+          );
+        }),
       ),
   };
 });
@@ -123,7 +119,22 @@ test("ListV2 renders ObjectSet template rows, paginates, and selects a stable ob
       {
         children: [
           {
-            children: [],
+            children: [
+              {
+                children: [
+                  {
+                    children: [],
+                    text: objectSetState.celanworksmithObjectQueries.entries[
+                      'ListV21/Supplier/{"limit":100,"offset":0}'
+                    ].result.items[0].properties.supplierName,
+                    type: "BUTTON_WIDGET",
+                    widgetId: "SupplierTemplateButton",
+                  },
+                ],
+                type: "CANVAS_WIDGET",
+                widgetId: "SupplierTemplateCanvas",
+              },
+            ],
             type: "CONTAINER_WIDGET",
             widgetId: "SupplierTemplate",
           },
@@ -143,28 +154,20 @@ test("ListV2 renders ObjectSet template rows, paginates, and selects a stable ob
 
   render(
     React.createElement(
-      Provider,
-      { store: configureStore()({ ...objectSetState }) },
-      React.createElement(
-        ThemeProvider,
-        { theme: { ...theme, colors: { ...theme.colors, ...dark } } },
-        React.createElement(
-          EditorContext.Provider,
-          { value: { executeAction: jest.fn() } },
-          widget.getWidgetView(),
-        ),
-      ),
+      EditorContext.Provider,
+      { value: { executeAction: jest.fn() } },
+      widget.getWidgetView(),
     ),
+    { initialState: objectSetState },
   );
 
-  expect(
-    screen.getByRole("button", { name: "Supplier template row" }),
-  ).toBeInTheDocument();
-  expect(screen.getByText("2")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Acme" })).toBeInTheDocument();
 
-  fireEvent.click(
-    screen.getByRole("button", { name: "Supplier template row" }),
-  );
+  fireEvent.click(screen.getByText("2"));
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("pageNo", 2);
+
+  fireEvent.click(screen.getByRole("button", { name: "Acme" }));
 
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
     "listData",

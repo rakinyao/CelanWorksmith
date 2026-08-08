@@ -117,3 +117,27 @@ ESLint: exit 0 (Browserslist caniuse-lite age warning only)
 yarn check-types: exit 0
 git diff --check: exit 0
 ```
+
+## Fix Round 3
+
+- Replaced the List and ListV2 Canvas mocks that recursively found callbacks
+  and emitted a fixed row label. The fixture Canvas now renders the mounted
+  List template-node text from the ObjectSet-derived template data and forwards
+  the concrete List row handlers.
+- Mounted the legacy List class for its Object-mode interaction test so a real
+  pagination click updates component state. The test asserts the active second
+  page and the ObjectSet-derived stable selected Object output. ListV2 clicks
+  its native pagination control and asserts the emitted `pageNo` meta update.
+- Added actual Object-mode loading-state rendering coverage for Select,
+  Dropdown, and MultiSelect while retaining the existing option interaction,
+  empty/error, and type-mismatch coverage.
+
+### Fix Round 3 Verification
+
+```text
+Focused Task 5 Jest suite: PASS 5 suites, 18 tests
+Prettier check: PASS
+ESLint: exit 0 (Browserslist caniuse-lite age warning only)
+yarn check-types: exit 0 (no diagnostics)
+git diff --check: exit 0
+```

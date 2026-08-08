@@ -194,3 +194,31 @@ test("Dropdown renders an ObjectSet load error from its actual Object mode view"
 
   expect(screen.getByRole("alert")).toHaveTextContent("Object query failed");
 });
+
+test("Dropdown renders the ObjectSet loading state from its actual Object mode view", () => {
+  const widget = new DropdownWidget({
+    ...queryProps,
+    dataMode: "OBJECT",
+    displayPropertyId: "supplierName",
+    objectTypeId: "Supplier",
+    valuePropertyId: "supplierId",
+  } as unknown as DropdownWidgetProps);
+
+  render(
+    React.createElement(
+      Provider,
+      {
+        store: configureStore()({
+          celanworksmithObjects: {
+            status: "loading",
+            types: { Supplier: { status: "loading" } },
+          },
+          celanworksmithObjectQueries: { entries: {} },
+        }),
+      },
+      widget.getWidgetView(),
+    ),
+  );
+
+  expect(screen.getByText("Loading objects...")).toBeInTheDocument();
+});

@@ -186,3 +186,31 @@ test("MultiSelect renders ObjectSet options and emits selected stable property v
     expect.objectContaining({ triggerPropertyName: "onOptionChange" }),
   );
 });
+
+test("MultiSelect renders the ObjectSet loading state from its actual Object mode view", () => {
+  const widget = new MultiSelectWidget({
+    ...queryProps,
+    dataMode: "OBJECT",
+    displayPropertyId: "supplierName",
+    objectTypeId: "Supplier",
+    valuePropertyId: "supplierId",
+  } as unknown as MultiSelectWidgetProps);
+
+  render(
+    React.createElement(
+      Provider,
+      {
+        store: configureStore()({
+          celanworksmithObjects: {
+            status: "loading",
+            types: { Supplier: { status: "loading" } },
+          },
+          celanworksmithObjectQueries: { entries: {} },
+        }),
+      },
+      widget.getWidgetView(),
+    ),
+  );
+
+  expect(screen.getByText("Loading objects...")).toBeInTheDocument();
+});

@@ -189,3 +189,31 @@ test("Select renders a type mismatch from its actual Object mode view", () => {
 
   expect(screen.getByRole("alert")).toHaveTextContent("incompatible");
 });
+
+test("Select renders the ObjectSet loading state from its actual Object mode view", () => {
+  const widget = new SelectWidget({
+    ...queryProps,
+    dataMode: "OBJECT",
+    displayPropertyId: "supplierName",
+    objectTypeId: "Supplier",
+    valuePropertyId: "supplierId",
+  } as unknown as SelectWidgetProps);
+
+  render(
+    React.createElement(
+      Provider,
+      {
+        store: configureStore()({
+          celanworksmithObjects: {
+            status: "loading",
+            types: { Supplier: { status: "loading" } },
+          },
+          celanworksmithObjectQueries: { entries: {} },
+        }),
+      },
+      widget.getWidgetView(),
+    ),
+  );
+
+  expect(screen.getByText("Loading objects...")).toBeInTheDocument();
+});

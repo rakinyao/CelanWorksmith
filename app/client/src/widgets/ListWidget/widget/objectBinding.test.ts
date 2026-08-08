@@ -1,43 +1,39 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
-import { dark, theme } from "constants/DefaultTheme";
 import ListWidget, { type ListWidgetProps } from ".";
 import React from "react";
-import { Provider } from "react-redux";
-import configureStore from "redux-mock-store";
-import { ThemeProvider } from "styled-components";
+import { render } from "test/testUtils";
 
 jest.mock("layoutSystems/CanvasFactory", () => {
   const React = jest.requireActual("react");
 
-  const collectInteractiveRows = (node: Record<string, unknown>) => {
-    const rows: Array<Record<string, unknown>> = [];
-    const children = (node.children || []) as Array<Record<string, unknown>>;
-
-    if (node.onClickCapture) rows.push(node);
-
-    children.forEach((child) => rows.push(...collectInteractiveRows(child)));
-
-    return rows;
-  };
-
   return {
-    renderAppsmithCanvas: (props: Record<string, unknown>) =>
+    renderAppsmithCanvas: (canvas: {
+      children?: Array<{
+        children?: Array<{ children?: Array<{ text?: string }> }>;
+        onClickCapture?: () => void;
+        widgetId: string;
+      }>;
+    }) =>
       React.createElement(
         React.Fragment,
         null,
-        ...collectInteractiveRows(props).map((row, index) =>
-          React.createElement(
-            "button",
-            {
-              key: String(index),
-              onClick: row.onClickCapture,
-              type: "button",
-            },
-            "Supplier template row",
-          ),
-        ),
+        ...(canvas.children || []).map((row) => {
+          const templateWidgets = row.children?.[0]?.children || [];
+
+          return React.createElement(
+            "div",
+            { key: row.widgetId, onClickCapture: row.onClickCapture },
+            ...templateWidgets.map((templateWidget, index) =>
+              React.createElement(
+                "button",
+                { key: String(index), type: "button" },
+                templateWidget.text,
+              ),
+            ),
+          );
+        }),
       ),
   };
 });
@@ -112,7 +108,7 @@ test("List defaults to Object mode and keeps a legacy Query list native", () => 
 
 test("List renders ObjectSet template rows, paginates, and selects a stable object", () => {
   const updateWidgetMetaProperty = jest.fn();
-  const widget = new ListWidget({
+  const widgetProps = {
     backgroundColor: "transparent",
     borderRadius: "0px",
     componentHeight: 400,
@@ -125,7 +121,17 @@ test("List renders ObjectSet template rows, paginates, and selects a stable obje
             bottomRow: 10,
             children: [
               {
-                children: [],
+                children: [
+                  {
+                    children: [],
+                    text: objectSetState.celanworksmithObjectQueries.entries[
+                      'List1/Supplier/{"limit":100,"offset":0}'
+                    ].result.items[0].properties.supplierName,
+                    type: "BUTTON_WIDGET",
+                    widgetId: "SupplierTemplateButton",
+                    widgetName: "SupplierTemplateButton",
+                  },
+                ],
                 type: "CANVAS_WIDGET",
                 widgetId: "SupplierTemplateCanvas",
                 widgetName: "SupplierTemplateCanvas",
@@ -146,28 +152,21 @@ test("List renders ObjectSet template rows, paginates, and selects a stable obje
     updateWidgetMetaProperty,
     widgetId: "List1",
     widgetName: "List1",
-  } as unknown as ListWidgetProps<never>);
+  } as unknown as ListWidgetProps<never>;
 
-  render(
-    React.createElement(
-      Provider,
-      { store: configureStore()({ ...objectSetState }) },
-      React.createElement(
-        ThemeProvider,
-        { theme: { ...theme, colors: { ...theme.colors, ...dark } } },
-        widget.getWidgetView(),
-      ),
-    ),
-  );
+  render(React.createElement(ListWidget, widgetProps), {
+    initialState: objectSetState,
+  });
+
+  expect(screen.getByRole("button", { name: "Acme" })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByTitle("2"));
 
   expect(
-    screen.getByRole("button", { name: "Supplier template row" }),
-  ).toBeInTheDocument();
-  expect(screen.getByText("2")).toBeInTheDocument();
+    document.querySelector(".rc-pagination-item-active"),
+  ).toHaveTextContent("2");
 
-  fireEvent.click(
-    screen.getByRole("button", { name: "Supplier template row" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Acme" }));
 
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
     "listData",
@@ -182,6 +181,6 @@ test("List renders ObjectSet template rows, paginates, and selects a stable obje
 
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
     "selectedItem",
-    expect.objectContaining({ id: "supplier-acme" }),
+    expect.objectContaining({ id: "supplier-globex", supplierName: "Globex" }),
   );
 });
