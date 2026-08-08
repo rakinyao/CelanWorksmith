@@ -44,17 +44,23 @@ const getEnumValues = (property: CelanworksmithProperty, value: unknown) => {
     }
   ).enumValues;
 
+  const currentValue =
+    typeof value === "string" && value.length > 0 ? value : undefined;
+
   if (
     Array.isArray(configuredValues) &&
     configuredValues.every((candidate) => typeof candidate === "string")
   ) {
-    return configuredValues;
+    return currentValue && !configuredValues.includes(currentValue)
+      ? [...configuredValues, currentValue]
+      : configuredValues;
   }
 
-  return value === undefined || value === null || value === ""
-    ? []
-    : [String(value)];
+  return currentValue ? [currentValue] : [];
 };
+
+const isPermissionError = (code: string | undefined) =>
+  ["FORBIDDEN", "PERMISSION_DENIED", "UNAUTHORIZED"].includes(code || "");
 
 const parseValue = (dataType: string, value: string | boolean) => {
   if (dataType === "INTEGER") return value === "" ? "" : Number(value);
@@ -79,9 +85,12 @@ export default function ObjectFormMode({
     getCelanworksmithExecutionState(state),
   );
   const object = useMemo(() => normalizeObjectData(objectData), [objectData]);
-  const metadata = objectTypeId
-    ? objectsState.types[objectTypeId]?.metadata
+  const objectTypeState = objectTypeId
+    ? objectsState.types[objectTypeId]
     : undefined;
+  const metadata = objectTypeState?.metadata;
+  const metadataStatus = objectTypeState?.status || objectsState.status;
+  const metadataError = objectTypeState?.error || objectsState.error;
   const [localRequestId, setLocalRequestId] = useState<string>();
   const actionState = actionId ? execution.actions[actionId] : undefined;
   const requestState = localRequestId
@@ -93,7 +102,7 @@ export default function ObjectFormMode({
     requestState?.status ||
     (isCurrentActionState ? actionState?.meta.status : undefined) ||
     "idle";
-  const error =
+  const executionError =
     requestState?.error ||
     (isCurrentActionState ? actionState?.meta.error : undefined);
   const action = ontology.actions.find(
@@ -105,6 +114,8 @@ export default function ObjectFormMode({
   const dirtyRef = useRef(false);
   const objectIdentity = object ? `${object.typeId}/${object.id}` : undefined;
   const formIdentity = `${objectIdentity || ""}/${actionId || ""}`;
+  const isObjectBindingValid =
+    !!objectTypeId && !!object && object.typeId === objectTypeId && !!metadata;
   const previousFormIdentityRef = useRef(formIdentity);
   const previousStatusRef = useRef(status);
 
@@ -130,11 +141,43 @@ export default function ObjectFormMode({
 
   useEffect(() => {
     updateWidgetMetaProperty("formData", values);
-    updateWidgetMetaProperty("isValid", true);
+    updateWidgetMetaProperty("isValid", isObjectBindingValid);
     updateWidgetMetaProperty("executionStatus", status);
-  }, [status, updateWidgetMetaProperty, values]);
+  }, [isObjectBindingValid, status, updateWidgetMetaProperty, values]);
 
-  if (!objectTypeId || !metadata) return <div>Select an Object Type.</div>;
+  if (!objectTypeId) {
+    return <div role="alert">Select an Object Type.</div>;
+  }
+
+  if (!object) {
+    return <div role="alert">Select an Object instance.</div>;
+  }
+
+  if (object.typeId !== objectTypeId) {
+    return (
+      <div role="alert">
+        Object data does not match the configured Object Type.
+      </div>
+    );
+  }
+
+  if (!metadata) {
+    if (metadataStatus === "loading" || metadataStatus === "idle") {
+      return <div>Loading Object Type metadata...</div>;
+    }
+
+    if (isPermissionError(metadataError?.code)) {
+      return (
+        <div role="alert">Permission denied to access this Object Type.</div>
+      );
+    }
+
+    return (
+      <div role="alert">
+        {metadataError?.message || "The selected Object Type is unavailable."}
+      </div>
+    );
+  }
 
   const updateValue = (
     propertyId: string,
@@ -219,6 +262,11 @@ export default function ObjectFormMode({
                 value={String(value ?? "")}
               >
                 {!property.required && <option value="" />}
+                {!enumValues.length && (
+                  <option disabled value="">
+                    No values available
+                  </option>
+                )}
                 {enumValues.map((enumValue) => (
                   <option key={enumValue} value={enumValue}>
                     {enumValue}
@@ -261,7 +309,9 @@ export default function ObjectFormMode({
           : "Submit"}
       </button>
       {status === "failed" && (
-        <div role="alert">{error?.message || "Submission failed."}</div>
+        <div role="alert">
+          {executionError?.message || "Submission failed."}
+        </div>
       )}
       {status === "succeeded" && <div role="status">Submitted.</div>}
     </form>

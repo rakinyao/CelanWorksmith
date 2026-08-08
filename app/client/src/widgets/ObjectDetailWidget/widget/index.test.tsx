@@ -391,4 +391,14 @@ describe("ObjectDetailWidget", () => {
       selectedLinkType: "string",
     });
   });
+
+  it("rejects an instance whose type differs from the configured Object Type", () => {
+    renderComponent({
+      objectTypeId: "Supplier",
+    } as never);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Object data does not match the configured Object Type.",
+    );
+  });
 });

@@ -200,9 +200,10 @@ test("rejects an object binding whose type differs from the configured type", ()
     </Provider>,
   );
 
-  fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-
   expect(store.getActions()).toHaveLength(0);
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Object data does not match the configured Object Type.",
+  );
   expect(updateWidgetMetaProperty).toHaveBeenCalledWith("isValid", false);
 });
 
@@ -297,6 +298,14 @@ test("maps supported metadata types and reports unsupported fields", () => {
                 derived: false,
               },
               {
+                id: "amount",
+                displayName: "Amount",
+                dataType: "DECIMAL",
+                required: false,
+                readOnly: false,
+                derived: false,
+              },
+              {
                 id: "status",
                 displayName: "Status",
                 dataType: "ENUM",
@@ -345,6 +354,7 @@ test("maps supported metadata types and reports unsupported fields", () => {
           typeId: "PurchaseOrder",
           properties: {
             approved: true,
+            amount: 12.5,
             deliveryAt: "2026-08-08T09:30",
             status: "PENDING",
             supplierId: "S001",
@@ -362,8 +372,186 @@ test("maps supported metadata types and reports unsupported fields", () => {
     "type",
     "datetime-local",
   );
+  expect(screen.getByLabelText("Amount")).toHaveAttribute("type", "number");
   expect(screen.getByLabelText("Status").tagName).toBe("SELECT");
   expect(screen.getByLabelText("Supplier")).toHaveAttribute("type", "text");
   expect(screen.getByLabelText("Delay days")).toBeDisabled();
   expect(screen.getByText("Unsupported data type: BINARY")).toBeInTheDocument();
+});
+
+test("renders loading, permission, and type mismatch Object form states distinctly", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const baseObject = {
+    id: "PO001",
+    typeId: "PurchaseOrder",
+    properties: {},
+  };
+  const view = render(
+    <Provider
+      store={mockStore({
+        celanworksmithObjects: {
+          status: "loading",
+          types: { PurchaseOrder: { status: "loading" } },
+        },
+        celanworksmithOntology: { actions: [] },
+        celanworksmithExecution: { actions: {}, requests: {} },
+      })}
+    >
+      <ObjectFormMode
+        objectData={baseObject}
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  expect(
+    screen.getByText("Loading Object Type metadata..."),
+  ).toBeInTheDocument();
+
+  view.rerender(
+    <Provider
+      store={mockStore({
+        celanworksmithObjects: {
+          status: "error",
+          types: {
+            PurchaseOrder: {
+              status: "error",
+              error: { code: "FORBIDDEN", message: "Denied" },
+            },
+          },
+        },
+        celanworksmithOntology: { actions: [] },
+        celanworksmithExecution: { actions: {}, requests: {} },
+      })}
+    >
+      <ObjectFormMode
+        objectData={baseObject}
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Permission denied to access this Object Type.",
+  );
+
+  view.rerender(
+    <Provider
+      store={mockStore({
+        celanworksmithObjects: {
+          status: "error",
+          types: {
+            PurchaseOrder: {
+              status: "error",
+              error: {
+                code: "BACKEND_ERROR",
+                message: "Metadata unavailable.",
+              },
+            },
+          },
+        },
+        celanworksmithOntology: { actions: [] },
+        celanworksmithExecution: { actions: {}, requests: {} },
+      })}
+    >
+      <ObjectFormMode
+        objectData={baseObject}
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent("Metadata unavailable.");
+
+  view.rerender(
+    <Provider
+      store={mockStore({
+        celanworksmithObjects: {
+          status: "ready",
+          types: {
+            Supplier: {
+              status: "ready",
+              metadata: {
+                id: "Supplier",
+                displayName: "Supplier",
+                properties: [],
+              },
+            },
+          },
+        },
+        celanworksmithOntology: { actions: [] },
+        celanworksmithExecution: { actions: {}, requests: {} },
+      })}
+    >
+      <ObjectFormMode
+        objectData={baseObject}
+        objectTypeId="Supplier"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Object data does not match the configured Object Type.",
+  );
+});
+
+test("renders a missing Object instance state and safe empty ENUM options", () => {
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          status: "ready",
+          metadata: {
+            id: "PurchaseOrder",
+            displayName: "Purchase order",
+            properties: [
+              {
+                id: "status",
+                displayName: "Status",
+                dataType: "ENUM",
+                required: true,
+                readOnly: false,
+                derived: false,
+              },
+            ],
+          },
+        },
+      },
+    },
+    celanworksmithOntology: { actions: [] },
+    celanworksmithExecution: { actions: {}, requests: {} },
+  });
+  const view = render(
+    <Provider store={store}>
+      <ObjectFormMode
+        objectData={undefined}
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={jest.fn()}
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Select an Object instance.",
+  );
+
+  view.rerender(
+    <Provider store={store}>
+      <ObjectFormMode
+        objectData={{ id: "PO001", typeId: "PurchaseOrder", properties: {} }}
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={jest.fn()}
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByLabelText("Status")).toHaveDisplayValue(
+    "No values available",
+  );
+  expect(screen.getByRole("option")).toHaveTextContent("No values available");
 });

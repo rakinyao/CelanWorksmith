@@ -150,6 +150,7 @@ class ObjectDetailWidget extends BaseWidget<
       <ObjectDetailComponent
         displayMode={this.props.displayMode}
         objectData={this.props.objectData}
+        objectTypeId={this.props.objectTypeId}
         updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
         widgetId={this.props.widgetId}
       />

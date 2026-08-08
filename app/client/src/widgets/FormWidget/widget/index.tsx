@@ -36,6 +36,16 @@ import type { LayoutProps } from "layoutSystems/anvil/utils/anvilTypes";
 import { formPreset } from "layoutSystems/anvil/layoutComponents/presets/FormPreset";
 import { LayoutSystemTypes } from "layoutSystems/types";
 import { ValidationTypes } from "constants/WidgetValidation";
+import { normalizeObjectData } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
+
+export interface FormObjectBinding {
+  instance: {
+    id: string;
+    typeId: string;
+    properties: Record<string, unknown>;
+  };
+  objectTypeId: string;
+}
 
 class FormWidget extends ContainerWidget {
   static type = "FORM_WIDGET";
@@ -394,6 +404,7 @@ class FormWidget extends ContainerWidget {
   componentDidMount() {
     super.componentDidMount();
     this.updateFormData();
+    this.updateObjectBinding();
 
     // Check if the form is dirty
     const hasChanges = this.checkFormValueChanges(this.getChildContainer());
@@ -408,6 +419,7 @@ class FormWidget extends ContainerWidget {
   componentDidUpdate(prevProps: ContainerWidgetProps<any>) {
     super.componentDidUpdate(prevProps);
     this.updateFormData();
+    this.updateObjectBinding();
     // Check if the form is dirty
     const hasChanges = this.checkFormValueChanges(this.getChildContainer());
 
@@ -452,6 +464,27 @@ class FormWidget extends ContainerWidget {
     }
   }
 
+  getObjectBinding(): FormObjectBinding | undefined {
+    if (this.props.formMode !== "OBJECT") return undefined;
+
+    const instance = normalizeObjectData(this.props.objectData);
+
+    if (!instance) return undefined;
+
+    return {
+      instance,
+      objectTypeId: this.props.objectTypeId || instance.typeId,
+    };
+  }
+
+  updateObjectBinding() {
+    const objectBinding = this.getObjectBinding();
+
+    if (!equal(objectBinding, this.props.objectBinding)) {
+      this.props.updateWidgetMetaProperty("objectBinding", objectBinding);
+    }
+  }
+
   getFormData(formWidget: ContainerWidgetProps<WidgetProps>) {
     // TODO: Fix this the next time the file is edited
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -479,6 +512,8 @@ class FormWidget extends ContainerWidget {
 
     const { componentHeight, componentWidth } = this.props;
 
+    const objectBinding = this.getObjectBinding();
+
     if (childContainer.children) {
       const isInvalid = this.checkInvalidChildren(childContainer.children);
 
@@ -487,6 +522,20 @@ class FormWidget extends ContainerWidget {
           const grandChild = { ...child };
 
           if (isInvalid) grandChild.isFormValid = false;
+
+          if (
+            objectBinding &&
+            grandChild.type === "INPUT_WIDGET" &&
+            grandChild.dataMode === "OBJECT"
+          ) {
+            grandChild.objectData =
+              grandChild.objectData === undefined
+                ? objectBinding.instance
+                : grandChild.objectData;
+            grandChild.objectTypeId =
+              grandChild.objectTypeId || objectBinding.objectTypeId;
+            grandChild.objectBinding = objectBinding;
+          }
 
           // Add submit and reset handlers
           grandChild.onReset = this.handleResetInputs;
@@ -514,6 +563,7 @@ class FormWidget extends ContainerWidget {
   static getMetaPropertiesMap(): Record<string, any> {
     return {
       hasChanges: false,
+      objectBinding: undefined,
     };
   }
 
@@ -525,6 +575,7 @@ class FormWidget extends ContainerWidget {
       isVisible: DefaultAutocompleteDefinitions.isVisible,
       data: generateTypeDef(widget.data, extraDefsToDefine),
       hasChanges: "bool",
+      objectBinding: "?",
     });
   }
 
@@ -549,6 +600,7 @@ export interface FormWidgetProps extends ContainerComponentProps {
   objectTypeId?: string;
   objectData?: unknown;
   objectActionId?: string;
+  objectBinding?: FormObjectBinding;
   name: string;
   data: Record<string, unknown>;
   hasChanges: boolean;

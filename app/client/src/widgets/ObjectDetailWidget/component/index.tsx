@@ -35,6 +35,7 @@ import {
 
 export interface ObjectDetailComponentProps {
   objectData?: unknown;
+  objectTypeId?: string;
   displayMode?: ObjectDetailDisplayMode | string;
   widgetId: string;
   updateWidgetMetaProperty: (propertyName: string, value: unknown) => void;
@@ -66,17 +67,22 @@ const getDisplayMode = (value: string | undefined): ObjectDetailDisplayMode =>
 export default function ObjectDetailComponent({
   displayMode,
   objectData,
+  objectTypeId: configuredObjectTypeId,
   updateWidgetMetaProperty,
 }: ObjectDetailComponentProps) {
   const dispatch = useDispatch();
   const object = useMemo(() => normalizeObjectData(objectData), [objectData]);
   const identity = getObjectIdentity(object);
+  const hasTypeMismatch =
+    !!object &&
+    !!configuredObjectTypeId &&
+    object.typeId !== configuredObjectTypeId;
+  const objectTypeId = hasTypeMismatch ? undefined : object?.typeId;
   const metadata = useSelector((state: DefaultRootState) =>
     object
       ? getCelanworksmithObjectsState(state).types[object.typeId]?.metadata
       : undefined,
   );
-  const objectTypeId = object?.typeId;
   const objectId = object?.id;
   const linkMetadata = useSelector((state: DefaultRootState) =>
     getCelanworksmithLinkMetadata(state, objectTypeId || ""),
@@ -187,6 +193,14 @@ export default function ObjectDetailComponent({
   if (!object) {
     return (
       <StateMessage>Object data must include both id and typeId.</StateMessage>
+    );
+  }
+
+  if (hasTypeMismatch) {
+    return (
+      <StateMessage role="alert">
+        Object data does not match the configured Object Type.
+      </StateMessage>
     );
   }
 

@@ -27,6 +27,7 @@ import { ValidationTypes } from "constants/WidgetValidation";
 import type { SetterConfig, Stylesheet } from "entities/AppTheming";
 import { buildDeprecationWidgetMessage } from "pages/Editor/utils";
 import React from "react";
+import { useSelector } from "react-redux";
 import { AutocompleteDataType } from "utils/autocomplete/AutocompleteDataType";
 import { checkInputTypeTextByProps } from "widgets/BaseInputWidget/utils";
 import type { WidgetProps, WidgetState } from "widgets/BaseWidget";
@@ -48,6 +49,86 @@ import type { InputType } from "../constants";
 import { InputTypes } from "../constants";
 import IconSVG from "../icon.svg";
 import { getObjectPropertyValue } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
+import { normalizeObjectData } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
+import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
+import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
+
+type ObjectInputState =
+  | "ready"
+  | "missing"
+  | "loading"
+  | "error"
+  | "permission"
+  | "typeMismatch"
+  | "deleted"
+  | "unsupported";
+
+const OBJECT_INPUT_TYPES: Partial<Record<string, InputType>> = {
+  STRING: InputTypes.TEXT,
+  INTEGER: InputTypes.INTEGER,
+  DECIMAL: InputTypes.NUMBER,
+  REFERENCE: InputTypes.TEXT,
+};
+
+const isPermissionError = (code: string | undefined) =>
+  ["FORBIDDEN", "PERMISSION_DENIED", "UNAUTHORIZED"].includes(code || "");
+
+const getObjectInputState = (props: InputWidgetProps): ObjectInputState => {
+  const objectData = props.objectBinding?.instance || props.objectData;
+  const object = normalizeObjectData(objectData);
+
+  if (!object) return "missing";
+
+  if (!props.objectTypeId || object.typeId !== props.objectTypeId) {
+    return "typeMismatch";
+  }
+
+  if (
+    props.objectMetadataStatus === "loading" ||
+    props.objectMetadataStatus === "idle"
+  ) {
+    return "loading";
+  }
+
+  if (props.objectMetadataError) {
+    return isPermissionError(props.objectMetadataError.code)
+      ? "permission"
+      : "error";
+  }
+
+  if (!props.displayPropertyId || !props.objectPropertyMetadata) {
+    return "deleted";
+  }
+
+  return OBJECT_INPUT_TYPES[props.objectPropertyMetadata.dataType]
+    ? "ready"
+    : "unsupported";
+};
+
+const getObjectInputStateMessage = (
+  state: Exclude<ObjectInputState, "ready">,
+  props: InputWidgetProps,
+) => {
+  switch (state) {
+    case "missing":
+      return "Select an Object instance.";
+    case "loading":
+      return "Loading Object Type metadata...";
+    case "permission":
+      return "Permission denied to access this Object Type.";
+    case "error":
+      return (
+        props.objectMetadataError?.message ||
+        "Unable to load Object Type metadata."
+      );
+    case "typeMismatch":
+      return "Object data does not match the configured Object Type.";
+    case "deleted":
+      return "The selected Object property is unavailable.";
+    case "unsupported":
+      return `Unsupported Object property data type: ${props.objectPropertyMetadata?.dataType}`;
+  }
+};
 
 export function defaultValueValidation(
   // TODO: Fix this the next time the file is edited
@@ -1037,10 +1118,31 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
   };
 
   getWidgetView() {
+    if (
+      this.props.dataMode === "OBJECT" &&
+      !this.props.objectBindingResolved &&
+      !this.props.objectPropertyMetadata
+    ) {
+      return <ObjectInputMode {...this.props} />;
+    }
+
+    const objectInputState =
+      this.props.dataMode === "OBJECT"
+        ? getObjectInputState(this.props)
+        : "ready";
+
+    if (objectInputState !== "ready") {
+      return (
+        <div role="alert">
+          {getObjectInputStateMessage(objectInputState, this.props)}
+        </div>
+      );
+    }
+
     const objectProperty =
       this.props.dataMode === "OBJECT"
         ? getObjectPropertyValue(
-            this.props.objectData,
+            this.props.objectBinding?.instance || this.props.objectData,
             this.props.displayPropertyId,
           )
         : undefined;
@@ -1112,13 +1214,24 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         decimalsInCurrency={this.props.decimalsInCurrency}
         defaultValue={objectValue ?? this.props.defaultText}
         disableNewLineOnPressEnterKey={!!this.props.onSubmit}
-        disabled={this.props.isDisabled}
+        disabled={
+          this.props.isDisabled ||
+          this.props.objectPropertyMetadata?.readOnly ||
+          this.props.objectPropertyMetadata?.derived
+        }
         iconAlign={this.props.iconAlign}
         iconName={this.props.iconName}
-        inputType={this.props.inputType}
+        inputType={
+          this.props.objectPropertyMetadata
+            ? OBJECT_INPUT_TYPES[this.props.objectPropertyMetadata.dataType] ||
+              this.props.inputType
+            : this.props.inputType
+        }
         isInvalid={isInvalid}
         isLoading={this.props.isLoading}
-        isRequired={this.props.isRequired}
+        isRequired={
+          this.props.isRequired || this.props.objectPropertyMetadata?.required
+        }
         label={this.props.label}
         labelAlignment={this.props.labelAlignment}
         labelPosition={this.props.labelPosition}
@@ -1150,6 +1263,26 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
   }
 }
 
+function ObjectInputMode(props: InputWidgetProps) {
+  const objectsState = useSelector(getCelanworksmithObjectsState);
+  const typeState = props.objectTypeId
+    ? objectsState.types[props.objectTypeId]
+    : undefined;
+  const objectPropertyMetadata = typeState?.metadata?.properties.find(
+    (property) => property.id === props.displayPropertyId,
+  );
+
+  return (
+    <InputWidget
+      {...props}
+      objectBindingResolved
+      objectMetadataError={typeState?.error || objectsState.error}
+      objectMetadataStatus={typeState?.status || objectsState.status}
+      objectPropertyMetadata={objectPropertyMetadata}
+    />
+  );
+}
+
 export interface InputValidator {
   validationRegex: string;
   errorMessage: string;
@@ -1159,6 +1292,18 @@ export interface InputWidgetProps extends WidgetProps {
   objectTypeId?: string;
   objectData?: unknown;
   displayPropertyId?: string;
+  objectBinding?: {
+    instance: {
+      id: string;
+      typeId: string;
+      properties: Record<string, unknown>;
+    };
+    objectTypeId: string;
+  };
+  objectBindingResolved?: boolean;
+  objectMetadataError?: { code?: string; message?: string };
+  objectMetadataStatus?: "idle" | "loading" | "ready" | "empty" | "error";
+  objectPropertyMetadata?: CelanworksmithProperty;
   inputType: InputType;
   currencyCountryCode?: string;
   noOfDecimals?: number;
