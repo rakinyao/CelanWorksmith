@@ -35,6 +35,7 @@ import type { FlexLayer } from "layoutSystems/autolayout/utils/types";
 import type { LayoutProps } from "layoutSystems/anvil/utils/anvilTypes";
 import { formPreset } from "layoutSystems/anvil/layoutComponents/presets/FormPreset";
 import { LayoutSystemTypes } from "layoutSystems/types";
+import { ValidationTypes } from "constants/WidgetValidation";
 
 class FormWidget extends ContainerWidget {
   static type = "FORM_WIDGET";
@@ -83,6 +84,10 @@ class FormWidget extends ContainerWidget {
       borderColor: Colors.GREY_5,
       borderWidth: "1",
       animateLoading: true,
+      formMode: "OBJECT",
+      objectTypeId: undefined,
+      objectData: undefined,
+      objectActionId: undefined,
       widgetName: "Form",
       backgroundColor: Colors.WHITE,
       children: [],
@@ -304,6 +309,58 @@ class FormWidget extends ContainerWidget {
     };
   }
 
+  static getPropertyPaneConfig() {
+    return [
+      {
+        sectionName: "CelanWorksmith Object form",
+        children: [
+          {
+            propertyName: "formMode",
+            label: "Form mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Query", value: "QUERY" },
+              { label: "Object", value: "OBJECT" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Ontology Object / 本体对象",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["formMode"],
+            hidden: (props: FormWidgetProps) => props.formMode !== "OBJECT",
+          },
+          {
+            propertyName: "objectData",
+            label: "Object data",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
+            dependencies: ["formMode"],
+            hidden: (props: FormWidgetProps) => props.formMode !== "OBJECT",
+          },
+          {
+            propertyName: "objectActionId",
+            label: "Submit Action",
+            controlType: "INPUT_TEXT",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["formMode"],
+            hidden: (props: FormWidgetProps) => props.formMode !== "OBJECT",
+          },
+        ],
+      },
+    ];
+  }
+
   static getAnvilConfig(): AnvilConfig | null {
     return {
       isLargeWidget: false,
@@ -488,6 +545,10 @@ class FormWidget extends ContainerWidget {
 }
 
 export interface FormWidgetProps extends ContainerComponentProps {
+  formMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
+  objectData?: unknown;
+  objectActionId?: string;
   name: string;
   data: Record<string, unknown>;
   hasChanges: boolean;

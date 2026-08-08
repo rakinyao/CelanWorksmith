@@ -17,6 +17,8 @@ import {
 import { ObjectDetailDisplayMode } from "./objectDetailUtils";
 
 export interface ObjectDetailWidgetProps extends WidgetProps {
+  mode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
   objectData?: unknown;
   displayMode?: ObjectDetailDisplayMode;
 }
@@ -45,6 +47,8 @@ class ObjectDetailWidget extends BaseWidget<
       widgetName: "ObjectDetail",
       isVisible: true,
       version: 1,
+      mode: "OBJECT",
+      objectTypeId: undefined,
       objectData: undefined,
       displayMode: ObjectDetailDisplayMode.BUSINESS_ONLY,
       responsiveBehavior: ResponsiveBehavior.Fill,
@@ -58,6 +62,29 @@ class ObjectDetailWidget extends BaseWidget<
         sectionName: "Data",
         children: [
           {
+            propertyName: "mode",
+            label: "Data mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Query", value: "QUERY" },
+              { label: "Object", value: "OBJECT" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Ontology Object / 本体对象",
+            helpText: "Select the stable Object Type ID for this instance.",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["mode"],
+            hidden: (props: ObjectDetailWidgetProps) => props.mode !== "OBJECT",
+          },
+          {
             propertyName: "objectData",
             label: "Object data",
             helpText: "Binds one CelanWorksmith object to this widget",
@@ -65,7 +92,9 @@ class ObjectDetailWidget extends BaseWidget<
             placeholderText: "{{Table1.selectedRow}}",
             isBindProperty: true,
             isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
+            validation: { type: ValidationTypes.OBJECT },
+            dependencies: ["mode"],
+            hidden: (props: ObjectDetailWidgetProps) => props.mode !== "OBJECT",
           },
           {
             propertyName: "displayMode",

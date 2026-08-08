@@ -34,6 +34,7 @@ import type {
 import { get } from "lodash";
 import type { DynamicPath } from "utils/DynamicBindingUtils";
 import { isDynamicValue } from "utils/DynamicBindingUtils";
+import { getObjectPropertyValue } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
 
 const MAX_HTML_PARSING_LENGTH = 1000;
 
@@ -62,6 +63,10 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
   static getDefaults() {
     return {
       text: "Hello {{appsmith.user.name || appsmith.user.email}}",
+      dataMode: "OBJECT",
+      objectTypeId: undefined,
+      objectData: undefined,
+      displayPropertyId: undefined,
       fontSize: DEFAULT_FONT_SIZE,
       fontStyle: "BOLD",
       textAlign: "LEFT",
@@ -167,6 +172,53 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
 
   static getPropertyPaneContentConfig() {
     return [
+      {
+        sectionName: "CelanWorksmith Object data",
+        children: [
+          {
+            propertyName: "dataMode",
+            label: "Data mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Query", value: "QUERY" },
+              { label: "Object", value: "OBJECT" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Ontology Object / 本体对象",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+            hidden: (props: TextWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "objectData",
+            label: "Object data",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
+            dependencies: ["dataMode"],
+            hidden: (props: TextWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "displayPropertyId",
+            label: "Display property",
+            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode", "objectTypeId"],
+            hidden: (props: TextWidgetProps) => props.dataMode !== "OBJECT",
+          },
+        ],
+      },
       {
         sectionName: "General",
         children: [
@@ -539,6 +591,23 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
   }
 
   getWidgetView() {
+    const objectProperty =
+      this.props.dataMode === "OBJECT"
+        ? getObjectPropertyValue(
+            this.props.objectData,
+            this.props.displayPropertyId,
+          )
+        : undefined;
+    const text =
+      objectProperty?.state === "ready"
+        ? typeof objectProperty.value === "object"
+          ? JSON.stringify(objectProperty.value)
+          : String(objectProperty.value ?? "")
+        : objectProperty?.state === "empty"
+          ? "Select an object to display its property."
+          : objectProperty?.state === "typeMismatch"
+            ? "The selected Object property is unavailable."
+            : this.props.text;
     const disableLink: boolean = this.props.disableLink
       ? true
       : this.shouldDisableLink();
@@ -564,7 +633,7 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           key={this.props.widgetId}
           minHeight={this.props.minHeight}
           overflow={this.props.overflow}
-          text={this.props.text}
+          text={text}
           textAlign={this.props.textAlign ? this.props.textAlign : "LEFT"}
           textColor={this.props.textColor}
           truncateButtonColor={
@@ -604,6 +673,10 @@ export interface TextStyles {
 }
 
 export interface TextWidgetProps extends WidgetProps, TextStyles {
+  dataMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
+  objectData?: unknown;
+  displayPropertyId?: string;
   accentColor: string;
   text?: string;
   isLoading: boolean;

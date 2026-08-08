@@ -109,6 +109,28 @@ const renderComponent = (
 };
 
 describe("ObjectDetailWidget", () => {
+  it("uses stable Object Type and Object Instance controls", () => {
+    const controls = ObjectDetailWidget.getPropertyPaneContentConfig()
+      .flatMap((section) => section.children || [])
+      .filter((control) =>
+        ["objectTypeId", "objectData"].includes(control.propertyName),
+      );
+
+    expect(ObjectDetailWidget.getDefaults().mode).toBe("OBJECT");
+    expect(controls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          propertyName: "objectTypeId",
+          controlType: "CELANWORKSMITH_OBJECT_TYPE",
+        }),
+        expect.objectContaining({
+          propertyName: "objectData",
+          validation: { type: "OBJECT" },
+        }),
+      ]),
+    );
+  });
+
   it("renders primary object Basic and Business properties immediately", () => {
     renderComponent();
 

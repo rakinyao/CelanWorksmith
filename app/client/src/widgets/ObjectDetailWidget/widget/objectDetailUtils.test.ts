@@ -2,6 +2,7 @@ import type { CelanworksmithObjectType } from "api/CelanworksmithAPI";
 import {
   ObjectDetailDisplayMode,
   getObjectIdentity,
+  getObjectPropertyValue,
   groupObjectProperties,
   normalizeObjectData,
 } from "./objectDetailUtils";
@@ -77,6 +78,21 @@ describe("ObjectDetail object data utilities", () => {
 
     expect(getObjectIdentity(object)).toBe("PurchaseOrder/PO001");
     expect(getObjectIdentity(undefined)).toBeUndefined();
+  });
+
+  test("reports Object Instance and Property binding states without guessing IDs", () => {
+    expect(getObjectPropertyValue(undefined, "status")).toEqual({
+      state: "empty",
+    });
+    expect(
+      getObjectPropertyValue(flatPurchaseOrder, "deletedProperty"),
+    ).toEqual({
+      state: "typeMismatch",
+    });
+    expect(getObjectPropertyValue(flatPurchaseOrder, "status")).toEqual({
+      state: "ready",
+      value: "DELAYED",
+    });
   });
 
   test("groups business properties by metadata order in business-only mode", () => {

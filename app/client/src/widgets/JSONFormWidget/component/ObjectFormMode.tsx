@@ -8,6 +8,7 @@ import {
 } from "selectors/celanworksmithSelectors";
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
 import { normalizeObjectData } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
+import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
 
 interface ObjectFormModeProps {
   objectTypeId?: string;
@@ -24,6 +25,35 @@ const getInputType = (dataType: string) => {
   if (dataType === "DATETIME") return "datetime-local";
 
   return "text";
+};
+
+const SUPPORTED_DATA_TYPES = new Set([
+  "STRING",
+  "INTEGER",
+  "DECIMAL",
+  "BOOLEAN",
+  "DATETIME",
+  "ENUM",
+  "REFERENCE",
+]);
+
+const getEnumValues = (property: CelanworksmithProperty, value: unknown) => {
+  const configuredValues = (
+    property as CelanworksmithProperty & {
+      enumValues?: unknown;
+    }
+  ).enumValues;
+
+  if (
+    Array.isArray(configuredValues) &&
+    configuredValues.every((candidate) => typeof candidate === "string")
+  ) {
+    return configuredValues;
+  }
+
+  return value === undefined || value === null || value === ""
+    ? []
+    : [String(value)];
 };
 
 const parseValue = (dataType: string, value: string | boolean) => {
@@ -52,19 +82,51 @@ export default function ObjectFormMode({
   const metadata = objectTypeId
     ? objectsState.types[objectTypeId]?.metadata
     : undefined;
+  const [localRequestId, setLocalRequestId] = useState<string>();
+  const actionState = actionId ? execution.actions[actionId] : undefined;
+  const requestState = localRequestId
+    ? execution.requests[localRequestId]
+    : undefined;
+  const isCurrentActionState =
+    !!localRequestId && actionState?.meta.requestId === localRequestId;
+  const status =
+    requestState?.status ||
+    (isCurrentActionState ? actionState?.meta.status : undefined) ||
+    "idle";
+  const error =
+    requestState?.error ||
+    (isCurrentActionState ? actionState?.meta.error : undefined);
+  const action = ontology.actions.find(
+    (candidate) => candidate.id === actionId,
+  );
   const [values, setValues] = useState<Record<string, unknown>>(
     object?.properties || {},
   );
   const dirtyRef = useRef(false);
-  const actionState = actionId ? execution.actions[actionId] : undefined;
-  const status = actionState?.meta.status || "idle";
-  const action = ontology.actions.find(
-    (candidate) => candidate.id === actionId,
-  );
+  const objectIdentity = object ? `${object.typeId}/${object.id}` : undefined;
+  const formIdentity = `${objectIdentity || ""}/${actionId || ""}`;
+  const previousFormIdentityRef = useRef(formIdentity);
+  const previousStatusRef = useRef(status);
 
   useEffect(() => {
-    if (!dirtyRef.current) setValues(object?.properties || {});
-  }, [object]);
+    if (previousFormIdentityRef.current !== formIdentity) {
+      previousFormIdentityRef.current = formIdentity;
+      dirtyRef.current = false;
+      setLocalRequestId(undefined);
+      setValues(object?.properties || {});
+    } else if (!dirtyRef.current) {
+      setValues(object?.properties || {});
+    }
+  }, [formIdentity, object, objectIdentity]);
+
+  useEffect(() => {
+    if (previousStatusRef.current !== "succeeded" && status === "succeeded") {
+      dirtyRef.current = false;
+      setValues(object?.properties || {});
+    }
+
+    previousStatusRef.current = status;
+  }, [object, status]);
 
   useEffect(() => {
     updateWidgetMetaProperty("formData", values);
@@ -96,6 +158,7 @@ export default function ObjectFormMode({
     if (
       missing ||
       !object ||
+      objectTypeId !== object.typeId ||
       !action ||
       action.objectTypeId !== object.typeId
     ) {
@@ -105,13 +168,14 @@ export default function ObjectFormMode({
     }
 
     updateWidgetMetaProperty("isValid", true);
-    dispatch(
-      celanworksmithActionRun(action.id, {
-        objectTypeId: object.typeId,
-        objectId: object.id,
-        parameters: values,
-      }),
-    );
+    const actionRequest = celanworksmithActionRun(action.id, {
+      objectTypeId: object.typeId,
+      objectId: object.id,
+      parameters: values,
+    });
+
+    setLocalRequestId(actionRequest.payload.requestId);
+    dispatch(actionRequest);
   };
 
   return (
@@ -122,37 +186,72 @@ export default function ObjectFormMode({
         submit();
       }}
     >
-      {metadata.properties
-        .filter((property) => !property.derived)
-        .map((property) => {
-          const inputType = getInputType(property.dataType);
-          const value = values[property.id];
+      {metadata.properties.map((property) => {
+        if (!SUPPORTED_DATA_TYPES.has(property.dataType)) {
+          return (
+            <div key={property.id} role="alert">
+              Unsupported data type: {property.dataType}
+            </div>
+          );
+        }
+
+        const inputType = getInputType(property.dataType);
+        const value = values[property.id];
+        const disabled = property.readOnly || property.derived;
+
+        if (property.dataType === "ENUM") {
+          const enumValues = getEnumValues(property, value);
 
           return (
             <label key={property.id}>
               {property.displayName}
-              <input
-                checked={inputType === "checkbox" ? Boolean(value) : undefined}
-                disabled={property.readOnly}
+              <select
+                disabled={disabled}
                 name={property.id}
                 onChange={(event) =>
                   updateValue(
                     property.id,
                     property.dataType,
-                    inputType === "checkbox"
-                      ? event.target.checked
-                      : event.target.value,
+                    event.target.value,
                   )
                 }
                 required={property.required}
-                type={inputType}
-                value={
-                  inputType === "checkbox" ? undefined : String(value ?? "")
-                }
-              />
+                value={String(value ?? "")}
+              >
+                {!property.required && <option value="" />}
+                {enumValues.map((enumValue) => (
+                  <option key={enumValue} value={enumValue}>
+                    {enumValue}
+                  </option>
+                ))}
+              </select>
             </label>
           );
-        })}
+        }
+
+        return (
+          <label key={property.id}>
+            {property.displayName}
+            <input
+              checked={inputType === "checkbox" ? Boolean(value) : undefined}
+              disabled={disabled}
+              name={property.id}
+              onChange={(event) =>
+                updateValue(
+                  property.id,
+                  property.dataType,
+                  inputType === "checkbox"
+                    ? event.target.checked
+                    : event.target.value,
+                )
+              }
+              required={property.required}
+              type={inputType}
+              value={inputType === "checkbox" ? undefined : String(value ?? "")}
+            />
+          </label>
+        );
+      })}
       <button
         disabled={!actionId || status === "queued" || status === "running"}
         type="submit"
@@ -162,9 +261,7 @@ export default function ObjectFormMode({
           : "Submit"}
       </button>
       {status === "failed" && (
-        <div role="alert">
-          {actionState?.meta.error?.message || "Submission failed."}
-        </div>
+        <div role="alert">{error?.message || "Submission failed."}</div>
       )}
       {status === "succeeded" && <div role="status">Submitted.</div>}
     </form>

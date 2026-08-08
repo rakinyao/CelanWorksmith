@@ -1,32 +1,32 @@
+import InputWidget, { defaultValueValidation } from "./index";
 import type { InputWidgetProps } from "./index";
-import { defaultValueValidation } from "./index";
 import _ from "lodash";
 
-describe("#defaultValueValidation", () => {
-  const defaultInputWidgetProps: InputWidgetProps = {
-    backgroundColor: "",
-    borderRadius: "",
-    bottomRow: 2,
-    inputType: "NUMBER",
-    inputValidators: [],
-    isLoading: false,
-    isValid: true,
-    label: "",
-    leftColumn: 0,
-    parentColumnSpace: 71.75,
-    parentRowSpace: 38,
-    primaryColor: "",
-    renderMode: "CANVAS",
-    rightColumn: 100,
-    text: "",
-    topRow: 0,
-    type: "INPUT_WIDGET",
-    validation: true,
-    version: 1,
-    widgetId: "23424",
-    widgetName: "input1",
-  };
+const defaultInputWidgetProps: InputWidgetProps = {
+  backgroundColor: "",
+  borderRadius: "",
+  bottomRow: 2,
+  inputType: "NUMBER",
+  inputValidators: [],
+  isLoading: false,
+  isValid: true,
+  label: "",
+  leftColumn: 0,
+  parentColumnSpace: 71.75,
+  parentRowSpace: 38,
+  primaryColor: "",
+  renderMode: "CANVAS",
+  rightColumn: 100,
+  text: "",
+  topRow: 0,
+  type: "INPUT_WIDGET",
+  validation: true,
+  version: 1,
+  widgetId: "23424",
+  widgetName: "input1",
+};
 
+describe("#defaultValueValidation", () => {
   const inputs = [
     "",
     "   ",
@@ -137,4 +137,33 @@ describe("#defaultValueValidation", () => {
       messages: [{ name: "", message: "" }],
     });
   });
+});
+
+test("keeps Query values and exposes stable Object property controls", () => {
+  const queryView = new InputWidget({
+    ...defaultInputWidgetProps,
+    dataMode: "QUERY",
+    defaultText: "Static query value",
+  }).getWidgetView();
+  const controls = InputWidget.getPropertyPaneConfig()
+    .flatMap((section) => section.children || [])
+    .filter((control) =>
+      ["objectTypeId", "objectData", "displayPropertyId"].includes(
+        control.propertyName,
+      ),
+    );
+
+  expect(queryView.props.defaultValue).toBe("Static query value");
+  expect(controls).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        propertyName: "objectTypeId",
+        controlType: "CELANWORKSMITH_OBJECT_TYPE",
+      }),
+      expect.objectContaining({
+        propertyName: "displayPropertyId",
+        controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
+      }),
+    ]),
+  );
 });

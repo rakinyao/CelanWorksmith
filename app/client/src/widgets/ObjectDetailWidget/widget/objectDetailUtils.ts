@@ -28,6 +28,11 @@ export interface ObjectDetailPropertyGroup {
   properties: ObjectDetailProperty[];
 }
 
+export interface ObjectPropertyValue {
+  state: "empty" | "ready" | "typeMismatch";
+  value?: unknown;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
@@ -75,6 +80,21 @@ export const normalizeObjectData = (
 export const getObjectIdentity = (
   value: NormalizedObjectData | undefined,
 ): string | undefined => (value ? `${value.typeId}/${value.id}` : undefined);
+
+export const getObjectPropertyValue = (
+  value: unknown,
+  propertyId: string | undefined,
+): ObjectPropertyValue => {
+  const object = normalizeObjectData(value);
+
+  if (!object) return { state: "empty" };
+
+  if (!propertyId || !Object.hasOwn(object.properties, propertyId)) {
+    return { state: "typeMismatch" };
+  }
+
+  return { state: "ready", value: object.properties[propertyId] };
+};
 
 export const groupObjectProperties = (
   object: NormalizedObjectData,

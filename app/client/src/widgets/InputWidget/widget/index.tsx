@@ -47,6 +47,7 @@ import {
 import type { InputType } from "../constants";
 import { InputTypes } from "../constants";
 import IconSVG from "../icon.svg";
+import { getObjectPropertyValue } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
 
 export function defaultValueValidation(
   // TODO: Fix this the next time the file is edited
@@ -166,6 +167,10 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
   static getDefaults() {
     return {
       inputType: "TEXT",
+      dataMode: "OBJECT",
+      objectTypeId: undefined,
+      objectData: undefined,
+      displayPropertyId: undefined,
       rows: 4,
       label: "",
       labelPosition: LabelPosition.Left,
@@ -239,6 +244,53 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
 
   static getPropertyPaneConfig() {
     return [
+      {
+        sectionName: "CelanWorksmith Object data",
+        children: [
+          {
+            propertyName: "dataMode",
+            label: "Data mode",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Query", value: "QUERY" },
+              { label: "Object", value: "OBJECT" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Ontology Object / 本体对象",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+            hidden: (props: InputWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "objectData",
+            label: "Object data",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
+            dependencies: ["dataMode"],
+            hidden: (props: InputWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "displayPropertyId",
+            label: "Object property",
+            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode", "objectTypeId"],
+            hidden: (props: InputWidgetProps) => props.dataMode !== "OBJECT",
+          },
+        ],
+      },
       {
         sectionName: "General",
         children: [
@@ -985,7 +1037,23 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
   };
 
   getWidgetView() {
-    const value = this.getFormattedText();
+    const objectProperty =
+      this.props.dataMode === "OBJECT"
+        ? getObjectPropertyValue(
+            this.props.objectData,
+            this.props.displayPropertyId,
+          )
+        : undefined;
+    const objectValue =
+      objectProperty?.state === "ready"
+        ? typeof objectProperty.value === "object"
+          ? JSON.stringify(objectProperty.value)
+          : String(objectProperty.value ?? "")
+        : undefined;
+    const value =
+      objectValue !== undefined && !this.props.isDirty
+        ? objectValue
+        : this.getFormattedText();
     let isInvalid =
       "isValid" in this.props && !this.props.isValid && !!this.props.isDirty;
     const currencyCountryCode = this.props.selectedCurrencyCountryCode
@@ -1042,7 +1110,7 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         compactMode={isCompactMode(componentHeight)}
         currencyCountryCode={currencyCountryCode}
         decimalsInCurrency={this.props.decimalsInCurrency}
-        defaultValue={this.props.defaultText}
+        defaultValue={objectValue ?? this.props.defaultText}
         disableNewLineOnPressEnterKey={!!this.props.onSubmit}
         disabled={this.props.isDisabled}
         iconAlign={this.props.iconAlign}
@@ -1087,6 +1155,10 @@ export interface InputValidator {
   errorMessage: string;
 }
 export interface InputWidgetProps extends WidgetProps {
+  dataMode?: "QUERY" | "OBJECT";
+  objectTypeId?: string;
+  objectData?: unknown;
+  displayPropertyId?: string;
   inputType: InputType;
   currencyCountryCode?: string;
   noOfDecimals?: number;
