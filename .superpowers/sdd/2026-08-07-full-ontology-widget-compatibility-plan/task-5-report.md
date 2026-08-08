@@ -72,3 +72,25 @@ exit 0
 - FilterList `icon.svg` and `thumbnail.svg` contain unrelated trailing-newline
   changes in the dirty baseline; they are intentionally excluded from the Task
   5 commit.
+
+## Fix Round 1
+
+- ObjectSet rows now adapt to the native List and ListV2 `listData` contract,
+  preserving template rendering, pagination, item click behavior, stable IDs,
+  and runtime `currentItemsView` evaluation.
+- FilterList only mounts the Object metadata publisher in `OBJECT` mode; QUERY
+  mode leaves its legacy configuration untouched.
+- Added actual Widget ObjectSet integration coverage for stable selection
+  output and ready, empty, error, and type-mismatch states.
+- Dropdown required validation and selection-change checks now recognize
+  `false` and `0` as selected values.
+
+### Fix Round Verification
+
+```text
+Focused ObjectSet collection/widget Jest suite: PASS
+Prettier check: PASS
+ESLint: exit 0 (existing warnings only)
+yarn check-types: exit 0
+git diff --check: exit 0
+```

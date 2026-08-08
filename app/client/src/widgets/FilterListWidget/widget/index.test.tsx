@@ -178,6 +178,7 @@ describe("FilterListWidget object binding", () => {
     expect(FilterListWidget.getDefaults().dataMode).toBe("OBJECT");
 
     const legacyWidget = new FilterListWidget({
+      dataMode: "OBJECT",
       filter: { typeId: "PurchaseOrder", conditions: [], version: 1 },
       objectTypeId: "PurchaseOrder",
       updateWidgetMetaProperty: jest.fn(),
@@ -202,5 +203,23 @@ describe("FilterListWidget object binding", () => {
       controlType: "CELANWORKSMITH_OBJECT_TYPE",
       dependencies: ["dataMode"],
     });
+  });
+
+  test("does not publish an Object metadata filter in Query mode", () => {
+    const updateWidgetMetaProperty = jest.fn();
+    const widget = new FilterListWidget({
+      dataMode: "QUERY",
+      filter: { typeId: "PurchaseOrder", conditions: [], version: 1 },
+      objectTypeId: "PurchaseOrder",
+      updateWidgetMetaProperty,
+      widgetId: "FilterList1",
+      widgetName: "FilterList1",
+    } as unknown as FilterListWidgetProps);
+
+    render(
+      <Provider store={mockStore(state())}>{widget.getWidgetView()}</Provider>,
+    );
+
+    expect(updateWidgetMetaProperty).not.toHaveBeenCalled();
   });
 });

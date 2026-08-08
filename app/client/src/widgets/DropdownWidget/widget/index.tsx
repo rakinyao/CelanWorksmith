@@ -47,6 +47,9 @@ function defaultOptionValueValidation(value: unknown): ValidationResponse {
   return { isValid: true, parsed: value };
 }
 
+const hasSelectedValue = (value: unknown) =>
+  value !== undefined && value !== "";
+
 class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
   static type = "DROP_DOWN_WIDGET";
 
@@ -511,7 +514,7 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
 
   static getDerivedPropertiesMap() {
     return {
-      isValid: `{{this.isRequired  ? !!this.selectedOptionValue || this.selectedOptionValue === 0 : true}}`,
+      isValid: `{{this.isRequired ? this.selectedOptionValue !== undefined && this.selectedOptionValue !== "" : true}}`,
       selectedOptionLabel: `{{this.dataMode === "OBJECT" ? this.label : (()=>{const index = _.findIndex(this.options, { value: this.value }); return this.options[index]?.label; })()}}`,
       selectedOptionValue: `{{this.dataMode === "OBJECT" ? this.value : (()=>{const index = _.findIndex(this.options, { value: this.value }); return this.options[index]?.value; })()}}`,
     };
@@ -639,7 +642,7 @@ class DropdownWidget extends BaseWidget<DropdownWidgetProps, WidgetState> {
 
     // Check if the value has changed. If no option
     // selected till now, there is a change
-    if (this.props.selectedOptionValue) {
+    if (hasSelectedValue(this.props.selectedOptionValue)) {
       isChanged = !(this.props.selectedOptionValue === selectedOption.value);
     }
 

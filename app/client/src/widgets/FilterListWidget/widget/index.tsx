@@ -115,6 +115,10 @@ class FilterListWidget extends BaseWidget<FilterListWidgetProps, WidgetState> {
   }
 
   getWidgetView() {
+    if (this.props.dataMode !== "OBJECT") {
+      return <div className="t--filter-list-query-mode" />;
+    }
+
     return (
       <FilterListComponent
         initialConditions={this.props.filter?.conditions}

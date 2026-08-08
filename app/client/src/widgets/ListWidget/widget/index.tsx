@@ -84,6 +84,8 @@ const PATH_TO_ALL_WIDGETS_IN_LIST_WIDGET =
   "children.0.children.0.children.0.children";
 
 class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
+  private objectListData?: Array<Record<string, unknown>>;
+
   state = {
     page: 1,
   };
@@ -888,10 +890,15 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
       });
     }
 
+    const rowData = this.getActiveListData()?.[rowIndex];
+
+    if (this.objectListData) {
+      this.props.updateWidgetMetaProperty("selectedItem", rowData);
+    }
+
     if (!action) return;
 
     try {
-      const rowData = this.props.listData?.[rowIndex];
       const { jsSnippets } = getDynamicBindings(action);
       const modifiedAction = jsSnippets.reduce((prev: string, next: string) => {
         return prev + `{{${next}}} `;
@@ -1456,15 +1463,48 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
       return (
         <ObjectCollectionMode
           objectTypeId={objectBinding.binding.objectTypeId}
-          onSelect={(object) =>
-            this.props.updateWidgetMetaProperty("selectedItem", object)
+          onRowsChange={(rows) =>
+            this.props.updateWidgetMetaProperty("listData", rows)
           }
           widgetId={this.props.widgetId}
           widgetType={ListWidget.type}
-        />
+        >
+          {(rows, isLoading) => this.getWidgetViewForListData(rows, isLoading)}
+        </ObjectCollectionMode>
       );
     }
 
+    return this.getWidgetViewForListData(
+      this.props.listData,
+      this.props.isLoading,
+    );
+  }
+
+  private getActiveListData = () => this.objectListData || this.props.listData;
+
+  private getWidgetViewForListData(
+    listData: Array<Record<string, unknown>> | undefined,
+    isLoading: boolean | undefined,
+  ) {
+    this.objectListData =
+      this.props.dataMode === "OBJECT" ? listData : undefined;
+    const originalProps = this.props;
+
+    (this as unknown as { props: ListWidgetProps<WidgetProps> }).props = {
+      ...originalProps,
+      isLoading,
+      listData,
+    };
+
+    try {
+      return this.getNativeWidgetView();
+    } finally {
+      (this as unknown as { props: ListWidgetProps<WidgetProps> }).props =
+        originalProps;
+    }
+  }
+
+  private getNativeWidgetView() {
     const children = this.renderChildren();
     const { componentHeight } = this.props;
     const { pageNo, serverSidePaginationEnabled } = this.props;

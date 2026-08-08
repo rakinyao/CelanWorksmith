@@ -30,6 +30,15 @@ export const getObjectSetRows = (
   result?: CelanworksmithObjectSet,
 ): CelanworksmithObjectInstance[] => result?.items || [];
 
+export const getObjectSetListRows = (
+  result?: CelanworksmithObjectSet,
+): Array<Record<string, unknown>> =>
+  getObjectSetRows(result).map(({ id, properties, typeId }) => ({
+    ...properties,
+    id,
+    typeId,
+  }));
+
 export const getObjectSetOptions = (
   result: CelanworksmithObjectSet | undefined,
   displayPropertyId: string | undefined,

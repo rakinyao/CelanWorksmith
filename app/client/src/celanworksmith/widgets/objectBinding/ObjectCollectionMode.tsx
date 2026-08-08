@@ -1,18 +1,53 @@
-import type { CelanworksmithObjectInstance } from "api/CelanworksmithAPI";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import ObjectSetBinding from "./ObjectSetBinding";
-import { getObjectSetRows } from "./objectSetUtils";
+import { getObjectSetListRows } from "./objectSetUtils";
 
 interface ObjectCollectionModeProps {
+  children: (
+    rows: Array<Record<string, unknown>>,
+    isLoading: boolean,
+  ) => React.ReactElement;
   objectTypeId?: string;
-  onSelect?: (object: CelanworksmithObjectInstance) => void;
+  onRowsChange?: (rows: Array<Record<string, unknown>>) => void;
   widgetId: string;
   widgetType: string;
 }
 
+interface ObjectCollectionRowsProps {
+  children: ObjectCollectionModeProps["children"];
+  isLoading: boolean;
+  onRowsChange?: ObjectCollectionModeProps["onRowsChange"];
+  publishRows: boolean;
+  rows: Array<Record<string, unknown>>;
+}
+
+function ObjectCollectionRows({
+  children,
+  isLoading,
+  onRowsChange,
+  publishRows,
+  rows,
+}: ObjectCollectionRowsProps) {
+  const lastPublishedRowsKey = useRef<string>();
+  const rowsKey = JSON.stringify(rows);
+
+  useEffect(
+    function publishRows() {
+      if (publishRows && lastPublishedRowsKey.current !== rowsKey) {
+        onRowsChange?.(rows);
+        lastPublishedRowsKey.current = rowsKey;
+      }
+    },
+    [onRowsChange, publishRows, rows, rowsKey],
+  );
+
+  return children(rows, isLoading);
+}
+
 export default function ObjectCollectionMode({
+  children,
   objectTypeId,
-  onSelect,
+  onRowsChange,
   widgetId,
   widgetType,
 }: ObjectCollectionModeProps) {
@@ -39,28 +74,17 @@ export default function ObjectCollectionMode({
           );
         }
 
-        if (binding.status === "empty") return <div>No objects found.</div>;
-
-        if (!binding.result) return <div>Loading objects...</div>;
-
         return (
-          <div className="t--object-list-mode">
-            {getObjectSetRows(binding.result).map((object) => (
-              <button
-                key={object.id}
-                onClick={() => onSelect?.(object)}
-                type="button"
-              >
-                {Object.entries(object.properties).map(
-                  ([propertyId, value]) => (
-                    <span
-                      key={propertyId}
-                    >{`${propertyId}: ${String(value)}`}</span>
-                  ),
-                )}
-              </button>
-            ))}
-          </div>
+          <ObjectCollectionRows
+            isLoading={binding.status === "loading"}
+            onRowsChange={onRowsChange}
+            publishRows={
+              binding.status === "ready" || binding.status === "empty"
+            }
+            rows={getObjectSetListRows(binding.result)}
+          >
+            {children}
+          </ObjectCollectionRows>
         );
       }}
     </ObjectSetBinding>
