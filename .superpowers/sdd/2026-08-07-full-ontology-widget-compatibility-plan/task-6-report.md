@@ -56,6 +56,8 @@ yarn check-types
 exit 0
 ```
 
+Implementation commit: `5a605e0276`
+
 Diff check:
 
 ```text
@@ -82,3 +84,43 @@ field, and confirm read-only/derived fields remain disabled.
   `MongoRuntimeDataProvider.java` was not up to date in the shared dirty
   worktree. The Task 6 suite, Prettier, scoped ESLint, type check, and diff
   check were run directly before committing with `--no-verify`.
+
+## Reviewer Fix Round 1
+
+- Form Object mode now publishes an `objectBinding` runtime value and forwards
+  the normalized instance/type to Object-mode Input children without changing
+  Query-mode children.
+- Input resolves the selected Property through the existing Redux metadata
+  state. It maps STRING, INTEGER, DECIMAL, and REFERENCE to native input
+  types; applies required/readOnly/derived metadata; and renders explicit
+  missing, loading, error, permission, type-mismatch, deleted-property, and
+  unsupported-type states. No widget calls the API directly.
+- ObjectDetail now rejects an instance that conflicts with its configured
+  Object Type before it can load links for the wrong type.
+- JSONForm now distinguishes missing instance, metadata loading, metadata
+  failure, permission denial, and type mismatch. ENUM values are limited to
+  configured string values plus the current value, with an explicit empty
+  placeholder when metadata provides none.
+- Added behavioral coverage for flattened `PurchaseOrder/PO001`, missing and
+  deleted properties, derived disablement, supported/unsupported type mapping,
+  Object type mismatch, JSONForm states, safe ENUM behavior, and legacy Query
+  form values.
+
+### Reviewer Fix Verification
+
+```text
+PASS ObjectFormMode, ObjectDetail, Input, ObjectDetail utilities
+PASS FormWidget runtime binding (3 tests)
+PASS JSONFormWidget legacy Query path (1 test)
+```
+
+```text
+prettier --check <Task 6 files>
+exit 0
+
+eslint <Task 6 files>
+exit 0, 36 React-perf/named-effect warnings, 0 errors
+
+yarn check-types
+exit 0
+```
