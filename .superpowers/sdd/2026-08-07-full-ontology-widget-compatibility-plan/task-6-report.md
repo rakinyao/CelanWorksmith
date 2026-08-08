@@ -56,6 +56,33 @@ yarn check-types
 exit 0
 ```
 
+## Reviewer Fix Round 2
+
+- Form Object mode resolves descendant Object Inputs from the Redux canvas tree,
+  publishes each selected Property's metadata through the child Input's Redux
+  meta state, and triggers the existing evaluation update.
+- Input validation and derived `isValid` now use Object metadata `required`
+  and supported `dataType` mappings. Form child validity uses the same
+  effective metadata when deciding whether its submit controls are valid.
+- Query and static Input behavior remains on the existing validation path.
+
+### Reviewer Fix Round 2 Verification
+
+```text
+PASS FormWidget Object metadata Redux integration test
+PASS InputWidget focused test suite (10 tests)
+PASS ObjectDetail, JSONForm, Form, Input focused Task 6 suites
+git diff --check: exit 0
+```
+
+### Reviewer Fix Round 2 Closeout
+
+```text
+PASS FormWidget/widget/objectBinding.test.tsx (1 test)
+PASS FormWidget/widget/index.test.ts + JSONFormWidget/widget/index.test.tsx (4 tests)
+PASS combined focused ObjectDetail, JSONForm, Form, and Input command
+```
+
 Implementation commit: `5a605e0276`
 
 Diff check:

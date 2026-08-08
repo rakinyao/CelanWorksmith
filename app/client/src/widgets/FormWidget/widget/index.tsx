@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 import _, { get, some } from "lodash";
 import equal from "fast-deep-equal/es6";
 import type { WidgetProps } from "../../BaseWidget";
@@ -36,7 +36,23 @@ import type { LayoutProps } from "layoutSystems/anvil/utils/anvilTypes";
 import { formPreset } from "layoutSystems/anvil/layoutComponents/presets/FormPreset";
 import { LayoutSystemTypes } from "layoutSystems/types";
 import { ValidationTypes } from "constants/WidgetValidation";
-import { normalizeObjectData } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
+import {
+  getObjectPropertyValue,
+  normalizeObjectData,
+} from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
+import { useDispatch, useSelector } from "react-redux";
+import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
+import {
+  syncUpdateWidgetMetaProperty,
+  triggerEvalOnMetaUpdate,
+} from "actions/metaActions";
+import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
+import type { CanvasWidgetsReduxState } from "ee/reducers/entityReducers/canvasWidgetsReducer";
+import { getWidgets } from "sagas/selectors";
+import {
+  isInputValueValid,
+  type InputWidgetProps,
+} from "widgets/InputWidget/widget";
 
 export interface FormObjectBinding {
   instance: {
@@ -45,6 +61,91 @@ export interface FormObjectBinding {
     properties: Record<string, unknown>;
   };
   objectTypeId: string;
+}
+
+const isDescendantOf = (
+  widget: WidgetProps,
+  ancestorId: string,
+  widgets: CanvasWidgetsReduxState,
+) => {
+  let currentWidget = widget;
+
+  while (currentWidget.parentId) {
+    if (currentWidget.parentId === ancestorId) return true;
+
+    const parentWidget = widgets[currentWidget.parentId];
+
+    if (!parentWidget) return false;
+
+    currentWidget = parentWidget;
+  }
+
+  return false;
+};
+
+export function ObjectFormMetadataPublisher(
+  props: Pick<FormWidgetProps, "objectData" | "objectTypeId" | "widgetId">,
+) {
+  const dispatch = useDispatch();
+  const objectsState = useSelector(getCelanworksmithObjectsState);
+  const canvasWidgets = useSelector(getWidgets);
+  const instance = normalizeObjectData(props.objectData);
+  const objectTypeId = props.objectTypeId || instance?.typeId;
+  const typeState = objectTypeId ? objectsState.types[objectTypeId] : undefined;
+  const objectPropertiesMetadata = typeState?.metadata?.properties;
+  const publishedMetadata = React.useRef<
+    Map<string, CelanworksmithProperty | undefined>
+  >(new Map());
+  const objectInputs = Object.values(canvasWidgets).filter(
+    (widget) =>
+      widget.type === "INPUT_WIDGET" &&
+      widget.dataMode === "OBJECT" &&
+      isDescendantOf(widget, props.widgetId, canvasWidgets),
+  );
+
+  React.useEffect(() => {
+    objectInputs.forEach((input) => {
+      if (input.objectTypeId && input.objectTypeId !== objectTypeId) return;
+
+      const metadata = objectPropertiesMetadata?.find(
+        (property) => property.id === input.displayPropertyId,
+      );
+
+      if (publishedMetadata.current.get(input.widgetId) === metadata) return;
+
+      dispatch(
+        syncUpdateWidgetMetaProperty(
+          input.widgetId,
+          "objectPropertyMetadata",
+          metadata,
+        ),
+      );
+      dispatch(triggerEvalOnMetaUpdate());
+      publishedMetadata.current.set(input.widgetId, metadata);
+    });
+  }, [dispatch, objectInputs, objectPropertiesMetadata, objectTypeId]);
+
+  return null;
+}
+
+function ObjectFormMode(props: FormWidgetProps) {
+  const objectsState = useSelector(getCelanworksmithObjectsState);
+  const instance = normalizeObjectData(props.objectData);
+  const objectTypeId = props.objectTypeId || instance?.typeId;
+  const typeState = objectTypeId ? objectsState.types[objectTypeId] : undefined;
+
+  return (
+    <>
+      <ObjectFormMetadataPublisher {...props} />
+      <FormWidget
+        {...props}
+        objectMetadataError={typeState?.error || objectsState.error}
+        objectMetadataResolved
+        objectMetadataStatus={typeState?.status || objectsState.status}
+        objectPropertiesMetadata={typeState?.metadata?.properties}
+      />
+    </>
+  );
 }
 
 class FormWidget extends ContainerWidget {
@@ -389,6 +490,23 @@ class FormWidget extends ContainerWidget {
         return this.checkInvalidChildren(child.children || []);
       }
 
+      if (
+        child.type === "INPUT_WIDGET" &&
+        child.dataMode === "OBJECT" &&
+        child.objectPropertyMetadata
+      ) {
+        const objectProperty = getObjectPropertyValue(
+          child.objectBinding?.instance || child.objectData,
+          child.displayPropertyId,
+        );
+        const value =
+          !child.isDirty && objectProperty?.state === "ready"
+            ? objectProperty.value
+            : child.text;
+
+        return !isInputValueValid(value, child as InputWidgetProps);
+      }
+
       if ("isValid" in child) {
         return !child.isValid;
       }
@@ -515,13 +633,9 @@ class FormWidget extends ContainerWidget {
     const objectBinding = this.getObjectBinding();
 
     if (childContainer.children) {
-      const isInvalid = this.checkInvalidChildren(childContainer.children);
-
-      childContainer.children = childContainer.children.map(
+      const children = childContainer.children.map(
         (child: WidgetProps) => {
           const grandChild = { ...child };
-
-          if (isInvalid) grandChild.isFormValid = false;
 
           if (
             objectBinding &&
@@ -535,14 +649,31 @@ class FormWidget extends ContainerWidget {
             grandChild.objectTypeId =
               grandChild.objectTypeId || objectBinding.objectTypeId;
             grandChild.objectBinding = objectBinding;
+            grandChild.objectMetadataError = this.props.objectMetadataError;
+            grandChild.objectMetadataStatus = this.props.objectMetadataStatus;
+            grandChild.objectBindingResolved =
+              this.props.objectMetadataResolved;
+            grandChild.objectPropertyMetadata =
+              this.props.objectPropertiesMetadata?.find(
+                (property) => property.id === grandChild.displayPropertyId,
+              );
           }
-
-          // Add submit and reset handlers
-          grandChild.onReset = this.handleResetInputs;
 
           return grandChild;
         },
       );
+      const isInvalid = this.checkInvalidChildren(children);
+
+      childContainer.children = children.map((child) => {
+        const grandChild = { ...child };
+
+        if (isInvalid) grandChild.isFormValid = false;
+
+          // Add submit and reset handlers
+        grandChild.onReset = this.handleResetInputs;
+
+        return grandChild;
+      });
     }
 
     childContainer.rightColumn = componentWidth;
@@ -593,6 +724,14 @@ class FormWidget extends ContainerWidget {
   static getDerivedPropertiesMap(): DerivedPropertiesMap {
     return { positioning: Positioning.Fixed };
   }
+
+  getWidgetView() {
+    if (this.props.formMode === "OBJECT" && !this.props.objectMetadataResolved) {
+      return <ObjectFormMode {...this.props} />;
+    }
+
+    return this.renderAsContainerComponent(this.props);
+  }
 }
 
 export interface FormWidgetProps extends ContainerComponentProps {
@@ -601,6 +740,10 @@ export interface FormWidgetProps extends ContainerComponentProps {
   objectData?: unknown;
   objectActionId?: string;
   objectBinding?: FormObjectBinding;
+  objectMetadataError?: { code?: string; message?: string };
+  objectMetadataResolved?: boolean;
+  objectMetadataStatus?: "idle" | "loading" | "ready" | "empty" | "error";
+  objectPropertiesMetadata?: CelanworksmithProperty[];
   name: string;
   data: Record<string, unknown>;
   hasChanges: boolean;

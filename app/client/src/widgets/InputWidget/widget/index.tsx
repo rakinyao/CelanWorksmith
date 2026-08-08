@@ -73,6 +73,85 @@ const OBJECT_INPUT_TYPES: Partial<Record<string, InputType>> = {
 const isPermissionError = (code: string | undefined) =>
   ["FORBIDDEN", "PERMISSION_DENIED", "UNAUTHORIZED"].includes(code || "");
 
+export const getEffectiveInputType = (props: InputWidgetProps): InputType => {
+  if (props.dataMode !== "OBJECT" || !props.objectPropertyMetadata) {
+    return props.inputType;
+  }
+
+  return (
+    OBJECT_INPUT_TYPES[props.objectPropertyMetadata.dataType] || props.inputType
+  );
+};
+
+export const getEffectiveIsRequired = (props: InputWidgetProps): boolean => {
+  if (props.dataMode !== "OBJECT" || !props.objectPropertyMetadata) {
+    return !!props.isRequired;
+  }
+
+  return props.objectPropertyMetadata.required;
+};
+
+export const isInputValueValid = (
+  value: unknown,
+  props: InputWidgetProps,
+): boolean => {
+  const inputType = getEffectiveInputType(props);
+  const isRequired = getEffectiveIsRequired(props);
+  const text = value === undefined || value === null ? "" : String(value);
+
+  if (
+    props.dataMode === "OBJECT" &&
+    props.objectPropertyMetadata &&
+    !OBJECT_INPUT_TYPES[props.objectPropertyMetadata.dataType]
+  ) {
+    return false;
+  }
+
+  if (!isRequired && !text) return true;
+
+  if (isRequired && !text) return false;
+
+  if (typeof props.validation === "boolean" && !props.validation) {
+    return false;
+  }
+
+  let parsedRegex: RegExp | null = null;
+
+  if (props.regex) {
+    const regexParts = props.regex.match(/(\/?)(.+)\1([a-z]*)/i);
+
+    if (!regexParts) {
+      parsedRegex = new RegExp(props.regex);
+    } else if (
+      regexParts[3] &&
+      !/^(?!.*?(.).*?\1)[gmisuy]+$/.test(regexParts[3])
+    ) {
+      parsedRegex = RegExp(props.regex);
+    } else {
+      parsedRegex = new RegExp(regexParts[2], regexParts[3]);
+    }
+  }
+
+  if (inputType === "EMAIL") {
+    return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(text);
+  }
+
+  if (
+    inputType === "NUMBER" ||
+    inputType === "INTEGER" ||
+    inputType === "CURRENCY" ||
+    inputType === "PHONE_NUMBER"
+  ) {
+    const numericText = text.split(",").join("");
+
+    return parsedRegex
+      ? parsedRegex.test(numericText)
+      : !isNaN(Number(numericText));
+  }
+
+  return parsedRegex ? parsedRegex.test(text) : true;
+};
+
 const getObjectInputState = (props: InputWidgetProps): ObjectInputState => {
   const objectData = props.objectBinding?.instance || props.objectData;
   const object = normalizeObjectData(objectData);
@@ -139,7 +218,15 @@ export function defaultValueValidation(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _?: any,
 ): ValidationResponse {
-  const { inputType } = props;
+  const inputType =
+    props.dataMode === "OBJECT" && props.objectPropertyMetadata
+      ? ({
+          STRING: "TEXT",
+          INTEGER: "INTEGER",
+          DECIMAL: "NUMBER",
+          REFERENCE: "TEXT",
+        }[props.objectPropertyMetadata.dataType] || props.inputType)
+      : props.inputType;
 
   if (
     inputType === "INTEGER" ||
@@ -183,7 +270,7 @@ export function defaultValueValidation(
     };
   }
 
-  if (_.isObject(value)) {
+  if (typeof value === "object" && value !== null) {
     return {
       isValid: false,
       parsed: JSON.stringify(value, null, 2),
@@ -197,11 +284,11 @@ export function defaultValueValidation(
   }
 
   let parsed = value;
-  const isValid = _.isString(parsed);
+  const isValid = typeof parsed === "string";
 
   if (!isValid) {
     try {
-      parsed = _.toString(parsed);
+      parsed = String(parsed);
     } catch (e) {
       return {
         isValid: false,
@@ -886,10 +973,22 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
     return {
       isValid: `{{
         (function(){
-          if (!this.isRequired && !this.text) {
+          const objectPropertyMetadata = this.dataMode === "OBJECT" ? this.objectPropertyMetadata : undefined;
+          const inputType = objectPropertyMetadata ? ({
+            STRING: "TEXT",
+            INTEGER: "INTEGER",
+            DECIMAL: "NUMBER",
+            REFERENCE: "TEXT",
+          }[objectPropertyMetadata.dataType]) : this.inputType;
+          const isRequired = objectPropertyMetadata ? objectPropertyMetadata.required : this.isRequired;
+
+          if (objectPropertyMetadata && !inputType) {
+            return false;
+          }
+          if (!isRequired && !this.text) {
             return true
           }
-          if(this.isRequired && !this.text){
+          if(isRequired && !this.text){
             return false
           }
           if (typeof this.validation === "boolean" && !this.validation) {
@@ -918,27 +1017,27 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
               parsedRegex = new RegExp(regexParts[2], regexParts[3]);
             }
           }
-          if (this.inputType === "EMAIL") {
+          if (inputType === "EMAIL") {
             const emailRegex = new RegExp(/^\\w+([\\.-]?\\w+)*@\\w+([\\.-]?\\w+)*(\\.\\w{2,3})+$/);
             return emailRegex.test(this.text);
           }
           else if (
-            this.inputType === "NUMBER" ||
-            this.inputType === "INTEGER" ||
-            this.inputType === "CURRENCY" ||
-            this.inputType === "PHONE_NUMBER"
+            inputType === "NUMBER" ||
+            inputType === "INTEGER" ||
+            inputType === "CURRENCY" ||
+            inputType === "PHONE_NUMBER"
           ) {
             let value = this.text.split(",").join("");
             if (parsedRegex) {
               return parsedRegex.test(value);
             }
-            if (this.isRequired) {
+            if (isRequired) {
               return !(value === '' || isNaN(value));
             }
 
             return (value === '' || !isNaN(value || ''));
           }
-          else if (this.isRequired) {
+          else if (isRequired) {
             if(this.text && this.text.length) {
               if (parsedRegex) {
                 return parsedRegex.test(this.text)
@@ -975,6 +1074,7 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
       isDirty: false,
       selectedCurrencyType: undefined,
       selectedCountryCode: undefined,
+      objectPropertyMetadata: undefined,
     };
   }
 
@@ -1156,6 +1256,8 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
       objectValue !== undefined && !this.props.isDirty
         ? objectValue
         : this.getFormattedText();
+    const effectiveInputType = getEffectiveInputType(this.props);
+    const isRequired = getEffectiveIsRequired(this.props);
     let isInvalid =
       "isValid" in this.props && !this.props.isValid && !!this.props.isDirty;
     const currencyCountryCode = this.props.selectedCurrencyCountryCode
@@ -1168,11 +1270,11 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
 
     conditionalProps.errorMessage = this.props.errorMessage;
 
-    if (this.props.isRequired && value.length === 0) {
+    if (isRequired && value.length === 0) {
       conditionalProps.errorMessage = createMessage(FIELD_REQUIRED_ERROR);
     }
 
-    if (this.props.inputType === "TEXT" && this.props.maxChars) {
+    if (effectiveInputType === "TEXT" && this.props.maxChars) {
       // pass maxChars only for Text type inputs, undefined for other types
       conditionalProps.maxChars = this.props.maxChars;
 
@@ -1222,16 +1324,11 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         iconAlign={this.props.iconAlign}
         iconName={this.props.iconName}
         inputType={
-          this.props.objectPropertyMetadata
-            ? OBJECT_INPUT_TYPES[this.props.objectPropertyMetadata.dataType] ||
-              this.props.inputType
-            : this.props.inputType
+          effectiveInputType
         }
         isInvalid={isInvalid}
         isLoading={this.props.isLoading}
-        isRequired={
-          this.props.isRequired || this.props.objectPropertyMetadata?.required
-        }
+        isRequired={isRequired}
         label={this.props.label}
         labelAlignment={this.props.labelAlignment}
         labelPosition={this.props.labelPosition}
@@ -1242,7 +1339,7 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         multiline={
           componentHeight >
             minInputSingleLineHeight * GridDefaults.DEFAULT_GRID_ROW_HEIGHT &&
-          this.props.inputType === "TEXT"
+          effectiveInputType === "TEXT"
         }
         onCurrencyTypeChange={this.onCurrencyTypeChange}
         onFocusChange={this.handleFocusChange}
@@ -1271,6 +1368,22 @@ function ObjectInputMode(props: InputWidgetProps) {
   const objectPropertyMetadata = typeState?.metadata?.properties.find(
     (property) => property.id === props.displayPropertyId,
   );
+
+  React.useEffect(() => {
+    if (
+      props.updateWidgetMetaProperty &&
+      props.objectPropertyMetadata !== objectPropertyMetadata
+    ) {
+      props.updateWidgetMetaProperty(
+        "objectPropertyMetadata",
+        objectPropertyMetadata,
+      );
+    }
+  }, [
+    objectPropertyMetadata,
+    props.objectPropertyMetadata,
+    props.updateWidgetMetaProperty,
+  ]);
 
   return (
     <InputWidget
