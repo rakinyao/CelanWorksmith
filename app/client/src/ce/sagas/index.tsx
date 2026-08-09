@@ -59,6 +59,7 @@ import celanworksmithObjectsSaga from "sagas/CelanworksmithObjectsSaga";
 import celanworksmithOntologySaga from "sagas/CelanworksmithOntologySaga";
 import celanworksmithExecutionSaga from "sagas/CelanworksmithExecutionSaga";
 import celanworksmithLinksSaga from "sagas/CelanworksmithLinksSaga";
+import celanworksmithLoadRetrySaga from "sagas/CelanworksmithLoadRetrySaga";
 import celanworksmithObjectQuerySaga from "sagas/CelanworksmithObjectQuerySaga";
 
 /* Sagas that are registered by a module that is designed to be independent of the core platform */
@@ -128,5 +129,6 @@ export const sagas = [
   celanworksmithOntologySaga,
   celanworksmithExecutionSaga,
   celanworksmithLinksSaga,
+  celanworksmithLoadRetrySaga,
   celanworksmithObjectQuerySaga,
 ];
