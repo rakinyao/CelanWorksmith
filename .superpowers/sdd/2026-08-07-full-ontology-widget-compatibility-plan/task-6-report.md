@@ -112,6 +112,27 @@ field, and confirm read-only/derived fields remain disabled.
   worktree. The Task 6 suite, Prettier, scoped ESLint, type check, and diff
   check were run directly before committing with `--no-verify`.
 
+## Final B3 Closeout
+
+The final review fix replaced the direct metadata-publisher test with a real
+mounted Form -> Canvas -> Input evaluation harness. It verifies both native
+button types, evaluated DataTree edit state, invalid-to-valid transitions, and
+submit-button validity synchronization. It also covers missing objects,
+missing properties, mismatched Object Types, stale metadata cleanup, and Query
+mode isolation.
+
+Final focused verification:
+
+```text
+5 test suites passed
+29 tests passed
+0 failures
+```
+
+Prettier, scoped ESLint, and `git diff --check` passed. The repository-wide
+TypeScript check remains blocked by existing global dependency and type errors;
+the changed B3 files have no newly identified TypeScript errors in that output.
+
 ## Reviewer Fix Round 1
 
 - Form Object mode now publishes an `objectBinding` runtime value and forwards

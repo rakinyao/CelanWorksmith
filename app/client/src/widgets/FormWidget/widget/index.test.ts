@@ -59,3 +59,17 @@ test("normalizes a flattened PurchaseOrder PO001 path for Object-mode children",
     objectTypeId: "PurchaseOrder",
   });
 });
+
+test("does not create an Object binding for Query-mode forms", () => {
+  const form = new FormWidget({
+    formMode: "QUERY",
+    objectData: {
+      id: "PO001",
+      properties: { amount: 8 },
+      typeId: "PurchaseOrder",
+    },
+    objectTypeId: "PurchaseOrder",
+  } as never);
+
+  expect(form.getObjectBinding()).toBeUndefined();
+});
