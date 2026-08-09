@@ -186,7 +186,9 @@ const getErrorStatus = (
   code: OntologyLoadErrorCode,
 ) => {
   if (transitionType !== "error") return transitionType;
+
   if (code === "PERMISSION_DENIED") return "permissionDenied";
+
   if (code === "TYPE_MISMATCH") return "typeMismatch";
 
   return "error";

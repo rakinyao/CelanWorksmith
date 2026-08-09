@@ -6,7 +6,9 @@ import {
   type OntologyLoadState,
 } from "./ontologyLoadState";
 
-type Result = { id: string };
+interface Result {
+  id: string;
+}
 
 const previousSuccess: OntologyLoadState<Result> = {
   requestKey: "objects/Supplier",

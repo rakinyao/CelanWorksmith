@@ -218,7 +218,9 @@ export const getCelanworksmithOntologyLoadState = (
 
 const getExecutionStatus = (status?: string): LegacyLoadStatus => {
   if (status === "queued" || status === "running") return "loading";
+
   if (status === "succeeded") return "ready";
+
   if (status === "failed") return "error";
 
   return "idle";
