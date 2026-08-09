@@ -1,4 +1,5 @@
 import {
+  getCelanworksmithActionLoadState,
   getCelanworksmithExecutionRequestLoadState,
   getCelanworksmithLinkEntryLoadState,
   getCelanworksmithLinkMetadataLoadState,
@@ -7,6 +8,7 @@ import {
   getCelanworksmithOntologyLoadState,
   getCelanworksmithVariableLoadState,
 } from "./celanworksmithLoadStateSelectors";
+import { hashCelanworksmithParameters } from "actions/celanworksmithExecutionActions";
 
 const objectSet = {
   typeId: "PurchaseOrder",
@@ -228,5 +230,192 @@ describe("CelanWorksmith load-state selectors", () => {
       status: "permissionDenied",
       data: objectSet,
     });
+  });
+
+  it("does not expose a newer entity result for a historical execution request", () => {
+    const historicalState = {
+      ...state,
+      celanworksmithExecution: {
+        ...state.celanworksmithExecution,
+        functions: {
+          CalculateDelayDays: {
+            data: 8,
+            meta: {
+              status: "succeeded",
+              requestId: "function-request-newer",
+              parametersHash: "abc123",
+              completedAt: 80,
+            },
+            lastSuccessfulRequestId: "function-request-newer",
+          },
+        },
+        requests: {
+          "function-request-1": {
+            ...state.celanworksmithExecution.requests["function-request-1"],
+            status: "succeeded",
+          },
+          "function-request-newer": {
+            requestId: "function-request-newer",
+            kind: "function",
+            entityId: "CalculateDelayDays",
+            status: "succeeded",
+            parametersHash: "abc123",
+            completedAt: 80,
+          },
+        },
+      },
+    } as never;
+
+    expect(
+      getCelanworksmithExecutionRequestLoadState(
+        historicalState,
+        "function-request-1",
+      ).data,
+    ).toBeUndefined();
+  });
+
+  it("retains execution data for the current failed request only with a prior-success marker", () => {
+    const failedRefreshState = {
+      ...state,
+      celanworksmithExecution: {
+        ...state.celanworksmithExecution,
+        functions: {
+          CalculateDelayDays: {
+            data: 4,
+            meta: {
+              status: "failed",
+              requestId: "function-request-2",
+              parametersHash: "abc123",
+              completedAt: 80,
+              error: { code: "NETWORK_ERROR", message: "temporary" },
+            },
+            lastSuccessfulRequestId: "function-request-1",
+          },
+        },
+        requests: {
+          ...state.celanworksmithExecution.requests,
+          "function-request-2": {
+            requestId: "function-request-2",
+            kind: "function",
+            entityId: "CalculateDelayDays",
+            status: "failed",
+            parametersHash: "abc123",
+            completedAt: 80,
+            error: { code: "NETWORK_ERROR", message: "temporary" },
+          },
+        },
+      },
+    } as never;
+
+    expect(
+      getCelanworksmithExecutionRequestLoadState(
+        failedRefreshState,
+        "function-request-2",
+      ).data,
+    ).toBe(4);
+  });
+
+  it("keeps action load state isolated by its bound object", () => {
+    const actionRequest = {
+      objectTypeId: "PurchaseOrder",
+      objectId: "PO001",
+      parameters: { approved: true },
+    };
+    const actionState = {
+      ...state,
+      celanworksmithExecution: {
+        ...state.celanworksmithExecution,
+        actions: {
+          ApprovePurchaseOrder: {
+            data: {
+              executionId: "execution-2",
+              changedObjects: [],
+              sideEffects: [],
+            },
+            changedObjects: [],
+            sideEffects: [],
+            objectTypeId: "PurchaseOrder",
+            objectId: "PO002",
+            meta: {
+              status: "succeeded",
+              requestId: "action-request-2",
+              parametersHash: hashCelanworksmithParameters(
+                actionRequest.parameters,
+              ),
+              completedAt: 80,
+            },
+          },
+        },
+      },
+    } as never;
+
+    expect(
+      getCelanworksmithActionLoadState(
+        actionState,
+        "ApprovePurchaseOrder",
+        actionRequest,
+      ).data,
+    ).toBeUndefined();
+  });
+
+  it("does not retain fresh empty state containers as loaded data", () => {
+    const freshState = {
+      celanworksmithObjects: {
+        status: "error",
+        types: {
+          PurchaseOrder: {
+            items: [],
+            total: 0,
+            offset: 0,
+            limit: 10,
+            status: "error",
+            error: { code: "NETWORK_ERROR", message: "temporary" },
+          },
+        },
+      },
+      celanworksmithObjectQueries: {
+        entries: {
+          'Table1/PurchaseOrder/{"limit":10,"offset":0}': {
+            request: queryRequest,
+            status: "error",
+            error: { code: "NETWORK_ERROR", message: "temporary" },
+          },
+        },
+      },
+      celanworksmithLinks: {
+        metadata: {
+          PurchaseOrder: {
+            links: [],
+            status: "loading",
+          },
+        },
+        entries: {
+          "PurchaseOrder/PO001/po_production": {
+            status: "error",
+            error: { code: "NETWORK_ERROR", message: "temporary" },
+          },
+        },
+      },
+      celanworksmithOntology: {
+        status: "error",
+        functions: [],
+        actions: [],
+        error: { code: "NETWORK_ERROR", message: "temporary" },
+      },
+    } as never;
+
+    expect(
+      getCelanworksmithObjectSetLoadState(freshState, "PurchaseOrder").data,
+    ).toBeUndefined();
+    expect(
+      getCelanworksmithObjectQueryLoadState(freshState, queryRequest).data,
+    ).toBeUndefined();
+    expect(
+      getCelanworksmithLinkMetadataLoadState(freshState, "PurchaseOrder").data,
+    ).toBeUndefined();
+    expect(
+      getCelanworksmithLinkEntryLoadState(freshState, linkRequest).data,
+    ).toBeUndefined();
+    expect(getCelanworksmithOntologyLoadState(freshState).data).toBeUndefined();
   });
 });

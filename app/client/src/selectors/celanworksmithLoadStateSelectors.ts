@@ -90,9 +90,11 @@ const adaptLegacyLoadState = <T>({
   updatedAt,
 }: LegacyLoadSnapshot<T>): OntologyLoadState<T> => {
   const hasData = data !== undefined;
-  const base = hasData
-    ? { ...createOntologyLoadState<T>(requestKey), data, updatedAt }
-    : createOntologyLoadState<T>(requestKey);
+  const base = {
+    ...createOntologyLoadState<T>(requestKey),
+    ...(hasData ? { data } : {}),
+    ...(updatedAt !== undefined ? { updatedAt } : {}),
+  };
 
   if (status === "idle") return base;
 
@@ -127,7 +129,7 @@ export const getCelanworksmithObjectMetadataLoadState = (
   return adaptLegacyLoadState({
     requestKey: "objects/metadata",
     status,
-    ...(data.length ? { data } : {}),
+    ...(objects.updatedAt !== undefined ? { data } : {}),
     updatedAt: objects.updatedAt,
     error: objects.error,
   });
@@ -151,7 +153,7 @@ export const getCelanworksmithObjectSetLoadState = (
   return adaptLegacyLoadState({
     requestKey: `objects/${typeId}`,
     status: type?.status || "idle",
-    data,
+    data: type?.updatedAt !== undefined ? data : undefined,
     updatedAt: type?.updatedAt,
     error: type?.error,
   });
@@ -181,7 +183,7 @@ export const getCelanworksmithLinkMetadataLoadState = (
   return adaptLegacyLoadState({
     requestKey: `links/metadata/${typeId}`,
     status: metadata?.status || "idle",
-    data: metadata?.links,
+    data: metadata?.updatedAt !== undefined ? metadata.links : undefined,
     updatedAt: metadata?.updatedAt,
     error: metadata?.error,
   });
@@ -210,7 +212,10 @@ export const getCelanworksmithOntologyLoadState = (
   return adaptLegacyLoadState({
     requestKey: "ontology/metadata",
     status: ontology.status,
-    data: { functions: ontology.functions, actions: ontology.actions },
+    data:
+      ontology.updatedAt !== undefined
+        ? { functions: ontology.functions, actions: ontology.actions }
+        : undefined,
     updatedAt: ontology.updatedAt,
     error: ontology.error,
   });
@@ -232,12 +237,22 @@ export const getCelanworksmithExecutionRequestLoadState = (
 ) => {
   const execution = getExecution(state);
   const request = execution.requests[requestId];
-  const data =
+  const entity =
     request?.kind === "function"
-      ? execution.functions[request.entityId]?.data
+      ? execution.functions[request.entityId]
       : request?.kind === "action"
-        ? execution.actions[request.entityId]?.data
+        ? execution.actions[request.entityId]
         : undefined;
+  const isCurrentEntityRequest = entity?.meta.requestId === requestId;
+  const preservesPriorSuccess =
+    request?.status !== "succeeded" &&
+    request?.status !== "cancelled" &&
+    !!entity?.lastSuccessfulRequestId;
+  const data =
+    isCurrentEntityRequest &&
+    (request?.status === "succeeded" || preservesPriorSuccess)
+      ? entity.data
+      : undefined;
 
   return adaptLegacyLoadState({
     requestKey: `execution/${request?.kind || "request"}/${requestId}`,
@@ -276,16 +291,25 @@ export const getCelanworksmithActionLoadState = (
 ) => {
   const actionState = getExecution(state).actions[actionId];
   const parametersHash = hashCelanworksmithParameters(request.parameters || {});
-  const matchesParameters = actionState?.meta.parametersHash === parametersHash;
+  const matchesRequest =
+    actionState?.meta.parametersHash === parametersHash &&
+    actionState.objectTypeId === request.objectTypeId &&
+    actionState.objectId === request.objectId;
+  const hasActionData =
+    matchesRequest &&
+    (actionState?.meta.status === "succeeded" ||
+      !!actionState?.lastSuccessfulRequestId);
 
   return adaptLegacyLoadState({
-    requestKey: `execution/action/${actionId}/${parametersHash}`,
-    status: matchesParameters
+    requestKey: `execution/action/${actionId}/${encodeURIComponent(
+      request.objectTypeId,
+    )}/${encodeURIComponent(request.objectId)}/${parametersHash}`,
+    status: matchesRequest
       ? getExecutionStatus(actionState?.meta.status)
       : "idle",
-    data: matchesParameters ? actionState?.data : undefined,
-    updatedAt: matchesParameters ? actionState?.meta.completedAt : undefined,
-    error: matchesParameters ? actionState?.meta.error : undefined,
+    data: hasActionData ? actionState?.data : undefined,
+    updatedAt: matchesRequest ? actionState?.meta.completedAt : undefined,
+    error: matchesRequest ? actionState?.meta.error : undefined,
   });
 };
 

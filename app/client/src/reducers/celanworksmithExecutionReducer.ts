@@ -30,7 +30,10 @@ export interface CelanworksmithActionExecutionState {
   data?: CelanworksmithActionResult;
   changedObjects: CelanworksmithObjectInstance[];
   sideEffects: Record<string, unknown>[];
+  objectTypeId: string;
+  objectId: string;
   meta: CelanworksmithExecutionMeta;
+  lastSuccessfulRequestId?: string;
 }
 
 export interface CelanworksmithRequestState {
@@ -194,7 +197,10 @@ const queueAction = (
         data: currentAction?.data,
         changedObjects: currentAction?.changedObjects || [],
         sideEffects: currentAction?.sideEffects || [],
+        objectTypeId: payload.request?.objectTypeId || "",
+        objectId: payload.request?.objectId || "",
         meta: createActionMeta(payload, "queued"),
+        lastSuccessfulRequestId: currentAction?.lastSuccessfulRequestId,
       },
     },
     requests: {
@@ -523,6 +529,9 @@ const celanworksmithExecutionReducer = createReducer(initialState, {
           data,
           changedObjects: data.changedObjects,
           sideEffects: data.sideEffects,
+          objectTypeId: action.payload.request.objectTypeId,
+          objectId: action.payload.request.objectId,
+          lastSuccessfulRequestId: requestId,
           meta: {
             ...createActionMeta(action.payload, "succeeded"),
             executionId: data.executionId,
