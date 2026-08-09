@@ -138,6 +138,38 @@ describe("OntologyLoadState", () => {
       canRetry: false,
     });
   });
+
+  it.each([
+    [
+      "permissionDenied",
+      { response: { status: 403, data: { message: "internal details" } } },
+      "PERMISSION_DENIED",
+      "You do not have permission to access this ontology data.",
+    ],
+    [
+      "typeMismatch",
+      { code: "PROPERTY_TYPE_MISMATCH", message: "internal details" },
+      "TYPE_MISMATCH",
+      "The ontology data does not match the expected type.",
+    ],
+  ] as const)(
+    "derives %s from a generic error transition",
+    (status, error, code, message) => {
+      expect(
+        transitionOntologyLoadState(previousSuccess, {
+          type: "error",
+          error,
+        }),
+      ).toEqual({
+        requestKey: "objects/Supplier",
+        status,
+        data: { id: "supplier-1" },
+        updatedAt: 100,
+        error: { code, message },
+        canRetry: false,
+      });
+    },
+  );
 });
 
 describe("ontology load errors", () => {
@@ -152,6 +184,33 @@ describe("ontology load errors", () => {
       code: expectedCode,
     });
   });
+
+  it.each([
+    [
+      "an HTTP 403 response",
+      { response: { status: 403, data: { message: "sensitive detail" } } },
+    ],
+    [
+      "an Appsmith authorization envelope",
+      {
+        response: {
+          data: {
+            responseMeta: {
+              error: { code: "AE-ACL-4003", message: "sensitive detail" },
+            },
+          },
+        },
+      },
+    ],
+  ] as const)(
+    "normalizes %s without exposing its message",
+    (_description, error) => {
+      expect(normalizeOntologyLoadError(error)).toEqual({
+        code: "PERMISSION_DENIED",
+        message: "You do not have permission to access this ontology data.",
+      });
+    },
+  );
 
   it("uses safe user messages for permission and type errors", () => {
     expect(getOntologyLoadErrorMessage("PERMISSION_DENIED")).toBe(

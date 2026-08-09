@@ -92,6 +92,15 @@ const RETRYABLE_ERROR_CODES = new Set<OntologyLoadErrorCode>([
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object";
 
+const getHttpStatus = (error: unknown): number | undefined => {
+  if (!isRecord(error)) return undefined;
+
+  const response = isRecord(error.response) ? error.response : undefined;
+  const status = response?.status ?? error.status;
+
+  return typeof status === "number" ? status : undefined;
+};
+
 const getErrorPayload = (error: unknown): Record<string, unknown> => {
   if (!isRecord(error)) return {};
 
@@ -121,6 +130,13 @@ const getErrorCode = (code: unknown, error: unknown): OntologyLoadErrorCode => {
   const normalizedCode = typeof code === "string" ? code.toUpperCase() : "";
 
   if (ERROR_CODE_MAP[normalizedCode]) return ERROR_CODE_MAP[normalizedCode];
+
+  if (
+    normalizedCode.startsWith("AE-ACL-") ||
+    [401, 403].includes(getHttpStatus(error) || 0)
+  ) {
+    return "PERMISSION_DENIED";
+  }
 
   const errorRecord = isRecord(error) ? error : undefined;
   const transportCode = errorRecord?.code;
@@ -165,6 +181,17 @@ export const createOntologyLoadState = <T>(
   canRetry: false,
 });
 
+const getErrorStatus = (
+  transitionType: "error" | "permissionDenied" | "typeMismatch",
+  code: OntologyLoadErrorCode,
+) => {
+  if (transitionType !== "error") return transitionType;
+  if (code === "PERMISSION_DENIED") return "permissionDenied";
+  if (code === "TYPE_MISMATCH") return "typeMismatch";
+
+  return "error";
+};
+
 export const transitionOntologyLoadState = <T>(
   state: OntologyLoadState<T>,
   transition: OntologyLoadTransition<T>,
@@ -195,13 +222,13 @@ export const transitionOntologyLoadState = <T>(
   }
 
   const error = normalizeOntologyLoadError(transition.error);
+  const status = getErrorStatus(transition.type, error.code);
 
   return {
     requestKey,
-    status: transition.type,
+    status,
     ...previousData,
     error,
-    canRetry:
-      transition.type === "error" && RETRYABLE_ERROR_CODES.has(error.code),
+    canRetry: status === "error" && RETRYABLE_ERROR_CODES.has(error.code),
   };
 };
