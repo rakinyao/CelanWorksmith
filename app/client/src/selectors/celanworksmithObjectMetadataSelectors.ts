@@ -1,4 +1,8 @@
 import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
+import {
+  getOntologyNamePresentation,
+  type OntologyNameMetadata,
+} from "celanworksmith/ontologyNames";
 import type { DefaultRootState } from "react-redux";
 import { getCurrentApplicationId } from "selectors/editorSelectors";
 import { getCelanworksmithObjectsState } from "./dataTreeSelectors";
@@ -26,6 +30,7 @@ export interface CelanworksmithObjectTypeOption {
 export interface CelanworksmithObjectPropertyOption {
   value: string;
   label: string;
+  searchText: string;
   dataType: string;
   readOnly: boolean;
   derived: boolean;
@@ -148,11 +153,15 @@ export const getCelanworksmithObjectTypeOptions = (
 
       if (!metadata?.id || typesById.has(metadata.id)) return;
 
+      const namePresentation = getOntologyNamePresentation(
+        metadata as OntologyNameMetadata,
+      );
+
       typesById.set(metadata.id, {
         value: metadata.id,
-        label: metadata.displayName,
+        label: namePresentation.label,
         description: metadata.id,
-        searchText: `${metadata.displayName} ${metadata.id}`,
+        searchText: namePresentation.searchText,
       });
     },
   );
@@ -170,12 +179,19 @@ export const getCelanworksmithPropertyOptions = (
   const properties = typeState?.metadata?.properties || [];
 
   return getUniqueProperties(properties)
-    .map((property) => ({
-      value: property.id,
-      label: property.displayName,
-      dataType: property.dataType,
-      readOnly: property.readOnly,
-      derived: property.derived,
-    }))
+    .map((property) => {
+      const namePresentation = getOntologyNamePresentation(
+        property as OntologyNameMetadata,
+      );
+
+      return {
+        value: property.id,
+        label: namePresentation.label,
+        searchText: namePresentation.searchText,
+        dataType: property.dataType,
+        readOnly: property.readOnly,
+        derived: property.derived,
+      };
+    })
     .sort(compareDisplayNames);
 };
