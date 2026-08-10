@@ -141,6 +141,37 @@ export interface CelanworksmithReasoningRequest {
   question: string;
 }
 
+export interface CelanworksmithOntologyProjectSummary {
+  projectId: string;
+  version: string;
+  schemaVersion: number;
+  objectTypeCount: number;
+  linkTypeCount: number;
+  functionCount: number;
+  actionCount: number;
+}
+
+export type CelanworksmithOntologyProjectVersion =
+  CelanworksmithOntologyProjectSummary;
+
+export interface CelanworksmithApplicationBinding {
+  applicationId: string;
+  projectId: string;
+  projectVersion: string;
+  providerId: string;
+}
+
+export interface CelanworksmithApplicationBindingRequest {
+  projectId: string;
+  projectVersion: string;
+  providerId: string;
+}
+
+const withApplicationId = (
+  params: Record<string, unknown> | undefined,
+  applicationId?: string,
+) => (applicationId ? { ...(params || {}), applicationId } : params);
+
 const serializeObjectQuery = (query?: CelanworksmithObjectQuery) => {
   if (!query) return undefined;
 
@@ -324,44 +355,64 @@ const postExecutionRequest = async <T>(
 class CelanworksmithAPI extends Api {
   static baseUrl = "v1/celanworksmith";
 
-  static async getObjectTypes(): CelanworksmithApiResponse<
-    CelanworksmithObjectType[]
-  > {
-    return asApiResponse(Api.get(`${this.baseUrl}/ontology/object-types`));
+  static async getObjectTypes(
+    applicationId?: string,
+  ): CelanworksmithApiResponse<CelanworksmithObjectType[]> {
+    const request = `${this.baseUrl}/ontology/object-types`;
+
+    return asApiResponse(
+      applicationId ? Api.get(request, { applicationId }) : Api.get(request),
+    );
   }
 
   static async getObjectType(
     typeId: string,
+    applicationId?: string,
   ): CelanworksmithApiResponse<CelanworksmithObjectType> {
     return asApiResponse(
-      Api.get(`${this.baseUrl}/ontology/object-types/${typeId}`),
+      Api.get(
+        `${this.baseUrl}/ontology/object-types/${typeId}`,
+        withApplicationId(undefined, applicationId),
+      ),
     );
   }
 
   static async getLinkTypes(
     sourceTypeId?: string,
+    applicationId?: string,
   ): CelanworksmithApiResponse<CelanworksmithLinkType[]> {
     return asApiResponse(
       Api.get(
         `${this.baseUrl}/ontology/link-types`,
-        sourceTypeId ? { sourceTypeId } : undefined,
+        withApplicationId(
+          sourceTypeId ? { sourceTypeId } : undefined,
+          applicationId,
+        ),
       ),
     );
   }
 
-  static async getFunctions(): CelanworksmithApiResponse<
-    CelanworksmithFunction[]
-  > {
-    return asApiResponse(Api.get(`${this.baseUrl}/ontology/functions`));
+  static async getFunctions(
+    applicationId?: string,
+  ): CelanworksmithApiResponse<CelanworksmithFunction[]> {
+    const request = `${this.baseUrl}/ontology/functions`;
+
+    return asApiResponse(
+      applicationId ? Api.get(request, { applicationId }) : Api.get(request),
+    );
   }
 
   static async getActions(
     objectTypeId?: string,
+    applicationId?: string,
   ): CelanworksmithApiResponse<CelanworksmithAction[]> {
     return asApiResponse(
       Api.get(
         `${this.baseUrl}/ontology/actions`,
-        objectTypeId ? { objectTypeId } : undefined,
+        withApplicationId(
+          objectTypeId ? { objectTypeId } : undefined,
+          applicationId,
+        ),
       ),
     );
   }
@@ -369,11 +420,12 @@ class CelanworksmithAPI extends Api {
   static async queryObjects(
     typeId: string,
     query?: CelanworksmithObjectQuery,
+    applicationId?: string,
   ): CelanworksmithApiResponse<CelanworksmithObjectSet> {
     return asApiResponse(
       Api.get(
         `${this.baseUrl}/runtime/objects/${typeId}`,
-        serializeObjectQuery(query),
+        withApplicationId(serializeObjectQuery(query), applicationId),
       ),
     );
   }
@@ -381,9 +433,13 @@ class CelanworksmithAPI extends Api {
   static async getInstance(
     typeId: string,
     instanceId: string,
+    applicationId?: string,
   ): CelanworksmithApiResponse<CelanworksmithObjectInstance> {
     return asApiResponse(
-      Api.get(`${this.baseUrl}/runtime/objects/${typeId}/${instanceId}`),
+      Api.get(
+        `${this.baseUrl}/runtime/objects/${typeId}/${instanceId}`,
+        withApplicationId(undefined, applicationId),
+      ),
     );
   }
 
@@ -392,11 +448,14 @@ class CelanworksmithAPI extends Api {
     instanceId: string,
     linkTypeId: string,
     query?: CelanworksmithObjectQuery,
+    applicationId?: string,
   ): CelanworksmithApiResponse<CelanworksmithObjectSet> {
     return asApiResponse(
       Api.get(`${this.baseUrl}/runtime/objects/${typeId}/${instanceId}/links`, {
-        linkTypeId,
-        ...serializeObjectQuery(query),
+        ...withApplicationId(
+          { linkTypeId, ...serializeObjectQuery(query) },
+          applicationId,
+        ),
       }),
     );
   }
@@ -405,9 +464,14 @@ class CelanworksmithAPI extends Api {
     actionId: string,
     request: CelanworksmithActionExecutionRequest,
     signal?: AbortSignal,
+    applicationId?: string,
   ): CelanworksmithApiResponse<CelanworksmithActionResult> {
     return postExecutionRequest<CelanworksmithActionResult>(
-      `${this.baseUrl}/runtime/actions/${actionId}/execute`,
+      `${this.baseUrl}/runtime/actions/${actionId}/execute${
+        applicationId
+          ? `?applicationId=${encodeURIComponent(applicationId)}`
+          : ""
+      }`,
       request,
       signal,
     );
@@ -417,9 +481,14 @@ class CelanworksmithAPI extends Api {
     functionId: string,
     parameters: Record<string, unknown>,
     signal?: AbortSignal,
+    applicationId?: string,
   ): CelanworksmithApiResponse<unknown> {
     return postExecutionRequest<unknown>(
-      `${this.baseUrl}/runtime/functions/${functionId}/execute`,
+      `${this.baseUrl}/runtime/functions/${functionId}/execute${
+        applicationId
+          ? `?applicationId=${encodeURIComponent(applicationId)}`
+          : ""
+      }`,
       {
         parameters,
       },
@@ -432,6 +501,50 @@ class CelanworksmithAPI extends Api {
   ): CelanworksmithApiResponse<CelanworksmithReasoningResult> {
     return asApiResponse(
       Api.post(`${this.baseUrl}/runtime/reasoning`, request),
+    );
+  }
+
+  static async listOntologyProjects(): CelanworksmithApiResponse<
+    CelanworksmithOntologyProjectSummary[]
+  > {
+    return asApiResponse(Api.get(`${this.baseUrl}/ontology/projects`));
+  }
+
+  static async listOntologyProjectVersions(
+    projectId: string,
+  ): CelanworksmithApiResponse<CelanworksmithOntologyProjectVersion[]> {
+    return asApiResponse(
+      Api.get(`${this.baseUrl}/ontology/projects/${projectId}/versions`),
+    );
+  }
+
+  static async getApplicationOntologyBinding(
+    applicationId: string,
+  ): CelanworksmithApiResponse<CelanworksmithApplicationBinding | null> {
+    const response = await asApiResponse<
+      CelanworksmithApplicationBinding | { bound: false }
+    >(
+      Api.get(`${this.baseUrl}/applications/${applicationId}/ontology-binding`),
+    );
+
+    return {
+      ...response,
+      data:
+        response.data && "bound" in response.data
+          ? null
+          : (response.data as CelanworksmithApplicationBinding | null),
+    };
+  }
+
+  static async saveApplicationOntologyBinding(
+    applicationId: string,
+    request: CelanworksmithApplicationBindingRequest,
+  ): CelanworksmithApiResponse<CelanworksmithApplicationBinding> {
+    return asApiResponse(
+      Api.put(
+        `${this.baseUrl}/applications/${applicationId}/ontology-binding`,
+        request,
+      ),
     );
   }
 }

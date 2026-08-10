@@ -8,6 +8,7 @@ jest.mock("api/Api", () => ({
   default: class MockApi {
     static get = jest.fn();
     static post = jest.fn();
+    static put = jest.fn();
   },
 }));
 
@@ -210,6 +211,88 @@ describe("CelanworksmithAPI", () => {
     expect(Api.get).toHaveBeenCalledWith(
       "v1/celanworksmith/runtime/objects/PurchaseOrder",
       { offset: 0, limit: 100 },
+    );
+  });
+
+  it("loads ontology projects and normalizes an unbound application", async () => {
+    (Api.get as jest.Mock)
+      .mockResolvedValueOnce({ responseMeta: { success: true }, data: [] })
+      .mockResolvedValueOnce({ responseMeta: { success: true }, data: null });
+
+    await expect(
+      CelanworksmithAPI.listOntologyProjects(),
+    ).resolves.toMatchObject({
+      data: [],
+    });
+    await expect(
+      CelanworksmithAPI.getApplicationOntologyBinding("app-1"),
+    ).resolves.toMatchObject({ data: null });
+
+    expect(Api.get).toHaveBeenNthCalledWith(
+      1,
+      "v1/celanworksmith/ontology/projects",
+    );
+    expect(Api.get).toHaveBeenNthCalledWith(
+      2,
+      "v1/celanworksmith/applications/app-1/ontology-binding",
+    );
+  });
+
+  it("passes application context to ontology and runtime requests", async () => {
+    (Api.get as jest.Mock).mockResolvedValue({});
+
+    await CelanworksmithAPI.getFunctions("app-1");
+    await CelanworksmithAPI.queryObjects("PurchaseOrder", undefined, "app-1");
+
+    expect(Api.get).toHaveBeenNthCalledWith(
+      1,
+      "v1/celanworksmith/ontology/functions",
+      { applicationId: "app-1" },
+    );
+    expect(Api.get).toHaveBeenNthCalledWith(
+      2,
+      "v1/celanworksmith/runtime/objects/PurchaseOrder",
+      { applicationId: "app-1" },
+    );
+  });
+
+  it("passes application context to function execution", async () => {
+    (Api.post as jest.Mock).mockResolvedValue({});
+
+    await CelanworksmithAPI.callFunction(
+      "CalculateDelayDays",
+      { poId: "PO001" },
+      undefined,
+      "app-1",
+    );
+
+    expect(Api.post).toHaveBeenCalledWith(
+      "v1/celanworksmith/runtime/functions/CalculateDelayDays/execute?applicationId=app-1",
+      { parameters: { poId: "PO001" } },
+    );
+  });
+
+  it("passes application context to Action execution", async () => {
+    (Api.post as jest.Mock).mockResolvedValue({});
+
+    await CelanworksmithAPI.executeAction(
+      "UpdateDeliveryDate",
+      {
+        objectTypeId: "PurchaseOrder",
+        objectId: "PO001",
+        parameters: { newDeliveryDate: "2026-03-01" },
+      },
+      undefined,
+      "app-1",
+    );
+
+    expect(Api.post).toHaveBeenCalledWith(
+      "v1/celanworksmith/runtime/actions/UpdateDeliveryDate/execute?applicationId=app-1",
+      {
+        objectTypeId: "PurchaseOrder",
+        objectId: "PO001",
+        parameters: { newDeliveryDate: "2026-03-01" },
+      },
     );
   });
 });
