@@ -132,6 +132,9 @@ describe("loadCelanworksmithLink", () => {
     expect(
       iterator.next({ responseMeta: { success: true }, data: result }).value,
     ).toEqual(put(celanworksmithLinkLoadSuccess(request, result)));
+    expect(iterator.next().value).toEqual(
+      put({ type: ReduxActionTypes.TRIGGER_EVAL }),
+    );
     iterator.next();
   });
 
@@ -166,6 +169,9 @@ describe("loadCelanworksmithLink", () => {
     expect(
       iterator.next({ responseMeta: { success: true }, data: result }).value,
     ).toEqual(put(celanworksmithLinkLoadSuccess(request, result)));
+    expect(iterator.next().value).toEqual(
+      put({ type: ReduxActionTypes.TRIGGER_EVAL }),
+    );
     iterator.next();
   });
 

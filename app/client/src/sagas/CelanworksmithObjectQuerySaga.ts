@@ -187,6 +187,7 @@ export function* loadCelanworksmithObjectQuery(
     if (!response?.responseMeta?.success) throw response?.responseMeta?.error;
 
     yield put(celanworksmithObjectQuerySuccess(request, response.data));
+    yield put({ type: ReduxActionTypes.TRIGGER_EVAL });
   } catch (error) {
     yield put(
       celanworksmithObjectQueryError(

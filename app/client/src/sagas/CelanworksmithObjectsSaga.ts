@@ -27,6 +27,10 @@ import {
 import type { CelanworksmithObjectError } from "reducers/celanworksmithObjectsReducer";
 import type { CelanworksmithObjectsState } from "reducers/celanworksmithObjectsReducer";
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
 
 export const CELANWORKSMITH_OBJECT_QUERY_LIMIT = 100;
 
@@ -88,6 +92,7 @@ const assertApiSuccess = <T>(response: ApiResponse<T>): T => {
 export function* loadCelanworksmithObjectType(
   typeId: string,
   startLoad: ObjectTypeLoadStart = celanworksmithObjectTypeLoadStart,
+  applicationId?: string,
 ) {
   yield put(startLoad(typeId));
 
@@ -98,11 +103,18 @@ export function* loadCelanworksmithObjectType(
     let page: CelanworksmithObjectSet;
 
     do {
-      const response: ApiResponse<CelanworksmithObjectSet> = yield call(
-        [CelanworksmithAPI, CelanworksmithAPI.queryObjects],
-        typeId,
-        { offset, limit: CELANWORKSMITH_OBJECT_QUERY_LIMIT },
-      );
+      const queryCall = applicationId
+        ? call(
+            [CelanworksmithAPI, CelanworksmithAPI.queryObjects],
+            typeId,
+            { offset, limit: CELANWORKSMITH_OBJECT_QUERY_LIMIT },
+            applicationId,
+          )
+        : call([CelanworksmithAPI, CelanworksmithAPI.queryObjects], typeId, {
+            offset,
+            limit: CELANWORKSMITH_OBJECT_QUERY_LIMIT,
+          });
+      const response: ApiResponse<CelanworksmithObjectSet> = yield queryCall;
 
       page = assertApiSuccess(response);
       const pageItems = page.items || [];
@@ -140,12 +152,29 @@ export function* refreshCelanworksmithObjectTypes(
 
   if (!typeIds.length) return;
 
+  const currentApplicationId: string | undefined = yield select(
+    getCelanworksmithCurrentApplicationId,
+  );
+  const bindingState = (yield select(
+    getCelanworksmithApplicationBindingState,
+  )) || {
+    status: "idle",
+    applicationId: undefined,
+  };
+  const applicationId =
+    currentApplicationId &&
+    bindingState.applicationId === currentApplicationId &&
+    bindingState.status === "ready"
+      ? currentApplicationId
+      : undefined;
+
   yield all(
     typeIds.map((typeId) =>
       call(
         loadCelanworksmithObjectType,
         typeId,
         celanworksmithObjectTypeRefreshStart,
+        applicationId,
       ),
     ),
   );
@@ -157,7 +186,31 @@ export function* refreshCelanworksmithObjectTypes(
   );
 }
 
-export function* loadCelanworksmithObjects() {
+export function* loadCelanworksmithObjects(
+  action?: ReduxAction<{ applicationId?: string }>,
+) {
+  const requestedApplicationId = action?.payload?.applicationId;
+  const currentApplicationId: string | undefined = yield select(
+    getCelanworksmithCurrentApplicationId,
+  );
+  const bindingState = (yield select(
+    getCelanworksmithApplicationBindingState,
+  )) || {
+    status: "idle",
+    applicationId: undefined,
+  };
+  if (
+    currentApplicationId &&
+    (bindingState.applicationId !== currentApplicationId ||
+      bindingState.status !== "ready")
+  ) {
+    return;
+  }
+  if (requestedApplicationId && requestedApplicationId !== currentApplicationId)
+    return;
+  const applicationId =
+    requestedApplicationId ||
+    (bindingState.status === "ready" ? currentApplicationId : undefined);
   const cachedState: CelanworksmithObjectsState = yield select(
     getCelanworksmithObjectsState,
   );
@@ -170,10 +223,14 @@ export function* loadCelanworksmithObjects() {
       .filter((metadata): metadata is CelanworksmithObjectType => !!metadata);
 
     if (!objectTypes.length) {
-      const response: ApiResponse<CelanworksmithObjectType[]> = yield call([
-        CelanworksmithAPI,
-        CelanworksmithAPI.getObjectTypes,
-      ]);
+      const metadataCall = applicationId
+        ? call(
+            [CelanworksmithAPI, CelanworksmithAPI.getObjectTypes],
+            applicationId,
+          )
+        : call([CelanworksmithAPI, CelanworksmithAPI.getObjectTypes]);
+      const response: ApiResponse<CelanworksmithObjectType[]> =
+        yield metadataCall;
 
       objectTypes = assertApiSuccess(response);
       yield put(celanworksmithObjectsMetadataSuccess(objectTypes));
@@ -189,7 +246,14 @@ export function* loadCelanworksmithObjects() {
 
     yield all(
       typesToLoad.map((objectType) =>
-        call(loadCelanworksmithObjectType, objectType.id),
+        applicationId
+          ? call(
+              loadCelanworksmithObjectType,
+              objectType.id,
+              celanworksmithObjectTypeLoadStart,
+              applicationId,
+            )
+          : call(loadCelanworksmithObjectType, objectType.id),
       ),
     );
     yield put({ type: ReduxActionTypes.TRIGGER_EVAL });

@@ -28,10 +28,15 @@ import { getAllJSActionsData } from "ee/selectors/entitiesSelector";
 import CodemirrorTernService from "utils/autocomplete/CodemirrorTernService";
 import {
   getCelanworksmithObjectsDataTree,
+  getCelanworksmithVariablesDataTree,
   getCelanworksmithObjectsState,
   getConfigTree,
   getDataTree,
 } from "selectors/dataTreeSelectors";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
 import type { DataTree } from "entities/DataTree/dataTreeTypes";
 import { DataTreeDiffEvent } from "ee/workers/Evaluation/evaluationUtils";
 
@@ -169,6 +174,10 @@ describe("loadCelanworksmithObjectType", () => {
           SaveOrder: { data: {} },
         },
       };
+      const celanworksmithVariables = {
+        ENTITY_TYPE: "CELANWORKSMITH_VARIABLES",
+        delayedOrders: [],
+      };
 
       expect(iterator.next().value).toEqual(
         select(getCelanworksmithObjectsDataTree),
@@ -178,12 +187,16 @@ describe("loadCelanworksmithObjectType", () => {
           type: "SELECT",
         }),
       );
-      expect(iterator.next(celanworksmithExecution).done).toBe(true);
+      expect(iterator.next(celanworksmithExecution).value).toEqual(
+        select(getCelanworksmithVariablesDataTree),
+      );
+      expect(iterator.next(celanworksmithVariables).done).toBe(true);
       expect(updateDef).toHaveBeenCalledWith(
         "DATA_TREE",
         expect.objectContaining({
           $functions: expect.any(Object),
           $actions: expect.any(Object),
+          $variables: expect.any(Object),
         }),
         expect.any(Map),
       );
@@ -194,10 +207,32 @@ describe("loadCelanworksmithObjectType", () => {
 });
 
 describe("loadCelanworksmithObjects", () => {
+  it("does not load legacy mock data for an unbound application", () => {
+    const iterator = loadCelanworksmithObjects();
+
+    expect(iterator.next().value).toEqual(
+      select(getCelanworksmithCurrentApplicationId),
+    );
+    expect(iterator.next("app-1").value).toEqual(
+      select(getCelanworksmithApplicationBindingState),
+    );
+    expect(
+      iterator.next({
+        status: "unbound",
+        applicationId: "app-1",
+        binding: null,
+        projects: [],
+        versions: [],
+      }).done,
+    ).toBe(true);
+  });
+
   it("calls the object type API with its class context", () => {
     const iterator = loadCelanworksmithObjects();
 
     iterator.next();
+    iterator.next(undefined);
+    iterator.next(undefined);
     iterator.next({ status: "idle", types: {} });
 
     expect(iterator.next().value).toEqual(
@@ -208,6 +243,8 @@ describe("loadCelanworksmithObjects", () => {
   it("retries when the cached state is stuck in loading", () => {
     const iterator = loadCelanworksmithObjects();
 
+    iterator.next();
+    iterator.next(undefined);
     expect(iterator.next().value).toEqual(
       select(getCelanworksmithObjectsState),
     );

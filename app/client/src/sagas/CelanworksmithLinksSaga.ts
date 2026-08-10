@@ -122,6 +122,7 @@ export function* loadCelanworksmithLink(
     yield put(
       celanworksmithLinkLoadSuccess(request, assertApiSuccess(response)),
     );
+    yield put({ type: ReduxActionTypes.TRIGGER_EVAL });
   } catch (error) {
     yield put(
       celanworksmithLinkLoadError(request, normalizeCelanworksmithError(error)),

@@ -12,9 +12,9 @@ export const celanworksmithObjectsLoadInit = () => ({
   payload: undefined,
 });
 
-export const celanworksmithObjectsLoadRequest = () => ({
+export const celanworksmithObjectsLoadRequest = (applicationId?: string) => ({
   type: ReduxActionTypes.CELANWORKSMITH_OBJECTS_LOAD_REQUEST,
-  payload: undefined,
+  payload: applicationId ? { applicationId } : undefined,
 });
 
 export const celanworksmithObjectTypesRefreshRequested = (

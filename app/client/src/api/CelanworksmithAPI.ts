@@ -120,7 +120,24 @@ export interface CelanworksmithActionResult {
   message: string;
   executionId: string;
   changedObjects: CelanworksmithObjectInstance[];
+  changedProperties?: CelanworksmithChangedProperty[];
+  links?: CelanworksmithChangedLink[];
   sideEffects: Record<string, unknown>[];
+}
+
+export interface CelanworksmithChangedProperty {
+  typeId: string;
+  objectId: string;
+  propertyId: string;
+  value?: unknown;
+}
+
+export interface CelanworksmithChangedLink {
+  typeId: string;
+  objectId: string;
+  linkTypeId?: string;
+  targetTypeId?: string;
+  targetObjectId?: string;
 }
 
 export type CelanworksmithFunctionExecutionResponse = ApiResponse<unknown>;
