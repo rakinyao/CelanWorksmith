@@ -62,6 +62,7 @@ test("generates metadata fields and submits changed values through T5", () => {
       functionCache: {},
       inputs: {},
     },
+    entities: { pageList: { applicationId: "app-1" } },
   });
 
   render(
@@ -95,6 +96,7 @@ test("generates metadata fields and submits changed values through T5", () => {
         objectId: "S001",
         parameters: { name: "New name", riskLevel: "HIGH" },
       },
+      applicationId: "app-1",
     },
   });
 });

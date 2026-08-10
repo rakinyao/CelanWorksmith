@@ -6,6 +6,7 @@ import {
   getCelanworksmithExecutionState,
   getCelanworksmithOntologyState,
 } from "selectors/celanworksmithSelectors";
+import { getCelanworksmithCurrentApplicationId } from "selectors/celanworksmithApplicationBindingSelectors";
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
 import { normalizeObjectData } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
 import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
@@ -66,6 +67,7 @@ export default function ObjectFormMode({
   const execution = useSelector((state: DefaultRootState) =>
     getCelanworksmithExecutionState(state),
   );
+  const applicationId = useSelector(getCelanworksmithCurrentApplicationId);
   const object = useMemo(() => normalizeObjectData(objectData), [objectData]);
   const objectTypeState = objectTypeId
     ? objectsState.types[objectTypeId]
@@ -231,11 +233,16 @@ export default function ObjectFormMode({
     }
 
     updateWidgetMetaProperty("isValid", true);
-    const actionRequest = celanworksmithActionRun(action.id, {
-      objectTypeId: object.typeId,
-      objectId: object.id,
-      parameters: values,
-    });
+    const actionRequest = celanworksmithActionRun(
+      action.id,
+      {
+        objectTypeId: object.typeId,
+        objectId: object.id,
+        parameters: values,
+      },
+      undefined,
+      applicationId || undefined,
+    );
 
     setLocalRequestId(actionRequest.payload.requestId);
     dispatch(actionRequest);

@@ -284,6 +284,43 @@ describe("celanworksmithExecutionSaga", () => {
     }
   });
 
+  it("passes application context to Function execution and cache", async () => {
+    const callFunction = jest
+      .spyOn(CelanworksmithAPI, "callFunction")
+      .mockResolvedValue(successfulResponse(3));
+    const harness = createHarness();
+    const run = celanworksmithFunctionRun(
+      sideEffectFreeFunction.id,
+      { poId: "PO001" },
+      "request-app-a",
+      "app-a",
+    );
+
+    try {
+      harness.dispatch(run);
+      await harness.evaluationComplete;
+
+      expect(callFunction).toHaveBeenCalledWith(
+        sideEffectFreeFunction.id,
+        { poId: "PO001" },
+        expect.any(AbortSignal),
+        "app-a",
+      );
+      expect(
+        harness.getState().celanworksmithExecution.functionCache,
+      ).toHaveProperty(
+        getCelanworksmithFunctionCacheKey(
+          sideEffectFreeFunction.id,
+          run.payload.parametersHash,
+          "app-a",
+        ),
+      );
+    } finally {
+      harness.task.cancel();
+      await harness.task.toPromise();
+    }
+  });
+
   it("normalizes a failed Function response without replacing prior data", async () => {
     const callFunction = jest
       .spyOn(CelanworksmithAPI, "callFunction")

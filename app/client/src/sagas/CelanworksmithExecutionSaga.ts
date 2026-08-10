@@ -309,6 +309,7 @@ export function* executeCelanworksmithFunction(
   const cacheKey = getCelanworksmithFunctionCacheKey(
     payload.functionId,
     payload.parametersHash,
+    payload.applicationId,
   );
   const cacheEntry = executionState.functionCache[cacheKey];
 
@@ -334,12 +335,20 @@ export function* executeCelanworksmithFunction(
         timeout?: true;
         cancellation?: { type: string; payload?: { requestId?: string } };
       } = yield race({
-        response: call(
-          [CelanworksmithAPI, CelanworksmithAPI.callFunction],
-          payload.functionId,
-          payload.parameters,
-          abortController.signal,
-        ),
+        response: payload.applicationId
+          ? call(
+              [CelanworksmithAPI, CelanworksmithAPI.callFunction],
+              payload.functionId,
+              payload.parameters,
+              abortController.signal,
+              payload.applicationId,
+            )
+          : call(
+              [CelanworksmithAPI, CelanworksmithAPI.callFunction],
+              payload.functionId,
+              payload.parameters,
+              abortController.signal,
+            ),
         timeout: delay(CELANWORKSMITH_FUNCTION_TIMEOUT_MS),
         cancellation: take((cancelAction) =>
           isFunctionCancellation(cancelAction, payload.requestId),
