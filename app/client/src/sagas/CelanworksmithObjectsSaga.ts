@@ -199,6 +199,7 @@ export function* loadCelanworksmithObjects(
     status: "idle",
     applicationId: undefined,
   };
+
   if (
     currentApplicationId &&
     (bindingState.applicationId !== currentApplicationId ||
@@ -206,8 +207,10 @@ export function* loadCelanworksmithObjects(
   ) {
     return;
   }
+
   if (requestedApplicationId && requestedApplicationId !== currentApplicationId)
     return;
+
   const applicationId =
     requestedApplicationId ||
     (bindingState.status === "ready" ? currentApplicationId : undefined);
