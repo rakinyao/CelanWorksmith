@@ -321,6 +321,44 @@ describe("celanworksmithExecutionSaga", () => {
     }
   });
 
+  it("uses the application-scoped Function cache before calling the runtime", async () => {
+    const run = celanworksmithFunctionRun(
+      sideEffectFreeFunction.id,
+      { poId: "PO001" },
+      "request-cache-hit",
+      "app-a",
+    );
+    const cacheKey = getCelanworksmithFunctionCacheKey(
+      sideEffectFreeFunction.id,
+      run.payload.parametersHash,
+      "app-a",
+    );
+    const callFunction = jest
+      .spyOn(CelanworksmithAPI, "callFunction")
+      .mockResolvedValue(successfulResponse(99));
+    const harness = createHarness([sideEffectFreeFunction], {
+      ...reducer(undefined, { type: "@@INIT", payload: undefined }),
+      functionCache: {
+        [cacheKey]: { data: 9, expiresAt: Date.now() + 30_000 },
+      },
+    });
+
+    try {
+      harness.dispatch(run);
+      await harness.evaluationComplete;
+
+      expect(callFunction).not.toHaveBeenCalled();
+      expect(
+        harness.getState().celanworksmithExecution.functions[
+          sideEffectFreeFunction.id
+        ],
+      ).toMatchObject({ data: 9 });
+    } finally {
+      harness.task.cancel();
+      await harness.task.toPromise();
+    }
+  });
+
   it("normalizes a failed Function response without replacing prior data", async () => {
     const callFunction = jest
       .spyOn(CelanworksmithAPI, "callFunction")
