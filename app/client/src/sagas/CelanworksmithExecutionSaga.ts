@@ -244,7 +244,7 @@ const isActionResult = (
   if (!isRecord(value)) return false;
 
   return (
-    value.success === true &&
+    typeof value.success === "boolean" &&
     isNonEmptyString(value.message) &&
     isNonEmptyString(value.executionId) &&
     Array.isArray(value.changedObjects) &&
@@ -469,6 +469,7 @@ export function* executeCelanworksmithAction(
           payload.actionId,
           validationResult.request,
           abortController.signal,
+          payload.applicationId,
         ),
         timeout: delay(CELANWORKSMITH_ACTION_TIMEOUT_MS),
         cancellation: take((cancelAction) =>

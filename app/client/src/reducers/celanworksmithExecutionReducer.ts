@@ -45,6 +45,7 @@ export interface CelanworksmithRequestState {
   startedAt?: number;
   completedAt?: number;
   error?: CelanworksmithExecutionError;
+  progress?: number;
   retryCount?: number;
   abortController?: AbortController;
 }
@@ -93,6 +94,7 @@ const createActionMeta = (
   status,
   requestId: payload.requestId,
   parametersHash: payload.parametersHash,
+  progress: status === "queued" ? 0 : status === "running" ? 50 : 100,
 });
 
 const createActionRequest = (
@@ -105,6 +107,7 @@ const createActionRequest = (
   status,
   parametersHash: payload.parametersHash,
   retryCount: 0,
+  progress: status === "queued" ? 0 : status === "running" ? 50 : 100,
 });
 
 const queueFunction = (
@@ -443,6 +446,7 @@ const celanworksmithExecutionReducer = createReducer(initialState, {
         startedAt,
         completedAt: undefined,
         error: undefined,
+        progress: 50,
       }),
     };
 
@@ -514,6 +518,7 @@ const celanworksmithExecutionReducer = createReducer(initialState, {
       [requestId]: updateRequestStatus(request, "succeeded", {
         completedAt,
         error: undefined,
+        progress: 100,
       }),
     };
 
@@ -563,6 +568,7 @@ const celanworksmithExecutionReducer = createReducer(initialState, {
       [requestId]: updateRequestStatus(request, "failed", {
         completedAt,
         error,
+        progress: 100,
       }),
     };
 
@@ -608,6 +614,7 @@ const celanworksmithExecutionReducer = createReducer(initialState, {
       [request.requestId]: updateRequestStatus(request, "cancelled", {
         completedAt,
         error: undefined,
+        progress: 100,
       }),
     };
     const currentAction = state.actions[request.entityId];

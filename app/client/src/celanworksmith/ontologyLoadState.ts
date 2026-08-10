@@ -45,6 +45,7 @@ export type OntologyLoadTransition<T> =
 const ONTOLOGY_LOAD_ERROR_MESSAGES: Record<OntologyLoadErrorCode, string> = {
   INVALID_ARGUMENT: "The runtime request is invalid.",
   DUPLICATE_REQUEST: "An identical action is already running.",
+  BUSINESS_REJECTED: "The Action was rejected by the business rules.",
   UNKNOWN_FUNCTION: "The requested function is not available.",
   UNKNOWN_ACTION: "The requested action is not available.",
   UNKNOWN_OBJECT: "The requested object is not available.",
@@ -60,6 +61,7 @@ const ERROR_CODE_MAP: Record<string, OntologyLoadErrorCode> = {
   INVALID_ARGUMENT: "INVALID_ARGUMENT",
   FILTER_INVALID: "INVALID_ARGUMENT",
   DUPLICATE_REQUEST: "DUPLICATE_REQUEST",
+  BUSINESS_REJECTED: "BUSINESS_REJECTED",
   FUNCTION_NOT_FOUND: "UNKNOWN_FUNCTION",
   UNKNOWN_FUNCTION: "UNKNOWN_FUNCTION",
   ACTION_NOT_FOUND: "UNKNOWN_ACTION",

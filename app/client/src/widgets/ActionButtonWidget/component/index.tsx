@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { celanworksmithActionRun } from "actions/celanworksmithExecutionActions";
@@ -6,7 +6,9 @@ import {
   getCelanworksmithExecutionState,
   getCelanworksmithOntologyState,
 } from "selectors/celanworksmithSelectors";
-import { createActionRequest } from "../widget/actionButtonUtils";
+import { getCelanworksmithCurrentApplicationId } from "selectors/celanworksmithApplicationBindingSelectors";
+import { getActionExecutionErrorLabel } from "celanworksmith/actionExecutionFeedback";
+import { validateActionBinding } from "../widget/actionButtonUtils";
 
 export interface ActionButtonComponentProps {
   actionId?: string;
@@ -34,29 +36,105 @@ export default function ActionButtonComponent({
   const execution = useSelector((state: DefaultRootState) =>
     getCelanworksmithExecutionState(state),
   );
+  const applicationId = useSelector(getCelanworksmithCurrentApplicationId);
   const action = ontology.actions.find(
     (candidate) => candidate.id === actionId,
   );
-  const request = useMemo(
-    () => createActionRequest(action, { objectData, parameters }),
+  const validation = useMemo(
+    () => validateActionBinding(action, { objectData, parameters }),
     [action, objectData, parameters],
   );
+  const request = validation.request;
+  const [localRequestId, setLocalRequestId] = useState<string>();
+  const [pendingConfirmation, setPendingConfirmation] = useState<
+    | {
+        actionId: string;
+        applicationId?: string;
+        label: string;
+        request: NonNullable<typeof request>;
+      }
+    | undefined
+  >();
   const actionState = actionId ? execution.actions[actionId] : undefined;
-  const status = actionState?.meta.status || "idle";
-  const isRunning = status === "queued" || status === "running";
-  const isValid = !!actionId && !!request;
+  const requestState = localRequestId
+    ? execution.requests[localRequestId]
+    : undefined;
+  const isCurrentActionState =
+    !!localRequestId && actionState?.meta.requestId === localRequestId;
+  const status =
+    requestState?.status ||
+    (isCurrentActionState ? actionState?.meta.status : undefined) ||
+    "idle";
+  const result = isCurrentActionState ? actionState?.data : undefined;
+  const error =
+    requestState?.error ||
+    (isCurrentActionState ? actionState?.meta.error : undefined);
+  const progress =
+    requestState?.progress ||
+    (isCurrentActionState ? actionState?.meta.progress : undefined) ||
+    0;
+  const executionId =
+    (isCurrentActionState ? actionState?.meta.executionId : undefined) ||
+    (result && typeof result.executionId === "string"
+      ? result.executionId
+      : undefined);
+  const isRunning =
+    status === "queued" ||
+    status === "running" ||
+    actionState?.meta.status === "queued" ||
+    actionState?.meta.status === "running";
+  const isValid = !!actionId && validation.valid && !!request;
 
   useEffect(() => {
     updateWidgetMetaProperty("executionStatus", status);
-    updateWidgetMetaProperty("lastResult", actionState?.data);
-    updateWidgetMetaProperty("lastError", actionState?.meta.error);
-    updateWidgetMetaProperty("requestId", actionState?.meta.requestId);
-  }, [actionState, status, updateWidgetMetaProperty]);
+    updateWidgetMetaProperty("lastResult", result);
+    updateWidgetMetaProperty("lastError", error);
+    updateWidgetMetaProperty("requestId", localRequestId);
+    updateWidgetMetaProperty("executionId", executionId);
+    updateWidgetMetaProperty("executionProgress", progress);
+  }, [
+    error,
+    executionId,
+    localRequestId,
+    progress,
+    result,
+    status,
+    updateWidgetMetaProperty,
+  ]);
+
+  const dispatchAction = (
+    actionIdToRun: string,
+    requestToRun: NonNullable<typeof request>,
+    applicationIdToRun = applicationId || undefined,
+  ) => {
+    if (isRunning) return;
+
+    const actionRequest = celanworksmithActionRun(
+      actionIdToRun,
+      requestToRun,
+      undefined,
+      applicationIdToRun,
+    );
+
+    setLocalRequestId(actionRequest.payload.requestId);
+    dispatch(actionRequest);
+  };
 
   const run = () => {
     if (!actionId || !request || isRunning) return;
 
-    dispatch(celanworksmithActionRun(actionId, request));
+    if (action?.requiresConfirmation) {
+      setPendingConfirmation({
+        actionId,
+        applicationId: applicationId || undefined,
+        label: action.displayName,
+        request,
+      });
+
+      return;
+    }
+
+    dispatchAction(actionId, request);
   };
 
   return (
@@ -85,13 +163,51 @@ export default function ActionButtonComponent({
       >
         {isRunning ? "Running..." : label}
       </button>
-      {!isValid && <div role="alert">Select an Action and a valid object.</div>}
+      {!isValid && (
+        <div role="alert">
+          {validation.error || "Select an Action and a valid object."}
+        </div>
+      )}
+      {pendingConfirmation && (
+        <div aria-modal="true" role="alertdialog">
+          <p>Run {pendingConfirmation.label}?</p>
+          <button
+            onClick={() => setPendingConfirmation(undefined)}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              const confirmation = pendingConfirmation;
+
+              setPendingConfirmation(undefined);
+              dispatchAction(
+                confirmation.actionId,
+                confirmation.request,
+                confirmation.applicationId,
+              );
+            }}
+            type="button"
+          >
+            Confirm
+          </button>
+        </div>
+      )}
       {status === "failed" && (
         <div role="alert">
-          {actionState?.meta.error?.message || "Action failed."}
+          {getActionExecutionErrorLabel(error)}:{" "}
+          {error?.message || "Action failed."}
         </div>
       )}
       {status === "succeeded" && <div role="status">Action completed.</div>}
+      {localRequestId && (
+        <div aria-live="polite">
+          <div>Request ID: {localRequestId}</div>
+          <div>Progress: {progress}%</div>
+          {executionId && <div>Execution ID: {executionId}</div>}
+        </div>
+      )}
     </div>
   );
 }

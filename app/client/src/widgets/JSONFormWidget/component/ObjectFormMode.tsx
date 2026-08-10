@@ -14,6 +14,7 @@ import {
   getFieldLayout,
   isFieldEditable,
 } from "celanworksmith/fieldMetadataLayout";
+import { getActionExecutionErrorLabel } from "celanworksmith/actionExecutionFeedback";
 
 interface ObjectFormModeProps {
   objectTypeId?: string;
@@ -86,6 +87,21 @@ export default function ObjectFormMode({
   const executionError =
     requestState?.error ||
     (isCurrentActionState ? actionState?.meta.error : undefined);
+  const actionResult = isCurrentActionState ? actionState?.data : undefined;
+  const executionProgress =
+    requestState?.progress ||
+    (isCurrentActionState ? actionState?.meta.progress : undefined) ||
+    0;
+  const executionId =
+    (isCurrentActionState ? actionState?.meta.executionId : undefined) ||
+    (actionResult && typeof actionResult.executionId === "string"
+      ? actionResult.executionId
+      : undefined);
+  const isActionRunning =
+    status === "queued" ||
+    status === "running" ||
+    actionState?.meta.status === "queued" ||
+    actionState?.meta.status === "running";
   const action = ontology.actions.find(
     (candidate) => candidate.id === actionId,
   );
@@ -124,7 +140,22 @@ export default function ObjectFormMode({
     updateWidgetMetaProperty("formData", values);
     updateWidgetMetaProperty("isValid", isObjectBindingValid);
     updateWidgetMetaProperty("executionStatus", status);
-  }, [isObjectBindingValid, status, updateWidgetMetaProperty, values]);
+    updateWidgetMetaProperty("lastResult", actionResult);
+    updateWidgetMetaProperty("lastError", executionError);
+    updateWidgetMetaProperty("requestId", localRequestId);
+    updateWidgetMetaProperty("executionId", executionId);
+    updateWidgetMetaProperty("executionProgress", executionProgress);
+  }, [
+    actionResult,
+    executionError,
+    executionId,
+    executionProgress,
+    isObjectBindingValid,
+    localRequestId,
+    status,
+    updateWidgetMetaProperty,
+    values,
+  ]);
 
   if (!objectTypeId) {
     return <div role="alert">Select an Object Type.</div>;
@@ -179,6 +210,8 @@ export default function ObjectFormMode({
   };
 
   const submit = () => {
+    if (isActionRunning) return;
+
     const missing = visibleProperties.find(
       (property) =>
         property.required &&
@@ -294,20 +327,23 @@ export default function ObjectFormMode({
           })}
         </fieldset>
       ))}
-      <button
-        disabled={!actionId || status === "queued" || status === "running"}
-        type="submit"
-      >
-        {status === "queued" || status === "running"
-          ? "Submitting..."
-          : "Submit"}
+      <button disabled={!actionId || isActionRunning} type="submit">
+        {isActionRunning ? "Submitting..." : "Submit"}
       </button>
       {status === "failed" && (
         <div role="alert">
+          {getActionExecutionErrorLabel(executionError)}:{" "}
           {executionError?.message || "Submission failed."}
         </div>
       )}
       {status === "succeeded" && <div role="status">Submitted.</div>}
+      {localRequestId && (
+        <div aria-live="polite">
+          <div>Request ID: {localRequestId}</div>
+          <div>Progress: {executionProgress}%</div>
+          {executionId && <div>Execution ID: {executionId}</div>}
+        </div>
+      )}
     </form>
   );
 }

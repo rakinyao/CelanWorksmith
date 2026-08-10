@@ -89,6 +89,8 @@ export type CelanworksmithExecutionStatus =
 export type CelanworksmithExecutionErrorCode =
   | "INVALID_ARGUMENT"
   | "DUPLICATE_REQUEST"
+  | "PERMISSION_DENIED"
+  | "BUSINESS_REJECTED"
   | "UNKNOWN_FUNCTION"
   | "UNKNOWN_ACTION"
   | "UNKNOWN_OBJECT"
@@ -106,6 +108,7 @@ export interface CelanworksmithExecutionMeta {
   status: CelanworksmithExecutionStatus;
   requestId: string;
   executionId?: string;
+  progress?: number;
   startedAt?: number;
   completedAt?: number;
   error?: CelanworksmithExecutionError;
@@ -164,6 +167,8 @@ const DEFAULT_EXECUTION_ERROR_MESSAGES: Record<
 > = {
   INVALID_ARGUMENT: "The runtime request is invalid.",
   DUPLICATE_REQUEST: "An identical action is already running.",
+  PERMISSION_DENIED: "You do not have permission to execute this Action.",
+  BUSINESS_REJECTED: "The Action was rejected by the business rules.",
   UNKNOWN_FUNCTION: "The requested function is not available.",
   UNKNOWN_ACTION: "The requested action is not available.",
   UNKNOWN_OBJECT: "The requested object is not available.",
@@ -177,6 +182,10 @@ const SERVER_ERROR_CODE_MAP: Record<string, CelanworksmithExecutionErrorCode> =
   {
     INVALID_ARGUMENT: "INVALID_ARGUMENT",
     FILTER_INVALID: "INVALID_ARGUMENT",
+    PERMISSION_DENIED: "PERMISSION_DENIED",
+    FORBIDDEN: "PERMISSION_DENIED",
+    UNAUTHORIZED: "PERMISSION_DENIED",
+    ACCESS_DENIED: "PERMISSION_DENIED",
     FUNCTION_NOT_FOUND: "UNKNOWN_FUNCTION",
     ACTION_NOT_FOUND: "UNKNOWN_ACTION",
     OBJECT_NOT_FOUND: "UNKNOWN_OBJECT",
@@ -218,6 +227,15 @@ const getRuntimeErrorPayload = (error: unknown): RuntimeErrorPayload => {
   return responseMetaError || directResponseMetaError || responseData || error;
 };
 
+const getRuntimeHttpStatus = (error: unknown): number | undefined => {
+  if (!isRecord(error)) return undefined;
+
+  const response = isRecord(error.response) ? error.response : undefined;
+  const status = response?.status ?? error.status;
+
+  return typeof status === "number" ? status : undefined;
+};
+
 const hasStackTrace = (message: string) =>
   /(?:\r?\n|^)\s*at\s+[\w$.[\]-]+\(/.test(message) ||
   /^[\w.$]+(?:Exception|Error)(?::|\s)/.test(message);
@@ -230,6 +248,7 @@ const getSafeRuntimeErrorMessage = (
     code === "TIMEOUT" ||
     code === "NETWORK_ERROR" ||
     code === "BACKEND_ERROR" ||
+    code === "PERMISSION_DENIED" ||
     typeof message !== "string" ||
     !message.trim() ||
     hasStackTrace(message)
@@ -244,8 +263,18 @@ const getNormalizedErrorCode = (
   serverCode: unknown,
   error: unknown,
 ): CelanworksmithExecutionErrorCode => {
-  if (serverCode && SERVER_ERROR_CODE_MAP[String(serverCode)]) {
-    return SERVER_ERROR_CODE_MAP[String(serverCode)];
+  const normalizedServerCode =
+    typeof serverCode === "string" ? serverCode.toUpperCase() : "";
+
+  if (SERVER_ERROR_CODE_MAP[normalizedServerCode]) {
+    return SERVER_ERROR_CODE_MAP[normalizedServerCode];
+  }
+
+  if (
+    normalizedServerCode.startsWith("AE-ACL-") ||
+    [401, 403].includes(getRuntimeHttpStatus(error) || 0)
+  ) {
+    return "PERMISSION_DENIED";
   }
 
   const errorRecord = isRecord(error) ? error : undefined;

@@ -710,6 +710,7 @@ describe("celanworksmithExecutionSaga", () => {
         productionScheduleAction.id,
         run.payload.request,
         expect.any(AbortSignal),
+        undefined,
       );
       expect(
         harness.getState().celanworksmithExecution.actions[
@@ -725,6 +726,40 @@ describe("celanworksmithExecutionSaga", () => {
           executionId: "execution-123",
         },
       });
+    } finally {
+      harness.task.cancel();
+      await harness.task.toPromise();
+    }
+  });
+
+  it("passes the bound application ID to Action execution", async () => {
+    const executeAction = jest
+      .spyOn(CelanworksmithAPI, "executeAction")
+      .mockResolvedValue(successfulResponse(successfulActionResult));
+    const harness = createHarness([sideEffectFreeFunction], undefined, [
+      productionScheduleAction,
+    ]);
+    const run = celanworksmithActionRun(
+      productionScheduleAction.id,
+      {
+        objectTypeId: "PurchaseOrder",
+        objectId: "PO001",
+        parameters: { newScheduleDate: "2026-03-15" },
+      },
+      "action-application-id",
+      "application-123",
+    );
+
+    try {
+      harness.dispatch(run);
+      await harness.evaluationComplete;
+
+      expect(executeAction).toHaveBeenCalledWith(
+        productionScheduleAction.id,
+        run.payload.request,
+        expect.any(AbortSignal),
+        "application-123",
+      );
     } finally {
       harness.task.cancel();
       await harness.task.toPromise();
@@ -1471,8 +1506,53 @@ describe("celanworksmithExecutionSaga", () => {
     }
   });
 
+  it("classifies a rejected Action result without retrying the runtime service", async () => {
+    const executeAction = jest
+      .spyOn(CelanworksmithAPI, "executeAction")
+      .mockResolvedValue(
+        successfulResponse({
+          ...successfulActionResult,
+          success: false,
+          message: "Production is locked for this order.",
+        }),
+      );
+    const harness = createHarness([sideEffectFreeFunction], undefined, [
+      productionScheduleAction,
+    ]);
+
+    try {
+      harness.dispatch(
+        celanworksmithActionRun(
+          productionScheduleAction.id,
+          {
+            objectTypeId: "PurchaseOrder",
+            objectId: "PO001",
+            parameters: { newScheduleDate: "2026-03-15" },
+          },
+          "action-business-rejected",
+        ),
+      );
+      await harness.evaluationComplete;
+
+      expect(executeAction).toHaveBeenCalledTimes(1);
+      expect(
+        harness.getState().celanworksmithExecution.actions[
+          productionScheduleAction.id
+        ].meta,
+      ).toMatchObject({
+        status: "failed",
+        error: {
+          code: "BUSINESS_REJECTED",
+          message: "Production is locked for this order.",
+        },
+      });
+    } finally {
+      harness.task.cancel();
+      await harness.task.toPromise();
+    }
+  });
+
   it.each([
-    ["a false success flag", { ...successfulActionResult, success: false }],
     ["an empty message", { ...successfulActionResult, message: "" }],
     ["an empty execution ID", { ...successfulActionResult, executionId: "" }],
     [
@@ -1488,39 +1568,42 @@ describe("celanworksmithExecutionSaga", () => {
       "a non-record side effect",
       { ...successfulActionResult, sideEffects: ["NOTIFICATION"] },
     ],
-  ])("rejects an Action result with %s", async (_description, result) => {
-    jest
-      .spyOn(CelanworksmithAPI, "executeAction")
-      .mockResolvedValue(successfulResponse(result));
-    const harness = createHarness([sideEffectFreeFunction], undefined, [
-      productionScheduleAction,
-    ]);
+  ])(
+    "rejects an invalid Action result with %s",
+    async (_description, result) => {
+      jest
+        .spyOn(CelanworksmithAPI, "executeAction")
+        .mockResolvedValue(successfulResponse(result));
+      const harness = createHarness([sideEffectFreeFunction], undefined, [
+        productionScheduleAction,
+      ]);
 
-    try {
-      harness.dispatch(
-        celanworksmithActionRun(
-          productionScheduleAction.id,
-          {
-            objectTypeId: "PurchaseOrder",
-            objectId: "PO001",
-            parameters: { newScheduleDate: "2026-03-15" },
-          },
-          `action-invalid-result-${_description}`,
-        ),
-      );
-      await harness.evaluationComplete;
+      try {
+        harness.dispatch(
+          celanworksmithActionRun(
+            productionScheduleAction.id,
+            {
+              objectTypeId: "PurchaseOrder",
+              objectId: "PO001",
+              parameters: { newScheduleDate: "2026-03-15" },
+            },
+            `action-invalid-result-${_description}`,
+          ),
+        );
+        await harness.evaluationComplete;
 
-      expect(
-        harness.getState().celanworksmithExecution.actions[
-          productionScheduleAction.id
-        ],
-      ).toMatchObject({
-        data: undefined,
-        meta: { status: "failed", error: { code: "BACKEND_ERROR" } },
-      });
-    } finally {
-      harness.task.cancel();
-      await harness.task.toPromise();
-    }
-  });
+        expect(
+          harness.getState().celanworksmithExecution.actions[
+            productionScheduleAction.id
+          ],
+        ).toMatchObject({
+          data: undefined,
+          meta: { status: "failed", error: { code: "BACKEND_ERROR" } },
+        });
+      } finally {
+        harness.task.cancel();
+        await harness.task.toPromise();
+      }
+    },
+  );
 });

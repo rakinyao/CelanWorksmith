@@ -336,6 +336,81 @@ describe("celanworksmithExecutionReducer", () => {
     });
   });
 
+  it("tracks Action execution progress through the shared metadata", () => {
+    const run = celanworksmithActionRun(
+      actionId,
+      actionRequest,
+      "action-request-progress",
+    );
+    const queuedState = reducer(undefined, run);
+    const runningState = reducer(
+      queuedState,
+      celanworksmithActionRunning(run.payload),
+    );
+    const succeededState = reducer(
+      runningState,
+      celanworksmithActionSucceeded(run.payload, actionResult),
+    );
+
+    expect(queuedState.actions[actionId].meta).toMatchObject({
+      status: "queued",
+      progress: 0,
+      requestId: "action-request-progress",
+    });
+    expect(runningState.actions[actionId].meta).toMatchObject({
+      status: "running",
+      progress: 50,
+      requestId: "action-request-progress",
+    });
+    expect(succeededState.actions[actionId].meta).toMatchObject({
+      status: "succeeded",
+      progress: 100,
+      requestId: "action-request-progress",
+      executionId: "execution-1",
+    });
+  });
+
+  it("keeps the last successful Action result after a business rejection", () => {
+    const successfulRun = celanworksmithActionRun(
+      actionId,
+      actionRequest,
+      "action-request-successful-business",
+    );
+    const rejectedRun = celanworksmithActionRun(
+      actionId,
+      actionRequest,
+      "action-request-rejected-business",
+    );
+    const successfulState = reducer(
+      reducer(
+        reducer(undefined, successfulRun),
+        celanworksmithActionRunning(successfulRun.payload),
+      ),
+      celanworksmithActionSucceeded(successfulRun.payload, actionResult),
+    );
+    const rejectedState = reducer(
+      reducer(successfulState, rejectedRun),
+      celanworksmithActionFailed(rejectedRun.payload, {
+        code: "BUSINESS_REJECTED",
+        message: "The schedule is locked.",
+      }),
+    );
+
+    expect(rejectedState.actions[actionId]).toMatchObject({
+      data: actionResult,
+      lastSuccessfulRequestId: "action-request-successful-business",
+      meta: {
+        status: "failed",
+        progress: 100,
+        requestId: "action-request-rejected-business",
+        error: {
+          code: "BUSINESS_REJECTED",
+          message: "The schedule is locked.",
+        },
+      },
+    });
+  });
+
   it("records a duplicate Action request without replacing the running Action", () => {
     const firstRun = celanworksmithActionRun(
       actionId,

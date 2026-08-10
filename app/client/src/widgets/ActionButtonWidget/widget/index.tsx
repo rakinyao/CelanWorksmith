@@ -125,6 +125,8 @@ class ActionButtonWidget extends BaseWidget<
       lastResult: undefined,
       lastError: undefined,
       requestId: undefined,
+      executionId: undefined,
+      executionProgress: 0,
     };
   }
 
@@ -136,6 +138,8 @@ class ActionButtonWidget extends BaseWidget<
       lastResult: "?",
       lastError: "?",
       requestId: "string",
+      executionId: "string",
+      executionProgress: "number",
     };
   }
 

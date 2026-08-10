@@ -185,6 +185,20 @@ describe("CelanworksmithAPI", () => {
     });
   });
 
+  it("classifies forbidden runtime responses as permission errors", () => {
+    expect(
+      normalizeCelanworksmithError({
+        response: {
+          status: 403,
+          data: { code: "FORBIDDEN", message: "Internal access details" },
+        },
+      }),
+    ).toEqual({
+      code: "PERMISSION_DENIED",
+      message: "You do not have permission to execute this Action.",
+    });
+  });
+
   it("omits an empty runtime filter", async () => {
     (Api.get as jest.Mock).mockResolvedValue({});
 

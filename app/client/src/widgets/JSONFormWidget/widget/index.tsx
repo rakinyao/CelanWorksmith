@@ -425,6 +425,11 @@ class JSONFormWidget extends BaseWidget<
       formData: {},
       fieldState: {},
       executionStatus: "idle",
+      lastResult: undefined,
+      lastError: undefined,
+      requestId: undefined,
+      executionId: undefined,
+      executionProgress: 0,
     };
   }
 
@@ -538,6 +543,11 @@ class JSONFormWidget extends BaseWidget<
         isValid: "bool",
         isVisible: DefaultAutocompleteDefinitions.isVisible,
         executionStatus: "string",
+        lastResult: "?",
+        lastError: "?",
+        requestId: "string",
+        executionId: "string",
+        executionProgress: "number",
       };
 
       return definitions;
