@@ -87,9 +87,7 @@ export const getCelanworksmithActionRefreshPlan = (
     .filter((widgetId) => !widgetId.startsWith("$variable/"));
   const linkRequests = Object.values(links.entries)
     .filter(
-      (
-        entry,
-      ): entry is typeof entry & { request: CelanworksmithLinkRequest } =>
+      (entry): entry is typeof entry & { request: CelanworksmithLinkRequest } =>
         !!entry.request,
     )
     .filter(

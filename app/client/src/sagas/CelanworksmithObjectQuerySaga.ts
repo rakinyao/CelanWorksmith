@@ -122,6 +122,7 @@ export function* loadCelanworksmithObjectQuery(
     status: "idle",
     applicationId: undefined,
   };
+
   if (
     currentApplicationId &&
     (bindingState.applicationId !== currentApplicationId ||
@@ -129,12 +130,14 @@ export function* loadCelanworksmithObjectQuery(
   ) {
     return;
   }
+
   if (
     requestedRequest.applicationId &&
     requestedRequest.applicationId !== currentApplicationId
   ) {
     return;
   }
+
   const request = {
     ...requestedRequest,
     ...(bindingState.status === "ready" && currentApplicationId

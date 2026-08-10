@@ -24,10 +24,7 @@ import {
   type CelanworksmithFunctionRetryAction,
   type CelanworksmithFunctionRunAction,
 } from "actions/celanworksmithExecutionActions";
-import {
-  celanworksmithObjectTypesRefreshRequested,
-  getChangedObjectTypeIds,
-} from "actions/celanworksmithObjectActions";
+import { celanworksmithObjectTypesRefreshRequested } from "actions/celanworksmithObjectActions";
 import { celanworksmithObjectQueryRequested } from "actions/celanworksmithObjectQueryActions";
 import { celanworksmithLinkLoadRequested } from "actions/celanworksmithLinkActions";
 import { getCelanworksmithActionRefreshPlan } from "celanworksmith/actionRefresh";
@@ -278,7 +275,8 @@ const isActionResult = (
             isRecord(link) &&
             isNonEmptyString(link.typeId) &&
             isNonEmptyString(link.objectId) &&
-            (link.linkTypeId === undefined || isNonEmptyString(link.linkTypeId)),
+            (link.linkTypeId === undefined ||
+              isNonEmptyString(link.linkTypeId)),
         )))
   );
 };
