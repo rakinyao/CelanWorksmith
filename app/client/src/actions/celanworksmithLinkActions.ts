@@ -10,6 +10,7 @@ export interface CelanworksmithLinkRequest {
   typeId: string;
   objectId: string;
   linkTypeId: string;
+  applicationId?: string;
   prefetch?: boolean;
   force?: boolean;
 }

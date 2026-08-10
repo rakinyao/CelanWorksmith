@@ -28,12 +28,17 @@ import {
   celanworksmithObjectTypesRefreshRequested,
   getChangedObjectTypeIds,
 } from "actions/celanworksmithObjectActions";
+import { celanworksmithObjectQueryRequested } from "actions/celanworksmithObjectQueryActions";
+import { celanworksmithLinkLoadRequested } from "actions/celanworksmithLinkActions";
+import { getCelanworksmithActionRefreshPlan } from "celanworksmith/actionRefresh";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import type { CelanworksmithExecutionState } from "reducers/celanworksmithExecutionReducer";
 import {
   getCelanworksmithExecutionState,
+  getCelanworksmithLinksState,
   getCelanworksmithOntologyState,
 } from "selectors/celanworksmithSelectors";
+import { getCelanworksmithObjectQueriesState } from "selectors/dataTreeSelectors";
 import {
   all,
   call,
@@ -256,7 +261,25 @@ const isActionResult = (
         isRecord(changedObject.properties),
     ) &&
     Array.isArray(value.sideEffects) &&
-    value.sideEffects.every(isRecord)
+    value.sideEffects.every(isRecord) &&
+    (value.changedProperties === undefined ||
+      (Array.isArray(value.changedProperties) &&
+        value.changedProperties.every(
+          (property) =>
+            isRecord(property) &&
+            isNonEmptyString(property.typeId) &&
+            isNonEmptyString(property.objectId) &&
+            isNonEmptyString(property.propertyId),
+        ))) &&
+    (value.links === undefined ||
+      (Array.isArray(value.links) &&
+        value.links.every(
+          (link) =>
+            isRecord(link) &&
+            isNonEmptyString(link.typeId) &&
+            isNonEmptyString(link.objectId) &&
+            (link.linkTypeId === undefined || isNonEmptyString(link.linkTypeId)),
+        )))
   );
 };
 
@@ -540,7 +563,13 @@ export function* executeCelanworksmithAction(
       }
 
       yield put(celanworksmithActionSucceeded(payload, data));
-      const changedObjectTypeIds = getChangedObjectTypeIds(data.changedObjects);
+      const objectQueries = yield select(getCelanworksmithObjectQueriesState);
+      const links = yield select(getCelanworksmithLinksState);
+      const refreshPlan = getCelanworksmithActionRefreshPlan(data, {
+        objectQueries,
+        links,
+      });
+      const changedObjectTypeIds = refreshPlan.objectTypeIds;
 
       if (changedObjectTypeIds.length) {
         yield put(
@@ -555,6 +584,25 @@ export function* executeCelanworksmithAction(
             changedObjectTypeIds,
             payload.requestId,
           ),
+        );
+      }
+
+      for (const request of refreshPlan.objectQueries) {
+        yield put(
+          celanworksmithObjectQueryRequested({
+            ...request,
+            applicationId: payload.applicationId || request.applicationId,
+          }),
+        );
+      }
+
+      for (const request of refreshPlan.links) {
+        yield put(
+          celanworksmithLinkLoadRequested({
+            ...request,
+            applicationId: payload.applicationId || request.applicationId,
+            force: true,
+          }),
         );
       }
 

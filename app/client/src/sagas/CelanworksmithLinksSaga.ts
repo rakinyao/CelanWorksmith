@@ -101,13 +101,23 @@ export function* loadCelanworksmithLink(
   yield put(celanworksmithLinkLoadStart(request));
 
   try {
-    const response: ApiResponse<CelanworksmithObjectSet> = yield call(
-      [CelanworksmithAPI, CelanworksmithAPI.getLinkedObjects],
-      request.typeId,
-      request.objectId,
-      request.linkTypeId,
-      { offset: 0, limit: CELANWORKSMITH_LINK_QUERY_LIMIT },
-    );
+    const response: ApiResponse<CelanworksmithObjectSet> =
+      yield request.applicationId
+        ? call(
+            [CelanworksmithAPI, CelanworksmithAPI.getLinkedObjects],
+            request.typeId,
+            request.objectId,
+            request.linkTypeId,
+            { offset: 0, limit: CELANWORKSMITH_LINK_QUERY_LIMIT },
+            request.applicationId,
+          )
+        : call(
+            [CelanworksmithAPI, CelanworksmithAPI.getLinkedObjects],
+            request.typeId,
+            request.objectId,
+            request.linkTypeId,
+            { offset: 0, limit: CELANWORKSMITH_LINK_QUERY_LIMIT },
+          );
 
     yield put(
       celanworksmithLinkLoadSuccess(request, assertApiSuccess(response)),

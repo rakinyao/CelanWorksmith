@@ -3,6 +3,10 @@ import { celanworksmithObjectQueryRequested } from "actions/celanworksmithObject
 import { call, put, select } from "redux-saga/effects";
 import { loadCelanworksmithObjectQuery } from "../CelanworksmithObjectQuerySaga";
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
 
 const request = {
   widgetId: "Table1",
@@ -37,6 +41,12 @@ describe("loadCelanworksmithObjectQuery", () => {
     );
 
     expect(iterator.next().value).toEqual(
+      select(getCelanworksmithCurrentApplicationId),
+    );
+    expect(iterator.next(undefined).value).toEqual(
+      select(getCelanworksmithApplicationBindingState),
+    );
+    expect(iterator.next(undefined).value).toEqual(
       select(getCelanworksmithObjectsState),
     );
     expect(
@@ -63,6 +73,10 @@ describe("loadCelanworksmithObjectQuery", () => {
     );
 
     iterator.next();
+    iterator.next(undefined);
+    expect(iterator.next(undefined).value).toEqual(
+      select(getCelanworksmithObjectsState),
+    );
     expect(
       iterator.next({ types: { PurchaseOrder: { metadata } } }).value,
     ).toEqual(
@@ -91,6 +105,24 @@ describe("loadCelanworksmithObjectQuery", () => {
     );
 
     iterator.next();
+    iterator.next(undefined);
+    iterator.next(undefined);
+    iterator.next({ types: { PurchaseOrder: { metadata } } });
+    expect(iterator.next().value).toMatchObject({ type: "PUT" });
+  });
+
+  test("rejects an unsupported sort direction", () => {
+    const invalidRequest = {
+      ...request,
+      query: { ...request.query, sortDirection: "sideways" as never },
+    };
+    const iterator = loadCelanworksmithObjectQuery(
+      celanworksmithObjectQueryRequested(invalidRequest),
+    );
+
+    iterator.next();
+    iterator.next(undefined);
+    iterator.next(undefined);
     iterator.next({ types: { PurchaseOrder: { metadata } } });
     expect(iterator.next().value).toMatchObject({ type: "PUT" });
   });

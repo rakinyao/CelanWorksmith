@@ -25,6 +25,7 @@ export interface CelanworksmithLinkMetadataState {
 }
 
 export interface CelanworksmithLinkEntryState {
+  request?: CelanworksmithLinkRequest;
   status: CelanworksmithLinkLoadStatus;
   result?: CelanworksmithObjectSet;
   updatedAt?: number;
@@ -131,7 +132,10 @@ const celanworksmithLinksReducer = createReducer(initialState, {
 
     return {
       ...state,
-      entries: { ...state.entries, [key]: initialEntryState() },
+      entries: {
+        ...state.entries,
+        [key]: { ...initialEntryState(), request: action.payload },
+      },
     };
   },
   [ReduxActionTypes.CELANWORKSMITH_LINK_LOAD_START]: (
@@ -145,7 +149,12 @@ const celanworksmithLinksReducer = createReducer(initialState, {
       ...state,
       entries: {
         ...state.entries,
-        [key]: { ...current, status: "loading", error: undefined },
+        [key]: {
+          ...current,
+          request: action.payload,
+          status: "loading",
+          error: undefined,
+        },
       },
     };
   },
@@ -164,6 +173,7 @@ const celanworksmithLinksReducer = createReducer(initialState, {
       entries: {
         ...state.entries,
         [key]: {
+          request,
           status: result.items.length ? "ready" : "empty",
           result,
           updatedAt,
@@ -186,7 +196,7 @@ const celanworksmithLinksReducer = createReducer(initialState, {
       ...state,
       entries: {
         ...state.entries,
-        [key]: { ...current, status: "error", error },
+        [key]: { ...current, request, status: "error", error },
       },
     };
   },

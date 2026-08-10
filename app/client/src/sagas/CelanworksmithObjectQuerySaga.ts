@@ -11,8 +11,13 @@ import {
   celanworksmithObjectQueryStart,
   celanworksmithObjectQuerySuccess,
   type CelanworksmithObjectQueryRequest,
+  getCelanworksmithObjectQuerySignature,
 } from "actions/celanworksmithObjectQueryActions";
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
 import { call, put, select, takeEvery } from "redux-saga/effects";
 
 export const CELANWORKSMITH_OBJECT_QUERY_MAX_LIMIT = 100;
@@ -29,7 +34,7 @@ const FILTER_OPERATORS = new Set([
 ]);
 
 const getKey = (request: CelanworksmithObjectQueryRequest) =>
-  `${request.widgetId}/${request.typeId}/${JSON.stringify(request.query || {})}`;
+  `${request.widgetId}/${request.typeId}/${getCelanworksmithObjectQuerySignature(request.query)}`;
 
 const normalizeQuery = (
   request: CelanworksmithObjectQueryRequest,
@@ -49,6 +54,17 @@ const normalizeQuery = (
     throw {
       code: "INVALID_ARGUMENT",
       message: "The sort property is invalid.",
+    };
+  }
+
+  if (
+    query.sortDirection !== undefined &&
+    query.sortDirection !== "asc" &&
+    query.sortDirection !== "desc"
+  ) {
+    throw {
+      code: "INVALID_ARGUMENT",
+      message: "The sort direction is invalid.",
     };
   }
 
@@ -84,13 +100,47 @@ const normalizeQuery = (
     }
   }
 
-  return { ...query, offset, limit };
+  return {
+    offset,
+    limit,
+    ...(query.sortBy ? { sortBy: query.sortBy } : {}),
+    ...(query.sortDirection ? { sortDirection: query.sortDirection } : {}),
+    ...(query.filter !== undefined ? { filter: query.filter } : {}),
+  };
 };
 
 export function* loadCelanworksmithObjectQuery(
   action: ReduxAction<CelanworksmithObjectQueryRequest>,
 ) {
-  const request = action.payload;
+  const requestedRequest = action.payload;
+  const currentApplicationId: string | undefined = yield select(
+    getCelanworksmithCurrentApplicationId,
+  );
+  const bindingState = (yield select(
+    getCelanworksmithApplicationBindingState,
+  )) || {
+    status: "idle",
+    applicationId: undefined,
+  };
+  if (
+    currentApplicationId &&
+    (bindingState.applicationId !== currentApplicationId ||
+      !["ready", "unbound"].includes(bindingState.status))
+  ) {
+    return;
+  }
+  if (
+    requestedRequest.applicationId &&
+    requestedRequest.applicationId !== currentApplicationId
+  ) {
+    return;
+  }
+  const request = {
+    ...requestedRequest,
+    ...(bindingState.status === "ready" && currentApplicationId
+      ? { applicationId: currentApplicationId }
+      : {}),
+  };
   const key = getKey(request);
 
   if (inFlight.has(key)) return;
@@ -117,11 +167,19 @@ export function* loadCelanworksmithObjectQuery(
       request,
       new Set(metadata.properties.map((property) => property.id)),
     );
-    const response: ApiResponse<CelanworksmithObjectSet> = yield call(
-      [CelanworksmithAPI, CelanworksmithAPI.queryObjects],
-      request.typeId,
-      query,
-    );
+    const response: ApiResponse<CelanworksmithObjectSet> =
+      yield request.applicationId
+        ? call(
+            [CelanworksmithAPI, CelanworksmithAPI.queryObjects],
+            request.typeId,
+            query,
+            request.applicationId,
+          )
+        : call(
+            [CelanworksmithAPI, CelanworksmithAPI.queryObjects],
+            request.typeId,
+            query,
+          );
 
     if (!response?.responseMeta?.success) throw response?.responseMeta?.error;
 

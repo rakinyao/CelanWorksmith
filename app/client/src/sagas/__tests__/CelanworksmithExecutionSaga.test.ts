@@ -16,6 +16,8 @@ import reducer, {
   type CelanworksmithExecutionState,
 } from "reducers/celanworksmithExecutionReducer";
 import celanworksmithObjectsReducer from "reducers/celanworksmithObjectsReducer";
+import celanworksmithObjectQueryReducer from "reducers/celanworksmithObjectQueryReducer";
+import celanworksmithLinksReducer from "reducers/celanworksmithLinksReducer";
 import { runSaga, stdChannel } from "redux-saga";
 import { all, call } from "redux-saga/effects";
 import celanworksmithExecutionSaga, {
@@ -23,6 +25,8 @@ import celanworksmithExecutionSaga, {
   CELANWORKSMITH_FUNCTION_TIMEOUT_MS,
 } from "../CelanworksmithExecutionSaga";
 import celanworksmithObjectsSaga from "../CelanworksmithObjectsSaga";
+import celanworksmithObjectQuerySaga from "../CelanworksmithObjectQuerySaga";
+import celanworksmithLinksSaga from "../CelanworksmithLinksSaga";
 
 const sideEffectFreeFunction: CelanworksmithFunction = {
   id: "CalculateDelayDays",
@@ -117,6 +121,8 @@ function* celanworksmithTestSaga() {
   yield all([
     call(celanworksmithExecutionSaga),
     call(celanworksmithObjectsSaga),
+    call(celanworksmithObjectQuerySaga),
+    call(celanworksmithLinksSaga),
   ]);
 }
 
@@ -135,6 +141,14 @@ const createHarness = (
       executionState ||
       reducer(undefined, { type: "@@INIT", payload: undefined }),
     celanworksmithObjects: celanworksmithObjectsReducer(undefined, {
+      type: "@@INIT",
+      payload: undefined,
+    }),
+    celanworksmithObjectQueries: celanworksmithObjectQueryReducer(undefined, {
+      type: "@@INIT",
+      payload: undefined,
+    }),
+    celanworksmithLinks: celanworksmithLinksReducer(undefined, {
       type: "@@INIT",
       payload: undefined,
     }),
@@ -159,6 +173,14 @@ const createHarness = (
             state.celanworksmithObjects,
             action,
           ),
+          celanworksmithObjectQueries: celanworksmithObjectQueryReducer(
+            state.celanworksmithObjectQueries,
+            action,
+          ),
+          celanworksmithLinks: celanworksmithLinksReducer(
+            state.celanworksmithLinks,
+            action,
+          ),
         };
         dispatched.push(action);
         channel.put(action);
@@ -178,6 +200,14 @@ const createHarness = (
       celanworksmithExecution: reducer(state.celanworksmithExecution, action),
       celanworksmithObjects: celanworksmithObjectsReducer(
         state.celanworksmithObjects,
+        action,
+      ),
+      celanworksmithObjectQueries: celanworksmithObjectQueryReducer(
+        state.celanworksmithObjectQueries,
+        action,
+      ),
+      celanworksmithLinks: celanworksmithLinksReducer(
+        state.celanworksmithLinks,
         action,
       ),
     };
@@ -920,6 +950,162 @@ describe("celanworksmithExecutionSaga", () => {
           (type) => type === ReduxActionTypes.TRIGGER_EVAL,
         ),
       ).toHaveLength(1);
+    } finally {
+      harness.task.cancel();
+      await harness.task.toPromise();
+    }
+  });
+
+  it("refreshes only cached affected queries and links after an Action succeeds", async () => {
+    const actionResult = {
+      ...successfulActionResult,
+      changedProperties: [
+        {
+          typeId: "PurchaseOrder",
+          objectId: "PO001",
+          propertyId: "status",
+          value: "Scheduled",
+        },
+      ],
+      links: [
+        {
+          typeId: "PurchaseOrder",
+          objectId: "PO001",
+          linkTypeId: "po_production",
+        },
+      ],
+    };
+    const executeAction = jest
+      .spyOn(CelanworksmithAPI, "executeAction")
+      .mockResolvedValue(successfulResponse(actionResult));
+    const getLinkedObjects = jest
+      .spyOn(CelanworksmithAPI, "getLinkedObjects")
+      .mockResolvedValue(
+        successfulResponse({
+          typeId: "ProductionOrder",
+          items: [],
+          offset: 0,
+          limit: 100,
+          total: 0,
+        }),
+      );
+    const harness = createHarness([sideEffectFreeFunction], undefined, [
+      productionScheduleAction,
+    ]);
+
+    harness.dispatch({
+      type: ReduxActionTypes.CELANWORKSMITH_OBJECT_QUERY_SUCCESS,
+      payload: {
+        widgetId: "OrdersTable",
+        typeId: "PurchaseOrder",
+        result: {
+          typeId: "PurchaseOrder",
+          items: [],
+          offset: 0,
+          limit: 100,
+          total: 0,
+        },
+      },
+    });
+    harness.dispatch({
+      type: ReduxActionTypes.CELANWORKSMITH_OBJECT_QUERY_SUCCESS,
+      payload: {
+        widgetId: "$variable/orders",
+        typeId: "PurchaseOrder",
+        result: {
+          typeId: "PurchaseOrder",
+          items: [],
+          offset: 0,
+          limit: 100,
+          total: 0,
+        },
+      },
+    });
+    harness.dispatch({
+      type: ReduxActionTypes.CELANWORKSMITH_OBJECT_QUERY_SUCCESS,
+      payload: {
+        widgetId: "DeliveryTable",
+        typeId: "DeliveryOrder",
+        result: {
+          typeId: "DeliveryOrder",
+          items: [],
+          offset: 0,
+          limit: 100,
+          total: 0,
+        },
+      },
+    });
+    harness.dispatch({
+      type: ReduxActionTypes.CELANWORKSMITH_LINK_LOAD_SUCCESS,
+      payload: {
+        typeId: "PurchaseOrder",
+        objectId: "PO001",
+        linkTypeId: "po_production",
+        result: {
+          typeId: "ProductionOrder",
+          items: [],
+          offset: 0,
+          limit: 100,
+          total: 0,
+        },
+      },
+    });
+
+    try {
+      harness.dispatch(
+        celanworksmithActionRun(
+          productionScheduleAction.id,
+          {
+            objectTypeId: "PurchaseOrder",
+            objectId: "PO001",
+            parameters: { newScheduleDate: "2026-03-15" },
+          },
+          "action-local-refresh",
+        ),
+      );
+      await harness.evaluationComplete;
+
+      expect(executeAction).toHaveBeenCalledTimes(1);
+      expect(
+        harness.dispatched.filter(
+          (action) =>
+            action.type ===
+            ReduxActionTypes.CELANWORKSMITH_OBJECT_QUERY_REQUESTED,
+        ),
+      ).toEqual([
+        expect.objectContaining({
+          payload: { widgetId: "OrdersTable", typeId: "PurchaseOrder" },
+        }),
+        expect.objectContaining({
+          payload: { widgetId: "$variable/orders", typeId: "PurchaseOrder" },
+        }),
+      ]);
+      expect(
+        harness.dispatched.filter(
+          (action) =>
+            action.type === ReduxActionTypes.CELANWORKSMITH_LINK_LOAD_REQUESTED,
+        ),
+      ).toEqual([
+        expect.objectContaining({
+          payload: {
+            typeId: "PurchaseOrder",
+            objectId: "PO001",
+            linkTypeId: "po_production",
+            force: true,
+          },
+        }),
+      ]);
+      expect(getLinkedObjects).toHaveBeenCalledWith(
+        "PurchaseOrder",
+        "PO001",
+        "po_production",
+        { offset: 0, limit: 100 },
+      );
+      expect(
+        harness.dispatched.some(
+          (action) => action.type === ReduxActionTypes.FETCH_PAGE_INIT,
+        ),
+      ).toBe(false);
     } finally {
       harness.task.cancel();
       await harness.task.toPromise();
