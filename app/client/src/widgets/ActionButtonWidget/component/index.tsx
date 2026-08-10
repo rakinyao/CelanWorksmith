@@ -86,6 +86,10 @@ export default function ActionButtonComponent({
   const isValid = !!actionId && validation.valid && !!request;
 
   useEffect(() => {
+    setLocalRequestId(undefined);
+  }, [actionId]);
+
+  useEffect(() => {
     updateWidgetMetaProperty("executionStatus", status);
     updateWidgetMetaProperty("lastResult", result);
     updateWidgetMetaProperty("lastError", error);

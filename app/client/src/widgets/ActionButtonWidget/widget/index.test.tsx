@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { Provider } from "react-redux";
 import configureStore from "redux-mock-store";
@@ -287,5 +287,98 @@ describe("ActionButtonComponent", () => {
     expect(screen.getByText(`Request ID: ${requestId}`)).toBeInTheDocument();
     expect(screen.getByText("Execution ID: execution-1")).toBeInTheDocument();
     expect(screen.getByText("Progress: 100%")).toBeInTheDocument();
+  });
+
+  test("clears the previous request when the selected Action changes", async () => {
+    const nextAction = {
+      ...action,
+      id: "cancel_schedule",
+      displayName: "Cancel schedule",
+    };
+    const initialStore = mockStore({
+      celanworksmithOntology: {
+        status: "ready",
+        objectTypes: [],
+        links: [],
+        functions: [],
+        actions: [action, nextAction],
+      },
+      celanworksmithExecution: {
+        functions: {},
+        actions: {},
+        requests: {},
+        functionCache: {},
+        inputs: {},
+      },
+    });
+    const view = render(
+      <Provider store={initialStore}>
+        <ActionButtonComponent
+          actionId="update_schedule"
+          label="Update schedule"
+          objectData={{ id: "PO001", typeId: "PurchaseOrder" }}
+          parameters={{ newScheduleDate: "2026-08-05" }}
+          updateWidgetMetaProperty={jest.fn()}
+        />
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Update schedule" }));
+    const dispatchedRequestId = initialStore.getActions()[0].payload.requestId;
+    const runningStore = mockStore({
+      celanworksmithOntology: {
+        status: "ready",
+        objectTypes: [],
+        links: [],
+        functions: [],
+        actions: [action, nextAction],
+      },
+      celanworksmithExecution: {
+        functions: {},
+        actions: {
+          update_schedule: {
+            changedObjects: [],
+            sideEffects: [],
+            meta: {
+              status: "running",
+              requestId: dispatchedRequestId,
+              parametersHash: "hash",
+            },
+          },
+        },
+        requests: {
+          [dispatchedRequestId]: {
+            requestId: dispatchedRequestId,
+            kind: "action",
+            entityId: "update_schedule",
+            status: "running",
+            parametersHash: "hash",
+          },
+        },
+        functionCache: {},
+        inputs: {},
+      },
+    });
+
+    view.rerender(
+      <Provider store={runningStore}>
+        <ActionButtonComponent
+          actionId="cancel_schedule"
+          label="Cancel schedule"
+          objectData={{ id: "PO001", typeId: "PurchaseOrder" }}
+          parameters={{}}
+          updateWidgetMetaProperty={jest.fn()}
+        />
+      </Provider>,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Cancel schedule" }),
+      ).toBeEnabled(),
+    );
+    expect(
+      screen.queryByText(`Request ID: ${dispatchedRequestId}`),
+    ).not.toBeInTheDocument();
   });
 });

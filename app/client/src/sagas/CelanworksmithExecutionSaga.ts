@@ -521,6 +521,15 @@ export function* executeCelanworksmithAction(
         return;
       }
 
+      if (!data.success) {
+        yield* completeActionFailure(payload, {
+          code: "BUSINESS_REJECTED",
+          message: data.message,
+        });
+
+        return;
+      }
+
       yield put(celanworksmithActionSucceeded(payload, data));
       const changedObjectTypeIds = getChangedObjectTypeIds(data.changedObjects);
 

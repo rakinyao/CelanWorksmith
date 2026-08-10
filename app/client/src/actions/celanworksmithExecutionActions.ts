@@ -27,6 +27,7 @@ interface CelanworksmithFunctionFailurePayload
 export interface CelanworksmithActionRequestPayload {
   actionId: string;
   request: CelanworksmithActionExecutionRequest;
+  applicationId?: string;
   requestId: string;
   parametersHash: string;
 }
@@ -114,9 +115,11 @@ const createActionRequestPayload = (
   actionId: string,
   request: unknown,
   requestId?: string,
+  applicationId?: string,
 ): CelanworksmithActionRequestPayload => ({
   actionId,
   request: request as CelanworksmithActionExecutionRequest,
+  ...(applicationId ? { applicationId } : {}),
   requestId: requestId || createCelanworksmithRequestId(),
   parametersHash: hashCelanworksmithParameters(
     getActionParametersForHash(request),
@@ -180,17 +183,29 @@ export const celanworksmithActionRun = (
   actionId: string,
   request: CelanworksmithActionExecutionRequest,
   requestId?: string,
+  applicationId?: string,
 ) => ({
   type: ReduxActionTypes.CELANWORKSMITH_ACTION_RUN,
-  payload: createActionRequestPayload(actionId, request, requestId),
+  payload: createActionRequestPayload(
+    actionId,
+    request,
+    requestId,
+    applicationId,
+  ),
 });
 
 export const celanworksmithActionRetry = (
   actionId: string,
   request: CelanworksmithActionExecutionRequest,
+  applicationId?: string,
 ) => ({
   type: ReduxActionTypes.CELANWORKSMITH_ACTION_RETRY,
-  payload: createActionRequestPayload(actionId, request),
+  payload: createActionRequestPayload(
+    actionId,
+    request,
+    undefined,
+    applicationId,
+  ),
 });
 
 export const celanworksmithActionCancel = (requestId: string) => ({

@@ -99,6 +99,124 @@ test("generates metadata fields and submits changed values through T5", () => {
   });
 });
 
+test("publishes Action failure feedback and progress for its submitted request", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const action = {
+    id: "update_supplier",
+    displayName: "Update supplier",
+    objectTypeId: "Supplier",
+    parameters: [],
+    requiresConfirmation: false,
+  };
+  const metadata = {
+    id: "Supplier",
+    displayName: "Supplier",
+    properties: [],
+  };
+  const initialStore = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: { Supplier: { status: "ready", metadata } },
+    },
+    celanworksmithOntology: {
+      status: "ready",
+      objectTypes: [],
+      links: [],
+      functions: [],
+      actions: [action],
+    },
+    celanworksmithExecution: {
+      functions: {},
+      actions: {},
+      requests: {},
+      functionCache: {},
+      inputs: {},
+    },
+  });
+  const view = render(
+    <Provider store={initialStore}>
+      <ObjectFormMode
+        actionId={action.id}
+        objectData={{ id: "S001", typeId: "Supplier", properties: {} }}
+        objectTypeId="Supplier"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  const requestId = initialStore.getActions()[0].payload.requestId;
+  const failedStore = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: { Supplier: { status: "ready", metadata } },
+    },
+    celanworksmithOntology: {
+      status: "ready",
+      objectTypes: [],
+      links: [],
+      functions: [],
+      actions: [action],
+    },
+    celanworksmithExecution: {
+      functions: {},
+      actions: {
+        [action.id]: {
+          changedObjects: [],
+          sideEffects: [],
+          meta: {
+            status: "failed",
+            requestId,
+            parametersHash: "hash",
+            progress: 100,
+            error: {
+              code: "BUSINESS_REJECTED",
+              message: "Supplier updates are locked.",
+            },
+          },
+        },
+      },
+      requests: {
+        [requestId]: {
+          requestId,
+          kind: "action",
+          entityId: action.id,
+          status: "failed",
+          parametersHash: "hash",
+          progress: 100,
+          error: {
+            code: "BUSINESS_REJECTED",
+            message: "Supplier updates are locked.",
+          },
+        },
+      },
+      functionCache: {},
+      inputs: {},
+    },
+  });
+
+  view.rerender(
+    <Provider store={failedStore}>
+      <ObjectFormMode
+        actionId={action.id}
+        objectData={{ id: "S001", typeId: "Supplier", properties: {} }}
+        objectTypeId="Supplier"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Action rejected: Supplier updates are locked.",
+  );
+  expect(screen.getByText(`Request ID: ${requestId}`)).toBeInTheDocument();
+  expect(screen.getByText("Progress: 100%")).toBeInTheDocument();
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith(
+    "executionProgress",
+    100,
+  );
+});
+
 test("resets local values when the bound object identity changes", () => {
   const updateWidgetMetaProperty = jest.fn();
   const store = mockStore({

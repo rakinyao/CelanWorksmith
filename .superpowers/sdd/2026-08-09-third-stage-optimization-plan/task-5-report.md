@@ -52,3 +52,11 @@
 
 - The repository is intentionally dirty from T0-T8/B0-B6/C0-C2. This commit stages only C3 hunks/files and leaves unrelated working-tree changes untouched.
 - Final post-format Jest and `git diff --check` evidence is incomplete because the user explicitly interrupted it. The earlier focused Jest and Prettier evidence remains valid.
+
+## Fix Round
+
+- Restored the Action payload/action creator `applicationId` contract required by the committed Saga call, and committed the retained `BUSINESS_REJECTED` branch for structurally valid rejected results.
+- RED: `yarn g:jest src/widgets/ActionButtonWidget/widget/index.test.tsx` failed because changing `actionId` retained the old request as `Running...` and disabled the newly selected Action.
+- GREEN: the ActionButton reset, Action creator application-context contract, Object Form failure/progress feedback, and retained Saga rejection regression passed in `7` suites and `75` tests.
+- Validation: targeted Prettier passed; focused ESLint completed with `0` errors and `37` pre-existing/style warnings; `git diff --check` and `git diff --cached --check` passed.
+- Concern: unrelated dirty Function context and Action validation refactors share the action creator/Saga files. This fix stages only the Action-specific contract and business-rejection hunks; all other dirty work remains unstaged.
