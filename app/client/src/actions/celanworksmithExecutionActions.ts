@@ -9,6 +9,7 @@ import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 export interface CelanworksmithFunctionRequestPayload {
   functionId: string;
   parameters: Record<string, unknown>;
+  applicationId?: string;
   requestId: string;
   parametersHash: string;
 }
@@ -78,7 +79,11 @@ export const hashCelanworksmithParameters = (
 export const getCelanworksmithFunctionCacheKey = (
   functionId: string,
   parametersHash: string,
-) => `${functionId}:${parametersHash}`;
+  applicationId?: string,
+) =>
+  applicationId
+    ? `${applicationId}:${functionId}:${parametersHash}`
+    : `${functionId}:${parametersHash}`;
 
 export const createCelanworksmithRequestId = () => {
   requestSequence += 1;
@@ -95,9 +100,11 @@ const createFunctionRequestPayload = (
   functionId: string,
   parameters: Record<string, unknown>,
   requestId?: string,
+  applicationId?: string,
 ): CelanworksmithFunctionRequestPayload => ({
   functionId,
   parameters,
+  ...(applicationId ? { applicationId } : {}),
   requestId: requestId || createCelanworksmithRequestId(),
   parametersHash: hashCelanworksmithParameters(parameters),
 });
@@ -130,17 +137,29 @@ export const celanworksmithFunctionRun = (
   functionId: string,
   parameters: Record<string, unknown>,
   requestId?: string,
+  applicationId?: string,
 ) => ({
   type: ReduxActionTypes.CELANWORKSMITH_FUNCTION_RUN,
-  payload: createFunctionRequestPayload(functionId, parameters, requestId),
+  payload: createFunctionRequestPayload(
+    functionId,
+    parameters,
+    requestId,
+    applicationId,
+  ),
 });
 
 export const celanworksmithFunctionRetry = (
   functionId: string,
   parameters: Record<string, unknown>,
+  applicationId?: string,
 ) => ({
   type: ReduxActionTypes.CELANWORKSMITH_FUNCTION_RETRY,
-  payload: createFunctionRequestPayload(functionId, parameters),
+  payload: createFunctionRequestPayload(
+    functionId,
+    parameters,
+    undefined,
+    applicationId,
+  ),
 });
 
 export const celanworksmithFunctionCancel = (requestId: string) => ({
