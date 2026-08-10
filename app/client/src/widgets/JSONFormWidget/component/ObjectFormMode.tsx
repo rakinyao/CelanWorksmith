@@ -9,6 +9,11 @@ import {
 import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
 import { normalizeObjectData } from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
 import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
+import {
+  getDefaultFieldControl,
+  getFieldLayout,
+  isFieldEditable,
+} from "celanworksmith/fieldMetadataLayout";
 
 interface ObjectFormModeProps {
   objectTypeId?: string;
@@ -17,32 +22,8 @@ interface ObjectFormModeProps {
   updateWidgetMetaProperty: (propertyName: string, value: unknown) => void;
 }
 
-const getInputType = (dataType: string) => {
-  if (dataType === "BOOLEAN") return "checkbox";
-
-  if (dataType === "INTEGER" || dataType === "DECIMAL") return "number";
-
-  if (dataType === "DATETIME") return "datetime-local";
-
-  return "text";
-};
-
-const SUPPORTED_DATA_TYPES = new Set([
-  "STRING",
-  "INTEGER",
-  "DECIMAL",
-  "BOOLEAN",
-  "DATETIME",
-  "ENUM",
-  "REFERENCE",
-]);
-
 const getEnumValues = (property: CelanworksmithProperty, value: unknown) => {
-  const configuredValues = (
-    property as CelanworksmithProperty & {
-      enumValues?: unknown;
-    }
-  ).enumValues;
+  const configuredValues = property.enumValues;
 
   const currentValue =
     typeof value === "string" && value.length > 0 ? value : undefined;
@@ -179,20 +160,26 @@ export default function ObjectFormMode({
     );
   }
 
+  const fieldLayout = getFieldLayout(metadata.properties, {
+    includeDerived: true,
+  });
+  const visibleProperties = fieldLayout.flatMap((group) => group.properties);
+
   const updateValue = (
-    propertyId: string,
-    dataType: string,
+    property: CelanworksmithProperty,
     value: string | boolean,
   ) => {
+    if (!isFieldEditable(property)) return;
+
     dirtyRef.current = true;
     setValues((current) => ({
       ...current,
-      [propertyId]: parseValue(dataType, value),
+      [property.id]: parseValue(property.dataType, value),
     }));
   };
 
   const submit = () => {
-    const missing = metadata.properties.find(
+    const missing = visibleProperties.find(
       (property) =>
         property.required &&
         (values[property.id] === undefined || values[property.id] === ""),
@@ -229,77 +216,84 @@ export default function ObjectFormMode({
         submit();
       }}
     >
-      {metadata.properties.map((property) => {
-        if (!SUPPORTED_DATA_TYPES.has(property.dataType)) {
-          return (
-            <div key={property.id} role="alert">
-              Unsupported data type: {property.dataType}
-            </div>
-          );
-        }
+      {fieldLayout.map((group) => (
+        <fieldset key={group.id}>
+          <legend>{group.label}</legend>
+          {group.properties.map((property) => {
+            const control = getDefaultFieldControl(property.dataType);
 
-        const inputType = getInputType(property.dataType);
-        const value = values[property.id];
-        const disabled = property.readOnly || property.derived;
+            if (!control) {
+              return (
+                <div key={property.id} role="alert">
+                  Unsupported data type: {property.dataType}
+                </div>
+              );
+            }
 
-        if (property.dataType === "ENUM") {
-          const enumValues = getEnumValues(property, value);
+            const value = values[property.id];
+            const disabled = !isFieldEditable(property);
 
-          return (
-            <label key={property.id}>
-              {property.displayName}
-              <select
-                disabled={disabled}
-                name={property.id}
-                onChange={(event) =>
-                  updateValue(
-                    property.id,
-                    property.dataType,
-                    event.target.value,
-                  )
-                }
-                required={property.required}
-                value={String(value ?? "")}
-              >
-                {!property.required && <option value="" />}
-                {!enumValues.length && (
-                  <option disabled value="">
-                    No values available
-                  </option>
-                )}
-                {enumValues.map((enumValue) => (
-                  <option key={enumValue} value={enumValue}>
-                    {enumValue}
-                  </option>
-                ))}
-              </select>
-            </label>
-          );
-        }
+            if (control === "select") {
+              const enumValues = getEnumValues(property, value);
 
-        return (
-          <label key={property.id}>
-            {property.displayName}
-            <input
-              checked={inputType === "checkbox" ? Boolean(value) : undefined}
-              disabled={disabled}
-              name={property.id}
-              onChange={(event) =>
-                updateValue(
-                  property.id,
-                  property.dataType,
-                  inputType === "checkbox"
-                    ? event.target.checked
-                    : event.target.value,
-                )
-              }
-              required={property.required}
-              type={inputType}
-              value={inputType === "checkbox" ? undefined : String(value ?? "")}
-            />
-          </label>
-        );
-      })}
+              return (
+                <label key={property.id}>
+                  {property.displayName}
+                  <select
+                    disabled={disabled}
+                    name={property.id}
+                    onChange={(event) =>
+                      updateValue(property, event.target.value)
+                    }
+                    required={property.required}
+                    value={String(value ?? "")}
+                  >
+                    {!property.required && <option value="" />}
+                    {!enumValues.length && (
+                      <option disabled value="">
+                        No values available
+                      </option>
+                    )}
+                    {enumValues.map((enumValue) => (
+                      <option key={enumValue} value={enumValue}>
+                        {enumValue}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              );
+            }
+
+            const inputType = control === "reference" ? "text" : control;
+
+            return (
+              <label key={property.id}>
+                {property.displayName}
+                <input
+                  checked={
+                    inputType === "checkbox" ? Boolean(value) : undefined
+                  }
+                  disabled={disabled}
+                  name={property.id}
+                  onChange={(event) =>
+                    updateValue(
+                      property,
+                      inputType === "checkbox"
+                        ? event.target.checked
+                        : event.target.value,
+                    )
+                  }
+                  required={property.required}
+                  type={inputType}
+                  value={
+                    inputType === "checkbox" ? undefined : String(value ?? "")
+                  }
+                />
+              </label>
+            );
+          })}
+        </fieldset>
+      ))}
       <button
         disabled={!actionId || status === "queued" || status === "running"}
         type="submit"

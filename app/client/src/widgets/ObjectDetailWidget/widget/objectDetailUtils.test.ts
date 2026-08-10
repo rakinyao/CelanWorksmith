@@ -145,6 +145,92 @@ describe("ObjectDetail object data utilities", () => {
     ).toEqual(["basic", "business", "derived"]);
   });
 
+  test("applies metadata groups, order, and hidden fields to the default detail layout", () => {
+    const object = normalizeObjectData({
+      ...flatPurchaseOrder,
+      amount: 100,
+      internalNote: "not visible",
+    })!;
+    const metadata = {
+      ...purchaseOrderMetadata,
+      properties: [
+        {
+          ...purchaseOrderMetadata.properties[0],
+          group: "Commercial",
+          order: 20,
+        },
+        {
+          ...purchaseOrderMetadata.properties[1],
+          group: "Commercial",
+          order: 30,
+        },
+        {
+          dataType: "DECIMAL",
+          derived: false,
+          displayName: "Amount",
+          id: "amount",
+          readOnly: false,
+          required: false,
+          group: "Commercial",
+          order: 5,
+        },
+        {
+          dataType: "STRING",
+          derived: false,
+          displayName: "Internal note",
+          hidden: true,
+          id: "internalNote",
+          readOnly: false,
+          required: false,
+        },
+      ],
+    };
+
+    expect(
+      groupObjectProperties(
+        object,
+        metadata,
+        ObjectDetailDisplayMode.BUSINESS_AND_DERIVED,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          id: "group:Commercial",
+          label: "Commercial",
+          properties: [
+            {
+              dataType: "DECIMAL",
+              id: "amount",
+              label: "Amount",
+              value: 100,
+            },
+            {
+              dataType: "ENUM",
+              id: "status",
+              label: "Status",
+              value: "DELAYED",
+            },
+            {
+              dataType: "INTEGER",
+              id: "delayDays",
+              label: "Delay Days",
+              value: 8,
+            },
+          ],
+        },
+      ]),
+    );
+    expect(
+      groupObjectProperties(
+        object,
+        metadata,
+        ObjectDetailDisplayMode.ALL_METADATA,
+      )
+        .flatMap((group) => group.properties)
+        .map((property) => property.id),
+    ).not.toContain("internalNote");
+  });
+
   test("shows unknown runtime fields only in all-metadata mode", () => {
     const object = normalizeObjectData({
       ...flatPurchaseOrder,

@@ -2,6 +2,7 @@ import type {
   CelanworksmithObjectType,
   CelanworksmithProperty,
 } from "api/CelanworksmithAPI";
+import { getFieldLayout } from "celanworksmith/fieldMetadataLayout";
 
 export enum ObjectDetailDisplayMode {
   BUSINESS_ONLY = "BUSINESS_ONLY",
@@ -23,7 +24,7 @@ export interface ObjectDetailProperty {
 }
 
 export interface ObjectDetailPropertyGroup {
-  id: "basic" | "business" | "derived";
+  id: string;
   label: string;
   properties: ObjectDetailProperty[];
 }
@@ -118,31 +119,18 @@ export const groupObjectProperties = (
   ];
 
   const metadataProperties = metadata?.properties || [];
-  const businessProperties = metadataProperties
-    .filter((property) => !property.derived)
-    .map((property) => toProperty(property, object.properties));
-  const derivedProperties = metadataProperties
-    .filter((property) => property.derived)
-    .map((property) => toProperty(property, object.properties));
+  const fieldGroups = getFieldLayout(metadataProperties, {
+    includeDerived: displayMode !== ObjectDetailDisplayMode.BUSINESS_ONLY,
+  });
 
-  if (businessProperties.length) {
-    groups.push({
-      id: "business",
-      label: "Business",
-      properties: businessProperties,
-    });
-  }
-
-  if (
-    derivedProperties.length &&
-    displayMode !== ObjectDetailDisplayMode.BUSINESS_ONLY
-  ) {
-    groups.push({
-      id: "derived",
-      label: "Derived",
-      properties: derivedProperties,
-    });
-  }
+  groups.push(
+    ...fieldGroups.map((group) => ({
+      ...group,
+      properties: group.properties.map((property) =>
+        toProperty(property, object.properties),
+      ),
+    })),
+  );
 
   if (displayMode === ObjectDetailDisplayMode.ALL_METADATA) {
     const metadataIds = new Set(

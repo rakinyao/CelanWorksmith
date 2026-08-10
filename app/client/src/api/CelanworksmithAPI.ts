@@ -13,6 +13,11 @@ export interface CelanworksmithProperty {
   required: boolean;
   readOnly: boolean;
   derived: boolean;
+  group?: string;
+  order?: number;
+  hidden?: boolean;
+  enumValues?: string[];
+  referenceTypeId?: string;
 }
 
 export interface CelanworksmithObjectType {

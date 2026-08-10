@@ -379,6 +379,92 @@ test("maps supported metadata types and reports unsupported fields", () => {
   expect(screen.getByText("Unsupported data type: BINARY")).toBeInTheDocument();
 });
 
+test("renders Object form fields in metadata layout order and keeps hidden fields absent", () => {
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          metadata: {
+            id: "PurchaseOrder",
+            displayName: "Purchase Order",
+            properties: [
+              {
+                dataType: "STRING",
+                derived: false,
+                displayName: "Supplier",
+                group: "Commercial",
+                id: "supplierId",
+                order: 20,
+                readOnly: false,
+                required: false,
+              },
+              {
+                dataType: "DECIMAL",
+                derived: false,
+                displayName: "Amount",
+                group: "Commercial",
+                id: "amount",
+                order: 10,
+                readOnly: false,
+                required: false,
+              },
+              {
+                dataType: "STRING",
+                derived: false,
+                displayName: "Internal note",
+                hidden: true,
+                id: "internalNote",
+                readOnly: false,
+                required: false,
+              },
+              {
+                dataType: "INTEGER",
+                derived: true,
+                displayName: "Delay days",
+                group: "Commercial",
+                id: "delayDays",
+                order: 30,
+                readOnly: false,
+                required: false,
+              },
+            ],
+          },
+          status: "ready",
+        },
+      },
+    },
+    celanworksmithOntology: { actions: [] },
+    celanworksmithExecution: { actions: {}, requests: {} },
+  });
+
+  render(
+    <Provider store={store}>
+      <ObjectFormMode
+        objectData={{
+          id: "PO001",
+          typeId: "PurchaseOrder",
+          properties: {
+            amount: 12.5,
+            delayDays: 3,
+            internalNote: "not visible",
+            supplierId: "S001",
+          },
+        }}
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={jest.fn()}
+      />
+    </Provider>,
+  );
+
+  expect(screen.getByText("Commercial")).toBeInTheDocument();
+  expect(screen.queryByLabelText("Internal note")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Delay days")).toBeDisabled();
+  expect(
+    Array.from(document.querySelectorAll("input")).map((input) => input.name),
+  ).toEqual(["amount", "supplierId", "delayDays"]);
+});
+
 test("renders loading, permission, and type mismatch Object form states distinctly", () => {
   const updateWidgetMetaProperty = jest.fn();
   const baseObject = {
