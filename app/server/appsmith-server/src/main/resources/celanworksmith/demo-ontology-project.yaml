@@ -1,0 +1,74 @@
+projectId: celanworksmith-demo
+version: 1.0.0
+schemaVersion: 1
+objectTypes:
+  - id: PurchaseOrder
+    displayName: Purchase Order
+    primaryKey: id
+    properties:
+      - id: supplierId
+        displayName: Supplier
+        dataType: REFERENCE
+        required: true
+        readOnly: false
+        derived: false
+        referenceTypeId: Supplier
+      - id: status
+        displayName: Status
+        dataType: ENUM
+        required: true
+        readOnly: false
+        derived: false
+        enumValues: [CONFIRMED, IN_PROGRESS, DELAYED]
+      - id: amount
+        displayName: Amount
+        dataType: DECIMAL
+        required: true
+        readOnly: false
+        derived: false
+      - id: delayDays
+        displayName: Delay Days
+        dataType: INTEGER
+        required: false
+        readOnly: true
+        derived: true
+  - id: Supplier
+    displayName: Supplier
+    primaryKey: id
+    properties:
+      - id: name
+        displayName: Name
+        dataType: STRING
+        required: true
+        readOnly: false
+        derived: false
+linkTypes:
+  - id: supplier_orders
+    displayName: Supplier Orders
+    sourceTypeId: Supplier
+    targetTypeId: PurchaseOrder
+    cardinality: ONE_TO_MANY
+functions:
+  - id: CalculateDelayDays
+    displayName: Calculate Delay Days
+    returnType: INTEGER
+    parameters:
+      - id: poId
+        displayName: Purchase Order
+        dataType: STRING
+        required: true
+        readOnly: false
+        derived: false
+    sideEffectFree: true
+actions:
+  - id: UpdateProductionSchedule
+    displayName: Update Production Schedule
+    objectTypeId: PurchaseOrder
+    parameters:
+      - id: newScheduleDate
+        displayName: New Schedule Date
+        dataType: DATETIME
+        required: true
+        readOnly: false
+        derived: false
+    requiresConfirmation: true
