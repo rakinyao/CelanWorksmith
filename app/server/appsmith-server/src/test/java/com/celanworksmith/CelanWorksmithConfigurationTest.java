@@ -3,6 +3,8 @@ package com.celanworksmith;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
+import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
+import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
@@ -19,6 +21,7 @@ class CelanWorksmithConfigurationTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(CelanWorksmithConfiguration.class)
             .withBean(OntologyProjectRegistry.class, () -> mock(OntologyProjectRegistry.class))
+            .withBean(OntologyMetadataSnapshotRepository.class, () -> mock(OntologyMetadataSnapshotRepository.class))
             .withBean(
                     CelanworksmithApplicationBindingRepository.class,
                     () -> mock(CelanworksmithApplicationBindingRepository.class));
@@ -32,6 +35,11 @@ class CelanWorksmithConfigurationTest {
             assertThat(context.getBean(ProductionOntologyProvider.class)).isNotNull();
             assertThat(context.getBean(RuntimeProvider.class)).isInstanceOf(MongoRuntimeDataProvider.class);
         });
+    }
+
+    @Test
+    void registersTheOntologySnapshotService() {
+        contextRunner.run(context -> assertThat(context).hasSingleBean(OntologySnapshotService.class));
     }
 
     @Test

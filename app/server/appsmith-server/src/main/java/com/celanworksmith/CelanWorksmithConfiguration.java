@@ -6,6 +6,8 @@ import com.celanworksmith.application.CelanworksmithApplicationBindingService;
 import com.celanworksmith.ontology.adapter.mock.MockOntologyProvider;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
+import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
+import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.ontology.project.OntologyProjectYamlImporter;
@@ -22,6 +24,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import java.time.Clock;
+
 @Configuration
 @EnableConfigurationProperties(MongoRuntimeProperties.class)
 public class CelanWorksmithConfiguration {
@@ -34,6 +38,11 @@ public class CelanWorksmithConfiguration {
     public OntologyProjectService ontologyProjectService(
             OntologyProjectRegistry registry, OntologyProjectYamlImporter importer) {
         return new OntologyProjectService(registry, importer);
+    }
+
+    @Bean
+    public OntologySnapshotService ontologySnapshotService(OntologyMetadataSnapshotRepository repository) {
+        return new OntologySnapshotService(repository, Clock.systemUTC());
     }
 
     @Bean
