@@ -4,11 +4,53 @@
       "sectionName": "Ontology Project",
       "children": [
         {
+          "label": "Project Name key",
+          "configProperty": "datasourceConfiguration.properties[5].key",
+          "initialValue": "projectName",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
+        },
+        {
+          "label": "Project Name",
+          "configProperty": "datasourceConfiguration.properties[5].value",
+          "initialValue": "",
+          "controlType": "INPUT_TEXT",
+          "disabled": true
+        },
+        {
+          "label": "Source Kind key",
+          "configProperty": "datasourceConfiguration.properties[6].key",
+          "initialValue": "sourceKind",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
+        },
+        {
+          "label": "Source Kind",
+          "configProperty": "datasourceConfiguration.properties[6].value",
+          "initialValue": "",
+          "controlType": "INPUT_TEXT",
+          "disabled": true
+        },
+        {
+          "label": "Project ID key",
+          "configProperty": "datasourceConfiguration.properties[0].key",
+          "initialValue": "projectId",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
+        },
+        {
           "label": "Project ID",
           "configProperty": "datasourceConfiguration.properties[0].value",
           "initialValue": "",
           "controlType": "INPUT_TEXT",
           "disabled": true
+        },
+        {
+          "label": "Project Version key",
+          "configProperty": "datasourceConfiguration.properties[1].key",
+          "initialValue": "projectVersion",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
         },
         {
           "label": "Project Version",
@@ -18,6 +60,13 @@
           "disabled": true
         },
         {
+          "label": "Metadata Snapshot ID key",
+          "configProperty": "datasourceConfiguration.properties[2].key",
+          "initialValue": "metadataSnapshotId",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
+        },
+        {
           "label": "Metadata Snapshot ID",
           "configProperty": "datasourceConfiguration.properties[2].value",
           "initialValue": "",
@@ -25,11 +74,25 @@
           "disabled": true
         },
         {
+          "label": "Metadata Digest key",
+          "configProperty": "datasourceConfiguration.properties[3].key",
+          "initialValue": "metadataDigest",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
+        },
+        {
           "label": "Metadata Digest",
           "configProperty": "datasourceConfiguration.properties[3].value",
           "initialValue": "",
           "controlType": "INPUT_TEXT",
           "disabled": true
+        },
+        {
+          "label": "Runtime Provider ID key",
+          "configProperty": "datasourceConfiguration.properties[4].key",
+          "initialValue": "runtimeProviderId",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
         },
         {
           "label": "Runtime Provider ID",
