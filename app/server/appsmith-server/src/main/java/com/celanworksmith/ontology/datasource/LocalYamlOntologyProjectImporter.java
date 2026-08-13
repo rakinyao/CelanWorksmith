@@ -24,6 +24,11 @@ public class LocalYamlOntologyProjectImporter implements OntologyProjectImportSo
     }
 
     @Override
+    public Kind sourceKind() {
+        return Kind.LOCAL_YAML;
+    }
+
+    @Override
     public Mono<OntologyMetadataSnapshot> importProject(OntologyProjectImportRequest request) {
         if (request == null || request.sourceKind() != Kind.LOCAL_YAML) {
             return Mono.error(new IllegalArgumentException("Local YAML importer requires a local YAML request"));

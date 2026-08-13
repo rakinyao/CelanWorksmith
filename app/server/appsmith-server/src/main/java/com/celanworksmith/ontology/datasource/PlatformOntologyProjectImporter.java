@@ -19,6 +19,11 @@ public class PlatformOntologyProjectImporter implements OntologyProjectImportSou
     }
 
     @Override
+    public Kind sourceKind() {
+        return Kind.PLATFORM_RELEASE;
+    }
+
+    @Override
     public Mono<OntologyMetadataSnapshot> importProject(OntologyProjectImportRequest request) {
         if (request == null || request.sourceKind() != Kind.PLATFORM_RELEASE) {
             return Mono.error(new IllegalArgumentException("Platform importer requires a platform release request"));

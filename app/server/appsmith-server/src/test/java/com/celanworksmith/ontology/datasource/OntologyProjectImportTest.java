@@ -40,8 +40,6 @@ class OntologyProjectImportTest {
                     assertThat(snapshot.runtimeProviderId()).isEqualTo("demo-mongo-readonly");
                 })
                 .verifyComplete();
-
-        verify(client).fetchRelease("release-2026-08");
     }
 
     @Test
@@ -61,6 +59,8 @@ class OntologyProjectImportTest {
                     assertThat(snapshot.runtimeProviderId()).isEqualTo("platform-mongo-readonly");
                 })
                 .verifyComplete();
+
+        verify(client).fetchRelease("release-2026-08");
     }
 
     @Test

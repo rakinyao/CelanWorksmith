@@ -1,13 +1,20 @@
 package com.celanworksmith;
 
+import com.appsmith.server.datasources.base.DatasourceService;
+import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
 import com.celanworksmith.application.CelanworksmithApplicationBindingResolver;
 import com.celanworksmith.application.CelanworksmithApplicationBindingService;
 import com.celanworksmith.ontology.adapter.mock.MockOntologyProvider;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
+import com.celanworksmith.ontology.datasource.DemoOntologyProjectBootstrap;
+import com.celanworksmith.ontology.datasource.LocalYamlOntologyProjectImporter;
+import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
+import com.celanworksmith.ontology.datasource.OntologyProjectImportSource;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
+import com.celanworksmith.ontology.datasource.PlatformOntologyProjectImporter;
 import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
 import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
@@ -26,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
 
@@ -57,6 +65,40 @@ public class CelanWorksmithConfiguration {
     public RuntimeProviderCompatibilityValidator runtimeProviderCompatibilityValidator(
             RuntimeProviderRegistry runtimeProviderRegistry) {
         return new RuntimeProviderCompatibilityValidator(runtimeProviderRegistry);
+    }
+
+    @Bean
+    public LocalYamlOntologyProjectImporter localYamlOntologyProjectImporter(OntologySnapshotService snapshotService) {
+        return new LocalYamlOntologyProjectImporter(snapshotService);
+    }
+
+    @Bean
+    public PlatformOntologyProjectImporter platformOntologyProjectImporter(OntologySnapshotService snapshotService) {
+        return new PlatformOntologyProjectImporter(
+                releaseId -> reactor.core.publisher.Mono.error(
+                        new IllegalStateException("Ontology platform release client is not configured: " + releaseId)),
+                snapshotService);
+    }
+
+    @Bean
+    public DemoOntologyProjectBootstrap demoOntologyProjectBootstrap(LocalYamlOntologyProjectImporter yamlImporter) {
+        try (var resource = getClass().getResourceAsStream("/celanworksmith/demo-ontology-project.yaml")) {
+            if (resource == null) {
+                throw new IllegalStateException("Demo ontology project resource is missing");
+            }
+            return new DemoOntologyProjectBootstrap(yamlImporter, resource.readAllBytes());
+        } catch (IOException exception) {
+            throw new IllegalStateException("Could not load demo ontology project resource", exception);
+        }
+    }
+
+    @Bean
+    public OntologyDatasourceService ontologyDatasourceService(
+            WorkspaceService workspaceService,
+            DatasourceService datasourceService,
+            List<OntologyProjectImportSource> importers,
+            RuntimeProviderCompatibilityValidator compatibilityValidator) {
+        return new OntologyDatasourceService(workspaceService, datasourceService, importers, compatibilityValidator);
     }
 
     @Bean

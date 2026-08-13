@@ -23,6 +23,11 @@ public class DemoOntologyProjectBootstrap implements OntologyProjectImportSource
     }
 
     @Override
+    public Kind sourceKind() {
+        return Kind.DEMO;
+    }
+
+    @Override
     public Mono<OntologyMetadataSnapshot> importProject(OntologyProjectImportRequest request) {
         if (request == null || request.sourceKind() != Kind.DEMO) {
             return Mono.error(new IllegalArgumentException("Demo importer requires a demo request"));

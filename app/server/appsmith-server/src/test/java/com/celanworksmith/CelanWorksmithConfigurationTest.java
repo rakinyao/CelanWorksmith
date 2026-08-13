@@ -1,8 +1,11 @@
 package com.celanworksmith;
 
+import com.appsmith.server.datasources.base.DatasourceService;
+import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
+import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
@@ -26,7 +29,9 @@ class CelanWorksmithConfigurationTest {
             .withBean(OntologyMetadataSnapshotRepository.class, () -> mock(OntologyMetadataSnapshotRepository.class))
             .withBean(
                     CelanworksmithApplicationBindingRepository.class,
-                    () -> mock(CelanworksmithApplicationBindingRepository.class));
+                    () -> mock(CelanworksmithApplicationBindingRepository.class))
+            .withBean(WorkspaceService.class, () -> mock(WorkspaceService.class))
+            .withBean(DatasourceService.class, () -> mock(DatasourceService.class));
 
     @Test
     void defaultsToProjectAndMongoProviders() {
@@ -52,6 +57,11 @@ class CelanWorksmithConfigurationTest {
             assertThat(context.getBean(RuntimeProviderRegistry.class).resolveRequired("demo-mongo-readonly"))
                     .isInstanceOf(MongoRuntimeDataProvider.class);
         });
+    }
+
+    @Test
+    void registersTheOntologyDatasourceLifecycleService() {
+        contextRunner.run(context -> assertThat(context).hasSingleBean(OntologyDatasourceService.class));
     }
 
     @Test

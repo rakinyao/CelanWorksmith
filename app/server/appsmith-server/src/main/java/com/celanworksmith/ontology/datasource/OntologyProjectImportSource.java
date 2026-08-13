@@ -9,5 +9,7 @@ public interface OntologyProjectImportSource {
         DEMO
     }
 
+    Kind sourceKind();
+
     Mono<OntologyMetadataSnapshot> importProject(OntologyProjectImportRequest request);
 }
