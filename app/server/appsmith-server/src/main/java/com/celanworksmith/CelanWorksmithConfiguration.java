@@ -1,6 +1,7 @@
 package com.celanworksmith;
 
 import com.appsmith.server.datasources.base.DatasourceService;
+import com.appsmith.server.datasourcestorages.base.DatasourceStorageService;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
@@ -108,9 +109,11 @@ public class CelanWorksmithConfiguration {
     @Bean
     public OntologyDatasourceCompatibilityService ontologyDatasourceCompatibilityService(
             DatasourceService datasourceService,
+            DatasourceStorageService datasourceStorageService,
             NewActionRepository actionRepository,
             OntologyMetadataSnapshotRepository snapshotRepository) {
-        return new OntologyDatasourceCompatibilityService(datasourceService, actionRepository, snapshotRepository);
+        return new OntologyDatasourceCompatibilityService(
+                datasourceService, datasourceStorageService, actionRepository, snapshotRepository);
     }
 
     @Bean

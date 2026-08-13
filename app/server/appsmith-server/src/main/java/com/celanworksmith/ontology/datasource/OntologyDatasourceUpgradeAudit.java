@@ -3,6 +3,8 @@ package com.celanworksmith.ontology.datasource;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -37,5 +39,12 @@ class MongoOntologyDatasourceUpgradeAuditStore implements OntologyDatasourceUpgr
     @Override
     public Mono<OntologyDatasourceUpgradeAudit> findById(String auditId) {
         return template.findById(auditId, OntologyDatasourceUpgradeAudit.class);
+    }
+
+    @Override
+    public Mono<OntologyDatasourceUpgradeAudit> findByRollbackOfAuditId(String rollbackOfAuditId) {
+        return template.findOne(
+                Query.query(Criteria.where("rollbackOfAuditId").is(rollbackOfAuditId)),
+                OntologyDatasourceUpgradeAudit.class);
     }
 }

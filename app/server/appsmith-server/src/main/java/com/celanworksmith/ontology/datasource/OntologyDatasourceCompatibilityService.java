@@ -8,6 +8,7 @@ import com.appsmith.external.models.DatasourceStorageDTO;
 import com.appsmith.external.models.Property;
 import com.appsmith.server.acl.AclPermission;
 import com.appsmith.server.datasources.base.DatasourceService;
+import com.appsmith.server.datasourcestorages.base.DatasourceStorageService;
 import com.appsmith.server.domains.NewAction;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
@@ -26,14 +27,17 @@ public class OntologyDatasourceCompatibilityService {
     private static final String METADATA_DIGEST = "metadataDigest";
 
     private final DatasourceService datasourceService;
+    private final DatasourceStorageService datasourceStorageService;
     private final NewActionRepository actionRepository;
     private final OntologyMetadataSnapshotRepository snapshotRepository;
 
     public OntologyDatasourceCompatibilityService(
             DatasourceService datasourceService,
+            DatasourceStorageService datasourceStorageService,
             NewActionRepository actionRepository,
             OntologyMetadataSnapshotRepository snapshotRepository) {
         this.datasourceService = datasourceService;
+        this.datasourceStorageService = datasourceStorageService;
         this.actionRepository = actionRepository;
         this.snapshotRepository = snapshotRepository;
     }
@@ -55,6 +59,14 @@ public class OntologyDatasourceCompatibilityService {
         }
         return datasourceService
                 .findById(datasourceId, AclPermission.READ_DATASOURCES)
+                .flatMap(datasource -> datasourceStorageService
+                        .findByDatasource(datasource)
+                        .map(datasourceStorageService::createDatasourceStorageDTOFromDatasourceStorage)
+                        .collectMap(DatasourceStorageDTO::getEnvironmentId)
+                        .map(storages -> {
+                            datasource.setDatasourceStorages(storages);
+                            return datasource;
+                        }))
                 .filter(datasource -> OntologyDatasourceService.PLUGIN_ID.equals(datasource.getPluginId()))
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Ontology datasource was not found")));
     }

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class OntologyDatasourceUpgradeService {
     private static final String PROJECT_ID = "projectId";
@@ -85,13 +86,31 @@ public class OntologyDatasourceUpgradeService {
                                 compatibilityService.candidateSnapshot(original.beforeSnapshotId()))
                         .flatMap(values -> compatibilityService
                                 .snapshot(values.getT1())
-                                .flatMap(current -> updateAndAudit(
-                                        values.getT1(),
-                                        current,
-                                        values.getT2(),
-                                        actor,
-                                        original.report(),
-                                        original.id()))));
+                                .flatMap(current -> {
+                                    if (!original.afterSnapshotId().equals(current.id())
+                                            || !original.afterDigest().equals(current.metadataDigest())) {
+                                        return Mono.error(new IllegalArgumentException(
+                                                "Ontology datasource no longer matches the audited upgrade"));
+                                    }
+                                    return auditStore
+                                            .findByRollbackOfAuditId(original.id())
+                                            .hasElement()
+                                            .flatMap(hasRollback -> {
+                                                if (hasRollback) {
+                                                    return Mono.error(
+                                                            new IllegalArgumentException(
+                                                                    "Ontology datasource upgrade audit was already rolled back"));
+                                                }
+                                                return enforceOneActiveVersion(values.getT1(), values.getT2())
+                                                        .then(updateAndAudit(
+                                                                values.getT1(),
+                                                                current,
+                                                                values.getT2(),
+                                                                actor,
+                                                                original.report(),
+                                                                original.id()));
+                                            });
+                                })));
     }
 
     private Mono<Void> enforceOneActiveVersion(Datasource datasource, OntologyMetadataSnapshot candidate) {
@@ -102,11 +121,11 @@ public class OntologyDatasourceUpgradeService {
                 .distinct()
                 .flatMap(applicationId -> actionRepository
                         .findByApplicationId(applicationId, AclPermission.READ_ACTIONS)
-                        .flatMap(action -> datasourceId(action)
+                        .flatMap(action -> datasourceIds(action)
                                 .filter(otherDatasourceId -> !datasource.getId().equals(otherDatasourceId)))
                         .distinct()
-                        .flatMap(otherDatasourceId -> datasourceService
-                                .findById(otherDatasourceId, AclPermission.READ_DATASOURCES)
+                        .flatMap(otherDatasourceId -> compatibilityService
+                                .datasource(otherDatasourceId)
                                 .filter(otherDatasource ->
                                         OntologyDatasourceService.PLUGIN_ID.equals(otherDatasource.getPluginId()))
                                 .filter(this::isActive)
@@ -126,8 +145,8 @@ public class OntologyDatasourceUpgradeService {
             String actor,
             OntologyDatasourceCompatibilityService.Report report,
             String rollbackOfAuditId) {
-        DatasourceStorageDTO storage = OntologyDatasourceCompatibilityService.requiredStorage(datasource);
-        storage.setDatasourceConfiguration(configuration(storage.getDatasourceConfiguration(), candidate));
+        DatasourceStorageDTO storage =
+                updatedStorage(OntologyDatasourceCompatibilityService.requiredStorage(datasource), candidate);
         OntologyDatasourceUpgradeAudit audit = new OntologyDatasourceUpgradeAudit(
                 UUID.randomUUID().toString(),
                 datasource.getId(),
@@ -160,21 +179,33 @@ public class OntologyDatasourceUpgradeService {
         properties.put(METADATA_DIGEST, new Property(METADATA_DIGEST, snapshot.metadataDigest()));
         properties.put(RUNTIME_PROVIDER_ID, new Property(RUNTIME_PROVIDER_ID, snapshot.runtimeProviderId()));
         properties.put(SOURCE_KIND, new Property(SOURCE_KIND, snapshot.sourceKind()));
-        return DatasourceConfiguration.builder()
+        return existing.toBuilder()
                 .properties(new ArrayList<>(properties.values()))
                 .build();
     }
 
-    private static Mono<String> datasourceId(NewAction action) {
-        return java.util.stream.Stream.of(action.getUnpublishedAction(), action.getPublishedAction())
-                .filter(java.util.Objects::nonNull)
+    private static reactor.core.publisher.Flux<String> datasourceIds(NewAction action) {
+        return reactor.core.publisher.Flux.fromStream(() -> Stream.concat(
+                        Stream.ofNullable(action.getUnpublishedAction()),
+                        Stream.ofNullable(action.getPublishedAction())))
                 .map(actionDto -> actionDto.getDatasource())
                 .filter(java.util.Objects::nonNull)
                 .map(Datasource::getId)
-                .filter(id -> id != null && !id.isBlank())
-                .findFirst()
-                .map(Mono::just)
-                .orElseGet(Mono::empty);
+                .filter(id -> id != null && !id.isBlank());
+    }
+
+    private DatasourceStorageDTO updatedStorage(DatasourceStorageDTO existing, OntologyMetadataSnapshot candidate) {
+        DatasourceStorageDTO updated = new DatasourceStorageDTO();
+        updated.setId(existing.getId());
+        updated.setDatasourceId(existing.getDatasourceId());
+        updated.setEnvironmentId(existing.getEnvironmentId());
+        updated.setDatasourceConfiguration(configuration(existing.getDatasourceConfiguration(), candidate));
+        updated.setIsConfigured(existing.getIsConfigured());
+        updated.setInvalids(existing.getInvalids());
+        updated.setMessages(existing.getMessages());
+        updated.setPluginId(existing.getPluginId());
+        updated.setWorkspaceId(existing.getWorkspaceId());
+        return updated;
     }
 
     private boolean isActive(Datasource datasource) {
@@ -192,5 +223,7 @@ public class OntologyDatasourceUpgradeService {
         Mono<OntologyDatasourceUpgradeAudit> save(OntologyDatasourceUpgradeAudit audit);
 
         Mono<OntologyDatasourceUpgradeAudit> findById(String auditId);
+
+        Mono<OntologyDatasourceUpgradeAudit> findByRollbackOfAuditId(String rollbackOfAuditId);
     }
 }
