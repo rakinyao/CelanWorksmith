@@ -1,6 +1,7 @@
 package com.celanworksmith.ontology.datasource;
 
 import com.appsmith.server.dtos.ResponseDTO;
+import com.appsmith.server.services.SessionUserService;
 import com.celanworksmith.ontology.datasource.dto.ImportOntologyDatasourceRequest;
 import com.celanworksmith.ontology.datasource.dto.OntologyDatasourceSummary;
 import org.springframework.http.HttpStatus;
@@ -21,16 +22,40 @@ import java.util.List;
 @RequestMapping("/api/v1/celanworksmith/ontology/datasources")
 public class OntologyDatasourceController {
     private final OntologyDatasourceService service;
+    private final SessionUserService sessionUserService;
 
-    public OntologyDatasourceController(OntologyDatasourceService service) {
+    public OntologyDatasourceController(OntologyDatasourceService service, SessionUserService sessionUserService) {
         this.service = service;
+        this.sessionUserService = sessionUserService;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<ResponseDTO<OntologyDatasourceSummary>> importDatasource(
             @RequestBody ImportOntologyDatasourceRequest request) {
-        return service.importDatasource(request).map(summary -> new ResponseDTO<>(HttpStatus.CREATED, summary));
+        return sessionUserService
+                .getCurrentUser()
+                .map(user -> withAuthenticatedImportActor(request, user.getEmail()))
+                .flatMap(service::importDatasource)
+                .map(summary -> new ResponseDTO<>(HttpStatus.CREATED, summary));
+    }
+
+    private ImportOntologyDatasourceRequest withAuthenticatedImportActor(
+            ImportOntologyDatasourceRequest request, String importedBy) {
+        OntologyProjectImportRequest projectImportRequest = request.projectImportRequest();
+        if (projectImportRequest == null) {
+            return request;
+        }
+        return new ImportOntologyDatasourceRequest(
+                request.workspaceId(),
+                request.datasourceName(),
+                new OntologyProjectImportRequest(
+                        projectImportRequest.sourceKind(),
+                        projectImportRequest.metadata(),
+                        projectImportRequest.sourceReleaseId(),
+                        projectImportRequest.runtimeProviderId(),
+                        importedBy),
+                request.changeNote());
     }
 
     @GetMapping
