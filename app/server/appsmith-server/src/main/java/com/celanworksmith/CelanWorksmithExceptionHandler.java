@@ -15,6 +15,7 @@ public class CelanWorksmithExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<CelanWorksmithErrorResponse> handle(IllegalArgumentException exception) {
         return ResponseEntity.badRequest()
-                .body(new CelanWorksmithErrorResponse(CelanWorksmithErrorCode.INVALID_ARGUMENT.name(), exception.getMessage()));
+                .body(new CelanWorksmithErrorResponse(
+                        CelanWorksmithErrorCode.INVALID_ARGUMENT.name(), exception.getMessage()));
     }
 }

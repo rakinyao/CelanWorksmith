@@ -8,12 +8,27 @@ import CelanworksmithAPI, {
   type CelanworksmithLinkType,
   type CelanworksmithObjectType,
   type CelanworksmithProperty,
+  normalizeCelanworksmithError,
+  type CelanworksmithExecutionError,
 } from "api/CelanworksmithAPI";
 import type { ApiResponse } from "api/ApiResponses";
 import { useDispatch, useSelector } from "react-redux";
 import { celanworksmithObjectsLoadRequest } from "actions/celanworksmithObjectActions";
 import { celanworksmithOntologyLoadRequest } from "actions/celanworksmithOntologyActions";
+import { celanworksmithRuntimeCacheClearRequest } from "actions/celanworksmithLoadStateActions";
 import { getCelanworksmithOntologyState } from "selectors/celanworksmithSelectors";
+import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
+import VariablesSection from "./VariablesSection";
+import CelanworksmithApplicationBindingPanel from "../CelanworksmithApplicationBindingPanel";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
+import {
+  getOntologyNamePresentation,
+  type OntologyNameMetadata,
+} from "celanworksmith/ontologyNames";
+import { filterSemanticMetadata } from "celanworksmith/semanticMetadata";
 
 type ApiResult<T> = ApiResponse<T> | AxiosResponse<ApiResponse<T>>;
 
@@ -111,20 +126,83 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
   </Flex>
 );
 
+const SemanticDetails = ({
+  authorized,
+  value,
+}: {
+  authorized: boolean;
+  value: {
+    description?: string | Record<string, string>;
+    semanticType?: string;
+    examples?: string[];
+    sensitive?: boolean;
+  };
+}) => {
+  const metadata = filterSemanticMetadata(value, {
+    authorized,
+    sensitive: value.sensitive === true,
+  });
+  const description = metadata.description;
+  const descriptionValue =
+    typeof description === "string"
+      ? description
+      : description
+        ? Object.values(description).join(" / ")
+        : undefined;
+
+  if (!descriptionValue && !metadata.semanticType && !metadata.examples?.length)
+    return null;
+
+  return (
+    <Flex flexDirection="column" gap="spaces-2">
+      <OntologyText $kind="heading-xs">Semantic / 语义</OntologyText>
+      {descriptionValue ? (
+        <DetailRow label="Description / 描述" value={descriptionValue} />
+      ) : null}
+      {metadata.semanticType ? (
+        <DetailRow
+          label="Semantic Type / 语义类型"
+          value={metadata.semanticType}
+        />
+      ) : null}
+      {metadata.examples?.length ? (
+        <DetailRow
+          label="Examples / 示例"
+          value={metadata.examples.join(", ")}
+        />
+      ) : null}
+    </Flex>
+  );
+};
+
 const getApiData = <T,>(response: ApiResult<T>): T => {
   const responseData = response.data;
-
-  if (
+  const apiResponse =
     responseData &&
     typeof responseData === "object" &&
     "responseMeta" in responseData &&
     "data" in responseData
-  ) {
-    return (responseData as ApiResponse<T>).data;
+      ? (responseData as ApiResponse<T>)
+      : (response as ApiResponse<T>);
+
+  if (!apiResponse.responseMeta?.success) {
+    const error = new Error(
+      apiResponse.responseMeta?.error?.message ||
+        "Unable to load ontology metadata",
+    );
+
+    Object.assign(error, {
+      responseMeta: apiResponse.responseMeta,
+      status: apiResponse.responseMeta?.status,
+    });
+    throw error;
   }
 
-  return (response as ApiResponse<T>).data;
+  return apiResponse.data;
 };
+
+const getOntologyLabel = (metadata: OntologyNameMetadata) =>
+  getOntologyNamePresentation(metadata).label;
 
 const NodeLabel = ({
   name,
@@ -143,7 +221,13 @@ const NodeLabel = ({
   </Flex>
 );
 
-const Detail = ({ selected }: { selected: SelectedNode | null }) => {
+const Detail = ({
+  authorized,
+  selected,
+}: {
+  authorized: boolean;
+  selected: SelectedNode | null;
+}) => {
   if (!selected) {
     return (
       <EmptyState
@@ -162,6 +246,7 @@ const Detail = ({ selected }: { selected: SelectedNode | null }) => {
           label="Properties / 属性"
           value={String(selected.value.properties.length)}
         />
+        <SemanticDetails authorized={authorized} value={selected.value} />
       </Flex>
     );
   }
@@ -188,6 +273,7 @@ const Detail = ({ selected }: { selected: SelectedNode | null }) => {
           label="Derived / 派生"
           value={String(selected.value.derived)}
         />
+        <SemanticDetails authorized={authorized} value={selected.value} />
       </Flex>
     );
   }
@@ -209,6 +295,7 @@ const Detail = ({ selected }: { selected: SelectedNode | null }) => {
           label="Cardinality / 基数"
           value={selected.value.cardinality}
         />
+        <SemanticDetails authorized={authorized} value={selected.value} />
       </Flex>
     );
   }
@@ -230,6 +317,7 @@ const Detail = ({ selected }: { selected: SelectedNode | null }) => {
           label="Side Effect Free / 无副作用"
           value={String(selected.value.sideEffectFree)}
         />
+        <SemanticDetails authorized={authorized} value={selected.value} />
       </Flex>
     );
   }
@@ -250,6 +338,7 @@ const Detail = ({ selected }: { selected: SelectedNode | null }) => {
         label="Requires Confirmation / 需要确认"
         value={String(selected.value.requiresConfirmation)}
       />
+      <SemanticDetails authorized={authorized} value={selected.value} />
     </Flex>
   );
 };
@@ -257,6 +346,9 @@ const Detail = ({ selected }: { selected: SelectedNode | null }) => {
 const OntologyExplorer = () => {
   const dispatch = useDispatch();
   const ontologyState = useSelector(getCelanworksmithOntologyState);
+  const objectState = useSelector(getCelanworksmithObjectsState);
+  const applicationId = useSelector(getCelanworksmithCurrentApplicationId);
+  const bindingState = useSelector(getCelanworksmithApplicationBindingState);
   const [objectTypes, setObjectTypes] = useState<CelanworksmithObjectType[]>(
     [],
   );
@@ -264,38 +356,73 @@ const OntologyExplorer = () => {
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<SelectedNode | null>(null);
   const [objectMetadataLoading, setObjectMetadataLoading] = useState(true);
-  const [objectMetadataError, setObjectMetadataError] = useState(false);
+  const [objectMetadataError, setObjectMetadataError] = useState<
+    CelanworksmithExecutionError | undefined
+  >();
 
   const loadObjectMetadata = useCallback(async () => {
+    const bindingReady =
+      !!applicationId &&
+      bindingState.applicationId === applicationId &&
+      bindingState.status === "ready";
+
+    if (applicationId && !bindingReady) return;
+
     setObjectMetadataLoading(true);
-    setObjectMetadataError(false);
-    dispatch(celanworksmithObjectsLoadRequest());
+    setObjectMetadataError(undefined);
+    const context = bindingReady ? applicationId : undefined;
+
+    dispatch(celanworksmithObjectsLoadRequest(context));
 
     try {
       const [objectTypesResponse, linkTypesResponse] = await Promise.all([
-        CelanworksmithAPI.getObjectTypes(),
-        CelanworksmithAPI.getLinkTypes(),
+        CelanworksmithAPI.getObjectTypes(context),
+        CelanworksmithAPI.getLinkTypes(undefined, context),
       ]);
 
       setObjectTypes(getApiData(objectTypesResponse));
       setLinkTypes(getApiData(linkTypesResponse));
-    } catch {
-      setObjectMetadataError(true);
+    } catch (error) {
+      setObjectMetadataError(normalizeCelanworksmithError(error));
     } finally {
       setObjectMetadataLoading(false);
     }
-  }, [dispatch]);
+  }, [applicationId, bindingState, dispatch]);
 
   const retryOntology = useCallback(() => {
-    dispatch(celanworksmithOntologyLoadRequest());
+    dispatch(
+      celanworksmithOntologyLoadRequest(
+        bindingState.applicationId === applicationId &&
+        bindingState.status === "ready"
+          ? applicationId
+          : undefined,
+      ),
+    );
     void loadObjectMetadata();
-  }, [dispatch, loadObjectMetadata]);
+  }, [applicationId, bindingState.status, dispatch, loadObjectMetadata]);
+
+  const clearOntologyRuntimeCache = useCallback(() => {
+    dispatch(
+      celanworksmithRuntimeCacheClearRequest(
+        bindingState.applicationId === applicationId &&
+        bindingState.status === "ready"
+          ? applicationId
+          : undefined,
+      ),
+    );
+  }, [applicationId, bindingState.status, dispatch]);
 
   useEffect(
     function loadOntologyOnMount() {
-      void loadObjectMetadata();
+      if (
+        !applicationId ||
+        (bindingState.applicationId === applicationId &&
+          bindingState.status === "ready")
+      ) {
+        void loadObjectMetadata();
+      }
     },
-    [loadObjectMetadata],
+    [applicationId, bindingState, loadObjectMetadata],
   );
 
   const objectTypeNames = useMemo(
@@ -303,10 +430,20 @@ const OntologyExplorer = () => {
       new Map(
         objectTypes.map((objectType) => [
           objectType.id,
-          objectType.displayName,
+          getOntologyLabel(objectType as OntologyNameMetadata),
         ]),
       ),
     [objectTypes],
+  );
+  const semanticMetadataAuthorized = useMemo(
+    () =>
+      objectMetadataError?.code !== "PERMISSION_DENIED" &&
+      ontologyState.error?.code !== "PERMISSION_DENIED" &&
+      objectState.error?.code !== "PERMISSION_DENIED" &&
+      !Object.values(objectState.types).some(
+        (typeState) => typeState.error?.code === "PERMISSION_DENIED",
+      ),
+    [objectMetadataError, objectState, ontologyState.error],
   );
 
   const toggleObjectType = useCallback((typeId: string) => {
@@ -323,7 +460,43 @@ const OntologyExplorer = () => {
     });
   }, []);
 
+  if (applicationId && bindingState.status === "unbound") {
+    return (
+      <Explorer
+        alignItems="stretch"
+        flexDirection="column"
+        height="100%"
+        justifyContent="flex-start"
+      >
+        <CelanworksmithApplicationBindingPanel applicationId={applicationId} />
+        <Flex alignItems="center" flex="1" justifyContent="center">
+          <EmptyState
+            description="Bind an ontology project to browse metadata / 请先绑定本体工程"
+            icon="file-line"
+          />
+        </Flex>
+      </Explorer>
+    );
+  }
+
   if (objectMetadataLoading || ontologyState.status === "loading") {
+    if (applicationId && !["ready", "unbound"].includes(bindingState.status)) {
+      return (
+        <Explorer
+          alignItems="stretch"
+          flexDirection="column"
+          height="100%"
+          justifyContent="flex-start"
+        >
+          <CelanworksmithApplicationBindingPanel
+            applicationId={applicationId}
+            onClearCache={clearOntologyRuntimeCache}
+            onDebugRetry={retryOntology}
+          />
+        </Explorer>
+      );
+    }
+
     return (
       <Explorer alignItems="center" height="100%" justifyContent="center">
         <Spinner size="md" />
@@ -332,24 +505,52 @@ const OntologyExplorer = () => {
   }
 
   if (objectMetadataError || ontologyState.status === "error") {
+    const metadataError = objectMetadataError ||
+      ontologyState.error || {
+        code: "BACKEND_ERROR" as const,
+        message: "Unable to load ontology metadata",
+      };
+
     return (
-      <Explorer alignItems="center" height="100%" justifyContent="center">
-        <EmptyState
-          button={{
-            className: "t--ontology-retry",
-            onClick: retryOntology,
-            testId: "t--ontology-retry",
-            text: "Retry / 重试",
-          }}
-          description="Unable to load ontology / 本体加载失败"
-          icon="warning-line"
-        />
+      <Explorer
+        alignItems="stretch"
+        flexDirection="column"
+        height="100%"
+        justifyContent="flex-start"
+      >
+        {applicationId ? (
+          <CelanworksmithApplicationBindingPanel
+            applicationId={applicationId}
+            debugError={metadataError}
+            onClearCache={clearOntologyRuntimeCache}
+            onDebugRetry={retryOntology}
+          />
+        ) : null}
+        <Flex alignItems="center" flex="1" justifyContent="center">
+          <EmptyState
+            button={{
+              className: "t--ontology-retry",
+              onClick: retryOntology,
+              testId: "t--ontology-retry",
+              text: "Retry / 重试",
+            }}
+            description="Unable to load ontology / 本体加载失败"
+            icon="warning-line"
+          />
+        </Flex>
       </Explorer>
     );
   }
 
   return (
     <Explorer flexDirection="column" height="100%" overflow="hidden">
+      {applicationId ? (
+        <CelanworksmithApplicationBindingPanel
+          applicationId={applicationId}
+          onClearCache={clearOntologyRuntimeCache}
+          onDebugRetry={retryOntology}
+        />
+      ) : null}
       <ScrollArea flex="1" flexDirection="column">
         <SectionTitle>Object Types / 对象类型</SectionTitle>
         {objectTypes.map((objectType) => {
@@ -362,7 +563,7 @@ const OntologyExplorer = () => {
             <ObjectTypeGroup key={objectType.id}>
               <Flex alignItems="center">
                 <ExpandButton
-                  aria-label={`${isExpanded ? "Collapse" : "Expand"} ${objectType.displayName}`}
+                  aria-label={`${isExpanded ? "Collapse" : "Expand"} ${getOntologyLabel(objectType as OntologyNameMetadata)}`}
                   data-testid={`t--ontology-expand-${objectType.id}`}
                   onClick={() => toggleObjectType(objectType.id)}
                 >
@@ -382,7 +583,7 @@ const OntologyExplorer = () => {
                 >
                   <Icon name="database-2-line" size="sm" />
                   <NodeLabel
-                    name={objectType.displayName}
+                    name={getOntologyLabel(objectType as OntologyNameMetadata)}
                     secondary={objectType.id}
                   />
                 </NodeButton>
@@ -408,7 +609,9 @@ const OntologyExplorer = () => {
                     >
                       <Icon name="file-line" size="sm" />
                       <NodeLabel
-                        name={property.displayName}
+                        name={getOntologyLabel(
+                          property as OntologyNameMetadata,
+                        )}
                         secondary={property.dataType}
                       />
                     </NodeButton>
@@ -431,7 +634,7 @@ const OntologyExplorer = () => {
           >
             <Icon name="links-line" size="sm" />
             <NodeLabel
-              name={linkType.displayName}
+              name={getOntologyLabel(linkType as OntologyNameMetadata)}
               secondary={`${objectTypeNames.get(linkType.sourceTypeId) || linkType.sourceTypeId} -> ${objectTypeNames.get(linkType.targetTypeId) || linkType.targetTypeId}`}
             />
           </NodeButton>
@@ -449,7 +652,10 @@ const OntologyExplorer = () => {
             onClick={() => setSelected({ kind: "function", value: func })}
           >
             <Icon name="widget" size="sm" />
-            <NodeLabel name={func.displayName} secondary={func.id} />
+            <NodeLabel
+              name={getOntologyLabel(func as OntologyNameMetadata)}
+              secondary={func.id}
+            />
           </NodeButton>
         ))}
         {ontologyState.functions.length === 0 ? <EmptySection /> : null}
@@ -465,13 +671,27 @@ const OntologyExplorer = () => {
             onClick={() => setSelected({ kind: "action", value: action })}
           >
             <Icon name="play-line" size="sm" />
-            <NodeLabel name={action.displayName} secondary={action.id} />
+            <NodeLabel
+              name={getOntologyLabel(action as OntologyNameMetadata)}
+              secondary={action.id}
+            />
           </NodeButton>
         ))}
         {ontologyState.actions.length === 0 ? <EmptySection /> : null}
+
+        <VariablesSection
+          functions={ontologyState.functions}
+          objectInstances={Object.fromEntries(
+            Object.entries(objectState.types).map(([typeId, typeState]) => [
+              typeId,
+              typeState.items,
+            ]),
+          )}
+          objectTypes={objectTypes}
+        />
       </ScrollArea>
       <DetailPanel>
-        <Detail selected={selected} />
+        <Detail authorized={semanticMetadataAuthorized} selected={selected} />
       </DetailPanel>
     </Explorer>
   );

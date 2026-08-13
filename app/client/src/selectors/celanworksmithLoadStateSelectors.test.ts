@@ -68,7 +68,7 @@ const state = {
   },
   celanworksmithLinks: {
     metadata: {
-      PurchaseOrder: {
+      "legacy/PurchaseOrder": {
         links: [
           {
             id: "po_production",
@@ -84,7 +84,7 @@ const state = {
       },
     },
     entries: {
-      "PurchaseOrder/PO001/po_production": {
+      "legacy/PurchaseOrder/PO001/po_production": {
         status: "loading",
         result: objectSet,
         updatedAt: 90,
@@ -183,7 +183,7 @@ describe("CelanWorksmith load-state selectors", () => {
     expect(
       getCelanworksmithLinkMetadataLoadState(state, "PurchaseOrder"),
     ).toMatchObject({
-      requestKey: "links/metadata/PurchaseOrder",
+      requestKey: "links/metadata/legacy/PurchaseOrder",
       status: "error",
       updatedAt: 80,
       canRetry: true,
@@ -191,7 +191,7 @@ describe("CelanWorksmith load-state selectors", () => {
     expect(
       getCelanworksmithLinkEntryLoadState(state, linkRequest),
     ).toMatchObject({
-      requestKey: "links/PurchaseOrder/PO001/po_production",
+      requestKey: "links/legacy/PurchaseOrder/PO001/po_production",
       status: "loading",
       data: objectSet,
       updatedAt: 90,
@@ -202,6 +202,43 @@ describe("CelanWorksmith load-state selectors", () => {
       updatedAt: 70,
       canRetry: false,
     });
+  });
+
+  it("isolates Link metadata load state by application", () => {
+    const scopedState = {
+      ...state,
+      celanworksmithLinks: {
+        ...state.celanworksmithLinks,
+        metadata: {
+          "app-1/PurchaseOrder": {
+            links: [],
+            status: "empty",
+            updatedAt: 101,
+          },
+          "app-2/PurchaseOrder": {
+            links: [],
+            status: "error",
+            updatedAt: 102,
+            error: { code: "FORBIDDEN", message: "Forbidden" },
+          },
+        },
+      },
+    };
+
+    expect(
+      getCelanworksmithLinkMetadataLoadState(
+        scopedState,
+        "PurchaseOrder",
+        "app-1",
+      ),
+    ).toMatchObject({ status: "empty", updatedAt: 101 });
+    expect(
+      getCelanworksmithLinkMetadataLoadState(
+        scopedState,
+        "PurchaseOrder",
+        "app-2",
+      ),
+    ).toMatchObject({ status: "permissionDenied", updatedAt: 102 });
   });
 
   it("adapts execution requests and variable dependencies without a variable reducer", () => {
@@ -384,13 +421,13 @@ describe("CelanWorksmith load-state selectors", () => {
       },
       celanworksmithLinks: {
         metadata: {
-          PurchaseOrder: {
+          "legacy/PurchaseOrder": {
             links: [],
             status: "loading",
           },
         },
         entries: {
-          "PurchaseOrder/PO001/po_production": {
+          "legacy/PurchaseOrder/PO001/po_production": {
             status: "error",
             error: { code: "NETWORK_ERROR", message: "temporary" },
           },

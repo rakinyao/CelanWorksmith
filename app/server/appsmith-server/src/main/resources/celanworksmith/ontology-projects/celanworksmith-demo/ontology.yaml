@@ -1,0 +1,12 @@
+projectId: celanworksmith-demo
+version: 1.0.0
+schemaVersion: 1
+objects:
+  - objects/Supplier.yaml
+  - objects/PurchaseOrder.yaml
+links:
+  - links/supplier_orders.yaml
+functions:
+  - functions/CalculateDelayDays.yaml
+actions:
+  - actions/UpdateProductionSchedule.yaml

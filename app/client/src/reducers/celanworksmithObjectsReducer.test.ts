@@ -7,6 +7,7 @@ describe("celanworksmithObjectsReducer", () => {
       type: ReduxActionTypes.CELANWORKSMITH_OBJECTS_LOAD_INIT,
       payload: undefined,
     });
+
     state = reducer(state, {
       type: ReduxActionTypes.CELANWORKSMITH_OBJECTS_METADATA_SUCCESS,
       payload: [{ id: "Supplier", displayName: "Supplier", properties: [] }],
@@ -41,6 +42,47 @@ describe("celanworksmithObjectsReducer", () => {
 
     expect(cachedState.types.Supplier.items).toHaveLength(1);
     expect(cachedState.status).toBe("ready");
+  });
+
+  it("clears runtime object data while retaining metadata", () => {
+    let state = reducer(undefined, {
+      type: ReduxActionTypes.CELANWORKSMITH_OBJECTS_METADATA_SUCCESS,
+      payload: [
+        {
+          id: "Supplier",
+          displayName: "Supplier",
+          properties: [],
+        },
+      ],
+    });
+
+    state = reducer(state, {
+      type: ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_SUCCESS,
+      payload: {
+        typeId: "Supplier",
+        result: {
+          typeId: "Supplier",
+          items: [
+            { id: "S001", typeId: "Supplier", properties: { name: "One" } },
+          ],
+          offset: 0,
+          limit: 100,
+          total: 1,
+        },
+      },
+    });
+
+    const cleared = reducer(state, {
+      type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED,
+      payload: { applicationId: "app-1" },
+    });
+
+    expect(cleared.types.Supplier).toMatchObject({
+      metadata: { id: "Supplier" },
+      items: [],
+      status: "idle",
+      total: 0,
+    });
   });
 
   it("distinguishes empty and failed types", () => {

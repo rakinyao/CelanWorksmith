@@ -82,12 +82,16 @@ describe("ObjectSetBinding", () => {
         store={configureStore()({ celanworksmithObjects: { types: {} } })}
       >
         <ObjectSetBinding widgetId="Select1" widgetType="SELECT_WIDGET">
-          {(binding) => <div>{binding.status}</div>}
+          {(binding) => (
+            <div>{`${binding.status}:${binding.diagnostic?.message}`}</div>
+          )}
         </ObjectSetBinding>
       </Provider>,
     );
 
-    expect(screen.getByText("typeMismatch")).toBeInTheDocument();
+    expect(
+      screen.getByText("typeMismatch:Select an ontology Object Type."),
+    ).toBeInTheDocument();
   });
 
   test("reports metadata loading and errors before declaring a type mismatch", () => {
@@ -109,6 +113,94 @@ describe("ObjectSetBinding", () => {
     });
 
     expect(error.getByText("error:0")).toBeInTheDocument();
+  });
+
+  test("reports a repairable diagnostic for a deleted Object Type", () => {
+    render(
+      <Provider
+        store={configureStore()({
+          celanworksmithObjects: {
+            status: "ready",
+            types: {},
+          },
+        })}
+      >
+        <ObjectSetBinding
+          objectTypeId="DeletedType"
+          widgetId="Select1"
+          widgetType="SELECT_WIDGET"
+        >
+          {(binding) => (
+            <div>{`${binding.status}:${binding.diagnostic?.message}`}</div>
+          )}
+        </ObjectSetBinding>
+      </Provider>,
+    );
+
+    expect(
+      screen.getByText(
+        'typeMismatch:Object Type "DeletedType" is missing or unavailable. Select another Object Type.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("reports deleted Link, Action, and Variable bindings from runtime metadata", () => {
+    render(
+      <Provider
+        store={configureStore()({
+          celanworksmithObjects: {
+            status: "ready",
+            types: { Supplier: { metadata, status: "ready" } },
+          },
+          celanworksmithLinks: {
+            metadata: {
+              "legacy/Supplier": {
+                links: [{ id: "supplier_orders" }],
+                status: "ready",
+              },
+            },
+            entries: {},
+          },
+          celanworksmithOntology: {
+            status: "ready",
+            actions: [{ id: "UpdateSupplier" }],
+            functions: [],
+          },
+          entities: {
+            canvasWidgets: {
+              root: {
+                type: "CANVAS_WIDGET",
+                celanworksmithVariables: [
+                  {
+                    id: "supplierCount",
+                    name: "supplierCount",
+                  },
+                ],
+              },
+            },
+          },
+        })}
+      >
+        <ObjectSetBinding
+          actionId="DeletedAction"
+          aggregationVariableName="DeletedVariable"
+          linkTypeId="DeletedLink"
+          objectTypeId="Supplier"
+          widgetId="Select1"
+          widgetType="SELECT_WIDGET"
+        >
+          {(binding) => (
+            <div>{`${binding.status}:${binding.diagnostic?.message}`}</div>
+          )}
+        </ObjectSetBinding>
+      </Provider>,
+    );
+
+    expect(
+      screen.getByText(
+        'typeMismatch:Link "DeletedLink" is missing. Select another Link.',
+      ),
+    ).toBeInTheDocument();
   });
 
   test("reports empty and permission-denied query results", () => {

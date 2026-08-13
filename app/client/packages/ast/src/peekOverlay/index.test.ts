@@ -11,6 +11,17 @@ describe("extractExpressionAtPositionWholeDoc", () => {
     thisExpressionReplacement: "JsObject",
   });
 
+  it("does not report parse errors for non-JavaScript editor text", () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation();
+
+    scriptIdentifier.updateScript(",");
+
+    expect(scriptIdentifier.hasParsedScript()).toBe(false);
+    expect(consoleError).not.toHaveBeenCalled();
+
+    consoleError.mockRestore();
+  });
+
   const checkExpressionAtScript = async (
     pos: number,
     resultString?: string,

@@ -1,4 +1,17 @@
 import { ContainerWidget } from "widgets/ContainerWidget/widget";
+import ObjectSetBinding, {
+  type ObjectSetBindingValue,
+} from "celanworksmith/widgets/objectBinding/ObjectSetBinding";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
+import type { ObjectBinding } from "celanworksmith/widgets/objectBinding/types";
+import type { ObjectSetWidgetState } from "celanworksmith/widgets/objectBinding/objectSetUtils";
+import type {
+  CelanworksmithObjectSet,
+  CelanworksmithObjectType,
+} from "api/CelanworksmithAPI";
+import { getCelanworksmithVariablesDataTree } from "selectors/dataTreeSelectors";
+import { useSelector } from "react-redux";
+import React, { useEffect, useRef } from "react";
 import { ValidationTypes } from "constants/WidgetValidation";
 import type { SetterConfig, Stylesheet } from "entities/AppTheming";
 import type { DerivedPropertiesMap } from "WidgetProvider/factory/types";
@@ -78,6 +91,11 @@ class StatboxWidget extends ContainerWidget {
       rows: 14,
       columns: 22,
       animateLoading: true,
+      dataMode: "OBJECT",
+      objectTypeId: undefined,
+      valuePropertyId: undefined,
+      aggregationVariableName: undefined,
+      title: "Page Views",
       widgetName: "Statbox",
       backgroundColor: "white",
       borderWidth: "1",
@@ -321,6 +339,68 @@ class StatboxWidget extends ContainerWidget {
   static getPropertyPaneContentConfig() {
     return [
       {
+        sectionName: "CelanWorksmith Object data",
+        children: [
+          {
+            propertyName: "dataMode",
+            label: "Data mode / 数据模式",
+            controlType: "DROP_DOWN",
+            options: [
+              { label: "Query / 查询", value: "QUERY" },
+              { label: "Object / 本体", value: "OBJECT" },
+            ],
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectTypeId",
+            label: "Ontology Object / 本体对象",
+            helpText: "Select the stable Object Type ID for this statistic.",
+            controlType: "CELANWORKSMITH_OBJECT_TYPE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+            hidden: (props: StatboxWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "valuePropertyId",
+            label: "Value property / 数值属性",
+            helpText:
+              "Select a numeric property when this Object query returns one object.",
+            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode", "objectTypeId"],
+            hidden: (props: StatboxWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "aggregationVariableName",
+            label: "Aggregation variable / 聚合变量",
+            helpText:
+              "Use a numeric CelanWorksmith aggregation variable for multi-object results.",
+            controlType: "INPUT_TEXT",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+            hidden: (props: StatboxWidgetProps) => props.dataMode !== "OBJECT",
+          },
+          {
+            propertyName: "title",
+            label: "Title / 标题",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+            dependencies: ["dataMode"],
+            hidden: (props: StatboxWidgetProps) => props.dataMode !== "OBJECT",
+          },
+        ],
+      },
+      {
         sectionName: "General",
         children: [
           {
@@ -456,10 +536,293 @@ class StatboxWidget extends ContainerWidget {
   static getDerivedPropertiesMap(): DerivedPropertiesMap {
     return { positioning: Positioning.Fixed };
   }
+
+  getWidgetView() {
+    const props = this.props as StatboxWidgetProps;
+    const objectBinding = normalizeObjectBinding(
+      StatboxWidget.type,
+      props as unknown as Record<string, unknown>,
+      {},
+    );
+
+    if (objectBinding.mode !== "OBJECT") {
+      return super.getWidgetView();
+    }
+
+    return (
+      <StatboxObjectMode
+        aggregationVariableName={objectBinding.binding.aggregationVariableName}
+        backgroundColor={props.backgroundColor}
+        binding={objectBinding.binding}
+        filter={props.objectFilter}
+        objectTypeId={objectBinding.binding.objectTypeId}
+        title={props.title}
+        widgetId={props.widgetId}
+      />
+    );
+  }
 }
 
-export interface StatboxWidgetProps {
-  backgroundColor: string;
+export type StatboxObjectState = ObjectSetWidgetState | "missingBinding";
+
+interface StatboxAggregationVariableMeta {
+  error?: string;
+  status?: ObjectSetWidgetState | "idle";
+}
+
+interface StatboxVariables {
+  _meta?: Record<string, StatboxAggregationVariableMeta>;
+  [name: string]: unknown;
+}
+
+export interface StatboxObjectValueInput {
+  aggregationVariableName?: string;
+  binding?: Pick<ObjectBinding, "valuePropertyId">;
+  metadata?: CelanworksmithObjectType;
+  result?: CelanworksmithObjectSet;
+  variables?: StatboxVariables;
+}
+
+export interface StatboxObjectValue {
+  errorMessage?: string;
+  state: StatboxObjectState;
+  value?: number;
+}
+
+export const resolveStatboxObjectValue = ({
+  aggregationVariableName,
+  binding,
+  metadata,
+  result,
+  variables,
+}: StatboxObjectValueInput): StatboxObjectValue => {
+  if (aggregationVariableName) {
+    const variableName = getAggregationVariableName(aggregationVariableName);
+    const metadata = variables?._meta?.[variableName];
+
+    if (metadata?.status === "idle" || metadata?.status === "loading") {
+      return { state: "loading" };
+    }
+
+    if (metadata?.status === "permissionDenied") {
+      return { state: "permissionDenied" };
+    }
+
+    if (metadata?.status === "error") {
+      return isPermissionError(metadata.error)
+        ? { state: "permissionDenied" }
+        : { errorMessage: metadata.error, state: "error" };
+    }
+
+    if (metadata?.status === "empty") return { state: "empty" };
+
+    const value = variables?.[variableName];
+
+    if (value === undefined || value === null) return { state: "empty" };
+
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return { state: "typeMismatch" };
+    }
+
+    return { state: "ready", value };
+  }
+
+  if (!binding?.valuePropertyId) return { state: "missingBinding" };
+
+  if (!result?.items.length) return { state: "empty" };
+
+  if (result.items.length !== 1) return { state: "typeMismatch" };
+
+  const property = metadata?.properties.find(
+    (candidate) => candidate.id === binding.valuePropertyId,
+  );
+
+  if (
+    !property ||
+    (property.dataType !== "INTEGER" && property.dataType !== "DECIMAL")
+  ) {
+    return { state: "typeMismatch" };
+  }
+
+  const value = result.items[0].properties[binding.valuePropertyId];
+
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return { state: "typeMismatch" };
+  }
+
+  return { state: "ready", value };
+};
+
+const getAggregationVariableName = (value: string) => {
+  const trimmedValue = value.trim();
+  const variablePath = trimmedValue.match(
+    /^(?:\{\{\s*)?\$variables\.([^\s{}]+?)(?:\s*\}\})?$/,
+  );
+
+  return variablePath?.[1] || trimmedValue;
+};
+
+const isPermissionError = (error?: string) =>
+  Boolean(error?.match(/permission denied|forbidden/i));
+
+export const getStatboxObjectStateMessage = (
+  state: StatboxObjectState,
+  errorMessage?: string,
+) => {
+  switch (state) {
+    case "missingBinding":
+      return "Select an Object Type and a numeric value source.";
+    case "loading":
+      return "Loading object data...";
+    case "empty":
+      return "No objects found.";
+    case "permissionDenied":
+      return "Access to object data is denied.";
+    case "error":
+      return errorMessage || "Unable to load objects.";
+    case "typeMismatch":
+      return "The Object value must be a finite number.";
+    default:
+      return undefined;
+  }
+};
+
+interface StatboxObjectModeProps {
+  aggregationVariableName?: string;
+  backgroundColor?: string;
+  binding: ObjectBinding;
+  filter?: unknown;
+  objectTypeId?: string;
+  title?: string;
+  widgetId: string;
+}
+
+interface StatboxObjectOverlayProps {
+  objectSet: ObjectSetBindingValue;
+  props: StatboxObjectModeProps;
+  variables: StatboxVariables;
+}
+
+const StatboxObjectOverlay = ({
+  objectSet,
+  props,
+  variables,
+}: StatboxObjectOverlayProps) => {
+  const lastValue = useRef<number>();
+  const value = resolveStatboxObjectValue({
+    aggregationVariableName: props.aggregationVariableName,
+    binding: props.binding,
+    metadata: objectSet.metadata,
+    result: objectSet.result,
+    variables,
+  });
+  const hasAggregationVariable = Boolean(props.aggregationVariableName);
+  const hasBinding =
+    hasAggregationVariable ||
+    Boolean(props.objectTypeId && props.binding.valuePropertyId);
+  const state = !hasBinding
+    ? "missingBinding"
+    : hasAggregationVariable && !props.objectTypeId
+      ? value.state
+      : hasAggregationVariable && value.state === "ready"
+        ? "ready"
+        : objectSet.status === "ready"
+          ? value.state
+          : objectSet.status;
+  const resolvedValue = state === "ready" ? value.value : undefined;
+  const visibleValue =
+    resolvedValue === undefined && state === "loading"
+      ? lastValue.current
+      : resolvedValue;
+  const message = getStatboxObjectStateMessage(
+    state,
+    value.errorMessage ||
+      (hasAggregationVariable ? undefined : objectSet.error?.message),
+  );
+
+  useEffect(() => {
+    if (resolvedValue !== undefined) lastValue.current = resolvedValue;
+  }, [resolvedValue]);
+
+  return (
+    <div
+      aria-label="Object statistic"
+      style={{
+        alignItems: "flex-start",
+        backgroundColor: props.backgroundColor || "white",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        inset: 0,
+        justifyContent: "center",
+        padding: "12px",
+        pointerEvents: "none",
+        position: "absolute",
+        width: "100%",
+      }}
+    >
+      <div style={{ color: "#999999", fontSize: "0.875rem" }}>
+        {props.title || "Page Views"}
+      </div>
+      {visibleValue !== undefined ? (
+        <div data-testid="statbox-object-value" style={{ fontWeight: "bold" }}>
+          {visibleValue}
+        </div>
+      ) : null}
+      {message ? (
+        <div
+          aria-live={state === "loading" ? "polite" : undefined}
+          role={state === "loading" ? undefined : "alert"}
+        >
+          {message}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+export function StatboxObjectMode(props: StatboxObjectModeProps) {
+  const variables = useSelector(
+    getCelanworksmithVariablesDataTree,
+  ) as StatboxVariables;
+
+  return (
+    <div style={{ height: "100%", position: "relative", width: "100%" }}>
+      {props.aggregationVariableName && !props.objectTypeId ? (
+        <StatboxObjectOverlay
+          objectSet={{ status: "typeMismatch" }}
+          props={props}
+          variables={variables}
+        />
+      ) : (
+        <ObjectSetBinding
+          filter={props.filter}
+          objectTypeId={props.objectTypeId}
+          widgetId={props.widgetId}
+          widgetType={StatboxWidget.type}
+        >
+          {(objectSet) => (
+            <StatboxObjectOverlay
+              objectSet={objectSet}
+              props={props}
+              variables={variables}
+            />
+          )}
+        </ObjectSetBinding>
+      )}
+    </div>
+  );
+}
+
+export interface StatboxWidgetProps extends WidgetProps {
+  aggregationVariableName?: string;
+  backgroundColor?: string;
+  dataMode?: "OBJECT" | "QUERY";
+  objectFilter?: unknown;
+  objectTypeId?: string;
+  title?: string;
+  valuePropertyId?: string;
 }
 
 export default StatboxWidget;

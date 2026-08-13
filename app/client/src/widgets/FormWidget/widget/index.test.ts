@@ -1,4 +1,13 @@
-import FormWidget from ".";
+import FormWidget, { getObjectFormValidationFeedback } from ".";
+
+const objectPropertyMetadata = {
+  dataType: "INTEGER",
+  derived: false,
+  displayName: "Amount",
+  id: "amount",
+  readOnly: false,
+  required: true,
+} as const;
 
 test("exposes stable Object binding controls without changing native form defaults", () => {
   const controls = FormWidget.getPropertyPaneConfig()
@@ -73,3 +82,101 @@ test("does not create an Object binding for Query-mode forms", () => {
 
   expect(form.getObjectBinding()).toBeUndefined();
 });
+
+test("reports Object field issues, the first repairable path, and a form summary", () => {
+  expect(
+    getObjectFormValidationFeedback([
+      {
+        dataMode: "OBJECT",
+        displayPropertyId: "amount",
+        isDirty: true,
+        objectBinding: {
+          instance: {
+            id: "PO001",
+            properties: { amount: 5 },
+            typeId: "PurchaseOrder",
+          },
+          objectTypeId: "PurchaseOrder",
+        },
+        objectData: {
+          id: "PO001",
+          properties: { amount: 5 },
+          typeId: "PurchaseOrder",
+        },
+        objectPropertyMetadata,
+        text: "not-a-number",
+        type: "INPUT_WIDGET",
+        widgetName: "AmountInput",
+      } as never,
+    ]),
+  ).toMatchObject({
+    errorPath: "AmountInput.amount",
+    firstInvalidField: "AmountInput.amount",
+    issues: [
+      expect.objectContaining({
+        code: "TYPE_MISMATCH",
+        path: "AmountInput.amount",
+        propertyId: "amount",
+      }),
+    ],
+    summary: "1 form field validation error. Fix AmountInput.amount.",
+  });
+});
+
+test.each([
+  ["read-only", { readOnly: true }, "READ_ONLY"],
+  ["derived", { derived: true }, "DERIVED"],
+] as const)("rejects a user edit to a %s Object field", (_, flags, code) => {
+  const feedback = getObjectFormValidationFeedback([
+    {
+      dataMode: "OBJECT",
+      displayPropertyId: "amount",
+      isDirty: true,
+      objectData: {
+        id: "PO001",
+        properties: { amount: 5 },
+        typeId: "PurchaseOrder",
+      },
+      objectPropertyMetadata: { ...objectPropertyMetadata, ...flags },
+      text: "6",
+      type: "INPUT_WIDGET",
+      widgetName: "AmountInput",
+    } as never,
+  ]);
+
+  expect(feedback).toMatchObject({
+    errorPath: "AmountInput.amount",
+    issues: [expect.objectContaining({ code })],
+  });
+});
+
+test.each([
+  ["read-only", { readOnly: true }],
+  ["derived", { derived: true }],
+] as const)(
+  "keeps the unedited value of a %s Object field valid",
+  (_, flags) => {
+    const feedback = getObjectFormValidationFeedback([
+      {
+        dataMode: "OBJECT",
+        displayPropertyId: "amount",
+        isDirty: false,
+        objectData: {
+          id: "PO001",
+          properties: { amount: 5 },
+          typeId: "PurchaseOrder",
+        },
+        objectPropertyMetadata: { ...objectPropertyMetadata, ...flags },
+        text: "5",
+        type: "INPUT_WIDGET",
+        widgetName: "AmountInput",
+      } as never,
+    ]);
+
+    expect(feedback).toMatchObject({
+      errorPath: undefined,
+      issues: [],
+      summary: undefined,
+    });
+  },
+);

@@ -79,12 +79,14 @@ describe("getDataTreeForAutocomplete", () => {
       { Input1: { data: "value" } } as never,
       { PurchaseOrder: { all: [] } } as never,
       { $functions: { CalculateDelayDays: { data: 3 } } } as never,
+      { orders: [] } as never,
     );
 
     expect(dataTree).toEqual({
       Input1: { data: "value" },
       $objects: { PurchaseOrder: { all: [] } },
       $functions: { CalculateDelayDays: { data: 3 } },
+      $variables: { orders: [] },
     });
   });
 

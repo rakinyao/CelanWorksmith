@@ -1,0 +1,5 @@
+projectId: invalid-path
+version: 1.0.0
+schemaVersion: 1
+objects:
+  - ../objects/Supplier.yaml

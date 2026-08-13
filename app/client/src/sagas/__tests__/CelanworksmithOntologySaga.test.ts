@@ -1,12 +1,16 @@
 import CelanworksmithAPI from "api/CelanworksmithAPI";
 import { celanworksmithOntologyLoadRequest } from "actions/celanworksmithOntologyActions";
 import { runSaga, stdChannel } from "redux-saga";
-import { all, call, put, takeLeading } from "redux-saga/effects";
+import { all, call, put, select, takeLeading } from "redux-saga/effects";
 import {
   celanworksmithOntologyLoadError,
   celanworksmithOntologyLoadSuccess,
 } from "actions/celanworksmithOntologyActions";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
 import reducer from "reducers/celanworksmithOntologyReducer";
 import {
   default as celanworksmithOntologySaga,
@@ -33,14 +37,53 @@ const actions = [
   },
 ];
 
+const advanceToBoundOntologyLoad = (
+  iterator: ReturnType<typeof loadCelanworksmithOntology>,
+) => {
+  expect(iterator.next().value).toEqual(
+    select(getCelanworksmithCurrentApplicationId),
+  );
+  expect(iterator.next("app-1").value).toEqual(
+    select(getCelanworksmithApplicationBindingState),
+  );
+
+  return iterator.next({
+    status: "ready",
+    applicationId: "app-1",
+    binding: { applicationId: "app-1" },
+  }).value;
+};
+
 describe("loadCelanworksmithOntology", () => {
-  it("loads unfiltered Function and Action metadata as one snapshot", () => {
-    const iterator = loadCelanworksmithOntology();
+  it("does not call the legacy provider while an application binding is pending", () => {
+    const iterator = loadCelanworksmithOntology(
+      celanworksmithOntologyLoadRequest(),
+    );
 
     expect(iterator.next().value).toEqual(
+      select(getCelanworksmithCurrentApplicationId),
+    );
+    expect(iterator.next("app-1").value).toEqual(
+      select(getCelanworksmithApplicationBindingState),
+    );
+    expect(
+      iterator.next({
+        status: "loading",
+        applicationId: "app-1",
+        binding: null,
+      }).value,
+    ).toEqual(put({ type: ReduxActionTypes.TRIGGER_EVAL }));
+  });
+
+ it("loads Function and Action metadata for the bound application", () => {
+    const iterator = loadCelanworksmithOntology(
+      celanworksmithOntologyLoadRequest("app-1"),
+    );
+
+    expect(advanceToBoundOntologyLoad(iterator)).toEqual(
       all([
-        call([CelanworksmithAPI, CelanworksmithAPI.getFunctions]),
-        call([CelanworksmithAPI, CelanworksmithAPI.getActions]),
+        call([CelanworksmithAPI, CelanworksmithAPI.getFunctions], "app-1"),
+        call([CelanworksmithAPI, CelanworksmithAPI.getActions], undefined, "app-1"),
       ]),
     );
     expect(
@@ -55,13 +98,15 @@ describe("loadCelanworksmithOntology", () => {
     expect(iterator.next().done).toBe(true);
   });
 
-  it("normalizes failed API responses and re-evaluates metadata consumers", () => {
-    const iterator = loadCelanworksmithOntology();
+ it("normalizes failed API responses and re-evaluates metadata consumers", () => {
+    const iterator = loadCelanworksmithOntology(
+      celanworksmithOntologyLoadRequest("app-1"),
+    );
 
-    expect(iterator.next().value).toEqual(
+    expect(advanceToBoundOntologyLoad(iterator)).toEqual(
       all([
-        call([CelanworksmithAPI, CelanworksmithAPI.getFunctions]),
-        call([CelanworksmithAPI, CelanworksmithAPI.getActions]),
+        call([CelanworksmithAPI, CelanworksmithAPI.getFunctions], "app-1"),
+        call([CelanworksmithAPI, CelanworksmithAPI.getActions], undefined, "app-1"),
       ]),
     );
     expect(
@@ -119,13 +164,21 @@ describe("loadCelanworksmithOntology", () => {
 
           if (action.type === ReduxActionTypes.TRIGGER_EVAL) complete();
         },
-        getState: () => ({ celanworksmithOntology: state }),
+        getState: () => ({
+          celanworksmithOntology: state,
+          entities: { pageList: { applicationId: "app-1" } },
+          celanworksmithApplicationBinding: {
+            status: "ready",
+            applicationId: "app-1",
+            binding: { applicationId: "app-1" },
+          },
+        }),
       },
       celanworksmithOntologySaga,
     );
 
     try {
-      const request = celanworksmithOntologyLoadRequest();
+      const request = celanworksmithOntologyLoadRequest("app-1");
 
       state = reducer(state, request);
       channel.put(request);

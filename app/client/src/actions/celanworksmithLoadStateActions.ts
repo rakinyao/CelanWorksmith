@@ -8,7 +8,7 @@ export type CelanworksmithLoadRetryTarget =
   | { kind: "objectMetadata"; applicationId?: string }
   | { kind: "objectSet"; typeId: string }
   | { kind: "objectQuery"; request: CelanworksmithObjectQueryRequest }
-  | { kind: "linkMetadata"; typeId: string }
+  | { kind: "linkMetadata"; typeId: string; applicationId?: string }
   | { kind: "linkEntry"; request: CelanworksmithLinkRequest }
   | { kind: "ontology"; applicationId?: string }
   | {
@@ -34,4 +34,16 @@ export const celanworksmithLoadRetry = (
 ) => ({
   type: ReduxActionTypes.CELANWORKSMITH_LOAD_RETRY,
   payload: target,
+});
+
+export const celanworksmithRuntimeCacheClearRequest = (
+  applicationId?: string,
+) => ({
+  type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEAR_REQUEST,
+  payload: applicationId ? { applicationId } : undefined,
+});
+
+export const celanworksmithRuntimeCacheCleared = (applicationId?: string) => ({
+  type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED,
+  payload: applicationId ? { applicationId } : undefined,
 });

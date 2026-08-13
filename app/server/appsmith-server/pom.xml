@@ -40,6 +40,10 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
         <!--
             Ideally this dependency should have been added in the pom.xml file of GraphQLPlugin module, but it is
             causing 'java.lang.NoClassDefFoundError' error. Hence, adding it here after many attempts of fixing it the right

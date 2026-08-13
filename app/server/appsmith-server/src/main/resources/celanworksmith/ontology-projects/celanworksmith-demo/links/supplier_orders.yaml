@@ -1,0 +1,5 @@
+id: supplier_orders
+displayName: Supplier Orders
+sourceTypeId: Supplier
+targetTypeId: PurchaseOrder
+cardinality: ONE_TO_MANY

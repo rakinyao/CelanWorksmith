@@ -37,21 +37,21 @@
 
 ### 2.1 真实项目结构
 
-| 区域 | 当前实际位置 | 说明 |
-|------|--------------|------|
-| React 前端 | `app/client` | Yarn workspace，开发服务默认监听 3000 |
-| Spring Boot 后端 | `app/server/appsmith-server` | 由 `app/server/pom.xml` 管理的 Maven 多模块工程 |
-| 后端构建入口 | `app/server/build.sh` | 使用 Maven，不使用规划文档中的 `./gradlew` |
-| Widget 实现 | `app/client/src/widgets` | 每个 Widget 通常包含 `index`、`widget` 和 `component` |
-| Widget 注册 | `app/client/src/widgets/registry`、`app/client/src/WidgetProvider` | 通过 `registrationHelper` 注册，不存在规划文档中的单一 `WidgetRegistry.ts` |
-| Entity Explorer | `app/client/src/pages/Editor/Explorer`、`app/client/src/components/editorComponents/EntityExplorerSidebar.tsx` | 现有 Pages、Widgets、Actions、JS Actions 等入口 |
-| 前端求值 | `app/client/src/workers/Evaluation`、`app/client/src/workers/common/DataTreeEvaluator` | 负责动态绑定和数据树求值 |
-| 动态绑定工具 | `app/client/src/utils/DynamicBindingUtils.ts` | 负责绑定相关辅助逻辑 |
-| Action 编辑树 | `app/client/src/components/editorComponents/ActionCreator` | `ActionTree` 类型和交互编辑实现 |
-| 后端 API | `app/server/appsmith-server/src/main/java/com/appsmith/server/controllers` | WebFlux/Spring Controller |
-| 后端数据源 | `app/server/appsmith-server/src/main/java/com/appsmith/server/datasources` | 原生 Datasource 体系 |
-| 后端插件 | `app/server/appsmith-server/src/main/java/com/appsmith/server/plugins` | 原生 Plugin Service 和扩展点 |
-| RTS 源码 | 当前仓库未发现 `app/rts` | 当前环境中的 RTS 为独立运行进程，不能假定其源码由本仓库维护 |
+| 区域             | 当前实际位置                                                                                                   | 说明                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| React 前端       | `app/client`                                                                                                   | Yarn workspace，开发服务默认监听 3000                                      |
+| Spring Boot 后端 | `app/server/appsmith-server`                                                                                   | 由 `app/server/pom.xml` 管理的 Maven 多模块工程                            |
+| 后端构建入口     | `app/server/build.sh`                                                                                          | 使用 Maven，不使用规划文档中的 `./gradlew`                                 |
+| Widget 实现      | `app/client/src/widgets`                                                                                       | 每个 Widget 通常包含 `index`、`widget` 和 `component`                      |
+| Widget 注册      | `app/client/src/widgets/registry`、`app/client/src/WidgetProvider`                                             | 通过 `registrationHelper` 注册，不存在规划文档中的单一 `WidgetRegistry.ts` |
+| Entity Explorer  | `app/client/src/pages/Editor/Explorer`、`app/client/src/components/editorComponents/EntityExplorerSidebar.tsx` | 现有 Pages、Widgets、Actions、JS Actions 等入口                            |
+| 前端求值         | `app/client/src/workers/Evaluation`、`app/client/src/workers/common/DataTreeEvaluator`                         | 负责动态绑定和数据树求值                                                   |
+| 动态绑定工具     | `app/client/src/utils/DynamicBindingUtils.ts`                                                                  | 负责绑定相关辅助逻辑                                                       |
+| Action 编辑树    | `app/client/src/components/editorComponents/ActionCreator`                                                     | `ActionTree` 类型和交互编辑实现                                            |
+| 后端 API         | `app/server/appsmith-server/src/main/java/com/appsmith/server/controllers`                                     | WebFlux/Spring Controller                                                  |
+| 后端数据源       | `app/server/appsmith-server/src/main/java/com/appsmith/server/datasources`                                     | 原生 Datasource 体系                                                       |
+| 后端插件         | `app/server/appsmith-server/src/main/java/com/appsmith/server/plugins`                                         | 原生 Plugin Service 和扩展点                                               |
+| RTS 源码         | 当前仓库未发现 `app/rts`                                                                                       | 当前环境中的 RTS 为独立运行进程，不能假定其源码由本仓库维护                |
 
 ### 2.2 当前开发环境
 
@@ -97,19 +97,21 @@ yarn start
 
 ## 3. 阶段总览
 
-| 阶段 | 名称 | 主要交付物 | 依赖 | 放行结果 |
-|------|------|------------|------|----------|
-| T0 | 基线冻结与环境复核 | 可恢复基线、环境记录、验证脚本 | 无 | 原项目和双语基线可稳定运行 |
-| T1 | 本体契约与 Provider 骨架 | DTO、Port、配置切换、错误模型 | T0 | Mock/Production Provider 可切换 |
-| T2 | Mock 本体与运行时服务 | 供应链数据、查询、关联、Function、Action、Reasoning API | T1 | 后端端到端 API 可验证 |
-| T3 | 前端本体 API 与 Explorer | 本体只读树、详情面板、缓存、权限处理 | T2 | 编辑器能浏览完整 Mock 本体 |
-| T4 | `$objects` 只读绑定 | Object Set/Instance 绑定和依赖更新 | T2、T3 | Text/Table 能读取本体数据且原绑定不回归 |
-| T5 | Function 与 Action 执行链 | Function 调用、Action 触发、刷新和错误态 | T4 | 延期订单链路可执行并可观察 |
-| T6 | Object-aware Widget 第一批 | ObjectDetail、FilterList、ActionButton | T3、T4、T5 | 无代码完成核心交互链路 |
-| T7 | Table/Form 本体模式 | 既有 Widget 的本体数据模式 | T6 | Table/Form 可选择 Object Type |
-| T8 | Variable 系统 | ObjectSet、Property、Function、Aggregation Variable | T4、T5 | 变量依赖图和聚合可用 |
-| T9 | 应用固化与发布校验 | DSL 快照、版本、发布、兼容性告警 | T6、T8 | 应用可发布并在运行态校验 |
-| T10 | Reasoning 与样板应用 | ReasoningPanel、三个验证应用、回归和性能基线 | T5、T6、T9 | 形成可演示的完整闭环 |
+| 阶段 | 名称                       | 主要交付物                                              | 依赖       | 放行结果                                |
+| ---- | -------------------------- | ------------------------------------------------------- | ---------- | --------------------------------------- |
+| T0   | 基线冻结与环境复核         | 可恢复基线、环境记录、验证脚本                          | 无         | 原项目和双语基线可稳定运行              |
+| T1   | 本体契约与 Provider 骨架   | DTO、Port、配置切换、错误模型                           | T0         | Mock/Production Provider 可切换         |
+| T2   | Mock 本体与运行时服务      | 供应链数据、查询、关联、Function、Action、Reasoning API | T1         | 后端端到端 API 可验证                   |
+| T3   | 前端本体 API 与 Explorer   | 本体只读树、详情面板、缓存、权限处理                    | T2         | 编辑器能浏览完整 Mock 本体              |
+| T4   | `$objects` 只读绑定        | Object Set/Instance 绑定和依赖更新                      | T2、T3     | Text/Table 能读取本体数据且原绑定不回归 |
+| T5   | Function 与 Action 执行链  | Function 调用、Action 触发、刷新和错误态                | T4         | 延期订单链路可执行并可观察              |
+| T6   | Object-aware Widget 第一批 | ObjectDetail、FilterList、ActionButton                  | T3、T4、T5 | 无代码完成核心交互链路                  |
+| T7   | Table/Form 本体模式        | 既有 Widget 的本体数据模式                              | T6         | Table/Form 可选择 Object Type           |
+| T8   | Variable 系统              | ObjectSet、Property、Function、Aggregation Variable     | T4、T5     | 变量依赖图和聚合可用                    |
+| T-Foundation | 本体工程导入与 App 绑定 | YAML Registry、App Binding、Mongo Runtime、第一批 Object 联动 | T8 | 创建 App、绑定本体并通过 Object Widget 验收 |
+| T-Compatibility | 全面兼容本体 | Object Binding、Metadata Adapter、Widget Compatibility Matrix、按类别兼容原生 Widget | T-Foundation | Object 模式易用且原生 Query 不回归 |
+| T9   | 应用固化与发布校验         | DSL 快照、版本、发布、兼容性告警                        | T-Compatibility | 应用可发布并在运行态校验                |
+| T10  | Reasoning 与样板应用       | ReasoningPanel、三个验证应用、回归和性能基线            | T5、T6、T9 | 形成可演示的完整闭环                    |
 
 T1 至 T5 是平台主链路；T6 至 T10 依次扩展用户体验和产品化能力。每一阶段都设置独立验收，未通过时只修复当前阶段范围。
 
@@ -749,6 +751,8 @@ FilterList（状态=DELAYED）
 
 ## 12. T8：Variable 系统
 
+> 当前状态：T8.1-T8.5 已完成，T8.6 自动化/环境验证记录见 [`docs/superpowers/verification/2026-08-06-t8-variable-system-verification.md`](docs/superpowers/verification/2026-08-06-t8-variable-system-verification.md)。发布态快照、版本迁移和运行时兼容性留待 T9。
+
 ### 12.1 目标
 
 引入显式 Variable 体系，统一管理 Object Set、属性、Function 和聚合结果，避免把复杂逻辑全部塞进 Widget 配置或绑定表达式。
@@ -801,10 +805,29 @@ FilterList（状态=DELAYED）
 
 ### 12.6 放行条件
 
-- Variable 配置持久化格式已固定并有迁移版本。
-- 依赖图无循环且有自动化测试。
-- Object Set 查询不会重复请求到不可控数量。
-- Variable 不影响原有 DataTree 和 Query 执行。
+- Variable 配置持久化格式已固定并有迁移版本：已完成 V1 页面 DSL 字段和旧页面空状态兼容；发布态迁移留待 T9。
+- 依赖图无循环且有自动化测试：已完成。
+- Object Set 查询不会重复请求到不可控数量：已完成稳定查询键和 Function 输入签名去重。
+- Variable 不影响原有 DataTree 和 Query 执行：已完成定向回归测试；全量类型检查仍受仓库既有 design-system 类型问题影响。
+
+## 12.7 T-Foundation：本体工程导入与 App 绑定
+
+> 当前状态：已完成。详细检查点见 [`CelanWorksmith_T-Foundation阶段检查点.md`](CelanWorksmith_T-Foundation阶段检查点.md)。
+
+本阶段完成以下工程化闭环：
+
+- YAML 本体工程导入、版本化 Registry 和 App Binding。
+- 新建 App 选择并绑定 `celanworksmith-demo:1.0.0`。
+- 绑定关系持久化，重新打开 App 后本体数据恢复。
+- MongoDB 模拟运行时 Provider 为 Object Widget 提供 `PurchaseOrder` 数据。
+- Table Object Mode 与 FilterList Object Query 联动，`Delay Days gt 1` 返回 2 条记录。
+
+本阶段不等同于所有原生 Widget 已完成本体兼容，也不进入 T9 发布固化。下一阶段先建立 Widget Compatibility Matrix、统一 Metadata Adapter 和 Object Binding 契约，再按 Widget 类别扩展。
+
+第二阶段的设计和实施计划：
+
+- [`docs/superpowers/specs/2026-08-07-full-ontology-widget-compatibility-design.md`](docs/superpowers/specs/2026-08-07-full-ontology-widget-compatibility-design.md)
+- [`docs/superpowers/plans/2026-08-07-full-ontology-widget-compatibility-plan.md`](docs/superpowers/plans/2026-08-07-full-ontology-widget-compatibility-plan.md)
 
 ## 13. T9：应用固化与发布校验
 

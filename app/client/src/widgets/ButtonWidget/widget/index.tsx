@@ -35,6 +35,15 @@ import type {
   SnipingModeProperty,
 } from "WidgetProvider/types";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
+import type { DefaultRootState } from "react-redux";
+import { celanworksmithActionRun } from "actions/celanworksmithExecutionActions";
+import { getCelanworksmithCurrentApplicationId } from "selectors/celanworksmithApplicationBindingSelectors";
+import { getCelanworksmithOntologyState } from "selectors/celanworksmithSelectors";
+import store from "store";
+import {
+  getActionValidationFeedback,
+  resolveActionBinding,
+} from "widgets/ActionButtonWidget/widget/actionButtonUtils";
 
 class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
   onButtonClickBound: (event: React.MouseEvent<HTMLElement>) => void;
@@ -76,6 +85,9 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
       disabledWhenInvalid: false,
       resetFormOnClick: false,
       recaptchaType: RecaptchaTypes.V3,
+      actionId: undefined,
+      objectData: undefined,
+      parameters: {},
       version: 1,
       responsiveBehavior: ResponsiveBehavior.Hug,
       minWidth: BUTTON_MIN_WIDTH,
@@ -173,6 +185,30 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: true,
+          },
+          {
+            propertyName: "actionId",
+            label: "Ontology Action",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectData",
+            label: "Action Object",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
+          },
+          {
+            propertyName: "parameters",
+            label: "Action Parameters",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
           },
         ],
       },
@@ -576,6 +612,9 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
   static getMetaPropertiesMap(): Record<string, any> {
     return {
       recaptchaToken: undefined,
+      ontologyActionError: undefined,
+      ontologyActionErrorPath: undefined,
+      ontologyActionValidationSummary: undefined,
     };
   }
 
@@ -584,6 +623,8 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
   }
 
   onButtonClick() {
+    if (this.runOntologyAction()) return;
+
     if (this.props.onClick) {
       this.setState({
         isLoading: true,
@@ -601,10 +642,73 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
     }
   }
 
+  runOntologyAction = () => {
+    if (!this.props.actionId) return false;
+
+    const state = store.getState() as DefaultRootState;
+    const ontology = getCelanworksmithOntologyState(state);
+    const { action, validation } = resolveActionBinding(
+      ontology.actions,
+      this.props.actionId,
+      {
+        objectData: this.props.objectData,
+        parameters: this.props.parameters,
+      },
+    );
+
+    if (!validation.valid || !validation.request || !action) {
+      const feedback = getActionValidationFeedback(validation);
+
+      this.props.updateWidgetMetaProperty(
+        "ontologyActionError",
+        feedback.error,
+      );
+      this.props.updateWidgetMetaProperty(
+        "ontologyActionErrorPath",
+        feedback.path,
+      );
+      this.props.updateWidgetMetaProperty(
+        "ontologyActionValidationSummary",
+        feedback.summary,
+      );
+
+      return true;
+    }
+
+    this.props.updateWidgetMetaProperty("ontologyActionError", undefined);
+    this.props.updateWidgetMetaProperty("ontologyActionErrorPath", undefined);
+    this.props.updateWidgetMetaProperty(
+      "ontologyActionValidationSummary",
+      undefined,
+    );
+
+    if (
+      action.requiresConfirmation &&
+      typeof window !== "undefined" &&
+      !window.confirm(`Run ${action.displayName}?`)
+    ) {
+      return true;
+    }
+
+    store.dispatch(
+      celanworksmithActionRun(
+        action.id,
+        validation.request,
+        undefined,
+        getCelanworksmithCurrentApplicationId(state) || undefined,
+      ),
+    );
+
+    return true;
+  };
+
   hasOnClickAction = () => {
     const { isDisabled, onClick, onReset, resetFormOnClick } = this.props;
 
-    return Boolean((onClick || onReset || resetFormOnClick) && !isDisabled);
+    return Boolean(
+      (this.props.actionId || onClick || onReset || resetFormOnClick) &&
+        !isDisabled,
+    );
   };
 
   clickWithRecaptcha(token: string) {
@@ -719,6 +823,9 @@ export interface ButtonWidgetProps extends WidgetProps {
   labelStyle?: string;
   labelTextColor?: string;
   labelTextSize?: string;
+  actionId?: string;
+  objectData?: unknown;
+  parameters?: unknown;
 }
 
 interface ButtonWidgetState extends WidgetState {

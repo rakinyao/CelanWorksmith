@@ -3,6 +3,7 @@ package com.appsmith.server.exceptions;
 import com.appsmith.external.exceptions.ErrorDTO;
 import com.appsmith.external.exceptions.pluginExceptions.AppsmithPluginException;
 import com.appsmith.server.dtos.ResponseDTO;
+import com.celanworksmith.CelanWorksmithException;
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -60,6 +61,19 @@ public class AppSmithErrorWebExceptionHandler extends DefaultErrorWebExceptionHa
 
     @Override
     protected int getHttpStatus(Map<String, Object> errorAttributes) {
+        Object error = errorAttributes.get("error");
+        if (error instanceof Throwable throwable) {
+            if (throwable instanceof AppsmithException) {
+                return ((AppsmithException) throwable).getHttpStatus();
+            }
+            if (throwable instanceof AppsmithPluginException) {
+                return ((AppsmithPluginException) throwable).getHttpStatus();
+            }
+            if (throwable instanceof CelanWorksmithException) {
+                return ((CelanWorksmithException) throwable).code().status().value();
+            }
+        }
+
         Object status = errorAttributes.get("status");
         if (status instanceof Integer) {
             return (Integer) status;
@@ -69,18 +83,6 @@ public class AppSmithErrorWebExceptionHandler extends DefaultErrorWebExceptionHa
                 return Integer.parseInt((String) status);
             } catch (NumberFormatException e) {
                 log.warn("Could not parse status as integer: {}", status);
-            }
-        }
-
-        // If status is missing or invalid, check for exception type
-        Object error = errorAttributes.get("error");
-        if (error instanceof Throwable) {
-            Throwable throwable = (Throwable) error;
-            if (throwable instanceof AppsmithException) {
-                return ((AppsmithException) throwable).getHttpStatus();
-            }
-            if (throwable instanceof AppsmithPluginException) {
-                return ((AppsmithPluginException) throwable).getHttpStatus();
             }
         }
 

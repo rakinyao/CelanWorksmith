@@ -9,6 +9,8 @@ import {
 
 const PROPERTY_KEYS: ObjectBindingPropertyKey[] = [
   "selectedPropertyIds",
+  "labelPropertyId",
+  "groupPropertyId",
   "displayPropertyId",
   "valuePropertyId",
 ];
@@ -61,6 +63,39 @@ export const validateObjectBinding = (
     issues.push({ code: "INVALID_SOURCE", source: binding.source });
   }
 
+  if (
+    binding.linkTypeId &&
+    metadata.links &&
+    !metadata.links.some((link) => link.id === binding.linkTypeId)
+  ) {
+    issues.push({ code: "DELETED_LINK", linkTypeId: binding.linkTypeId });
+  }
+
+  if (
+    binding.actionId &&
+    metadata.actions &&
+    !metadata.actions.some((action) => action.id === binding.actionId)
+  ) {
+    issues.push({ code: "DELETED_ACTION", actionId: binding.actionId });
+  }
+
+  const variableNames = Array.isArray(metadata.variables)
+    ? metadata.variables
+    : metadata.variables
+      ? Object.keys(metadata.variables)
+      : undefined;
+
+  if (
+    binding.aggregationVariableName &&
+    variableNames &&
+    !variableNames.includes(binding.aggregationVariableName)
+  ) {
+    issues.push({
+      code: "DELETED_VARIABLE",
+      variableName: binding.aggregationVariableName,
+    });
+  }
+
   PROPERTY_KEYS.forEach((propertyKey) => {
     const expectedDataTypes = getExpectedDataTypes(binding, propertyKey);
 
@@ -89,6 +124,7 @@ export const validateObjectBinding = (
         issues.push({
           code: "INCOMPATIBLE_PROPERTY_TYPE",
           expectedDataTypes,
+          objectTypeId: binding.objectTypeId,
           propertyId,
           receivedDataType: property.dataType,
         });

@@ -14,6 +14,7 @@ import {
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import reducer, {
   getCelanworksmithLinkKey,
+  getCelanworksmithLinkMetadataKey,
 } from "./celanworksmithLinksReducer";
 
 const purchaseOrderLink: CelanworksmithLinkType = {
@@ -45,13 +46,13 @@ const key = {
 };
 
 describe("celanworksmithLinksReducer", () => {
-  test("stores link metadata by source object type", () => {
+  test("stores legacy link metadata by source object type", () => {
     let state = reducer(
       undefined,
       celanworksmithLinkMetadataLoadRequested("PurchaseOrder"),
     );
 
-    expect(state.metadata.PurchaseOrder.status).toBe("loading");
+    expect(state.metadata["legacy/PurchaseOrder"].status).toBe("loading");
 
     state = reducer(
       state,
@@ -60,10 +61,41 @@ describe("celanworksmithLinksReducer", () => {
       ]),
     );
 
-    expect(state.metadata.PurchaseOrder).toMatchObject({
+    expect(state.metadata["legacy/PurchaseOrder"]).toMatchObject({
       status: "ready",
       links: [purchaseOrderLink],
     });
+  });
+
+  test("isolates link metadata by application for the same source type", () => {
+    let state = reducer(
+      undefined,
+      celanworksmithLinkMetadataLoadSuccess(
+        "PurchaseOrder",
+        [purchaseOrderLink],
+        "app-1",
+      ),
+    );
+
+    state = reducer(
+      state,
+      celanworksmithLinkMetadataLoadError(
+        "PurchaseOrder",
+        { code: "FORBIDDEN", message: "Forbidden" },
+        "app-2",
+      ),
+    );
+
+    expect(
+      state.metadata[
+        getCelanworksmithLinkMetadataKey("PurchaseOrder", "app-1")
+      ],
+    ).toMatchObject({ status: "ready", links: [purchaseOrderLink] });
+    expect(
+      state.metadata[
+        getCelanworksmithLinkMetadataKey("PurchaseOrder", "app-2")
+      ],
+    ).toMatchObject({ status: "error", links: [] });
   });
 
   test("isolates link data by object and link type", () => {
@@ -75,7 +107,7 @@ describe("celanworksmithLinksReducer", () => {
     state = reducer(state, celanworksmithLinkLoadRequested(otherKey));
 
     expect(getCelanworksmithLinkKey(key)).toBe(
-      "PurchaseOrder/PO001/po_production",
+      "legacy/PurchaseOrder/PO001/po_production",
     );
     expect(state.entries[getCelanworksmithLinkKey(key)]).toMatchObject({
       status: "ready",
@@ -83,6 +115,39 @@ describe("celanworksmithLinksReducer", () => {
     });
     expect(state.entries[getCelanworksmithLinkKey(otherKey)]).toMatchObject({
       status: "idle",
+    });
+  });
+
+  test("isolates link entries by application while retaining legacy entries", () => {
+    const appRequest = { ...key, applicationId: "app-1" };
+    const otherAppRequest = { ...key, applicationId: "app-2" };
+    let state = reducer(
+      undefined,
+      celanworksmithLinkLoadSuccess(key, linkedObjects),
+    );
+
+    state = reducer(
+      state,
+      celanworksmithLinkLoadSuccess(appRequest, linkedObjects),
+    );
+    state = reducer(
+      state,
+      celanworksmithLinkLoadSuccess(otherAppRequest, linkedObjects),
+    );
+
+    expect(getCelanworksmithLinkKey(key)).toBe(
+      "legacy/PurchaseOrder/PO001/po_production",
+    );
+    expect(getCelanworksmithLinkKey(appRequest)).toBe(
+      "app-1/PurchaseOrder/PO001/po_production",
+    );
+    expect(getCelanworksmithLinkKey(otherAppRequest)).toBe(
+      "app-2/PurchaseOrder/PO001/po_production",
+    );
+    expect(state.entries).toEqual({
+      "legacy/PurchaseOrder/PO001/po_production": expect.any(Object),
+      "app-1/PurchaseOrder/PO001/po_production": expect.any(Object),
+      "app-2/PurchaseOrder/PO001/po_production": expect.any(Object),
     });
   });
 
@@ -117,6 +182,46 @@ describe("celanworksmithLinksReducer", () => {
     });
   });
 
+  test("clears runtime Link entries for the target application while retaining metadata and other scopes", () => {
+    const appKey = { ...key, applicationId: "app-1" };
+    let state = reducer(
+      undefined,
+      celanworksmithLinkMetadataLoadSuccess("PurchaseOrder", [
+        purchaseOrderLink,
+      ]),
+    );
+
+    state = reducer(
+      state,
+      celanworksmithLinkLoadSuccess(appKey, linkedObjects),
+    );
+    state = reducer(state, celanworksmithLinkLoadSuccess(key, linkedObjects));
+    state = reducer(state, {
+      type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED,
+      payload: { applicationId: "app-1" },
+    });
+
+    expect(state.entries[getCelanworksmithLinkKey(appKey)]).toBeUndefined();
+    expect(state.entries[getCelanworksmithLinkKey(key)]).toBeDefined();
+    expect(state.metadata["legacy/PurchaseOrder"].links).toEqual([
+      purchaseOrderLink,
+    ]);
+  });
+
+  test("clears all runtime Link entries when no application is targeted", () => {
+    let state = reducer(
+      undefined,
+      celanworksmithLinkLoadSuccess(key, linkedObjects),
+    );
+
+    state = reducer(state, {
+      type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED,
+      payload: undefined,
+    });
+
+    expect(state.entries).toEqual({});
+  });
+
   test("preserves metadata when a metadata reload fails", () => {
     let state = reducer(
       undefined,
@@ -133,13 +238,13 @@ describe("celanworksmithLinksReducer", () => {
       }),
     );
 
-    expect(state.metadata.PurchaseOrder).toMatchObject({
+    expect(state.metadata["legacy/PurchaseOrder"]).toMatchObject({
       status: "error",
       links: [purchaseOrderLink],
     });
   });
 
-  test("invalidates source and target link entries when an object type refreshes", () => {
+  test("preserves source and target link entries when an object type refreshes", () => {
     let state = reducer(undefined, celanworksmithLinkLoadStart(key));
 
     state = reducer(state, celanworksmithLinkLoadSuccess(key, linkedObjects));
@@ -159,12 +264,34 @@ describe("celanworksmithLinksReducer", () => {
       }),
     );
 
+    const sourceEntry = {
+      typeId: "ProductionOrder",
+      objectId: "PR001",
+      linkTypeId: "production_delivery",
+    };
+
+    state = reducer(state, celanworksmithLinkLoadStart(sourceEntry));
+    state = reducer(
+      state,
+      celanworksmithLinkLoadSuccess(sourceEntry, {
+        ...linkedObjects,
+        typeId: "DeliveryOrder",
+      }),
+    );
+
     state = reducer(state, {
       type: ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_REFRESH_START,
       payload: "ProductionOrder",
     });
 
-    expect(state.entries[getCelanworksmithLinkKey(key)]).toBeUndefined();
+    expect(state.entries[getCelanworksmithLinkKey(key)]).toMatchObject({
+      status: "ready",
+      result: linkedObjects,
+    });
     expect(state.entries[getCelanworksmithLinkKey(targetEntry)]).toBeDefined();
+    expect(state.entries[getCelanworksmithLinkKey(sourceEntry)]).toMatchObject({
+      status: "ready",
+      result: { typeId: "DeliveryOrder" },
+    });
   });
 });

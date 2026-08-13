@@ -60,9 +60,14 @@ test("mode changes keep the inactive Query and Object user values", () => {
 });
 
 test("Table config uses the shared stable ontology object selector", () => {
-  const objectTypeControl = TableWidget.getPropertyPaneConfig()
-    .find((section) => section.sectionName === "CelanWorksmith Object data")
-    ?.children?.find((control) => control.propertyName === "objectTypeId");
+  const objectDataSection = TableWidget.getPropertyPaneConfig().find(
+    (section) => section.sectionName === "CelanWorksmith Object data",
+  );
+  const objectTypeControl = objectDataSection?.children?.find(
+    (control) => control.propertyName === "objectTypeId",
+  );
+
+  expect(objectDataSection?.expandedByDefault).toBe(true);
 
   expect(objectTypeControl).toMatchObject({
     controlType: "CELANWORKSMITH_OBJECT_TYPE",

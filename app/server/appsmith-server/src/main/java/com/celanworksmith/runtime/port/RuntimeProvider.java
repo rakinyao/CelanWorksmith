@@ -1,5 +1,6 @@
 package com.celanworksmith.runtime.port;
 
+import com.celanworksmith.runtime.context.CelanworksmithRuntimeContext;
 import com.celanworksmith.runtime.dto.ActionExecutionRequest;
 import com.celanworksmith.runtime.dto.ActionResult;
 import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
@@ -17,9 +18,37 @@ public interface RuntimeProvider {
 
     Mono<ObjectSetResult> getLinks(String typeId, String instanceId, String linkTypeId, ObjectSetQuery query);
 
+    default Mono<ObjectSetResult> queryObjects(
+            CelanworksmithRuntimeContext context, String typeId, ObjectSetQuery query) {
+        return queryObjects(typeId, query);
+    }
+
+    default Mono<ObjectInstanceDTO> getObject(CelanworksmithRuntimeContext context, String typeId, String instanceId) {
+        return getObject(typeId, instanceId);
+    }
+
+    default Mono<ObjectSetResult> getLinks(
+            CelanworksmithRuntimeContext context,
+            String typeId,
+            String instanceId,
+            String linkTypeId,
+            ObjectSetQuery query) {
+        return getLinks(typeId, instanceId, linkTypeId, query);
+    }
+
     Mono<ActionResult> executeAction(String actionId, ActionExecutionRequest request);
 
+    default Mono<ActionResult> executeAction(
+            CelanworksmithRuntimeContext context, String actionId, ActionExecutionRequest request) {
+        return executeAction(actionId, request);
+    }
+
     Mono<Object> executeFunction(String functionId, FunctionExecutionRequest request);
+
+    default Mono<Object> executeFunction(
+            CelanworksmithRuntimeContext context, String functionId, FunctionExecutionRequest request) {
+        return executeFunction(functionId, request);
+    }
 
     Mono<ReasoningResult> reason(ReasoningRequest request);
 }

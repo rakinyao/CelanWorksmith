@@ -36,6 +36,7 @@ const INFINITE_SCROLL_DISABLED_HELP_TEXT =
 export default [
   {
     sectionName: "CelanWorksmith Object data",
+    expandedByDefault: true,
     children: [
       {
         propertyName: "dataMode",
@@ -90,7 +91,9 @@ export default [
         inputType: "ARRAY",
         isBindProperty: true,
         isTriggerProperty: false,
-        hidden: (props: TableWidgetProps) => props.dataMode === "OBJECT",
+        hidden: (props: TableWidgetProps) =>
+          props.dataMode === "OBJECT" &&
+          !Object.keys(props.primaryColumns || {}).length,
         isJSConvertible: true,
         validation: {
           type: ValidationTypes.FUNCTION,
@@ -199,7 +202,7 @@ export default [
     // We already have a isDefaultOpen prop configured to keep a section expanded or not
     // but introducing new prop so that we can control is based on flag
     // Once we decide to keep this feature, we can go back to using isDefaultOpen and removeexpandedByDefault
-    expandedByDefault: true,
+    expandedByDefault: false,
   },
   {
     sectionName: "Pagination",

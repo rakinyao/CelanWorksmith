@@ -14,6 +14,8 @@ describe("ActionButtonWidget registration", () => {
       actionId: undefined,
     });
     expect(widget.getMetaPropertiesMap()).toEqual({
+      executionId: undefined,
+      executionProgress: 0,
       executionStatus: "idle",
       lastResult: undefined,
       lastError: undefined,

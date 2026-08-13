@@ -1,5 +1,6 @@
 import React from "react";
 import ObjectSetBinding from "./ObjectSetBinding";
+import ObjectBindingState from "./ObjectBindingState";
 import { getObjectSetOptions, type ObjectSetOption } from "./objectSetUtils";
 
 interface ObjectSelectionModeProps {
@@ -9,14 +10,20 @@ interface ObjectSelectionModeProps {
   ) => React.ReactElement;
   displayPropertyId?: string;
   objectTypeId?: string;
+  actionId?: string;
+  aggregationVariableName?: string;
+  linkTypeId?: string;
   valuePropertyId?: string;
   widgetId: string;
   widgetType: string;
 }
 
 export default function ObjectSelectionMode({
+  actionId,
+  aggregationVariableName,
   children,
   displayPropertyId,
+  linkTypeId,
   objectTypeId,
   valuePropertyId,
   widgetId,
@@ -24,30 +31,41 @@ export default function ObjectSelectionMode({
 }: ObjectSelectionModeProps) {
   return (
     <ObjectSetBinding
+      actionId={actionId}
+      aggregationVariableName={aggregationVariableName}
+      linkTypeId={linkTypeId}
       objectTypeId={objectTypeId}
       widgetId={widgetId}
       widgetType={widgetType}
     >
       {(binding) => {
         if (binding.status === "typeMismatch") {
-          return <div role="alert">The Object binding is incompatible.</div>;
+          return (
+            <ObjectBindingState
+              diagnostic={binding.diagnostic?.message}
+              status="typeMismatch"
+            />
+          );
         }
 
         if (binding.status === "permissionDenied") {
-          return <div role="alert">Access to object data is denied.</div>;
+          return <ObjectBindingState status="permissionDenied" />;
         }
 
         if (binding.status === "error") {
           return (
-            <div role="alert">
-              {binding.error?.message || "Unable to load objects."}
-            </div>
+            <ObjectBindingState
+              errorMessage={binding.error?.message}
+              status="error"
+            />
           );
         }
 
-        if (binding.status === "empty") return <div>No objects found.</div>;
+        if (binding.status === "empty") {
+          return <ObjectBindingState status="empty" />;
+        }
 
-        if (!binding.result) return <div>Loading objects...</div>;
+        if (!binding.result) return <ObjectBindingState status="loading" />;
 
         const optionResult = getObjectSetOptions(
           binding.result,
@@ -56,7 +74,7 @@ export default function ObjectSelectionMode({
         );
 
         if (optionResult.state === "typeMismatch") {
-          return <div role="alert">The Object binding is incompatible.</div>;
+          return <ObjectBindingState status="typeMismatch" />;
         }
 
         return children(optionResult.options, binding.status === "loading");

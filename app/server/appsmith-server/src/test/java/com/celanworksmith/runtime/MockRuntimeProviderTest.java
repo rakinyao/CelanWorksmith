@@ -34,13 +34,28 @@ class MockRuntimeProviderTest {
     @Test
     void fixtureHasExpectedCountsAndRelationships() {
         assertEquals(10, dataStore.query("Supplier", ObjectSetQuery.defaults()).total());
-        assertEquals(200, dataStore.query("PurchaseOrder", ObjectSetQuery.defaults()).total());
-        assertEquals(200, dataStore.query("ProductionOrder", ObjectSetQuery.defaults()).total());
-        assertEquals(200, dataStore.query("DeliveryOrder", ObjectSetQuery.defaults()).total());
-        assertEquals(200, dataStore.query("FinancialRecord", ObjectSetQuery.defaults()).total());
-        assertEquals(40, dataStore.query("SupplierRating", ObjectSetQuery.defaults()).total());
-        assertEquals(20, dataStore.linked("Supplier", "S001", "supplier_orders", ObjectSetQuery.defaults()).total());
-        assertEquals(4, dataStore.linked("Supplier", "S001", "supplier_ratings", ObjectSetQuery.defaults()).total());
+        assertEquals(
+                200, dataStore.query("PurchaseOrder", ObjectSetQuery.defaults()).total());
+        assertEquals(
+                200,
+                dataStore.query("ProductionOrder", ObjectSetQuery.defaults()).total());
+        assertEquals(
+                200, dataStore.query("DeliveryOrder", ObjectSetQuery.defaults()).total());
+        assertEquals(
+                200,
+                dataStore.query("FinancialRecord", ObjectSetQuery.defaults()).total());
+        assertEquals(
+                40, dataStore.query("SupplierRating", ObjectSetQuery.defaults()).total());
+        assertEquals(
+                20,
+                dataStore
+                        .linked("Supplier", "S001", "supplier_orders", ObjectSetQuery.defaults())
+                        .total());
+        assertEquals(
+                4,
+                dataStore
+                        .linked("Supplier", "S001", "supplier_ratings", ObjectSetQuery.defaults())
+                        .total());
     }
 
     @Test
@@ -51,39 +66,125 @@ class MockRuntimeProviderTest {
         assertEquals(40, result.total());
         assertEquals(10, result.items().size());
         assertEquals("PO005", result.items().getFirst().id());
-        assertEquals("PO050", dataStore.query("PurchaseOrder", new ObjectSetQuery(filter, "id", "asc", 9, 1)).items().getFirst().id());
+        assertEquals(
+                "PO050",
+                dataStore
+                        .query("PurchaseOrder", new ObjectSetQuery(filter, "id", "asc", 9, 1))
+                        .items()
+                        .getFirst()
+                        .id());
+    }
+
+    @Test
+    void structuredFiltersUsedByObjectSetVariablesAreEvaluated() {
+        var filter = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        filter.put("typeId", "PurchaseOrder");
+        filter.put("version", 1);
+        var conditions = filter.putArray("conditions");
+        conditions
+                .addObject()
+                .put("propertyId", "delayDays")
+                .put("operator", "gt")
+                .put("value", 0);
+
+        ObjectSetResult result = dataStore.query("PurchaseOrder", new ObjectSetQuery(filter, "id", "asc", 0, 100));
+
+        assertEquals(40, result.total());
+        assertEquals("PO005", result.items().getFirst().id());
+        assertTrue(result.items().stream()
+                .allMatch(item -> ((Number) item.properties().get("delayDays")).intValue() > 0));
+    }
+
+    @Test
+    void searchMatchesObjectIdsAndPropertiesBeforePagination() {
+        ObjectSetResult byId = dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 10, "PO005"));
+        ObjectSetResult byProperty =
+                dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 10, "delayed"));
+
+        assertEquals(1, byId.total());
+        assertEquals("PO005", byId.items().getFirst().id());
+        assertEquals(40, byProperty.total());
+        assertTrue(byProperty.items().stream()
+                .allMatch(item -> "DELAYED".equals(item.properties().get("status"))));
     }
 
     @Test
     void functionsCalculateSupplyChainMetrics() {
-        assertEquals(8, runtimeProvider.executeFunction("CalculateDelayDays", new FunctionExecutionRequest(Map.of("poId", "PO005"))).block());
-        assertEquals(new BigDecimal("850.00"), runtimeProvider.executeFunction("CalculatePenalty", new FunctionExecutionRequest(Map.of("poId", "PO005"))).block());
-        assertEquals(new BigDecimal("3931.25"), runtimeProvider.executeFunction("CalculateAdjustedProfit", new FunctionExecutionRequest(Map.of("poId", "PO005"))).block());
-        assertEquals(new BigDecimal("0.2960"), runtimeProvider.executeFunction("CalculateMarginRate", new FunctionExecutionRequest(Map.of("poId", "PO005"))).block());
-        assertEquals(new BigDecimal("3.75"), runtimeProvider.executeFunction("CalculateSupplierGrade", new FunctionExecutionRequest(Map.of("supplierId", "S001"))).block());
+        assertEquals(
+                8,
+                runtimeProvider
+                        .executeFunction("CalculateDelayDays", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                        .block());
+        assertEquals(
+                new BigDecimal("850.00"),
+                runtimeProvider
+                        .executeFunction("CalculatePenalty", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                        .block());
+        assertEquals(
+                new BigDecimal("3931.25"),
+                runtimeProvider
+                        .executeFunction(
+                                "CalculateAdjustedProfit", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                        .block());
+        assertEquals(
+                new BigDecimal("0.2960"),
+                runtimeProvider
+                        .executeFunction("CalculateMarginRate", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                        .block());
+        assertEquals(
+                new BigDecimal("3.75"),
+                runtimeProvider
+                        .executeFunction(
+                                "CalculateSupplierGrade", new FunctionExecutionRequest(Map.of("supplierId", "S001")))
+                        .block());
     }
 
     @Test
     void actionsUpdateOnlyExpectedObjects() {
-        ActionResult result = runtimeProvider.executeAction(
+        ActionResult result = runtimeProvider
+                .executeAction(
                         "UpdateProductionSchedule",
                         new ActionExecutionRequest("PurchaseOrder", "PO005", Map.of("newScheduleDate", "2026-03-01")))
                 .block();
         assertNotNull(result);
         assertTrue(result.success());
-        assertEquals("2026-03-01", dataStore.get("ProductionOrder", "PR005").properties().get("scheduleDate"));
-        assertEquals("2026-01-06", dataStore.get("PurchaseOrder", "PO005").properties().get("expectedDeliveryDate"));
+        assertEquals(2, result.changedProperties().size());
+        assertEquals(
+                new ActionResult.ChangedProperty("ProductionOrder", "PR005", "scheduleDate", "2026-03-01"),
+                result.changedProperties().get(0));
+        assertEquals(
+                new ActionResult.ChangedProperty("ProductionOrder", "PR005", "status", "RESCHEDULED"),
+                result.changedProperties().get(1));
+        assertTrue(result.links().isEmpty());
+        assertEquals(
+                "2026-03-01",
+                dataStore.get("ProductionOrder", "PR005").properties().get("scheduleDate"));
+        assertEquals(
+                "2026-01-06",
+                dataStore.get("PurchaseOrder", "PO005").properties().get("expectedDeliveryDate"));
 
-        runtimeProvider.executeAction(
+        ActionResult financialResult = runtimeProvider
+                .executeAction(
                         "UpdateFinancialRecord",
-                        new ActionExecutionRequest("PurchaseOrder", "PO005", Map.of("penalty", new BigDecimal("850.00"))))
+                        new ActionExecutionRequest(
+                                "PurchaseOrder", "PO005", Map.of("penalty", new BigDecimal("850.00"))))
                 .block();
-        assertEquals(new BigDecimal("850.00"), dataStore.get("FinancialRecord", "FR005").properties().get("penalty"));
+        assertEquals(2, financialResult.changedProperties().size());
+        assertEquals(
+                new ActionResult.ChangedProperty("FinancialRecord", "FR005", "penalty", new BigDecimal("850.00")),
+                financialResult.changedProperties().get(0));
+        assertEquals(
+                new ActionResult.ChangedProperty("FinancialRecord", "FR005", "profit", new BigDecimal("3931.25")),
+                financialResult.changedProperties().get(1));
+        assertEquals(
+                new BigDecimal("850.00"),
+                dataStore.get("FinancialRecord", "FR005").properties().get("penalty"));
     }
 
     @Test
     void actionsKeepServerValidationAndExposeCompleteResults() {
-        ActionResult notification = runtimeProvider.executeAction(
+        ActionResult notification = runtimeProvider
+                .executeAction(
                         "NotifyProductionTeam",
                         new ActionExecutionRequest("PurchaseOrder", "PO005", Map.of("message", "Reschedule required")))
                 .block();
@@ -92,37 +193,46 @@ class MockRuntimeProviderTest {
         assertTrue(notification.success());
         assertNotNull(notification.executionId());
         assertTrue(notification.changedObjects().isEmpty());
+        assertTrue(notification.changedProperties().isEmpty());
+        assertTrue(notification.links().isEmpty());
         assertEquals("NOTIFICATION", notification.sideEffects().getFirst().get("type"));
 
-        assertThrows(CelanWorksmithException.class, () -> runtimeProvider.executeAction(
+        assertThrows(CelanWorksmithException.class, () -> runtimeProvider
+                .executeAction(
                         "UpdateProductionSchedule",
                         new ActionExecutionRequest("PurchaseOrder", null, Map.of("newScheduleDate", "2026-03-15")))
                 .block());
-        assertThrows(CelanWorksmithException.class, () -> runtimeProvider.executeAction(
-                        "UpdateProductionSchedule",
-                        new ActionExecutionRequest("PurchaseOrder", "PO005", Map.of()))
+        assertThrows(CelanWorksmithException.class, () -> runtimeProvider
+                .executeAction(
+                        "UpdateProductionSchedule", new ActionExecutionRequest("PurchaseOrder", "PO005", Map.of()))
                 .block());
-        assertThrows(CelanWorksmithException.class, () -> runtimeProvider.executeAction(
+        assertThrows(CelanWorksmithException.class, () -> runtimeProvider
+                .executeAction(
                         "UpdateProductionSchedule",
                         new ActionExecutionRequest("Supplier", "S001", Map.of("newScheduleDate", "2026-03-15")))
                 .block());
-        assertThrows(CelanWorksmithException.class, () -> runtimeProvider.executeAction(
-                        "UnknownAction",
-                        new ActionExecutionRequest("PurchaseOrder", "PO005", Map.of()))
+        assertThrows(CelanWorksmithException.class, () -> runtimeProvider
+                .executeAction("UnknownAction", new ActionExecutionRequest("PurchaseOrder", "PO005", Map.of()))
                 .block());
     }
 
     @Test
     void reasoningReturnsEvidenceAndInvalidInputsAreRejected() {
-        var reasoning = runtimeProvider.reason(new ReasoningRequest("PurchaseOrder", "PO005", "Why is this late?")).block();
+        var reasoning = runtimeProvider
+                .reason(new ReasoningRequest("PurchaseOrder", "PO005", "Why is this late?"))
+                .block();
         assertNotNull(reasoning);
         assertTrue(reasoning.answer().contains("PO005"));
         assertEquals(3, reasoning.evidence().size());
-        assertThrows(CelanWorksmithException.class, () -> dataStore.query(
-                "PurchaseOrder", new ObjectSetQuery(null, "unknown", "asc", 0, 10)));
-        assertThrows(CelanWorksmithException.class, () -> dataStore.linked(
-                "Supplier", "S001", "po_finance", ObjectSetQuery.defaults()));
-        assertThrows(CelanWorksmithException.class, () -> new MockOntologyProvider().getLinkTypes("UnknownType").block());
+        assertThrows(
+                CelanWorksmithException.class,
+                () -> dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "unknown", "asc", 0, 10)));
+        assertThrows(
+                CelanWorksmithException.class,
+                () -> dataStore.linked("Supplier", "S001", "po_finance", ObjectSetQuery.defaults()));
+        assertThrows(
+                CelanWorksmithException.class,
+                () -> new MockOntologyProvider().getLinkTypes("UnknownType").block());
     }
 
     @Test

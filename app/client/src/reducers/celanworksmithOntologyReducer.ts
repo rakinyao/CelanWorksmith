@@ -22,6 +22,8 @@ const initialState: CelanworksmithOntologyState = {
 };
 
 const celanworksmithOntologyReducer = createReducer(initialState, {
+  [ReduxActionTypes.CELANWORKSMITH_APPLICATION_BINDING_LOAD_REQUEST]: () =>
+    initialState,
   [ReduxActionTypes.CELANWORKSMITH_ONTOLOGY_LOAD_REQUEST]: (
     state: CelanworksmithOntologyState,
   ) => ({ ...state, status: "loading", error: undefined }),

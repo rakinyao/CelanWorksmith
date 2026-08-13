@@ -160,4 +160,83 @@ describe("getCelanworksmithActionRefreshPlan", () => {
       widgetIds: [],
     });
   });
+
+  it("refreshes only matching links when an Action reports link changes", () => {
+    const plan = getCelanworksmithActionRefreshPlan(
+      {
+        success: true,
+        message: "Action executed",
+        executionId: "execution-456",
+        changedObjects: [],
+        changedProperties: [],
+        links: [
+          {
+            typeId: "PurchaseOrder",
+            objectId: "PO001",
+            linkTypeId: "po_production",
+          },
+        ],
+        sideEffects: [],
+      },
+      {
+        objectQueries: {
+          entries: {
+            orders: {
+              request: { widgetId: "OrdersTable", typeId: "PurchaseOrder" },
+              status: "ready",
+            },
+            production: {
+              request: {
+                widgetId: "ProductionTable",
+                typeId: "ProductionOrder",
+              },
+              status: "ready",
+            },
+            variableOrders: {
+              request: {
+                widgetId: "$variable/orders",
+                typeId: "PurchaseOrder",
+              },
+              status: "ready",
+            },
+          },
+        },
+        links: {
+          metadata: {},
+          entries: {
+            changed: {
+              request: {
+                typeId: "PurchaseOrder",
+                objectId: "PO001",
+                linkTypeId: "po_production",
+              },
+              status: "ready",
+            },
+            unrelated: {
+              request: {
+                typeId: "PurchaseOrder",
+                objectId: "PO002",
+                linkTypeId: "po_production",
+              },
+              status: "ready",
+            },
+          },
+        },
+      },
+    );
+
+    expect(plan).toEqual({
+      objectTypeIds: [],
+      objectQueries: [],
+      links: [
+        {
+          typeId: "PurchaseOrder",
+          objectId: "PO001",
+          linkTypeId: "po_production",
+        },
+      ],
+      variableIds: [],
+      widgetIds: [],
+    });
+  });
 });

@@ -36,6 +36,21 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { EChartsDatasetBuilder } from "../component/EChartsDatasetBuilder";
+import ObjectSetBinding from "celanworksmith/widgets/objectBinding/ObjectSetBinding";
+import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
+import {
+  getAggregationVariableChartData,
+  getObjectSetChartData,
+} from "celanworksmith/widgets/objectBinding/visualizationAdapter";
+import type { ObjectBinding } from "celanworksmith/widgets/objectBinding/types";
+import { getCelanworksmithVariablesDataTree } from "selectors/dataTreeSelectors";
+import { useSelector } from "react-redux";
+import {
+  getObjectChartStateMessage,
+  isCustomEChart,
+  isCustomFusionChart,
+} from "../component/helpers";
+import type { AllChartData, ChartType } from "../constants";
 
 const ChartComponent = lazy(async () =>
   retryPromise(
@@ -62,6 +77,103 @@ export const emptyChartData = (props: ChartWidgetProps) => {
 
     return true;
   }
+};
+
+interface ChartObjectModeProps {
+  binding: ObjectBinding;
+  chartType?: ChartType;
+  filter?: unknown;
+  objectTypeId?: string;
+  renderChart: (chartData: AllChartData) => React.ReactElement;
+  widgetId: string;
+}
+
+export function ChartObjectMode({
+  binding,
+  chartType,
+  filter,
+  objectTypeId,
+  renderChart,
+  widgetId,
+}: ChartObjectModeProps) {
+  if (
+    chartType &&
+    (isCustomEChart(chartType) || isCustomFusionChart(chartType))
+  ) {
+    return <div role="alert">{getObjectChartStateMessage("typeMismatch")}</div>;
+  }
+
+  if (binding.aggregationVariableName) {
+    return <ChartAggregationMode binding={binding} renderChart={renderChart} />;
+  }
+
+  return (
+    <ObjectSetBinding
+      filter={filter}
+      objectTypeId={objectTypeId}
+      widgetId={widgetId}
+      widgetType="CHART_WIDGET"
+    >
+      {(objectSet) => {
+        const state =
+          !binding.objectTypeId ||
+          !binding.labelPropertyId ||
+          !binding.valuePropertyId
+            ? "missingBinding"
+            : objectSet.status;
+        const message = getObjectChartStateMessage(
+          state,
+          objectSet.error?.message,
+        );
+
+        if (message) {
+          return state === "loading" ? (
+            <div aria-live="polite">{message}</div>
+          ) : (
+            <div role="alert">{message}</div>
+          );
+        }
+
+        const chartData = getObjectSetChartData(
+          objectSet.result,
+          binding,
+          objectSet.metadata,
+        );
+        const chartDataMessage = getObjectChartStateMessage(chartData.status);
+
+        if (chartDataMessage) {
+          return <div role="alert">{chartDataMessage}</div>;
+        }
+
+        return renderChart(chartData.chartData);
+      }}
+    </ObjectSetBinding>
+  );
+}
+
+const ChartAggregationMode = ({
+  binding,
+  renderChart,
+}: Pick<ChartObjectModeProps, "binding" | "renderChart">) => {
+  const variables = useSelector(getCelanworksmithVariablesDataTree);
+  const chartData = getAggregationVariableChartData(
+    binding.aggregationVariableName as string,
+    variables,
+  );
+  const message = getObjectChartStateMessage(
+    chartData.status,
+    chartData.errorMessage,
+  );
+
+  if (message) {
+    return chartData.status === "loading" ? (
+      <div aria-live="polite">{message}</div>
+    ) : (
+      <div role="alert">{message}</div>
+    );
+  }
+
+  return renderChart(chartData.chartData);
 };
 
 class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
@@ -91,6 +203,7 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
       columns: 24,
       widgetName: "Chart",
       chartType: "COLUMN_CHART",
+      dataMode: "OBJECT",
       chartName: "Sales Report",
       allowScroll: false,
       version: 1,
@@ -226,7 +339,29 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
     );
   };
 
+  renderObjectChart = (chartData: AllChartData) =>
+    this.renderChartWithData(chartData, false);
+
   getWidgetView() {
+    const objectBinding = normalizeObjectBinding(
+      ChartWidget.type,
+      this.props as unknown as Record<string, unknown>,
+      {},
+    );
+
+    if (objectBinding.mode === "OBJECT") {
+      return (
+        <ChartObjectMode
+          binding={objectBinding.binding}
+          chartType={this.props.chartType}
+          filter={this.props.objectFilter}
+          objectTypeId={objectBinding.binding.objectTypeId}
+          renderChart={this.renderObjectChart}
+          widgetId={this.props.widgetId}
+        />
+      );
+    }
+
     const errors = syntaxErrorsFromProps(this.props);
 
     if (this.props.isLoading) {
@@ -244,14 +379,17 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
     return this.renderChartWithData();
   }
 
-  renderChartWithData() {
+  renderChartWithData(
+    chartData = this.props.chartData,
+    isLoading = this.props.isLoading,
+  ) {
     return (
       <Suspense fallback={<Skeleton />}>
         <ChartComponent
           allowScroll={this.props.allowScroll}
           borderRadius={this.props.borderRadius}
           boxShadow={this.props.boxShadow}
-          chartData={this.props.chartData}
+          chartData={chartData}
           chartName={this.props.chartName}
           chartType={this.props.chartType}
           customEChartConfig={this.props.customEChartConfig}
@@ -263,7 +401,7 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
               : undefined
           }
           hasOnDataPointClick={Boolean(this.props.onDataPointClick)}
-          isLoading={this.props.isLoading}
+          isLoading={isLoading}
           isVisible={this.props.isVisible}
           key={this.props.widgetId}
           labelOrientation={this.props.labelOrientation}
@@ -284,7 +422,14 @@ type ChartComponentPartialProps = Omit<ChartComponentProps, "onDataPointClick">;
 export interface ChartWidgetProps
   extends WidgetProps,
     ChartComponentPartialProps {
+  dataMode?: "OBJECT" | "QUERY";
+  aggregationVariableName?: string;
+  groupPropertyId?: string;
+  labelPropertyId?: string;
+  objectFilter?: unknown;
+  objectTypeId?: string;
   onDataPointClick?: string;
+  valuePropertyId?: string;
 }
 
 export default ChartWidget;

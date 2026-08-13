@@ -141,3 +141,71 @@ ESLint: exit 0 (Browserslist caniuse-lite age warning only)
 yarn check-types: exit 0 (no diagnostics)
 git diff --check: exit 0
 ```
+
+## Fix Round 4 Status (Paused)
+
+- Removed the custom `layoutSystems/CanvasFactory` mocks from the legacy List
+  and ListV2 ObjectSet tests. Both tests now import the real Widget registry,
+  call `editorInitializer`, and exercise `renderAppsmithCanvas` through the
+  production Canvas contract.
+- Expanded the template fixtures with the Canvas visibility and hydration
+  fields required by the real renderer. This exposed the actual nested
+  Canvas/Container/Button lifecycle instead of recursively extracting fixture
+  callbacks and manufacturing DOM buttons.
+- The most recent focused run rendered the ListV2 template through the real
+  Canvas and passed its suite. The legacy List suite still failed, leaving the
+  focused run at 1 failing suite, 1 passing suite, and 3 passing tests out of
+  4. No follow-up formatter, lint, type, or broader Task 5 verification was
+  run after this incomplete test result.
+
+### Remaining Blocker
+
+- The legacy List test requires a complete page-DSL/evaluated-widget harness
+  for its dynamic `currentItem` template before its ObjectSet row, pagination,
+  and selected-item assertions can be accepted as real template rendering.
+- The ListV2 fixture still contains a static `"Acme"` template value. It must
+  be replaced with evaluated `currentItem` data supplied by that same real
+  page-DSL/meta-widget harness before this round meets the reviewer gate.
+- No commit was created. The working tree is intentionally preserved; no
+  reset, checkout, clean, or unrelated Task 5/other-stage change was applied.
+
+## Fix Round 5 Status (Paused By Request)
+
+- Replaced the two remaining List Object-mode interaction tests with page-DSL
+  contracts. They no longer mock `layoutSystems/CanvasFactory`, provide static
+  template text, inject static `listData`, or inspect manufactured callbacks.
+- Added the untracked test-only helper
+  `app/client/test/pageDslEvaluationHarness.tsx`. It composes `useMockDsl`,
+  real widget registration, `renderAppsmithCanvas`, `DataTreeEvaluator`,
+  `ConfigTreeActions`, and reducer-compatible deep-diff evaluated-tree updates.
+  Its Supplier fixture supplies Acme and Globex only through the ObjectSet
+  query result; both template nodes retain `{{currentItem.supplierName}}`.
+- The new tests require the helper to publish ObjectSet rows, reevaluate the
+  Legacy List template array, then reevaluate ListV2 after it generates meta
+  widgets. They assert native pagination and stable evaluated selection meta.
+
+### Verification Status
+
+```text
+RED before helper creation:
+  ListWidget and ListWidgetV2 Object-mode suites failed to resolve
+  test/pageDslEvaluationHarness. This was the expected missing-fixture failure.
+
+After helper creation:
+  No Jest, Prettier, ESLint, type check, or broader Task 5 command was run.
+  The user explicitly stopped further long-running work before validation.
+
+Static check:
+  git diff --check produced no output for the tracked Task 5 files.
+```
+
+### Resume Point
+
+- No Jest, Node, lint, formatting, or type-check process remains running.
+- The exact focused next command is the paired List/ListV2 Object-mode Jest
+  invocation from the task brief. Resolve any harness lifecycle failures before
+  running formatting, lint, type checking, the full Task 5 suites, and the
+  Task 5-only commit.
+- No commit was created. All current changes are preserved in the existing
+  dirty worktree; T-Foundation/T8 baseline files were not reset, checked out,
+  cleaned, staged, or modified by this round.

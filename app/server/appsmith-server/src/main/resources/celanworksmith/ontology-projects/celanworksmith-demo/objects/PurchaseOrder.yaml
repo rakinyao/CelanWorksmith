@@ -1,0 +1,63 @@
+id: PurchaseOrder
+displayName: Purchase Order
+runtimeTable: purchase_orders
+primaryKey: id
+properties:
+  - id: supplierId
+    displayName: Supplier
+    dataType: REFERENCE
+    required: true
+    readOnly: false
+    derived: false
+    group: Supplier
+    order: 10
+    referenceTypeId: Supplier
+  - id: status
+    displayName: Status
+    dataType: ENUM
+    required: true
+    readOnly: false
+    derived: false
+    group: Order
+    order: 20
+    enumValues: [CONFIRMED, IN_PROGRESS, DELAYED]
+  - id: orderDate
+    displayName: Order Date
+    dataType: DATETIME
+    required: true
+    readOnly: false
+    derived: false
+    group: Dates
+    order: 30
+  - id: expectedDeliveryDate
+    displayName: Expected Delivery
+    dataType: DATETIME
+    required: true
+    readOnly: false
+    derived: false
+    group: Dates
+    order: 40
+  - id: actualDeliveryDate
+    displayName: Actual Delivery
+    dataType: DATETIME
+    required: false
+    readOnly: false
+    derived: false
+    group: Dates
+    order: 50
+  - id: amount
+    displayName: Amount
+    dataType: DECIMAL
+    required: true
+    readOnly: false
+    derived: false
+    group: Financial
+    order: 60
+  - id: delayDays
+    displayName: Delay Days
+    dataType: INTEGER
+    required: false
+    readOnly: true
+    derived: true
+    group: Delivery
+    order: 70

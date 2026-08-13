@@ -7,6 +7,7 @@ import {
   getCelanworksmithObjectMetadataState,
   getCelanworksmithObjectTypeOptions,
 } from "selectors/celanworksmithObjectMetadataSelectors";
+import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
 
 export interface CelanworksmithObjectTypeControlProps extends ControlProps {
   propertyValue?: string;
@@ -25,9 +26,12 @@ const CelanworksmithObjectTypeSelector = ({
 }: ObjectTypeSelectorProps) => {
   const dispatch = useDispatch();
   const metadataState = useSelector(getCelanworksmithObjectMetadataState);
+  const objectsState = useSelector(getCelanworksmithObjectsState);
   const options = useSelector(getCelanworksmithObjectTypeOptions);
   const [search, setSearch] = useState("");
   const isDisabled = metadataState.status !== "ready";
+  const isRefreshing =
+    metadataState.status === "ready" && objectsState.status === "loading";
   const selectedValue = propertyValue || "";
   const hasSelectedOption = options.some(
     (option) => option.value === selectedValue,
@@ -79,6 +83,9 @@ const CelanworksmithObjectTypeSelector = ({
       ) : null}
       {metadataState.status === "loading" ? (
         <div>Loading object metadata / 正在加载对象元数据</div>
+      ) : null}
+      {isRefreshing ? (
+        <div>Refreshing object metadata / 正在刷新对象元数据</div>
       ) : null}
       {metadataState.status === "empty" && metadataState.isBound ? (
         <div>No object types / 没有对象类型</div>

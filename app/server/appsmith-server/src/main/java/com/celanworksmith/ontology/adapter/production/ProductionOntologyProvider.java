@@ -14,22 +14,31 @@ import java.util.List;
 public class ProductionOntologyProvider implements OntologyProvider {
     private <T> Mono<T> notConfigured() {
         return Mono.error(new CelanWorksmithException(
-                CelanWorksmithErrorCode.PROVIDER_NOT_CONFIGURED,
-                "Production ontology provider is not configured"));
+                CelanWorksmithErrorCode.PROVIDER_NOT_CONFIGURED, "Production ontology provider is not configured"));
     }
 
     @Override
-    public Mono<List<ObjectTypeDTO>> getObjectTypes() { return notConfigured(); }
+    public Mono<List<ObjectTypeDTO>> getObjectTypes() {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<ObjectTypeDTO> getObjectType(String typeId) { return notConfigured(); }
+    public Mono<ObjectTypeDTO> getObjectType(String typeId) {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<List<LinkTypeDTO>> getLinkTypes(String sourceTypeId) { return notConfigured(); }
+    public Mono<List<LinkTypeDTO>> getLinkTypes(String sourceTypeId) {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<List<FunctionDTO>> getFunctions() { return notConfigured(); }
+    public Mono<List<FunctionDTO>> getFunctions() {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<List<ActionTypeDTO>> getActions(String objectTypeId) { return notConfigured(); }
+    public Mono<List<ActionTypeDTO>> getActions(String objectTypeId) {
+        return notConfigured();
+    }
 }

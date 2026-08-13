@@ -1,0 +1,12 @@
+[
+  {"_id":"PO001","typeId":"PurchaseOrder","properties":{"supplierId":"S001","status":"CONFIRMED","orderDate":"2025-12-02","expectedDeliveryDate":"2026-01-02","actualDeliveryDate":null,"amount":10125.00,"delayDays":0}},
+  {"_id":"PO002","typeId":"PurchaseOrder","properties":{"supplierId":"S002","status":"CONFIRMED","orderDate":"2025-12-03","expectedDeliveryDate":"2026-01-03","actualDeliveryDate":null,"amount":10250.00,"delayDays":0}},
+  {"_id":"PO003","typeId":"PurchaseOrder","properties":{"supplierId":"S003","status":"IN_PROGRESS","orderDate":"2025-12-04","expectedDeliveryDate":"2026-01-04","actualDeliveryDate":null,"amount":10375.00,"delayDays":0}},
+  {"_id":"PO004","typeId":"PurchaseOrder","properties":{"supplierId":"S004","status":"CONFIRMED","orderDate":"2025-12-05","expectedDeliveryDate":"2026-01-05","actualDeliveryDate":null,"amount":10500.00,"delayDays":0}},
+  {"_id":"PO005","typeId":"PurchaseOrder","properties":{"supplierId":"S005","status":"DELAYED","orderDate":"2025-12-06","expectedDeliveryDate":"2026-01-06","actualDeliveryDate":"2026-01-14","amount":10625.00,"delayDays":8}},
+  {"_id":"PO006","typeId":"PurchaseOrder","properties":{"supplierId":"S006","status":"CONFIRMED","orderDate":"2025-12-07","expectedDeliveryDate":"2026-01-07","actualDeliveryDate":null,"amount":10750.00,"delayDays":0}},
+  {"_id":"PO007","typeId":"PurchaseOrder","properties":{"supplierId":"S007","status":"IN_PROGRESS","orderDate":"2025-12-08","expectedDeliveryDate":"2026-01-08","actualDeliveryDate":null,"amount":10875.00,"delayDays":0}},
+  {"_id":"PO008","typeId":"PurchaseOrder","properties":{"supplierId":"S008","status":"CONFIRMED","orderDate":"2025-12-09","expectedDeliveryDate":"2026-01-09","actualDeliveryDate":null,"amount":11000.00,"delayDays":0}},
+  {"_id":"PO009","typeId":"PurchaseOrder","properties":{"supplierId":"S009","status":"CONFIRMED","orderDate":"2025-12-10","expectedDeliveryDate":"2026-01-10","actualDeliveryDate":null,"amount":11125.00,"delayDays":0}},
+  {"_id":"PO010","typeId":"PurchaseOrder","properties":{"supplierId":"S010","status":"DELAYED","orderDate":"2025-12-11","expectedDeliveryDate":"2026-01-11","actualDeliveryDate":"2026-01-15","amount":11250.00,"delayDays":4}}
+]

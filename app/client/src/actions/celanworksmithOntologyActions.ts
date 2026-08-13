@@ -5,10 +5,14 @@ import type {
 } from "api/CelanworksmithAPI";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 
-export const celanworksmithOntologyLoadRequest = (): {
+export const celanworksmithOntologyLoadRequest = (
+  applicationId?: string,
+): {
   type: typeof ReduxActionTypes.CELANWORKSMITH_ONTOLOGY_LOAD_REQUEST;
+  payload?: { applicationId?: string };
 } => ({
   type: ReduxActionTypes.CELANWORKSMITH_ONTOLOGY_LOAD_REQUEST,
+  ...(applicationId ? { payload: { applicationId } } : {}),
 });
 
 export const celanworksmithOntologyLoadSuccess = (

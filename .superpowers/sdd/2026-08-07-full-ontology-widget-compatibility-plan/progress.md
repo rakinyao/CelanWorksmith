@@ -39,3 +39,14 @@ Task 6: fix round 2/5 (runtime constraints addressed; reviewer found Form-to-Inp
 Task 6: fix round 3/5 started (replace direct publisher test with mounted Object Form, child Input, and validity assertion)
 Task 6: fix round 3/5 complete (mounted Form -> Canvas -> Input integration, DataTree edit-state validation, BUTTON_WIDGET and FORM_BUTTON_WIDGET validity synchronization, Query isolation, missing object/property and type-mismatch coverage)
 Task 6: complete (5 suites / 29 tests passed; Prettier, scoped ESLint, and git diff --check passed; repository TypeScript check remains blocked by pre-existing global dependency/type errors)
+Task 7: fix round 1/5 completed (Action application context propagation, standard Button/FormButton/MenuButton Action binding, confirmation request snapshot; 5 focused suites / 53 tests passed; scoped production ESLint has 0 errors)
+Task 7: fix round 2/5 completed (FormButton shared Action path and standard Button loading regression fixed; 6 focused suites / 62 tests passed)
+Task 7: fix round 3/5 completed (ButtonWidget actionId rendering regression fixed; 4 focused suites / 48 tests passed; scoped ESLint 0 errors)
+Task 7: complete (review findings addressed; manual browser gate deferred until environment validation)
+Task 8: implemented in parallel as Chart, Progress, Statbox, and shared visualization adapter subtasks.
+Task 8: review fix round 1 completed (empty-set validation order, finite label/value validation, custom chart explicit unsupported state, Progress multi-row guard, Statbox metadata type validation and blueprint overlap).
+Task 8: aggregation fix completed (Chart and Statbox consume numeric Aggregation Variables; aggregation-only Statbox does not require Object Type; 80 focused tests passed).
+Task 8: complete (52-suite compatibility regression passed separately; 299 tests passed; Prettier and git diff --check passed).
+Task 9/B6: autocomplete and UX fixes completed (metadata-only Object schemas, unavailable-node filtering, variable-triggered Tern refresh, metadata lifecycle refresh, bilingual refresh status, stable ID preservation).
+Task 9/B6: DataTree schema fix completed (non-enumerable read-only __metadata injection supports empty/all-null Object property completion; 7 focused suites/41 tests passed).
+Task 9/B6: parked boundaries — Custom EChart/Fusion Object mode shows explicit unsupported state; Progress multi-row requires an Aggregation Variable; browser acceptance and repository-wide typecheck remain open gates, not silently marked passed.

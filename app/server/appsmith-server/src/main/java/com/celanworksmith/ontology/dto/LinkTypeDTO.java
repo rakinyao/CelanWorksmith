@@ -1,4 +1,6 @@
 package com.celanworksmith.ontology.dto;
 
+import org.springframework.data.mongodb.core.mapping.Field;
+
 public record LinkTypeDTO(
-        String id, String displayName, String sourceTypeId, String targetTypeId, String cardinality) {}
+        @Field("id") String id, String displayName, String sourceTypeId, String targetTypeId, String cardinality) {}

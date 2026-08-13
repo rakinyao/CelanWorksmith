@@ -23,14 +23,18 @@ export class PeekOverlayExpressionIdentifier {
   }
 
   updateScript(script: string) {
+    if (typeof script !== "string" || script.trim().length === 0) {
+      this.parsedScript = undefined;
+      return;
+    }
+
     try {
       this.parsedScript = parse(script, {
         ecmaVersion: ECMA_VERSION,
         sourceType: this.options.sourceType,
       });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e);
+    } catch {
+      this.parsedScript = undefined;
     }
   }
 

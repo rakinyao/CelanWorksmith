@@ -27,12 +27,24 @@ export const generateCelanworksmithObjectsDataTree = (
     const objectType: CelanworksmithObjectTypeEntity = {
       all: items,
       _meta: {
+        path: `$objects.${typeId}`,
+        returnType: `ObjectSet<${typeId}>`,
         status: typeState.status,
+        stableId: typeId,
         total: typeState.total,
         updatedAt: typeState.updatedAt,
         error: typeState.error,
       },
     };
+
+    if (typeState.metadata) {
+      Object.defineProperty(objectType, "__metadata", {
+        configurable: false,
+        enumerable: false,
+        value: typeState.metadata,
+        writable: false,
+      });
+    }
 
     typeState.items.forEach((instance, index) => {
       objectType[instance.id] = items[index];

@@ -1,4 +1,5 @@
 import React from "react";
+import { Text } from "@appsmith/ads";
 import { ValidationTypes } from "constants/WidgetValidation";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { ResponsiveBehavior } from "layoutSystems/common/utils/constants";
@@ -116,7 +117,16 @@ class FilterListWidget extends BaseWidget<FilterListWidgetProps, WidgetState> {
 
   getWidgetView() {
     if (this.props.dataMode !== "OBJECT") {
-      return <div className="t--filter-list-query-mode" />;
+      return (
+        <div className="t--filter-list-query-mode">
+          <Text>
+            FilterList structured conditions are consumed by Object mode
+            collection Widgets through objectFilter. Switch to Object mode to
+            apply this filter. / FilterList 结构化条件仅由 Object 模式集合
+            Widget 通过 objectFilter 使用；请切换到 Object 模式后应用筛选。
+          </Text>
+        </div>
+      );
     }
 
     return (

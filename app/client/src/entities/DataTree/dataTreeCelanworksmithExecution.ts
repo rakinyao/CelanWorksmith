@@ -59,7 +59,12 @@ const createFunctionEntity = (
   const currentState = executionState.functions[metadata.id];
   const entity: CelanworksmithFunctionEntity = {
     data: currentState?.data,
-    _meta: currentState?.meta || idleMeta(),
+    _meta: {
+      ...(currentState?.meta || idleMeta()),
+      path: `$functions.${metadata.id}`,
+      returnType: metadata.returnType,
+      stableId: metadata.id,
+    },
     ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
   };
 
@@ -96,7 +101,12 @@ const createActionEntity = (
     data: currentState?.data,
     changedObjects: currentState?.changedObjects || [],
     sideEffects: currentState?.sideEffects || [],
-    _meta: currentState?.meta || idleMeta(),
+    _meta: {
+      ...(currentState?.meta || idleMeta()),
+      path: `$actions.${metadata.id}`,
+      returnType: "ActionResult",
+      stableId: metadata.id,
+    },
     ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_ACTION,
   };
 

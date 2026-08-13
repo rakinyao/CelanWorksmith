@@ -16,6 +16,7 @@ import {
   getCelanworksmithFunctionCacheKey,
   hashCelanworksmithParameters,
 } from "actions/celanworksmithExecutionActions";
+import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import reducer from "./celanworksmithExecutionReducer";
 
 const functionId = "CalculateDelayDays";
@@ -215,6 +216,143 @@ describe("celanworksmithExecutionReducer", () => {
     expect(nextState.functionCache).toEqual({
       fresh: { data: 2, expiresAt: expect.any(Number) },
     });
+  });
+
+  it("isolates cached Function results by application", () => {
+    const appRun = celanworksmithFunctionRun(
+      functionId,
+      parameters,
+      "request-app-a",
+      "app-a",
+    );
+    const state = reducer(undefined, appRun);
+    const completed = reducer(
+      state,
+      celanworksmithFunctionSucceeded(appRun.payload, 7, Date.now() + 30_000),
+    );
+
+    expect(completed.functionCache).toHaveProperty(
+      getCelanworksmithFunctionCacheKey(
+        functionId,
+        appRun.payload.parametersHash,
+        "app-a",
+      ),
+    );
+    expect(completed.functionCache).not.toHaveProperty(
+      getCelanworksmithFunctionCacheKey(
+        functionId,
+        appRun.payload.parametersHash,
+        "app-b",
+      ),
+    );
+  });
+
+  it("clears Function response cache when the runtime cache is cleared", () => {
+    const run = celanworksmithFunctionRun(
+      functionId,
+      parameters,
+      "request-cache-clear",
+      "app-a",
+    );
+    const cached = reducer(
+      reducer(undefined, run),
+      celanworksmithFunctionSucceeded(run.payload, 9, Date.now() + 30_000),
+    );
+    const cleared = reducer(cached, {
+      type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED,
+      payload: { applicationId: "app-a" },
+    });
+
+    expect(cached.functionCache).not.toEqual({});
+    expect(cleared.functionCache).toEqual({});
+  });
+
+  it("retains Function cache entries for other applications when the runtime cache is cleared", () => {
+    const runA = celanworksmithFunctionRun(
+      functionId,
+      parameters,
+      "request-cache-clear-a",
+      "app-a",
+    );
+    const runB = celanworksmithFunctionRun(
+      functionId,
+      parameters,
+      "request-cache-clear-b",
+      "app-b",
+    );
+    let state = reducer(
+      reducer(undefined, runA),
+      celanworksmithFunctionSucceeded(runA.payload, 9, Date.now() + 30_000),
+    );
+
+    state = reducer(
+      reducer(state, runB),
+      celanworksmithFunctionSucceeded(runB.payload, 9, Date.now() + 30_000),
+    );
+
+    const cleared = reducer(state, {
+      type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED,
+      payload: { applicationId: "app-a" },
+    });
+
+    expect(cleared.functionCache).not.toHaveProperty(
+      getCelanworksmithFunctionCacheKey(
+        functionId,
+        runA.payload.parametersHash,
+        "app-a",
+      ),
+    );
+    expect(cleared.functionCache).toHaveProperty(
+      getCelanworksmithFunctionCacheKey(
+        functionId,
+        runB.payload.parametersHash,
+        "app-b",
+      ),
+    );
+  });
+
+  it("does not clear Function cache entries of applications sharing a key prefix", () => {
+    const runA = celanworksmithFunctionRun(
+      functionId,
+      parameters,
+      "request-cache-prefix-a",
+      "app-a",
+    );
+    const runAB = celanworksmithFunctionRun(
+      functionId,
+      parameters,
+      "request-cache-prefix-ab",
+      "app-ab",
+    );
+    let state = reducer(
+      reducer(undefined, runA),
+      celanworksmithFunctionSucceeded(runA.payload, 9, Date.now() + 30_000),
+    );
+
+    state = reducer(
+      reducer(state, runAB),
+      celanworksmithFunctionSucceeded(runAB.payload, 9, Date.now() + 30_000),
+    );
+
+    const cleared = reducer(state, {
+      type: ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED,
+      payload: { applicationId: "app-a" },
+    });
+
+    expect(cleared.functionCache).not.toHaveProperty(
+      getCelanworksmithFunctionCacheKey(
+        functionId,
+        runA.payload.parametersHash,
+        "app-a",
+      ),
+    );
+    expect(cleared.functionCache).toHaveProperty(
+      getCelanworksmithFunctionCacheKey(
+        functionId,
+        runAB.payload.parametersHash,
+        "app-ab",
+      ),
+    );
   });
 
   it("does not cache a stale concurrent Function response", () => {
@@ -503,6 +641,23 @@ describe("celanworksmithExecutionReducer", () => {
         celanworksmithActionCancel(cancelledRun.payload.requestId),
       ),
     ).toBe(cancelledState);
+  });
+
+  it("records the target object identity for Action execution state", () => {
+    const run = celanworksmithActionRun(
+      actionId,
+      actionRequest,
+      "action-request-object-identity",
+    );
+    const state = reducer(undefined, run);
+
+    expect(state.actions[actionId]).toMatchObject({
+      objectTypeId: "PurchaseOrder",
+      objectId: "PO001",
+      meta: {
+        parametersHash: run.payload.parametersHash,
+      },
+    });
   });
 
   it("ignores cancellation after an Action request reaches a terminal state", () => {

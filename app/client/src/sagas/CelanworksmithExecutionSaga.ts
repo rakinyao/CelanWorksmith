@@ -68,7 +68,16 @@ interface ValidatedCelanworksmithActionRun {
 }
 
 const assertApiSuccess = <T>(response: ApiResponse<T>): T => {
-  if (!response?.responseMeta?.success) throw response;
+  if (!response?.responseMeta?.success) {
+    const apiError = response?.responseMeta?.error;
+    const error = new Error(
+      apiError?.message || "CelanWorksmith execution request failed",
+    );
+
+    if (apiError?.code)
+      (error as Error & { code: string }).code = apiError.code;
+    throw error;
+  }
 
   return response.data;
 };

@@ -1,6 +1,9 @@
 import type { CelanworksmithObjectSet } from "api/CelanworksmithAPI";
 import type { ReduxAction } from "actions/ReduxActionTypes";
-import type { CelanworksmithObjectQueryRequest } from "actions/celanworksmithObjectQueryActions";
+import {
+  getCelanworksmithObjectQuerySignature,
+  type CelanworksmithObjectQueryRequest,
+} from "actions/celanworksmithObjectQueryActions";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import { createReducer } from "utils/ReducerUtils";
 import type { CelanworksmithObjectQueryError } from "actions/celanworksmithObjectQueryActions";
@@ -25,7 +28,7 @@ export interface CelanworksmithObjectQueryState {
 }
 
 export const getObjectQueryKey = (request: CelanworksmithObjectQueryRequest) =>
-  `${request.widgetId}/${request.typeId}/${JSON.stringify(request.query || {})}`;
+  `${request.applicationId ? `${request.applicationId}/` : ""}${request.widgetId}/${request.typeId}/${getCelanworksmithObjectQuerySignature(request.query)}`;
 
 const initialState: CelanworksmithObjectQueryState = { entries: {} };
 
@@ -39,6 +42,25 @@ const getCurrent = (
   };
 
 const celanworksmithObjectQueryReducer = createReducer(initialState, {
+  [ReduxActionTypes.CELANWORKSMITH_APPLICATION_BINDING_LOAD_REQUEST]: () =>
+    initialState,
+  [ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED]: (
+    state: CelanworksmithObjectQueryState,
+    action: ReduxAction<{ applicationId?: string } | undefined>,
+  ) => {
+    const applicationId = action.payload?.applicationId;
+
+    if (!applicationId) return initialState;
+
+    return {
+      ...state,
+      entries: Object.fromEntries(
+        Object.entries(state.entries).filter(
+          ([, entry]) => entry.request.applicationId !== applicationId,
+        ),
+      ),
+    };
+  },
   [ReduxActionTypes.CELANWORKSMITH_OBJECT_QUERY_REQUESTED]: (
     state: CelanworksmithObjectQueryState,
     action: ReduxAction<CelanworksmithObjectQueryRequest>,

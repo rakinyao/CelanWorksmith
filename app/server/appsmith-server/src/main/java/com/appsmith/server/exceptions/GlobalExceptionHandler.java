@@ -10,6 +10,7 @@ import com.appsmith.server.helpers.CommonGitFileUtils;
 import com.appsmith.server.helpers.RedisUtils;
 import com.appsmith.server.services.AnalyticsService;
 import com.appsmith.server.services.SessionUserService;
+import com.celanworksmith.CelanWorksmithException;
 import io.micrometer.common.KeyValue;
 import io.micrometer.core.instrument.util.StringUtils;
 import lombok.RequiredArgsConstructor;
@@ -217,6 +218,25 @@ public class GlobalExceptionHandler {
         String urlPath = exchange.getRequest().getPath().toString();
         ResponseDTO<ErrorDTO> response = new ResponseDTO<>(
                 e.getHttpStatus(), new ErrorDTO(e.getAppErrorCode(), e.getErrorType(), e.getMessage(), e.getTitle()));
+
+        return getResponseDTOMono(urlPath, response);
+    }
+
+    @ExceptionHandler
+    @ResponseBody
+    public Mono<ResponseDTO<ErrorDTO>> catchCelanWorksmithException(
+            CelanWorksmithException e, ServerWebExchange exchange) {
+        int status = e.code().status().value();
+        exchange.getResponse().setStatusCode(HttpStatus.valueOf(status));
+        doLog(e);
+        String urlPath = exchange.getRequest().getPath().toString();
+        ResponseDTO<ErrorDTO> response = new ResponseDTO<>(
+                status,
+                new ErrorDTO(
+                        e.code().name(),
+                        "CELANWORKSMITH",
+                        e.getMessage(),
+                        e.code().name()));
 
         return getResponseDTOMono(urlPath, response);
     }

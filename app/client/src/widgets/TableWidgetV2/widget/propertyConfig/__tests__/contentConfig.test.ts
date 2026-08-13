@@ -11,6 +11,7 @@ describe("TableWidgetV2 contentConfig tests", () => {
     ) as PropertyPaneSectionConfig;
 
     expect(objectDataSection).toBeDefined();
+    expect(objectDataSection.expandedByDefault).toBe(true);
     expect(
       objectDataSection.children?.map((child) => child.propertyName),
     ).toEqual(["dataMode", "objectTypeId", "objectFilter"]);
@@ -24,6 +25,15 @@ describe("TableWidgetV2 contentConfig tests", () => {
         "Select the ontology object collection that supplies table rows.",
       label: "Ontology Object / 本体对象",
     });
+  });
+
+  it("keeps the Query data section collapsed by default", () => {
+    const dataSection = contentConfig.find(
+      (section) =>
+        (section as PropertyPaneSectionConfig).sectionName === "Data",
+    ) as PropertyPaneSectionConfig;
+
+    expect(dataSection.expandedByDefault).toBe(false);
   });
 
   it("should disable relevant sections when infinite scroll is enabled", () => {

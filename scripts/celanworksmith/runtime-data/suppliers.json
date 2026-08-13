@@ -1,0 +1,12 @@
+[
+  {"_id":"S001","typeId":"Supplier","properties":{"name":"Supplier 1","contactName":"Contact 1","riskLevel":"HIGH","averageRating":3.5}},
+  {"_id":"S002","typeId":"Supplier","properties":{"name":"Supplier 2","contactName":"Contact 2","riskLevel":"HIGH","averageRating":3.8}},
+  {"_id":"S003","typeId":"Supplier","properties":{"name":"Supplier 3","contactName":"Contact 3","riskLevel":"HIGH","averageRating":4.1}},
+  {"_id":"S004","typeId":"Supplier","properties":{"name":"Supplier 4","contactName":"Contact 4","riskLevel":"MEDIUM","averageRating":4.4}},
+  {"_id":"S005","typeId":"Supplier","properties":{"name":"Supplier 5","contactName":"Contact 5","riskLevel":"MEDIUM","averageRating":3.2}},
+  {"_id":"S006","typeId":"Supplier","properties":{"name":"Supplier 6","contactName":"Contact 6","riskLevel":"MEDIUM","averageRating":3.5}},
+  {"_id":"S007","typeId":"Supplier","properties":{"name":"Supplier 7","contactName":"Contact 7","riskLevel":"MEDIUM","averageRating":3.8}},
+  {"_id":"S008","typeId":"Supplier","properties":{"name":"Supplier 8","contactName":"Contact 8","riskLevel":"LOW","averageRating":4.1}},
+  {"_id":"S009","typeId":"Supplier","properties":{"name":"Supplier 9","contactName":"Contact 9","riskLevel":"LOW","averageRating":4.4}},
+  {"_id":"S010","typeId":"Supplier","properties":{"name":"Supplier 10","contactName":"Contact 10","riskLevel":"LOW","averageRating":3.2}}
+]

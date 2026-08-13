@@ -32,6 +32,7 @@ export const ENTITY_TYPE = {
   CELANWORKSMITH_OBJECTS: "CELANWORKSMITH_OBJECTS",
   CELANWORKSMITH_FUNCTION: "CELANWORKSMITH_FUNCTION",
   CELANWORKSMITH_ACTION: "CELANWORKSMITH_ACTION",
+  CELANWORKSMITH_VARIABLES: "CELANWORKSMITH_VARIABLES",
 } as const;
 export const JSACTION_TYPE = ENTITY_TYPE.JSACTION;
 export const ACTION_TYPE = ENTITY_TYPE.ACTION;
@@ -179,6 +180,7 @@ export type DataTreeEntityObject =
   | CelanworksmithObjectsEntity
   | CelanworksmithFunctionsEntity
   | CelanworksmithActionsEntity
+  | CelanworksmithVariablesEntity
   | AppsmithEntity;
 
 export interface CelanworksmithObjectTypeEntity {
@@ -186,6 +188,9 @@ export interface CelanworksmithObjectTypeEntity {
   _meta: {
     status: "idle" | "loading" | "ready" | "empty" | "error";
     total: number;
+    path?: string;
+    returnType?: string;
+    stableId?: string;
     updatedAt?: number;
     error?: { code: string; message: string };
   };
@@ -195,6 +200,12 @@ export interface CelanworksmithObjectTypeEntity {
 export interface CelanworksmithObjectsEntity {
   ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_OBJECTS;
   [objectTypeId: string]: unknown;
+}
+
+export interface CelanworksmithVariablesEntity {
+  ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_VARIABLES;
+  _meta: Record<string, unknown>;
+  [variableName: string]: unknown;
 }
 
 export type CelanworksmithDataTreeDispatch = Dispatch<AnyAction>;

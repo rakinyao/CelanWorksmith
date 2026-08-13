@@ -18,7 +18,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -63,22 +62,34 @@ public class MockRuntimeProvider implements RuntimeProvider {
     private ActionResult executeActionSync(String actionId, ActionExecutionRequest request) {
         requireRequest(request);
         if (!"PurchaseOrder".equals(request.objectTypeId())) {
-            throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "Mock actions require a PurchaseOrder object");
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Mock actions require a PurchaseOrder object");
         }
         ObjectInstanceDTO purchaseOrder = dataStore.get("PurchaseOrder", request.objectId());
         Map<String, Object> parameters = request.parameters() == null ? Collections.emptyMap() : request.parameters();
         List<ObjectInstanceDTO> changed = new ArrayList<>();
+        List<ActionResult.ChangedProperty> changedProperties = new ArrayList<>();
         List<Map<String, Object>> sideEffects = new ArrayList<>();
         switch (actionId) {
             case "UpdateProductionSchedule" -> {
                 String newDate = requiredString(parameters, "newScheduleDate");
                 String productionId = requiredString(purchaseOrder.properties(), "productionOrderId");
-                changed.add(dataStore.update("ProductionOrder", productionId, Map.of("scheduleDate", newDate, "status", "RESCHEDULED")));
+                changed.add(dataStore.update(
+                        "ProductionOrder", productionId, Map.of("scheduleDate", newDate, "status", "RESCHEDULED")));
+                changedProperties.add(
+                        new ActionResult.ChangedProperty("ProductionOrder", productionId, "scheduleDate", newDate));
+                changedProperties.add(
+                        new ActionResult.ChangedProperty("ProductionOrder", productionId, "status", "RESCHEDULED"));
             }
             case "UpdateDeliveryDate" -> {
                 String newDate = requiredString(parameters, "newDeliveryDate");
                 String deliveryId = requiredString(purchaseOrder.properties(), "deliveryOrderId");
-                changed.add(dataStore.update("DeliveryOrder", deliveryId, Map.of("plannedDate", newDate, "status", "RESCHEDULED")));
+                changed.add(dataStore.update(
+                        "DeliveryOrder", deliveryId, Map.of("plannedDate", newDate, "status", "RESCHEDULED")));
+                changedProperties.add(
+                        new ActionResult.ChangedProperty("DeliveryOrder", deliveryId, "plannedDate", newDate));
+                changedProperties.add(
+                        new ActionResult.ChangedProperty("DeliveryOrder", deliveryId, "status", "RESCHEDULED"));
             }
             case "UpdateFinancialRecord" -> {
                 String financeId = requiredString(purchaseOrder.properties(), "financialRecordId");
@@ -86,28 +97,47 @@ public class MockRuntimeProvider implements RuntimeProvider {
                 ObjectInstanceDTO financialRecord = dataStore.get("FinancialRecord", financeId);
                 BigDecimal revenue = decimal(financialRecord.properties().get("revenue"));
                 BigDecimal cost = decimal(financialRecord.properties().get("cost"));
-                changed.add(dataStore.update("FinancialRecord", financeId, Map.of(
-                        "penalty", penalty, "profit", revenue.subtract(cost).subtract(penalty).setScale(2, RoundingMode.HALF_UP))));
+                BigDecimal profit = revenue.subtract(cost).subtract(penalty).setScale(2, RoundingMode.HALF_UP);
+                changed.add(
+                        dataStore.update("FinancialRecord", financeId, Map.of("penalty", penalty, "profit", profit)));
+                changedProperties.add(
+                        new ActionResult.ChangedProperty("FinancialRecord", financeId, "penalty", penalty));
+                changedProperties.add(new ActionResult.ChangedProperty("FinancialRecord", financeId, "profit", profit));
             }
             case "NotifyProductionTeam" -> {
                 String message = requiredString(parameters, "message");
                 sideEffects.add(Map.of("type", "NOTIFICATION", "recipient", "production-team", "message", message));
             }
-            default -> throw new CelanWorksmithException(CelanWorksmithErrorCode.ACTION_NOT_FOUND, "Unknown action: " + actionId);
+            default ->
+                throw new CelanWorksmithException(
+                        CelanWorksmithErrorCode.ACTION_NOT_FOUND, "Unknown action: " + actionId);
         }
-        return new ActionResult(true, "Action executed", UUID.randomUUID().toString(), List.copyOf(changed), List.copyOf(sideEffects));
+        return new ActionResult(
+                true,
+                "Action executed",
+                UUID.randomUUID().toString(),
+                List.copyOf(changed),
+                List.copyOf(changedProperties),
+                List.of(),
+                List.copyOf(sideEffects));
     }
 
     private Object executeFunctionSync(String functionId, FunctionExecutionRequest request) {
-        Map<String, Object> parameters = request == null || request.parameters() == null
-                ? Collections.emptyMap() : request.parameters();
+        Map<String, Object> parameters =
+                request == null || request.parameters() == null ? Collections.emptyMap() : request.parameters();
         return switch (functionId) {
-            case "CalculateDelayDays" -> calculateDelayDays(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
-            case "CalculatePenalty" -> calculatePenalty(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
-            case "CalculateAdjustedProfit" -> calculateAdjustedProfit(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
-            case "CalculateMarginRate" -> calculateMarginRate(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
+            case "CalculateDelayDays" ->
+                calculateDelayDays(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
+            case "CalculatePenalty" ->
+                calculatePenalty(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
+            case "CalculateAdjustedProfit" ->
+                calculateAdjustedProfit(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
+            case "CalculateMarginRate" ->
+                calculateMarginRate(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
             case "CalculateSupplierGrade" -> calculateSupplierGrade(requiredString(parameters, "supplierId"));
-            default -> throw new CelanWorksmithException(CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId);
+            default ->
+                throw new CelanWorksmithException(
+                        CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId);
         };
     }
 
@@ -119,7 +149,8 @@ public class MockRuntimeProvider implements RuntimeProvider {
         if ("PurchaseOrder".equals(request.objectTypeId())) {
             int delayDays = calculateDelayDays(object);
             answer = delayDays > 0
-                    ? "Purchase order " + object.id() + " is delayed by " + delayDays + " days and requires schedule review."
+                    ? "Purchase order " + object.id() + " is delayed by " + delayDays
+                            + " days and requires schedule review."
                     : "Purchase order " + object.id() + " is currently on schedule.";
             evidence.add("status=" + object.properties().get("status"));
             evidence.add("delayDays=" + delayDays);
@@ -172,27 +203,35 @@ public class MockRuntimeProvider implements RuntimeProvider {
     }
 
     private BigDecimal decimal(Object value) {
-        if (value == null) throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "Expected a numeric value");
+        if (value == null)
+            throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "Expected a numeric value");
         return new BigDecimal(String.valueOf(value));
     }
 
     private String requiredString(Map<String, Object> values, String key) {
         Object value = values.get(key);
         if (value == null || String.valueOf(value).isBlank()) {
-            throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "Missing required parameter: " + key);
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Missing required parameter: " + key);
         }
         return String.valueOf(value);
     }
 
     private void requireRequest(ActionExecutionRequest request) {
         if (request == null || request.objectTypeId() == null || request.objectId() == null) {
-            throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "objectTypeId and objectId are required");
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "objectTypeId and objectId are required");
         }
     }
 
     private void requireReasoningRequest(ReasoningRequest request) {
-        if (request == null || request.objectTypeId() == null || request.objectId() == null || request.question() == null || request.question().isBlank()) {
-            throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "objectTypeId, objectId and question are required");
+        if (request == null
+                || request.objectTypeId() == null
+                || request.objectId() == null
+                || request.question() == null
+                || request.question().isBlank()) {
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "objectTypeId, objectId and question are required");
         }
     }
 }

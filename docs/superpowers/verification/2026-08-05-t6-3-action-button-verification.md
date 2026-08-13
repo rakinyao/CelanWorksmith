@@ -8,6 +8,7 @@
 - 对对象身份、Action objectType 和参数对象进行前端校验；无效输入不会 dispatch。
 - 点击后复用 `celanworksmithActionRun`，不在 Widget 内复制 API、Saga、重试或刷新逻辑。
 - 展示 idle、invalid、running、succeeded 和 failed 状态，并暴露 `executionStatus`、`lastResult`、`lastError`、`requestId` 元属性。
+- 运行态按当前 Widget 自己的 requestId 读取执行结果，多个 Widget 绑定同一 Action 时不会互相覆盖状态。
 - 已接入现有 Widget lazy loader；T5 执行 Saga 继续负责 changedObjects 刷新。
 
 ## 2. 自动化验证

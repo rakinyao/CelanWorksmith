@@ -16,26 +16,36 @@ import reactor.core.publisher.Mono;
 public class ProductionRuntimeProvider implements RuntimeProvider {
     private <T> Mono<T> notConfigured() {
         return Mono.error(new CelanWorksmithException(
-                CelanWorksmithErrorCode.PROVIDER_NOT_CONFIGURED,
-                "Production runtime provider is not configured"));
+                CelanWorksmithErrorCode.PROVIDER_NOT_CONFIGURED, "Production runtime provider is not configured"));
     }
 
     @Override
-    public Mono<ObjectSetResult> queryObjects(String typeId, ObjectSetQuery query) { return notConfigured(); }
+    public Mono<ObjectSetResult> queryObjects(String typeId, ObjectSetQuery query) {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<ObjectInstanceDTO> getObject(String typeId, String instanceId) { return notConfigured(); }
+    public Mono<ObjectInstanceDTO> getObject(String typeId, String instanceId) {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<ObjectSetResult> getLinks(
-            String typeId, String instanceId, String linkTypeId, ObjectSetQuery query) { return notConfigured(); }
+    public Mono<ObjectSetResult> getLinks(String typeId, String instanceId, String linkTypeId, ObjectSetQuery query) {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<ActionResult> executeAction(String actionId, ActionExecutionRequest request) { return notConfigured(); }
+    public Mono<ActionResult> executeAction(String actionId, ActionExecutionRequest request) {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<Object> executeFunction(String functionId, FunctionExecutionRequest request) { return notConfigured(); }
+    public Mono<Object> executeFunction(String functionId, FunctionExecutionRequest request) {
+        return notConfigured();
+    }
 
     @Override
-    public Mono<ReasoningResult> reason(ReasoningRequest request) { return notConfigured(); }
+    public Mono<ReasoningResult> reason(ReasoningRequest request) {
+        return notConfigured();
+    }
 }

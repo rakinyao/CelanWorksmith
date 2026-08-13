@@ -10,6 +10,7 @@ import {
   type CelanworksmithFunctionEntity,
   type CelanworksmithFunctionsEntity,
   type CelanworksmithObjectsEntity,
+  type CelanworksmithVariablesEntity,
   ENTITY_TYPE,
 } from "ee/entities/DataTree/types";
 import type {
@@ -27,6 +28,7 @@ import {
   generateTypeDef,
   flattenDef,
 } from "utils/autocomplete/defCreatorUtils";
+import { filterSemanticMetadata } from "celanworksmith/semanticMetadata";
 
 export type EntityMap = Map<string, DataTreeDefEntityInformation>;
 
@@ -76,8 +78,63 @@ const getObjectTypeDef = (
   return entries.length ? `{${entries.join(", ")}}` : "{}";
 };
 
+interface CelanworksmithObjectTypeMetadata {
+  description?: string | Record<string, string>;
+  properties?: Array<{
+    id: string;
+    dataType: string;
+  }>;
+}
+
+interface CelanworksmithAutocompleteObjectType {
+  _meta?: {
+    metadata?: CelanworksmithObjectTypeMetadata;
+    properties?: CelanworksmithObjectTypeMetadata["properties"];
+    status?: string;
+    [key: string]: unknown;
+  };
+  __metadata?: CelanworksmithObjectTypeMetadata;
+  [key: string]: unknown;
+}
+
+const getObjectTypeMetadata = (
+  objectType: CelanworksmithAutocompleteObjectType,
+) =>
+  objectType.__metadata ||
+  objectType._meta?.metadata ||
+  (objectType._meta?.properties
+    ? { properties: objectType._meta.properties }
+    : undefined);
+
+const getSafeSemanticDescription = (
+  metadata?: CelanworksmithObjectTypeMetadata,
+) => {
+  const description = filterSemanticMetadata(metadata, {
+    authorized: true,
+  }).description;
+
+  return typeof description === "string"
+    ? description
+    : description
+      ? Object.values(description).join(" / ")
+      : undefined;
+};
+
+const getObjectPropertyDefs = (
+  properties: NonNullable<CelanworksmithObjectTypeMetadata["properties"]>,
+): Def =>
+  Object.fromEntries(
+    properties.map(({ dataType, id }) => [
+      id,
+      getTernTypeForCelanworksmithDataType(dataType),
+    ]),
+  );
+
 const getExecutionMetaDef = (): Def => ({
+  path: "string",
+  returnType: "string",
   status: "string",
+  stableId: "string",
   requestId: "string",
   executionId: "string",
   startedAt: "number",
@@ -96,8 +153,9 @@ const getFunctionDef = (entity: CelanworksmithFunctionEntity): Def => {
     : "?";
 
   return {
+    "!doc": "CelanWorksmith Function; use .run() and read .data.",
     run: {
-      "!type": `fn(parameters?: ${parameterType}) -> string`,
+      "!type": `fn(parameters: ${parameterType}) -> string`,
     },
     data: returnType,
     _meta: getExecutionMetaDef(),
@@ -111,6 +169,7 @@ const getActionDef = (entity: CelanworksmithActionEntity): Def => {
   const requestType = `{objectTypeId: string, objectId: string, parameters: ${parameterType}}`;
 
   return {
+    "!doc": "CelanWorksmith Action; use .run() with a typed request.",
     run: {
       "!type": `fn(request: ${requestType}) -> string`,
     },
@@ -244,12 +303,44 @@ export const entityDefGeneratorMap: EntityDefGeneratorMap = {
 
       if (!objectType || typeof objectType !== "object") return;
 
-      const objectTypeDef: Def = {};
+      const autocompleteObjectType =
+        objectType as CelanworksmithAutocompleteObjectType;
+      const metadata = getObjectTypeMetadata(autocompleteObjectType);
+      const status = autocompleteObjectType._meta?.status;
 
-      Object.entries(objectType).forEach(([key, value]) => {
-        if (key === "_meta") return;
+      if (status && status !== "ready" && status !== "empty") return;
 
-        objectTypeDef[key] = generateTypeDef(value, extraDefsToDefine);
+      const properties = metadata?.properties || [];
+      const semanticDescription = getSafeSemanticDescription(metadata);
+      const propertyDefs = getObjectPropertyDefs(properties);
+      const objectTypeDef = {
+        "!doc": `Ontology Object Type ${objectTypeId}${semanticDescription ? `: ${semanticDescription}` : ""}; collection path is $objects.${objectTypeId}.all.`,
+        _meta: {
+          ...generateTypeDef(autocompleteObjectType._meta, extraDefsToDefine),
+          path: "string",
+          returnType: "string",
+          stableId: "string",
+        },
+      } as Def;
+
+      Object.entries(autocompleteObjectType).forEach(([key, value]) => {
+        if (key === "_meta" || key === "__metadata") return;
+
+        if (key === "all" && properties.length) {
+          objectTypeDef[key] = `[${getObjectTypeDef(properties)}]`;
+
+          return;
+        }
+
+        const runtimeDef = generateTypeDef(value, extraDefsToDefine);
+
+        objectTypeDef[key] =
+          properties.length &&
+          runtimeDef &&
+          typeof runtimeDef === "object" &&
+          !Array.isArray(runtimeDef)
+            ? { ...runtimeDef, ...propertyDefs }
+            : runtimeDef;
       });
 
       objectsDef[objectTypeId] = objectTypeDef;
@@ -307,6 +398,46 @@ export const entityDefGeneratorMap: EntityDefGeneratorMap = {
     entityMap.set(entityName, {
       type: ENTITY_TYPE.CELANWORKSMITH_ACTION,
       subType: ENTITY_TYPE.CELANWORKSMITH_ACTION,
+    });
+  },
+  [ENTITY_TYPE.CELANWORKSMITH_VARIABLES]: (props) => {
+    const { def, entity, entityMap, entityName, extraDefsToDefine } = props;
+    const variablesEntity = entity as CelanworksmithVariablesEntity;
+    const variablesDef: Def = {};
+    const variableNames = new Set([
+      ...Object.keys(variablesEntity).filter(
+        (variableName) =>
+          variableName !== "ENTITY_TYPE" && variableName !== "_meta",
+      ),
+      ...Object.keys(variablesEntity._meta || {}),
+    ]);
+
+    variableNames.forEach((variableName) => {
+      const meta = variablesEntity._meta?.[variableName];
+      const status =
+        meta && typeof meta === "object" && "status" in meta
+          ? meta.status
+          : undefined;
+
+      if (status && status !== "ready" && status !== "empty") return;
+
+      variablesDef[variableName] = generateTypeDef(
+        variablesEntity[variableName],
+        extraDefsToDefine,
+      );
+      flattenDef(variablesDef, variableName);
+    });
+
+    variablesDef._meta = generateTypeDef(
+      variablesEntity._meta,
+      extraDefsToDefine,
+    );
+
+    def[entityName] = variablesDef;
+    flattenDef(def, entityName);
+    entityMap.set(entityName, {
+      type: ENTITY_TYPE.CELANWORKSMITH_VARIABLES,
+      subType: ENTITY_TYPE.CELANWORKSMITH_VARIABLES,
     });
   },
 };

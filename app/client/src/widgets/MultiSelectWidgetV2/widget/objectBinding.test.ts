@@ -97,7 +97,9 @@ test("MultiSelect renders an empty ObjectSet from its actual Object mode view", 
     ),
   );
 
-  expect(screen.getByText("No objects found.")).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "No objects found / 未找到本体对象",
+  );
 });
 
 test("MultiSelect renders ObjectSet options and emits selected stable property values", () => {
@@ -212,5 +214,7 @@ test("MultiSelect renders the ObjectSet loading state from its actual Object mod
     ),
   );
 
-  expect(screen.getByText("Loading objects...")).toBeInTheDocument();
+  expect(
+    screen.getByText("Loading object data / 正在加载本体数据"),
+  ).toHaveAttribute("aria-live", "polite");
 });

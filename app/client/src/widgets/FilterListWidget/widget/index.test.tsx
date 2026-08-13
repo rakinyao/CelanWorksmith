@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { Provider } from "react-redux";
 import configureStore from "redux-mock-store";
@@ -21,7 +21,31 @@ const metadata = {
       readOnly: false,
       derived: false,
     },
+    {
+      id: "status",
+      displayName: "Status",
+      dataType: "ENUM",
+      required: false,
+      readOnly: false,
+      derived: false,
+      enumValues: ["OPEN", "CLOSED"],
+    },
+    {
+      id: "supplierId",
+      displayName: "Supplier ID",
+      dataType: "STRING",
+      required: false,
+      readOnly: false,
+      derived: false,
+      referenceTypeId: "Supplier",
+    },
   ],
+};
+
+const supplierMetadata = {
+  id: "Supplier",
+  displayName: "Supplier",
+  properties: [],
 };
 
 const state = (
@@ -44,6 +68,36 @@ const state = (
   },
 });
 
+const stateWithSupplier = () => ({
+  celanworksmithObjects: {
+    status: "ready",
+    types: {
+      PurchaseOrder: {
+        metadata,
+        items: [],
+        total: 0,
+        offset: 0,
+        limit: 100,
+        status: "ready",
+      },
+      Supplier: {
+        metadata: supplierMetadata,
+        items: [
+          {
+            id: "S001",
+            typeId: "Supplier",
+            properties: { name: "Acme Supplies" },
+          },
+        ],
+        total: 1,
+        offset: 0,
+        limit: 100,
+        status: "ready",
+      },
+    },
+  },
+});
+
 const renderComponent = (initialConditions = []) => {
   const store = mockStore(state());
   const updateWidgetMetaProperty = jest.fn();
@@ -60,6 +114,16 @@ const renderComponent = (initialConditions = []) => {
   );
 
   return { ...view, updateWidgetMetaProperty };
+};
+
+const selectOption = async (label: string, optionName: string) => {
+  const select = await screen.findByRole("combobox", { name: label });
+  const selector = select.closest(".rc-select-selector");
+
+  if (!selector) throw new Error(`Unable to open ${label}`);
+
+  fireEvent.mouseDown(selector);
+  fireEvent.click(await screen.findByRole("option", { name: optionName }));
 };
 
 describe("FilterListComponent", () => {
@@ -102,16 +166,12 @@ describe("FilterListComponent", () => {
     expect(screen.getByText("Metadata failed")).toBeInTheDocument();
   });
 
-  test("emits structured output and reset clears local conditions", () => {
+  test("emits structured output and reset clears local conditions", async () => {
     const { updateWidgetMetaProperty } = renderComponent();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add condition" }));
-    fireEvent.change(screen.getByLabelText("Property"), {
-      target: { value: "supplierName" },
-    });
-    fireEvent.change(screen.getByLabelText("Operator"), {
-      target: { value: "contains" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /Add condition/ }));
+    await selectOption("Property", "Supplier");
+    await selectOption("Operator", "contains");
     fireEvent.change(screen.getByLabelText("Value"), {
       target: { value: "Acme" },
     });
@@ -125,7 +185,7 @@ describe("FilterListComponent", () => {
     });
     expect(updateWidgetMetaProperty).toHaveBeenCalledWith("isValid", true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+    fireEvent.click(screen.getByRole("button", { name: /Reset/ }));
     expect(updateWidgetMetaProperty).toHaveBeenCalledWith("filter", {
       typeId: "PurchaseOrder",
       conditions: [],
@@ -133,7 +193,52 @@ describe("FilterListComponent", () => {
     });
   });
 
-  test("syncs externally changed properties and metadata validity", () => {
+  test("uses ADS selects instead of native select controls", () => {
+    const { container } = renderComponent();
+
+    expect(container.querySelector("select")).not.toBeInTheDocument();
+  });
+
+  test("renders ENUM values and publishes the selected stable value", async () => {
+    const { updateWidgetMetaProperty } = renderComponent();
+
+    fireEvent.click(screen.getByRole("button", { name: /Add condition/ }));
+    await selectOption("Property", "Status");
+    await selectOption("Value", "OPEN");
+
+    expect(updateWidgetMetaProperty).toHaveBeenCalledWith("filter", {
+      typeId: "PurchaseOrder",
+      conditions: [{ propertyId: "status", operator: "equals", value: "OPEN" }],
+      version: 1,
+    });
+  });
+
+  test("renders reference values from loaded target objects without loading", async () => {
+    const updateWidgetMetaProperty = jest.fn();
+
+    render(
+      <Provider store={mockStore(stateWithSupplier())}>
+        <FilterListComponent
+          initialObjectTypeId="PurchaseOrder"
+          updateWidgetMetaProperty={updateWidgetMetaProperty}
+        />
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Add condition/ }));
+    await selectOption("Property", "Supplier ID");
+    await selectOption("Value", "S001");
+
+    expect(updateWidgetMetaProperty).toHaveBeenCalledWith("filter", {
+      typeId: "PurchaseOrder",
+      conditions: [
+        { propertyId: "supplierId", operator: "equals", value: "S001" },
+      ],
+      version: 1,
+    });
+  });
+
+  test("syncs externally changed properties and metadata validity", async () => {
     const updateWidgetMetaProperty = jest.fn();
     const view = render(
       <Provider store={mockStore(state())}>
@@ -168,7 +273,11 @@ describe("FilterListComponent", () => {
       </Provider>,
     );
 
-    expect(screen.getByLabelText("Object type")).toHaveValue("");
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Object type" })).toHaveValue(
+        "",
+      ),
+    );
     expect(updateWidgetMetaProperty).toHaveBeenCalledWith("isValid", false);
   });
 });
@@ -221,5 +330,8 @@ describe("FilterListWidget object binding", () => {
     );
 
     expect(updateWidgetMetaProperty).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/Object mode.*objectFilter|Object 模式.*objectFilter/i),
+    ).toBeInTheDocument();
   });
 });

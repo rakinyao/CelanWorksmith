@@ -144,4 +144,54 @@ describe("normalizeObjectBinding", () => {
       ),
     ).toMatchObject({ mode: "QUERY", issues: [] });
   });
+
+  it("normalizes Chart Object mode with explicit label and numeric value properties", () => {
+    expect(
+      normalizeObjectBinding(
+        "CHART_WIDGET",
+        {
+          dataMode: "OBJECT",
+          labelPropertyId: "supplierName",
+          objectTypeId: "PurchaseOrder",
+          valuePropertyId: "delayDays",
+        },
+        {
+          objectTypes: [
+            {
+              id: "PurchaseOrder",
+              displayName: "Purchase Order",
+              properties: [
+                {
+                  id: "supplierName",
+                  displayName: "Supplier",
+                  dataType: "STRING",
+                  required: false,
+                  readOnly: false,
+                  derived: false,
+                },
+                {
+                  id: "delayDays",
+                  displayName: "Delay days",
+                  dataType: "INTEGER",
+                  required: false,
+                  readOnly: false,
+                  derived: true,
+                },
+              ],
+            },
+          ],
+        },
+      ),
+    ).toEqual({
+      mode: "OBJECT",
+      binding: {
+        labelPropertyId: "supplierName",
+        objectTypeId: "PurchaseOrder",
+        propertyDataTypes: { valuePropertyId: ["INTEGER", "DECIMAL"] },
+        source: "PROPERTY",
+        valuePropertyId: "delayDays",
+      },
+      issues: [],
+    });
+  });
 });

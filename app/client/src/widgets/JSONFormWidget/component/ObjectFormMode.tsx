@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
+import { Option, Select, Text } from "@appsmith/ads";
 import { celanworksmithActionRun } from "actions/celanworksmithExecutionActions";
 import {
   getCelanworksmithExecutionState,
@@ -15,6 +16,7 @@ import {
   getFieldLayout,
   isFieldEditable,
 } from "celanworksmith/fieldMetadataLayout";
+import { validateFieldValues } from "celanworksmith/objectActionValidation";
 import { getActionExecutionErrorLabel } from "celanworksmith/actionExecutionFeedback";
 
 interface ObjectFormModeProps {
@@ -110,6 +112,7 @@ export default function ObjectFormMode({
   const [values, setValues] = useState<Record<string, unknown>>(
     object?.properties || {},
   );
+  const [validationError, setValidationError] = useState<string>();
   const dirtyRef = useRef(false);
   const objectIdentity = object ? `${object.typeId}/${object.id}` : undefined;
   const formIdentity = `${objectIdentity || ""}/${actionId || ""}`;
@@ -123,6 +126,7 @@ export default function ObjectFormMode({
       previousFormIdentityRef.current = formIdentity;
       dirtyRef.current = false;
       setLocalRequestId(undefined);
+      setValidationError(undefined);
       setValues(object?.properties || {});
     } else if (!dirtyRef.current) {
       setValues(object?.properties || {});
@@ -205,6 +209,7 @@ export default function ObjectFormMode({
     if (!isFieldEditable(property)) return;
 
     dirtyRef.current = true;
+    setValidationError(undefined);
     setValues((current) => ({
       ...current,
       [property.id]: parseValue(property.dataType, value),
@@ -214,24 +219,29 @@ export default function ObjectFormMode({
   const submit = () => {
     if (isActionRunning) return;
 
-    const missing = visibleProperties.find(
-      (property) =>
-        property.required &&
-        (values[property.id] === undefined || values[property.id] === ""),
+    const fieldValidation = validateFieldValues(
+      values,
+      visibleProperties.filter(isFieldEditable),
+      { objectTypeId },
     );
 
     if (
-      missing ||
+      fieldValidation.issues.length ||
       !object ||
       objectTypeId !== object.typeId ||
       !action ||
       action.objectTypeId !== object.typeId
     ) {
+      setValidationError(
+        fieldValidation.summary ||
+          "The Object form binding or selected Action is invalid.",
+      );
       updateWidgetMetaProperty("isValid", false);
 
       return;
     }
 
+    setValidationError(undefined);
     updateWidgetMetaProperty("isValid", true);
     const actionRequest = celanworksmithActionRun(
       action.id,
@@ -272,6 +282,11 @@ export default function ObjectFormMode({
 
             const value = values[property.id];
             const disabled = !isFieldEditable(property);
+            const referenceTypeState = property.referenceTypeId
+              ? objectsState.types[property.referenceTypeId]
+              : undefined;
+            const referenceObjects = referenceTypeState?.items || [];
+            const isReference = Boolean(property.referenceTypeId);
 
             if (control === "select") {
               const enumValues = getEnumValues(property, value);
@@ -279,27 +294,65 @@ export default function ObjectFormMode({
               return (
                 <label key={property.id}>
                   {property.displayName}
-                  <select
-                    disabled={disabled}
-                    name={property.id}
-                    onChange={(event) =>
-                      updateValue(property, event.target.value)
+                  <Select
+                    aria-label={property.displayName}
+                    isDisabled={disabled || !enumValues.length}
+                    onSelect={(nextValue) =>
+                      updateValue(property, String(nextValue || ""))
                     }
-                    required={property.required}
+                    placeholder={
+                      enumValues.length
+                        ? "Select a value"
+                        : "No values available"
+                    }
                     value={String(value ?? "")}
                   >
-                    {!property.required && <option value="" />}
-                    {!enumValues.length && (
-                      <option disabled value="">
-                        No values available
-                      </option>
-                    )}
                     {enumValues.map((enumValue) => (
-                      <option key={enumValue} value={enumValue}>
+                      <Option key={enumValue} value={enumValue}>
                         {enumValue}
-                      </option>
+                      </Option>
                     ))}
-                  </select>
+                  </Select>
+                  {!enumValues.length && (
+                    <Text color="red">No values available</Text>
+                  )}
+                </label>
+              );
+            }
+
+            if (isReference) {
+              return (
+                <label key={property.id}>
+                  {property.displayName}
+                  <Select
+                    aria-label={property.displayName}
+                    isDisabled={
+                      disabled ||
+                      referenceTypeState?.status === "loading" ||
+                      !referenceObjects.length
+                    }
+                    isLoading={referenceTypeState?.status === "loading"}
+                    onSelect={(nextValue) =>
+                      updateValue(property, String(nextValue || ""))
+                    }
+                    placeholder={
+                      referenceTypeState?.status === "loading"
+                        ? "Loading related objects"
+                        : referenceObjects.length
+                          ? "Select a related object"
+                          : "No related objects"
+                    }
+                    value={String(value ?? "")}
+                  >
+                    {referenceObjects.map((referenceObject) => (
+                      <Option
+                        key={referenceObject.id}
+                        value={referenceObject.id}
+                      >
+                        {referenceObject.id}
+                      </Option>
+                    ))}
+                  </Select>
                 </label>
               );
             }
@@ -323,7 +376,6 @@ export default function ObjectFormMode({
                         : event.target.value,
                     )
                   }
-                  required={property.required}
                   type={inputType}
                   value={
                     inputType === "checkbox" ? undefined : String(value ?? "")
@@ -337,6 +389,7 @@ export default function ObjectFormMode({
       <button disabled={!actionId || isActionRunning} type="submit">
         {isActionRunning ? "Submitting..." : "Submit"}
       </button>
+      {validationError && <div role="alert">{validationError}</div>}
       {status === "failed" && (
         <div role="alert">
           {getActionExecutionErrorLabel(executionError)}:{" "}

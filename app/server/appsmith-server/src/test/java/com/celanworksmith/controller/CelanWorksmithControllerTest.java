@@ -32,17 +32,37 @@ class CelanWorksmithControllerTest {
         client.get()
                 .uri("/api/v1/celanworksmith/ontology/object-types")
                 .exchange()
-                .expectStatus().isOk()
+                .expectStatus()
+                .isOk()
                 .expectBody()
-                .jsonPath("$.data.length()").isEqualTo(6);
+                .jsonPath("$.data.length()")
+                .isEqualTo(6);
 
         client.get()
-                .uri(URI.create("/api/v1/celanworksmith/runtime/objects/PurchaseOrder?filter=%7B%22status%22%3A%22DELAYED%22%7D&limit=2"))
+                .uri(
+                        URI.create(
+                                "/api/v1/celanworksmith/runtime/objects/PurchaseOrder?filter=%7B%22status%22%3A%22DELAYED%22%7D&limit=2"))
                 .exchange()
-                .expectStatus().isOk()
+                .expectStatus()
+                .isOk()
                 .expectBody()
-                .jsonPath("$.data.total").isEqualTo(40)
-                .jsonPath("$.data.items.length()").isEqualTo(2);
+                .jsonPath("$.data.total")
+                .isEqualTo(40)
+                .jsonPath("$.data.items.length()")
+                .isEqualTo(2);
+
+        client.get()
+                .uri(
+                        URI.create(
+                                "/api/v1/celanworksmith/runtime/objects/PurchaseOrder?filter=%7B%22typeId%22%3A%22PurchaseOrder%22%2C%22conditions%22%3A%5B%7B%22propertyId%22%3A%22delayDays%22%2C%22operator%22%3A%22gt%22%2C%22value%22%3A0%7D%5D%2C%22version%22%3A1%7D&limit=100"))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.data.total")
+                .isEqualTo(40)
+                .jsonPath("$.data.items.length()")
+                .isEqualTo(40);
     }
 
     @Test
@@ -51,16 +71,20 @@ class CelanWorksmithControllerTest {
                 .uri("/api/v1/celanworksmith/runtime/functions/CalculateDelayDays/execute")
                 .bodyValue(Map.of("parameters", Map.of("poId", "PO005")))
                 .exchange()
-                .expectStatus().isOk()
+                .expectStatus()
+                .isOk()
                 .expectBody()
-                .jsonPath("$.data").isEqualTo(8);
+                .jsonPath("$.data")
+                .isEqualTo(8);
 
         client.get()
                 .uri("/api/v1/celanworksmith/runtime/objects/UnknownType")
                 .exchange()
-                .expectStatus().isNotFound()
+                .expectStatus()
+                .isNotFound()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("OBJECT_TYPE_NOT_FOUND");
+                .jsonPath("$.code")
+                .isEqualTo("OBJECT_TYPE_NOT_FOUND");
     }
 
     @Test
@@ -69,19 +93,25 @@ class CelanWorksmithControllerTest {
                 .uri("/api/v1/celanworksmith/runtime/functions/UnknownFunction/execute")
                 .bodyValue(Map.of("parameters", Map.of()))
                 .exchange()
-                .expectStatus().isNotFound()
+                .expectStatus()
+                .isNotFound()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("FUNCTION_NOT_FOUND")
-                .jsonPath("$.message").isEqualTo("Unknown function: UnknownFunction");
+                .jsonPath("$.code")
+                .isEqualTo("FUNCTION_NOT_FOUND")
+                .jsonPath("$.message")
+                .isEqualTo("Unknown function: UnknownFunction");
 
         client.post()
                 .uri("/api/v1/celanworksmith/runtime/functions/CalculateDelayDays/execute")
                 .bodyValue(Map.of("parameters", Map.of()))
                 .exchange()
-                .expectStatus().isBadRequest()
+                .expectStatus()
+                .isBadRequest()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("INVALID_ARGUMENT")
-                .jsonPath("$.message").isEqualTo("Missing required parameter: poId");
+                .jsonPath("$.code")
+                .isEqualTo("INVALID_ARGUMENT")
+                .jsonPath("$.message")
+                .isEqualTo("Missing required parameter: poId");
     }
 
     @Test
@@ -93,13 +123,29 @@ class CelanWorksmithControllerTest {
                         "objectId", "PO005",
                         "parameters", Map.of("newScheduleDate", "2026-03-15")))
                 .exchange()
-                .expectStatus().isOk()
+                .expectStatus()
+                .isOk()
                 .expectBody()
-                .jsonPath("$.responseMeta.status").isEqualTo(200)
-                .jsonPath("$.responseMeta.success").isEqualTo(true)
-                .jsonPath("$.data.success").isEqualTo(true)
-                .jsonPath("$.data.executionId").isNotEmpty()
-                .jsonPath("$.data.changedObjects[0].typeId").isEqualTo("ProductionOrder");
+                .jsonPath("$.responseMeta.status")
+                .isEqualTo(200)
+                .jsonPath("$.responseMeta.success")
+                .isEqualTo(true)
+                .jsonPath("$.data.success")
+                .isEqualTo(true)
+                .jsonPath("$.data.executionId")
+                .isNotEmpty()
+                .jsonPath("$.data.changedObjects[0].typeId")
+                .isEqualTo("ProductionOrder")
+                .jsonPath("$.data.changedProperties[0].typeId")
+                .isEqualTo("ProductionOrder")
+                .jsonPath("$.data.changedProperties[0].objectId")
+                .isEqualTo("PR005")
+                .jsonPath("$.data.changedProperties[0].propertyId")
+                .isEqualTo("scheduleDate")
+                .jsonPath("$.data.changedProperties[0].value")
+                .isEqualTo("2026-03-15")
+                .jsonPath("$.data.links")
+                .isEmpty();
 
         client.post()
                 .uri("/api/v1/celanworksmith/runtime/actions/UnknownAction/execute")
@@ -108,10 +154,13 @@ class CelanWorksmithControllerTest {
                         "objectId", "PO005",
                         "parameters", Map.of()))
                 .exchange()
-                .expectStatus().isNotFound()
+                .expectStatus()
+                .isNotFound()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("ACTION_NOT_FOUND")
-                .jsonPath("$.message").isEqualTo("Unknown action: UnknownAction");
+                .jsonPath("$.code")
+                .isEqualTo("ACTION_NOT_FOUND")
+                .jsonPath("$.message")
+                .isEqualTo("Unknown action: UnknownAction");
 
         client.post()
                 .uri("/api/v1/celanworksmith/runtime/actions/UpdateProductionSchedule/execute")
@@ -120,9 +169,11 @@ class CelanWorksmithControllerTest {
                         "objectId", "PO999",
                         "parameters", Map.of("newScheduleDate", "2026-03-15")))
                 .exchange()
-                .expectStatus().isNotFound()
+                .expectStatus()
+                .isNotFound()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("OBJECT_NOT_FOUND");
+                .jsonPath("$.code")
+                .isEqualTo("OBJECT_NOT_FOUND");
 
         client.post()
                 .uri("/api/v1/celanworksmith/runtime/actions/UpdateProductionSchedule/execute")
@@ -131,21 +182,26 @@ class CelanWorksmithControllerTest {
                         "objectId", "S001",
                         "parameters", Map.of("newScheduleDate", "2026-03-15")))
                 .exchange()
-                .expectStatus().isBadRequest()
+                .expectStatus()
+                .isBadRequest()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("INVALID_ARGUMENT")
-                .jsonPath("$.message").isEqualTo("Mock actions require a PurchaseOrder object");
+                .jsonPath("$.code")
+                .isEqualTo("INVALID_ARGUMENT")
+                .jsonPath("$.message")
+                .isEqualTo("Mock actions require a PurchaseOrder object");
 
         client.post()
                 .uri("/api/v1/celanworksmith/runtime/actions/UpdateProductionSchedule/execute")
-                .bodyValue(Map.of(
-                        "objectTypeId", "PurchaseOrder",
-                        "parameters", Map.of("newScheduleDate", "2026-03-15")))
+                .bodyValue(
+                        Map.of("objectTypeId", "PurchaseOrder", "parameters", Map.of("newScheduleDate", "2026-03-15")))
                 .exchange()
-                .expectStatus().isBadRequest()
+                .expectStatus()
+                .isBadRequest()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("INVALID_ARGUMENT")
-                .jsonPath("$.message").isEqualTo("objectTypeId and objectId are required");
+                .jsonPath("$.code")
+                .isEqualTo("INVALID_ARGUMENT")
+                .jsonPath("$.message")
+                .isEqualTo("objectTypeId and objectId are required");
 
         client.post()
                 .uri("/api/v1/celanworksmith/runtime/actions/UpdateProductionSchedule/execute")
@@ -154,9 +210,12 @@ class CelanWorksmithControllerTest {
                         "objectId", "PO005",
                         "parameters", Map.of()))
                 .exchange()
-                .expectStatus().isBadRequest()
+                .expectStatus()
+                .isBadRequest()
                 .expectBody()
-                .jsonPath("$.code").isEqualTo("INVALID_ARGUMENT")
-                .jsonPath("$.message").isEqualTo("Missing required parameter: newScheduleDate");
+                .jsonPath("$.code")
+                .isEqualTo("INVALID_ARGUMENT")
+                .jsonPath("$.message")
+                .isEqualTo("Missing required parameter: newScheduleDate");
     }
 }

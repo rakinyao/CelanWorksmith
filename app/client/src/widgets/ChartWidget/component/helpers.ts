@@ -5,6 +5,35 @@ import type { ChartComponentProps } from ".";
 import { EChartsDatasetBuilder } from "./EChartsDatasetBuilder";
 import { EChartsConfigurationBuilder } from "./EChartsConfigurationBuilder";
 
+export const getObjectChartStateMessage = (
+  status:
+    | "loading"
+    | "missingBinding"
+    | "ready"
+    | "empty"
+    | "error"
+    | "permissionDenied"
+    | "typeMismatch",
+  errorMessage?: string,
+) => {
+  switch (status) {
+    case "loading":
+      return "Loading object data...";
+    case "missingBinding":
+      return "Configure an Object Type, label property, and value property.";
+    case "empty":
+      return "No objects found.";
+    case "permissionDenied":
+      return "Access to object data is denied.";
+    case "error":
+      return errorMessage || "Unable to load objects.";
+    case "typeMismatch":
+      return "The Object binding is incompatible.";
+    default:
+      return undefined;
+  }
+};
+
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const parseOnDataPointClickParams = (evt: any, chartType: ChartType) => {

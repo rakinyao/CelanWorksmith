@@ -1,16 +1,20 @@
 import React from "react";
-import { act, fireEvent, render } from "test/testUtils";
+import { fireEvent, render, waitFor } from "test/testUtils";
 import OntologyExplorer from "./index";
 import CelanworksmithAPI from "api/CelanworksmithAPI";
 import { celanworksmithOntologyLoadRequest } from "actions/celanworksmithOntologyActions";
 import { getCelanworksmithOntologyState } from "selectors/celanworksmithSelectors";
 
 const dispatch = jest.fn();
+const selectorState = {
+  entities: { pageList: {} as { applicationId?: string } },
+};
 
 jest.mock("react-redux", () => ({
   ...jest.requireActual("react-redux"),
   useDispatch: () => dispatch,
-  useSelector: (selector: (state: unknown) => unknown) => selector({}),
+  useSelector: (selector: (state: unknown) => unknown) =>
+    selector(selectorState),
 }));
 
 jest.mock("selectors/celanworksmithSelectors", () => ({
@@ -19,6 +23,8 @@ jest.mock("selectors/celanworksmithSelectors", () => ({
 
 jest.mock("api/CelanworksmithAPI", () => ({
   __esModule: true,
+  normalizeCelanworksmithError: jest.requireActual("api/CelanworksmithAPI")
+    .normalizeCelanworksmithError,
   default: {
     getObjectTypes: jest.fn(),
     getLinkTypes: jest.fn(),
@@ -33,12 +39,20 @@ const apiResponse = <T,>(data: T) => ({
 describe("OntologyExplorer", () => {
   beforeEach(() => {
     dispatch.mockClear();
+    delete selectorState.entities.pageList.applicationId;
+    delete (selectorState as Record<string, unknown>)
+      .celanworksmithApplicationBinding;
+    jest.mocked(CelanworksmithAPI.getObjectTypes).mockClear();
+    jest.mocked(CelanworksmithAPI.getLinkTypes).mockClear();
     jest.mocked(getCelanworksmithOntologyState).mockReturnValue({
       status: "ready",
       functions: [
         {
           id: "CalculateDelayDays",
           displayName: "Calculate Delay Days",
+          description: "Calculates delay days",
+          semanticType: "business.function",
+          examples: ["CalculateDelayDays"],
           returnType: "INTEGER",
           parameters: [],
           sideEffectFree: true,
@@ -48,6 +62,9 @@ describe("OntologyExplorer", () => {
         {
           id: "UpdateDeliveryDate",
           displayName: "Update Delivery Date",
+          description: "Updates a delivery date",
+          semanticType: "business.action",
+          examples: ["UpdateDeliveryDate"],
           objectTypeId: "PurchaseOrder",
           parameters: [],
           requiresConfirmation: true,
@@ -59,10 +76,16 @@ describe("OntologyExplorer", () => {
         {
           id: "Supplier",
           displayName: "Supplier",
+          description: "A supplier organization",
+          semanticType: "business.party",
+          examples: ["Supplier 1"],
           properties: [
             {
               id: "name",
               displayName: "Name",
+              description: "Supplier name",
+              semanticType: "business.name",
+              examples: ["Acme"],
               dataType: "STRING",
               required: true,
               readOnly: false,
@@ -77,12 +100,34 @@ describe("OntologyExplorer", () => {
         {
           id: "supplier_orders",
           displayName: "Supplier Orders",
+          description: "Orders placed with a supplier",
+          semanticType: "business.relationship",
+          examples: ["supplier_orders"],
           sourceTypeId: "Supplier",
           targetTypeId: "PurchaseOrder",
           cardinality: "ONE_TO_MANY",
         },
       ]),
     );
+  });
+
+  it("does not query ontology metadata before an application binding is ready", async () => {
+    selectorState.entities.pageList.applicationId = "app-1";
+    (
+      selectorState as Record<string, unknown>
+    ).celanworksmithApplicationBinding = {
+      status: "loading",
+      applicationId: "app-1",
+      binding: null,
+      projects: [],
+      versions: [],
+    };
+    const view = render(<OntologyExplorer />);
+
+    await waitFor(() => expect(view.container).toBeTruthy());
+
+    expect(CelanworksmithAPI.getObjectTypes).not.toHaveBeenCalled();
+    expect(CelanworksmithAPI.getLinkTypes).not.toHaveBeenCalled();
   });
 
   it("renders metadata and shows selected item details", async () => {
@@ -104,9 +149,7 @@ describe("OntologyExplorer", () => {
       celanworksmithOntologyLoadRequest(),
     );
 
-    act(() => {
-      fireEvent.click(view.getByTestId("t--ontology-expand-Supplier"));
-    });
+    fireEvent.click(view.getByTestId("t--ontology-expand-Supplier"));
     fireEvent.click(view.getByTestId("t--ontology-property-Supplier-name"));
 
     expect(view.getByText("Property / 属性")).toBeTruthy();
@@ -136,5 +179,178 @@ describe("OntologyExplorer", () => {
         ([action]) => action.type === celanworksmithOntologyLoadRequest().type,
       ),
     ).toHaveLength(1);
+    await waitFor(() =>
+      expect(CelanworksmithAPI.getObjectTypes).toHaveBeenCalledTimes(2),
+    );
+  });
+
+  it("shows semantic metadata for selected ontology nodes", async () => {
+    const view = render(<OntologyExplorer />);
+
+    expect(
+      await view.findByTestId("t--ontology-object-type-Supplier"),
+    ).toBeTruthy();
+    fireEvent.click(view.getByTestId("t--ontology-object-type-Supplier"));
+    expect(view.getByText("A supplier organization")).toBeTruthy();
+    expect(view.getByText("business.party")).toBeTruthy();
+    expect(view.getByText("Supplier 1")).toBeTruthy();
+
+    fireEvent.click(view.getByTestId("t--ontology-expand-Supplier"));
+    fireEvent.click(view.getByTestId("t--ontology-property-Supplier-name"));
+    expect(view.getByText("Supplier name")).toBeTruthy();
+    expect(view.getByText("business.name")).toBeTruthy();
+  });
+
+  it("renders a retry state for an ontology metadata error envelope", async () => {
+    jest.mocked(CelanworksmithAPI.getObjectTypes).mockResolvedValue({
+      responseMeta: {
+        status: 503,
+        success: false,
+        error: {
+          code: "PROVIDER_NOT_CONFIGURED",
+          message: "Production ontology provider is not configured",
+        },
+      },
+      data: null,
+    } as never);
+    jest.mocked(CelanworksmithAPI.getLinkTypes).mockResolvedValue({
+      responseMeta: {
+        status: 503,
+        success: false,
+        error: {
+          code: "PROVIDER_NOT_CONFIGURED",
+          message: "Production ontology provider is not configured",
+        },
+      },
+      data: null,
+    } as never);
+
+    const view = render(<OntologyExplorer />);
+
+    expect(await view.findByTestId("t--ontology-retry")).toBeTruthy();
+  });
+
+  it("preserves metadata permission errors and retries the metadata node", async () => {
+    selectorState.entities.pageList.applicationId = "app-1";
+    (
+      selectorState as Record<string, unknown>
+    ).celanworksmithApplicationBinding = {
+      status: "ready",
+      applicationId: "app-1",
+      binding: {
+        applicationId: "app-1",
+        projectId: "celanworksmith-demo",
+        projectVersion: "1.0.0",
+        providerId: "mongodb-readonly",
+      },
+      projects: [],
+      versions: [],
+    };
+    jest.mocked(CelanworksmithAPI.getObjectTypes).mockRejectedValue({
+      response: {
+        status: 403,
+        data: {
+          responseMeta: {
+            status: 403,
+            success: false,
+            error: { code: "FORBIDDEN", message: "token=server-secret" },
+          },
+        },
+      },
+    });
+
+    const view = render(<OntologyExplorer />);
+
+    expect(view.queryByText("token=server-secret")).toBeNull();
+    fireEvent.click(await view.findByText("Developer tools / 开发工具"));
+    expect(view.getByText("Error / PERMISSION_DENIED")).toBeTruthy();
+
+    fireEvent.click(view.getByTestId("t--celanworksmith-debug-retry"));
+
+    expect(dispatch).toHaveBeenCalledWith(
+      celanworksmithOntologyLoadRequest("app-1"),
+    );
+    await waitFor(() =>
+      expect(CelanworksmithAPI.getObjectTypes).toHaveBeenCalledTimes(2),
+    );
+  });
+
+  it("hides semantic details when ontology permission is denied", async () => {
+    jest.mocked(getCelanworksmithOntologyState).mockReturnValue({
+      status: "ready",
+      functions: [],
+      actions: [],
+      error: {
+        code: "PERMISSION_DENIED",
+        message: "Ontology access denied",
+      },
+    });
+
+    const view = render(<OntologyExplorer />);
+
+    expect(
+      await view.findByTestId("t--ontology-object-type-Supplier"),
+    ).toBeTruthy();
+    fireEvent.click(view.getByTestId("t--ontology-object-type-Supplier"));
+
+    expect(view.queryByText("A supplier organization")).toBeNull();
+    expect(view.queryByText("business.party")).toBeNull();
+    expect(view.queryByText("Supplier 1")).toBeNull();
+  });
+
+  it("shows the binding entry point without querying an unbound app", async () => {
+    selectorState.entities.pageList.applicationId = "app-1";
+    (
+      selectorState as Record<string, unknown>
+    ).celanworksmithApplicationBinding = {
+      status: "unbound",
+      applicationId: "app-1",
+      binding: null,
+      projects: [],
+      versions: [],
+    };
+
+    const view = render(<OntologyExplorer />);
+
+    expect(
+      await view.findByTestId("t--celanworksmith-binding-panel"),
+    ).toBeTruthy();
+    expect(CelanworksmithAPI.getObjectTypes).not.toHaveBeenCalled();
+    expect(CelanworksmithAPI.getLinkTypes).not.toHaveBeenCalled();
+  });
+
+  it("keeps hook order when an app becomes bound", async () => {
+    selectorState.entities.pageList.applicationId = "app-1";
+    (
+      selectorState as Record<string, unknown>
+    ).celanworksmithApplicationBinding = {
+      status: "unbound",
+      applicationId: "app-1",
+      binding: null,
+      projects: [],
+      versions: [],
+    };
+
+    const view = render(<OntologyExplorer />);
+
+    (
+      selectorState as Record<string, unknown>
+    ).celanworksmithApplicationBinding = {
+      status: "ready",
+      applicationId: "app-1",
+      binding: {
+        applicationId: "app-1",
+        projectId: "celanworksmith-demo",
+        projectVersion: "1.0.0",
+        providerId: "mongodb-readonly",
+      },
+      projects: [],
+      versions: [],
+    };
+
+    expect(() => view.rerender(<OntologyExplorer />)).not.toThrow();
+    expect(
+      await view.findByTestId("t--ontology-object-type-Supplier"),
+    ).toBeTruthy();
   });
 });

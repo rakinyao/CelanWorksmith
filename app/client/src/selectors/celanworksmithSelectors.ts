@@ -6,6 +6,7 @@ import type {
 import type { CelanworksmithOntologyState } from "reducers/celanworksmithOntologyReducer";
 import {
   getCelanworksmithLinkKey,
+  getCelanworksmithLinkMetadataKey,
   type CelanworksmithLinkEntryState,
   type CelanworksmithLinkMetadataState,
   type CelanworksmithLinksState,
@@ -52,8 +53,11 @@ export const getCelanworksmithLinksState = (
 export const getCelanworksmithLinkMetadata = (
   state: DefaultRootState,
   typeId: string,
+  applicationId?: string,
 ): CelanworksmithLinkMetadataState | undefined =>
-  getCelanworksmithLinksState(state).metadata[typeId];
+  getCelanworksmithLinksState(state).metadata[
+    getCelanworksmithLinkMetadataKey(typeId, applicationId)
+  ];
 
 export const getCelanworksmithLinkEntry = (
   state: DefaultRootState,

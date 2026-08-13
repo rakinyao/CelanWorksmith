@@ -1,9 +1,25 @@
 import type { ChartType } from "../constants";
 import {
+  getObjectChartStateMessage,
   parseOnDataPointClickParams,
   parseOnDataPointClickForCustomEChart,
   parseOnDataPointClickForCustomFusionChart,
 } from "./helpers";
+
+describe("getObjectChartStateMessage", () => {
+  it("defines visible states for Object-backed Charts", () => {
+    expect(getObjectChartStateMessage("loading")).toBe(
+      "Loading object data...",
+    );
+    expect(getObjectChartStateMessage("empty")).toBe("No objects found.");
+    expect(getObjectChartStateMessage("typeMismatch")).toBe(
+      "The Object binding is incompatible.",
+    );
+    expect(getObjectChartStateMessage("error", "Runtime unavailable")).toBe(
+      "Runtime unavailable",
+    );
+  });
+});
 
 describe("parseOnDataPointClickParams", () => {
   it("returns appropriate chart selected point from user click data", () => {

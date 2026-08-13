@@ -198,9 +198,15 @@ test.each(["BUTTON_WIDGET", "FORM_BUTTON_WIDGET"] as const)(
             instance: objectData,
             objectTypeId: "PurchaseOrder",
           },
+          objectValidationErrorPath: `${INPUT_NAME}.amount`,
+          objectValidationSummary: `1 form field validation error. Fix ${INPUT_NAME}.amount.`,
         },
         [INPUT_ID]: {
           objectPropertyMetadata,
+        },
+        [SUBMIT_ID]: {
+          formValidationErrorPath: `${INPUT_NAME}.amount`,
+          formValidationSummary: `1 form field validation error. Fix ${INPUT_NAME}.amount.`,
         },
       });
     });
@@ -234,6 +240,14 @@ test.each(["BUTTON_WIDGET", "FORM_BUTTON_WIDGET"] as const)(
         .disabled,
     ).toBe(true);
 
+    if (buttonType === "FORM_BUTTON_WIDGET") {
+      expect(
+        screen.getByText(
+          `1 form field validation error. Fix ${INPUT_NAME}.amount.`,
+        ),
+      ).toBeTruthy();
+    }
+
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "12" },
     });
@@ -249,6 +263,18 @@ test.each(["BUTTON_WIDGET", "FORM_BUTTON_WIDGET"] as const)(
       (screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement)
         .disabled,
     ).toBe(false);
+    await waitFor(() => {
+      expect(page.store.getState().entities.meta).toMatchObject({
+        [FORM_ID]: {
+          objectValidationErrorPath: undefined,
+          objectValidationSummary: undefined,
+        },
+        [SUBMIT_ID]: {
+          formValidationErrorPath: undefined,
+          formValidationSummary: undefined,
+        },
+      });
+    });
   },
   30_000,
 );

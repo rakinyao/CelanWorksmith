@@ -7,6 +7,7 @@ import type { CelanworksmithLinkRequest } from "actions/celanworksmithLinkAction
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import type { CelanworksmithExecutionError } from "api/CelanworksmithAPI";
 import { createReducer } from "utils/ReducerUtils";
+import type { CelanworksmithLinkMetadataRequestMeta } from "actions/celanworksmithLinkActions";
 
 export type CelanworksmithLinkLoadStatus =
   | "idle"
@@ -38,10 +39,17 @@ export interface CelanworksmithLinksState {
 }
 
 export const getCelanworksmithLinkKey = ({
+  applicationId,
   linkTypeId,
   objectId,
   typeId,
-}: CelanworksmithLinkRequest) => `${typeId}/${objectId}/${linkTypeId}`;
+}: CelanworksmithLinkRequest) =>
+  `${applicationId || "legacy"}/${typeId}/${objectId}/${linkTypeId}`;
+
+export const getCelanworksmithLinkMetadataKey = (
+  typeId: string,
+  applicationId?: string,
+) => `${applicationId || "legacy"}/${typeId}`;
 
 const initialState: CelanworksmithLinksState = { metadata: {}, entries: {} };
 
@@ -54,51 +62,66 @@ const initialEntryState = (): CelanworksmithLinkEntryState => ({
   status: "idle",
 });
 
-const invalidateEntriesForObjectType = (
-  entries: Record<string, CelanworksmithLinkEntryState>,
-  typeId: string,
-) =>
-  Object.fromEntries(
-    Object.entries(entries).filter(
-      ([key, entry]) =>
-        !key.startsWith(`${typeId}/`) && entry.result?.typeId !== typeId,
-    ),
-  );
-
 const celanworksmithLinksReducer = createReducer(initialState, {
+  [ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED]: (
+    state: CelanworksmithLinksState,
+    action: ReduxAction<{ applicationId?: string } | undefined>,
+  ) => {
+    const applicationId = action.payload?.applicationId;
+
+    if (!applicationId) return { ...state, entries: {} };
+
+    const prefix = `${applicationId}/`;
+
+    return {
+      ...state,
+      entries: Object.fromEntries(
+        Object.entries(state.entries).filter(
+          ([key]) => !key.startsWith(prefix),
+        ),
+      ),
+    };
+  },
   [ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_REFRESH_START]: (
     state: CelanworksmithLinksState,
-    action: ReduxAction<string>,
-  ) => ({
-    ...state,
-    entries: invalidateEntriesForObjectType(state.entries, action.payload),
-  }),
+  ) => state,
   [ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_REQUESTED]: (
     state: CelanworksmithLinksState,
-    action: ReduxAction<string>,
+    action: ReduxAction<string> & {
+      meta?: CelanworksmithLinkMetadataRequestMeta;
+    },
   ) => {
-    const current = state.metadata[action.payload] || initialMetadataState();
+    const key = getCelanworksmithLinkMetadataKey(
+      action.payload,
+      action.meta?.applicationId,
+    );
+    const current = state.metadata[key] || initialMetadataState();
 
     return {
       ...state,
       metadata: {
         ...state.metadata,
-        [action.payload]: { ...current, status: "loading", error: undefined },
+        [key]: { ...current, status: "loading", error: undefined },
       },
     };
   },
   [ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_SUCCESS]: (
     state: CelanworksmithLinksState,
-    action: ReduxAction<{ typeId: string; links: CelanworksmithLinkType[] }>,
+    action: ReduxAction<{
+      typeId: string;
+      links: CelanworksmithLinkType[];
+      applicationId?: string;
+    }>,
   ) => {
-    const { links, typeId } = action.payload;
+    const { applicationId, links, typeId } = action.payload;
+    const key = getCelanworksmithLinkMetadataKey(typeId, applicationId);
     const updatedAt = Date.now();
 
     return {
       ...state,
       metadata: {
         ...state.metadata,
-        [typeId]: {
+        [key]: {
           links,
           status: links.length ? "ready" : "empty",
           updatedAt,
@@ -109,16 +132,21 @@ const celanworksmithLinksReducer = createReducer(initialState, {
   },
   [ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_ERROR]: (
     state: CelanworksmithLinksState,
-    action: ReduxAction<{ typeId: string; error: CelanworksmithLinkError }>,
+    action: ReduxAction<{
+      typeId: string;
+      error: CelanworksmithLinkError;
+      applicationId?: string;
+    }>,
   ) => {
-    const { error, typeId } = action.payload;
-    const current = state.metadata[typeId] || initialMetadataState();
+    const { applicationId, error, typeId } = action.payload;
+    const key = getCelanworksmithLinkMetadataKey(typeId, applicationId);
+    const current = state.metadata[key] || initialMetadataState();
 
     return {
       ...state,
       metadata: {
         ...state.metadata,
-        [typeId]: { ...current, status: "error", error },
+        [key]: { ...current, status: "error", error },
       },
     };
   },

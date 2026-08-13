@@ -18,10 +18,10 @@ import {
   getCelanworksmithApplicationBindingState,
   getCelanworksmithCurrentApplicationId,
 } from "selectors/celanworksmithApplicationBindingSelectors";
-import { call, put, select, takeEvery } from "redux-saga/effects";
+import type { Task } from "redux-saga";
+import { call, cancel, fork, put, select, take } from "redux-saga/effects";
 
 export const CELANWORKSMITH_OBJECT_QUERY_MAX_LIMIT = 100;
-const inFlight = new Set<string>();
 const FILTER_OPERATORS = new Set([
   "equals",
   "contains",
@@ -34,7 +34,7 @@ const FILTER_OPERATORS = new Set([
 ]);
 
 const getKey = (request: CelanworksmithObjectQueryRequest) =>
-  `${request.widgetId}/${request.typeId}/${getCelanworksmithObjectQuerySignature(request.query)}`;
+  `${request.applicationId ? `${request.applicationId}/` : ""}${request.widgetId}/${request.typeId}/${getCelanworksmithObjectQuerySignature(request.query)}`;
 
 const normalizeQuery = (
   request: CelanworksmithObjectQueryRequest,
@@ -106,6 +106,7 @@ const normalizeQuery = (
     ...(query.sortBy ? { sortBy: query.sortBy } : {}),
     ...(query.sortDirection ? { sortDirection: query.sortDirection } : {}),
     ...(query.filter !== undefined ? { filter: query.filter } : {}),
+    ...(query.searchText?.trim() ? { searchText: query.searchText.trim() } : {}),
   };
 };
 
@@ -144,9 +145,6 @@ export function* loadCelanworksmithObjectQuery(
       ? { applicationId: currentApplicationId }
       : {}),
   };
-  const key = getKey(request);
-
-  if (inFlight.has(key)) return;
 
   const objectState = yield select(getCelanworksmithObjectsState);
   const metadata = objectState.types[request.typeId]?.metadata;
@@ -162,7 +160,6 @@ export function* loadCelanworksmithObjectQuery(
     return;
   }
 
-  inFlight.add(key);
   yield put(celanworksmithObjectQueryStart(request));
 
   try {
@@ -195,14 +192,59 @@ export function* loadCelanworksmithObjectQuery(
         normalizeCelanworksmithError(error),
       ),
     );
+  }
+}
+
+interface TrackedObjectQueryTask {
+  task: Task;
+  token: symbol;
+}
+
+function* runTrackedObjectQuery(
+  action: ReduxAction<CelanworksmithObjectQueryRequest>,
+  key: string,
+  tasks: Map<string, TrackedObjectQueryTask>,
+  token: symbol,
+) {
+  try {
+    yield call(loadCelanworksmithObjectQuery, action);
   } finally {
-    inFlight.delete(key);
+    if (tasks.get(key)?.token === token) tasks.delete(key);
+  }
+}
+
+export function* watchCelanworksmithObjectQueryRequests() {
+  const tasks = new Map<string, TrackedObjectQueryTask>();
+
+  while (true) {
+    const action: ReduxAction<CelanworksmithObjectQueryRequest> = yield take(
+      ReduxActionTypes.CELANWORKSMITH_OBJECT_QUERY_REQUESTED,
+    );
+    const key = getKey(action.payload);
+    const current = tasks.get(key);
+
+    if (current?.task.isRunning()) {
+      if (!action.payload.force) continue;
+
+      tasks.delete(key);
+      yield cancel(current.task);
+    } else if (current) {
+      tasks.delete(key);
+    }
+
+    const token = Symbol(key);
+    const task: Task = yield fork(
+      runTrackedObjectQuery,
+      action,
+      key,
+      tasks,
+      token,
+    );
+
+    if (task.isRunning()) tasks.set(key, { task, token });
   }
 }
 
 export default function* celanworksmithObjectQuerySaga() {
-  yield takeEvery(
-    ReduxActionTypes.CELANWORKSMITH_OBJECT_QUERY_REQUESTED,
-    loadCelanworksmithObjectQuery,
-  );
+  yield call(watchCelanworksmithObjectQueryRequests);
 }

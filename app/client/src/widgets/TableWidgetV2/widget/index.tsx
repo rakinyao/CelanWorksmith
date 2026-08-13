@@ -1301,19 +1301,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
     if (objectBinding.mode === "OBJECT") {
       return (
         <ObjectTableMode
-          multiRowSelection={this.props.multiRowSelection}
-          objectFilter={this.props.objectFilter}
-          objectTypeId={this.props.objectTypeId}
-          pageNo={this.props.pageNo}
-          pageSize={this.props.pageSize}
-          selectedRowIndex={this.props.selectedRowIndex}
-          selectedRowIndices={this.props.selectedRowIndices}
-          sortOrder={{
-            column: this.props.sortOrder.column,
-            order: this.props.sortOrder.order as "asc" | "desc" | null,
-          }}
-          updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
-          widgetId={this.props.widgetId}
+          {...(this.props as unknown as Record<string, unknown>)}
           widgetType={TableWidgetV2.type}
         />
       );
@@ -1795,6 +1783,23 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
           },
         });
       }
+
+      const selectedObjects = indices
+        .map((rowIndex) => {
+          const data = this.props.tableData[rowIndex];
+
+          return data && typeof data === "object" ? data.__object : undefined;
+        })
+        .filter(
+          (object): object is NonNullable<typeof object> =>
+            object !== undefined,
+        );
+
+      this.props.updateWidgetMetaProperty("selectedObjects", selectedObjects);
+      this.props.updateWidgetMetaProperty(
+        "selectedObject",
+        selectedObjects[selectedObjects.length - 1],
+      );
     } else {
       let index;
 
@@ -1812,8 +1817,19 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
             type: EventType.ON_ROW_SELECTED,
           },
         });
+        const selectedObject =
+          row && typeof row === "object" ? row.__object : undefined;
+
+        if (selectedObject !== undefined) {
+          this.props.updateWidgetMetaProperty("selectedObject", selectedObject);
+          this.props.updateWidgetMetaProperty("selectedObjects", [
+            selectedObject,
+          ]);
+        }
       } else {
         this.props.updateWidgetMetaProperty("selectedRowIndex", -1);
+        this.props.updateWidgetMetaProperty("selectedObject", undefined);
+        this.props.updateWidgetMetaProperty("selectedObjects", []);
       }
     }
   };

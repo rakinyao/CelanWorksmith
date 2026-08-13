@@ -56,6 +56,9 @@ describe("generateCelanworksmithExecutionDataTree", () => {
         status: "idle",
         requestId: "",
         parametersHash: "",
+        path: "$functions.CalculateDelayDays",
+        returnType: "INTEGER",
+        stableId: "CalculateDelayDays",
       },
       ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_FUNCTION,
     });
@@ -67,6 +70,9 @@ describe("generateCelanworksmithExecutionDataTree", () => {
         status: "idle",
         requestId: "",
         parametersHash: "",
+        path: "$actions.UpdateProductionSchedule",
+        returnType: "ActionResult",
+        stableId: "UpdateProductionSchedule",
       },
       ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_ACTION,
     });

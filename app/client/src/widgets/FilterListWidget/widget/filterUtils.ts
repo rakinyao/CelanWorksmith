@@ -43,8 +43,13 @@ const comparableOperators: FilterOperator[] = [
 export const isOperatorAllowed = (
   dataType: string | undefined,
   operator: string,
+  referenceTypeId?: string,
 ) => {
   if (!FILTER_OPERATORS.includes(operator as FilterOperator)) return false;
+
+  if (referenceTypeId) return operator === "equals";
+
+  if (dataType === "ENUM") return operator === "equals";
 
   if (dataType === "STRING")
     return stringOperators.includes(operator as FilterOperator);
@@ -56,20 +61,31 @@ export const isOperatorAllowed = (
   return dataType === "BOOLEAN" && operator === "equals";
 };
 
-const isValueValid = (dataType: string, condition: FilterCondition) => {
+const isValueValid = (
+  property: CelanworksmithObjectType["properties"][number],
+  condition: FilterCondition,
+) => {
   if (condition.operator === "isEmpty") return condition.value === undefined;
 
   if (condition.value === undefined || condition.value === "") return false;
 
-  if (dataType === "INTEGER") return Number.isInteger(condition.value);
+  if (property.dataType === "INTEGER") return Number.isInteger(condition.value);
 
-  if (dataType === "DECIMAL") {
+  if (property.dataType === "DECIMAL") {
     return (
       typeof condition.value === "number" && Number.isFinite(condition.value)
     );
   }
 
-  if (dataType === "BOOLEAN") return typeof condition.value === "boolean";
+  if (property.dataType === "BOOLEAN")
+    return typeof condition.value === "boolean";
+
+  if (property.dataType === "ENUM") {
+    return (
+      typeof condition.value === "string" &&
+      !!property.enumValues?.includes(condition.value)
+    );
+  }
 
   return typeof condition.value === "string";
 };
@@ -93,8 +109,12 @@ export const buildFilter = (
 
       return (
         !!property &&
-        isOperatorAllowed(property.dataType, condition.operator) &&
-        isValueValid(property.dataType, condition)
+        isOperatorAllowed(
+          property.dataType,
+          condition.operator,
+          property.referenceTypeId,
+        ) &&
+        isValueValid(property, condition)
       );
     });
 

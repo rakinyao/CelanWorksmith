@@ -2,7 +2,7 @@
 
 ## Status
 
-`IMPLEMENTED_WITH_FINAL_VALIDATION_INTERRUPTED`
+`DONE_WITH_CONCERNS`
 
 ## Implementation
 
@@ -60,3 +60,10 @@
 - GREEN: the ActionButton reset, Action creator application-context contract, Object Form failure/progress feedback, and retained Saga rejection regression passed in `7` suites and `75` tests.
 - Validation: targeted Prettier passed; focused ESLint completed with `0` errors and `37` pre-existing/style warnings; `git diff --check` and `git diff --cached --check` passed.
 - Concern: unrelated dirty Function context and Action validation refactors share the action creator/Saga files. This fix stages only the Action-specific contract and business-rejection hunks; all other dirty work remains unstaged.
+
+## Fix Round 2
+
+- Forwarded application context through Function cache lookup/API execution and JSON Form Object-mode Action dispatch.
+- Added Saga and Object Form regression assertions for application-scoped execution.
+- Final focused Jest passed: 6 suites, 87 tests. Targeted Prettier passed, ESLint passed for production/helper files with 0 errors; the Saga test file retains 3 pre-existing lint errors in the surrounding refresh tests. `git diff --check` passed.
+- Final scoped review approved the application-context fix; no unresolved implementation concern remains in the C3 scope.

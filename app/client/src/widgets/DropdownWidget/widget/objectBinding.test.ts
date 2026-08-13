@@ -220,5 +220,7 @@ test("Dropdown renders the ObjectSet loading state from its actual Object mode v
     ),
   );
 
-  expect(screen.getByText("Loading objects...")).toBeInTheDocument();
+  expect(
+    screen.getByText("Loading object data / 正在加载本体数据"),
+  ).toHaveAttribute("aria-live", "polite");
 });

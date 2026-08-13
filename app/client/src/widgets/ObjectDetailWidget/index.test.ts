@@ -25,4 +25,16 @@ describe("ObjectDetailWidget registration", () => {
 
     expect(WidgetFactory.get(OBJECT_DETAIL_WIDGET_TYPE)).toBe(widget);
   });
+
+  it("accepts object-valued dynamic bindings for objectData", async () => {
+    const widget = await loadWidget(OBJECT_DETAIL_WIDGET_TYPE);
+    const dataSection = widget
+      .getPropertyPaneContentConfig()
+      .find((section) => section.sectionName === "Data");
+    const objectData = dataSection?.children.find(
+      (child) => child.propertyName === "objectData",
+    );
+
+    expect(objectData?.validation).toEqual({ type: "OBJECT" });
+  });
 });

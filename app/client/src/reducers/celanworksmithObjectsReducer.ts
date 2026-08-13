@@ -70,6 +70,34 @@ const initialTypeState = (
 });
 
 const celanworksmithObjectsReducer = createReducer(initialState, {
+  [ReduxActionTypes.CELANWORKSMITH_APPLICATION_BINDING_LOAD_REQUEST]: () =>
+    initialState,
+  [ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED]: (
+    state: CelanworksmithObjectsState,
+  ) => {
+    const types = Object.fromEntries(
+      Object.entries(state.types).map(([typeId, typeState]) => [
+        typeId,
+        {
+          ...typeState,
+          items: [],
+          total: 0,
+          offset: 0,
+          status: "idle" as const,
+          error: undefined,
+          updatedAt: undefined,
+        },
+      ]),
+    );
+
+    return {
+      ...state,
+      types,
+      status: "idle",
+      error: undefined,
+      updatedAt: undefined,
+    };
+  },
   [ReduxActionTypes.CELANWORKSMITH_OBJECTS_LOAD_INIT]: (
     state: CelanworksmithObjectsState,
   ) => ({

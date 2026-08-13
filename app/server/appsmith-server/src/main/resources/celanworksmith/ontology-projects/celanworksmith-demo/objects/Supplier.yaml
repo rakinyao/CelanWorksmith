@@ -1,0 +1,38 @@
+id: Supplier
+displayName: Supplier
+runtimeTable: suppliers
+primaryKey: id
+properties:
+  - id: name
+    displayName: Name
+    dataType: STRING
+    required: true
+    readOnly: false
+    derived: false
+    group: Identity
+    order: 10
+  - id: contactName
+    displayName: Contact Name
+    dataType: STRING
+    required: false
+    readOnly: false
+    derived: false
+    group: Contact
+    order: 20
+  - id: riskLevel
+    displayName: Risk Level
+    dataType: ENUM
+    required: true
+    readOnly: false
+    derived: false
+    group: Risk
+    order: 30
+    enumValues: [HIGH, MEDIUM, LOW]
+  - id: averageRating
+    displayName: Average Rating
+    dataType: DECIMAL
+    required: false
+    readOnly: true
+    derived: true
+    group: Risk
+    order: 40

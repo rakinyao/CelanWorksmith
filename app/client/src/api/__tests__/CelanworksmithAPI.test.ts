@@ -82,6 +82,35 @@ describe("CelanworksmithAPI", () => {
     );
   });
 
+  it("passes application context to Link metadata and linked-object requests", async () => {
+    (Api.get as jest.Mock).mockResolvedValue({});
+
+    await CelanworksmithAPI.getLinkTypes("PurchaseOrder", "app-1");
+    await CelanworksmithAPI.getLinkedObjects(
+      "PurchaseOrder",
+      "PO001",
+      "po_production",
+      { offset: 0, limit: 100 },
+      "app-1",
+    );
+
+    expect(Api.get).toHaveBeenNthCalledWith(
+      1,
+      "v1/celanworksmith/ontology/link-types",
+      { sourceTypeId: "PurchaseOrder", applicationId: "app-1" },
+    );
+    expect(Api.get).toHaveBeenNthCalledWith(
+      2,
+      "v1/celanworksmith/runtime/objects/PurchaseOrder/PO001/links",
+      {
+        linkTypeId: "po_production",
+        offset: 0,
+        limit: 100,
+        applicationId: "app-1",
+      },
+    );
+  });
+
   it("serializes function and action execution requests with an abort signal", async () => {
     (Api.post as jest.Mock).mockResolvedValue({});
     const signal = new AbortController().signal;

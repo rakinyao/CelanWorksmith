@@ -20,6 +20,13 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { ButtonPlacementTypes, ButtonVariantTypes } from "components/constants";
 import { WIDGET_TAGS, layoutConfigurations } from "constants/WidgetConstants";
+import type { DefaultRootState } from "react-redux";
+import { celanworksmithActionRun } from "actions/celanworksmithExecutionActions";
+import { getCelanworksmithCurrentApplicationId } from "selectors/celanworksmithApplicationBindingSelectors";
+import { getCelanworksmithOntologyState } from "selectors/celanworksmithSelectors";
+import store from "store";
+import { resolveActionBinding } from "widgets/ActionButtonWidget/widget/actionButtonUtils";
+import { getActionValidationFeedback } from "widgets/ActionButtonWidget/widget/actionButtonUtils";
 
 class MenuButtonWidget extends BaseWidget<MenuButtonWidgetProps, WidgetState> {
   static type = "MENU_BUTTON_WIDGET";
@@ -29,6 +36,7 @@ class MenuButtonWidget extends BaseWidget<MenuButtonWidgetProps, WidgetState> {
       name: "Menu button",
       iconSVG: IconSVG,
       thumbnailSVG: ThumbnailSVG,
+      needsMeta: true,
       tags: [WIDGET_TAGS.BUTTONS],
     };
   }
@@ -72,6 +80,9 @@ class MenuButtonWidget extends BaseWidget<MenuButtonWidgetProps, WidgetState> {
       rows: 4,
       columns: 16,
       widgetName: "MenuButton",
+      actionId: undefined,
+      objectData: undefined,
+      parameters: {},
       version: 1,
     };
   }
@@ -132,6 +143,16 @@ class MenuButtonWidget extends BaseWidget<MenuButtonWidgetProps, WidgetState> {
     };
   }
 
+  // TODO: Fix this the next time the file is edited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static getMetaPropertiesMap(): Record<string, any> {
+    return {
+      ontologyActionError: undefined,
+      ontologyActionErrorPath: undefined,
+      ontologyActionValidationSummary: undefined,
+    };
+  }
+
   static getAutocompleteDefinitions(): AutocompletionDefinitions {
     return {
       "!doc":
@@ -143,6 +164,61 @@ class MenuButtonWidget extends BaseWidget<MenuButtonWidgetProps, WidgetState> {
   }
 
   menuItemClickHandler = (onClick: string | undefined, index: number) => {
+    if (this.props.actionId) {
+      const state = store.getState() as DefaultRootState;
+      const { action, validation } = resolveActionBinding(
+        getCelanworksmithOntologyState(state).actions,
+        this.props.actionId,
+        {
+          objectData: this.props.objectData,
+          parameters: this.props.parameters,
+        },
+      );
+
+      if (!validation.valid || !validation.request || !action) {
+        const feedback = getActionValidationFeedback(validation);
+
+        this.props.updateWidgetMetaProperty(
+          "ontologyActionError",
+          feedback.error,
+        );
+        this.props.updateWidgetMetaProperty(
+          "ontologyActionErrorPath",
+          feedback.path,
+        );
+        this.props.updateWidgetMetaProperty(
+          "ontologyActionValidationSummary",
+          feedback.summary,
+        );
+
+        return;
+      }
+
+      this.props.updateWidgetMetaProperty("ontologyActionError", undefined);
+      this.props.updateWidgetMetaProperty("ontologyActionErrorPath", undefined);
+      this.props.updateWidgetMetaProperty(
+        "ontologyActionValidationSummary",
+        undefined,
+      );
+
+      if (
+        !action.requiresConfirmation ||
+        (typeof window !== "undefined" &&
+          window.confirm(`Run ${action.displayName}?`))
+      ) {
+        store.dispatch(
+          celanworksmithActionRun(
+            action.id,
+            validation.request,
+            undefined,
+            getCelanworksmithCurrentApplicationId(state) || undefined,
+          ),
+        );
+      }
+
+      return;
+    }
+
     if (onClick) {
       const config: ExecuteTriggerPayload = {
         triggerPropertyName: "onClick",

@@ -1,7 +1,11 @@
 package com.celanworksmith;
 
+import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
+import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
+import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
+import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
 import com.celanworksmith.runtime.adapter.production.ProductionRuntimeProvider;
 import com.celanworksmith.runtime.port.RuntimeProvider;
 import org.junit.jupiter.api.Test;
@@ -9,20 +13,24 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class CelanWorksmithConfigurationTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withUserConfiguration(CelanWorksmithConfiguration.class);
+            .withUserConfiguration(CelanWorksmithConfiguration.class)
+            .withBean(OntologyProjectRegistry.class, () -> mock(OntologyProjectRegistry.class))
+            .withBean(
+                    CelanworksmithApplicationBindingRepository.class,
+                    () -> mock(CelanworksmithApplicationBindingRepository.class));
 
     @Test
-    void defaultsToMockProviders() {
+    void defaultsToProjectAndMongoProviders() {
         contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(OntologyProvider.class);
+            assertThat(context.getBeansOfType(OntologyProvider.class)).hasSize(2);
             assertThat(context).hasSingleBean(RuntimeProvider.class);
-            assertThat(context.getBean(OntologyProvider.class)).isInstanceOf(
-                    com.celanworksmith.ontology.adapter.mock.MockOntologyProvider.class);
-            assertThat(context.getBean(RuntimeProvider.class)).isInstanceOf(
-                    com.celanworksmith.runtime.adapter.mock.MockRuntimeProvider.class);
+            assertThat(context.getBean(OntologyProvider.class)).isInstanceOf(OntologyProjectBackedProvider.class);
+            assertThat(context.getBean(ProductionOntologyProvider.class)).isNotNull();
+            assertThat(context.getBean(RuntimeProvider.class)).isInstanceOf(MongoRuntimeDataProvider.class);
         });
     }
 
@@ -30,10 +38,12 @@ class CelanWorksmithConfigurationTest {
     void selectsProductionPlaceholdersExplicitly() {
         contextRunner
                 .withPropertyValues(
-                        "celanworksmith.ontology.provider=production",
-                        "celanworksmith.runtime.provider=production")
+                        "celanworksmith.ontology.provider=production", "celanworksmith.runtime.provider=production")
                 .run(context -> {
-                    assertThat(context.getBean(OntologyProvider.class)).isInstanceOf(ProductionOntologyProvider.class);
+                    assertThat(context.getBean(OntologyProvider.class))
+                            .isInstanceOf(OntologyProjectBackedProvider.class);
+                    assertThat(context.getBeansOfType(ProductionOntologyProvider.class))
+                            .hasSize(1);
                     assertThat(context.getBean(RuntimeProvider.class)).isInstanceOf(ProductionRuntimeProvider.class);
                     StepVerifier.create(context.getBean(OntologyProvider.class).getObjectTypes())
                             .expectErrorSatisfies(error -> assertThat(error)

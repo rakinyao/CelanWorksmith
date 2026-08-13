@@ -9,6 +9,9 @@ const asApiResponse = async <T>(request: Promise<unknown>) =>
 export interface CelanworksmithProperty {
   id: string;
   displayName: string;
+  description?: string | Record<string, string>;
+  semanticType?: string;
+  examples?: string[];
   dataType: string;
   required: boolean;
   readOnly: boolean;
@@ -23,12 +26,18 @@ export interface CelanworksmithProperty {
 export interface CelanworksmithObjectType {
   id: string;
   displayName: string;
+  description?: string | Record<string, string>;
+  semanticType?: string;
+  examples?: string[];
   properties: CelanworksmithProperty[];
 }
 
 export interface CelanworksmithLinkType {
   id: string;
   displayName: string;
+  description?: string | Record<string, string>;
+  semanticType?: string;
+  examples?: string[];
   sourceTypeId: string;
   targetTypeId: string;
   cardinality: string;
@@ -37,6 +46,9 @@ export interface CelanworksmithLinkType {
 export interface CelanworksmithFunction {
   id: string;
   displayName: string;
+  description?: string | Record<string, string>;
+  semanticType?: string;
+  examples?: string[];
   returnType: string;
   parameters: CelanworksmithProperty[];
   sideEffectFree: boolean;
@@ -45,6 +57,9 @@ export interface CelanworksmithFunction {
 export interface CelanworksmithAction {
   id: string;
   displayName: string;
+  description?: string | Record<string, string>;
+  semanticType?: string;
+  examples?: string[];
   objectTypeId: string;
   parameters: CelanworksmithProperty[];
   requiresConfirmation: boolean;
@@ -66,6 +81,7 @@ export interface CelanworksmithObjectSet {
 
 export interface CelanworksmithObjectQuery {
   filter?: Record<string, unknown> | string;
+  searchText?: string;
   sortBy?: string;
   sortDirection?: "asc" | "desc";
   offset?: number;
@@ -113,6 +129,9 @@ export interface CelanworksmithExecutionMeta {
   completedAt?: number;
   error?: CelanworksmithExecutionError;
   parametersHash: string;
+  path?: string;
+  returnType?: string;
+  stableId?: string;
 }
 
 export interface CelanworksmithActionResult {

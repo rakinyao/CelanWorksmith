@@ -15,14 +15,33 @@ export interface CelanworksmithLinkRequest {
   force?: boolean;
 }
 
+export interface CelanworksmithLinkMetadataRequestMeta {
+  force?: boolean;
+  applicationId?: string;
+}
+
 export const celanworksmithLinkMetadataLoadRequested = (
   typeId: string,
   force = false,
-) => ({
-  type: ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_REQUESTED,
-  payload: typeId,
-  ...(force ? { meta: { force: true } } : {}),
-});
+  applicationId?: string,
+) => {
+  const normalizedApplicationId = applicationId?.trim() || undefined;
+
+  return {
+    type: ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_REQUESTED,
+    payload: typeId,
+    ...(force || normalizedApplicationId
+      ? {
+          meta: {
+            ...(force ? { force: true } : {}),
+            ...(normalizedApplicationId
+              ? { applicationId: normalizedApplicationId }
+              : {}),
+          },
+        }
+      : {}),
+  };
+};
 
 export const celanworksmithLinkMetadataRequested =
   celanworksmithLinkMetadataLoadRequested;
@@ -30,17 +49,19 @@ export const celanworksmithLinkMetadataRequested =
 export const celanworksmithLinkMetadataLoadSuccess = (
   typeId: string,
   links: CelanworksmithLinkType[],
+  applicationId?: string,
 ) => ({
   type: ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_SUCCESS,
-  payload: { typeId, links },
+  payload: { typeId, links, applicationId },
 });
 
 export const celanworksmithLinkMetadataLoadError = (
   typeId: string,
   error: CelanworksmithLinkError,
+  applicationId?: string,
 ) => ({
   type: ReduxActionTypes.CELANWORKSMITH_LINK_METADATA_LOAD_ERROR,
-  payload: { typeId, error },
+  payload: { typeId, error, applicationId },
 });
 
 export const celanworksmithLinkLoadRequested = (
@@ -76,8 +97,8 @@ export const celanworksmithLinkLoadError = (
 export type CelanworksmithLinkAction = ReduxAction<
   | string
   | CelanworksmithLinkRequest
-  | { typeId: string; links: CelanworksmithLinkType[] }
-  | { typeId: string; error: CelanworksmithLinkError }
+  | { typeId: string; links: CelanworksmithLinkType[]; applicationId?: string }
+  | { typeId: string; error: CelanworksmithLinkError; applicationId?: string }
   | (CelanworksmithLinkRequest & { result: CelanworksmithObjectSet })
   | (CelanworksmithLinkRequest & { error: CelanworksmithLinkError })
 >;

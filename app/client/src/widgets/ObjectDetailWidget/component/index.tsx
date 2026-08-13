@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
+import { Input } from "@appsmith/ads";
 import type { CelanworksmithObjectInstance } from "api/CelanworksmithAPI";
 import {
   celanworksmithLinkLoadRequested,
@@ -12,6 +13,7 @@ import {
   getCelanworksmithLinkEntry,
   getCelanworksmithLinkMetadata,
 } from "selectors/celanworksmithSelectors";
+import { getCelanworksmithCurrentApplicationId } from "selectors/celanworksmithApplicationBindingSelectors";
 import {
   getObjectIdentity,
   groupObjectProperties,
@@ -21,7 +23,10 @@ import {
 import {
   GroupTitle,
   LinkError,
+  LinkDetails,
+  LinkedObjectId,
   LinkedObjectButton,
+  LinkedObjectSummary,
   LinkTab,
   LinkTabs,
   MetadataNotice,
@@ -32,6 +37,12 @@ import {
   PropertyValue,
   StateMessage,
 } from "./index.styled";
+import {
+  filterLinkedObjects,
+  getLinkedObjectSummary,
+  getObjectTypeLabel,
+  isLinkPermissionError,
+} from "./objectDetailLinkUtils";
 
 export interface ObjectDetailComponentProps {
   objectData?: unknown;
@@ -71,6 +82,7 @@ export default function ObjectDetailComponent({
   updateWidgetMetaProperty,
 }: ObjectDetailComponentProps) {
   const dispatch = useDispatch();
+  const updateWidgetMetaPropertyRef = useRef(updateWidgetMetaProperty);
   const object = useMemo(() => normalizeObjectData(objectData), [objectData]);
   const identity = getObjectIdentity(object);
   const hasTypeMismatch =
@@ -78,14 +90,22 @@ export default function ObjectDetailComponent({
     !!configuredObjectTypeId &&
     object.typeId !== configuredObjectTypeId;
   const objectTypeId = hasTypeMismatch ? undefined : object?.typeId;
-  const metadata = useSelector((state: DefaultRootState) =>
-    object
-      ? getCelanworksmithObjectsState(state).types[object.typeId]?.metadata
-      : undefined,
+  const applicationId = useSelector(getCelanworksmithCurrentApplicationId);
+  const objectsState = useSelector((state: DefaultRootState) =>
+    getCelanworksmithObjectsState(state),
   );
+  const metadata = object
+    ? objectsState.types[object.typeId]?.metadata
+    : undefined;
   const objectId = object?.id;
   const linkMetadata = useSelector((state: DefaultRootState) =>
-    getCelanworksmithLinkMetadata(state, objectTypeId || ""),
+    objectTypeId
+      ? getCelanworksmithLinkMetadata(
+          state,
+          objectTypeId,
+          applicationId || undefined,
+        )
+      : undefined,
   );
   const firstLinkTypeId = linkMetadata?.links[0]?.id;
   const firstLinkRequest = useMemo<CelanworksmithLinkRequest | undefined>(
@@ -95,10 +115,11 @@ export default function ObjectDetailComponent({
             typeId: objectTypeId,
             objectId,
             linkTypeId: firstLinkTypeId,
+            ...(applicationId ? { applicationId } : {}),
             prefetch: true,
           }
         : undefined,
-    [firstLinkTypeId, objectId, objectTypeId],
+    [applicationId, firstLinkTypeId, objectId, objectTypeId],
   );
   const firstLinkEntry = useSelector((state: DefaultRootState) =>
     firstLinkRequest
@@ -106,34 +127,77 @@ export default function ObjectDetailComponent({
       : undefined,
   );
   const [activeLinkTypeId, setActiveLinkTypeId] = useState<string>();
+  const [linkSearch, setLinkSearch] = useState("");
   const activeLinkType = linkMetadata?.links.find(
     (link) => link.id === activeLinkTypeId,
   );
+  const activeTargetMetadata = activeLinkType
+    ? objectsState.types[activeLinkType.targetTypeId]?.metadata
+    : undefined;
   const activeRequest = useMemo<CelanworksmithLinkRequest | undefined>(
     () =>
       objectTypeId && objectId && activeLinkType
-        ? { typeId: objectTypeId, objectId, linkTypeId: activeLinkType.id }
+        ? {
+            typeId: objectTypeId,
+            objectId,
+            linkTypeId: activeLinkType.id,
+            ...(applicationId ? { applicationId } : {}),
+          }
         : undefined,
-    [activeLinkType, objectId, objectTypeId],
+    [activeLinkType, applicationId, objectId, objectTypeId],
   );
   const activeLinkEntry = useSelector((state: DefaultRootState) =>
     activeRequest
       ? getCelanworksmithLinkEntry(state, activeRequest)
       : undefined,
   );
+  const linkedObjects = useMemo(
+    () =>
+      activeLinkType
+        ? filterLinkedObjects(
+            activeLinkEntry?.result?.items || [],
+            activeLinkType.targetTypeId,
+            linkSearch,
+          )
+        : [],
+    [activeLinkEntry?.result?.items, activeLinkType, linkSearch],
+  );
 
   useEffect(() => {
-    clearLinkedSelection(updateWidgetMetaProperty);
+    updateWidgetMetaPropertyRef.current = updateWidgetMetaProperty;
+  }, [updateWidgetMetaProperty]);
+
+  useEffect(() => {
+    clearLinkedSelection(updateWidgetMetaPropertyRef.current);
     setActiveLinkTypeId(undefined);
-  }, [identity, updateWidgetMetaProperty]);
+    setLinkSearch("");
+  }, [identity]);
 
   useEffect(() => {
     if (!objectTypeId) return;
 
     if (!linkMetadata || linkMetadata.status === "idle") {
-      dispatch(celanworksmithLinkMetadataLoadRequested(objectTypeId));
+      dispatch(
+        celanworksmithLinkMetadataLoadRequested(
+          objectTypeId,
+          false,
+          applicationId || undefined,
+        ),
+      );
     }
-  }, [dispatch, linkMetadata, objectTypeId]);
+  }, [applicationId, dispatch, linkMetadata, objectTypeId]);
+
+  useEffect(() => {
+    if (!linkMetadata || !activeLinkTypeId) return;
+
+    if (linkMetadata.links.some((link) => link.id === activeLinkTypeId)) {
+      return;
+    }
+
+    setActiveLinkTypeId(linkMetadata.links[0]?.id);
+    setLinkSearch("");
+    clearLinkedSelection(updateWidgetMetaPropertyRef.current);
+  }, [activeLinkTypeId, linkMetadata]);
 
   useEffect(() => {
     if (!objectTypeId || !objectId || !linkMetadata?.links.length) return;
@@ -167,6 +231,7 @@ export default function ObjectDetailComponent({
 
   const selectLinkType = (linkTypeId: string) => {
     setActiveLinkTypeId(linkTypeId);
+    setLinkSearch("");
     clearLinkedSelection(updateWidgetMetaProperty);
 
     if (!object) return;
@@ -176,6 +241,7 @@ export default function ObjectDetailComponent({
         typeId: object.typeId,
         objectId: object.id,
         linkTypeId,
+        ...(applicationId ? { applicationId } : {}),
       }),
     );
   };
@@ -209,30 +275,47 @@ export default function ObjectDetailComponent({
       {!metadata && (
         <MetadataNotice>Object metadata is unavailable.</MetadataNotice>
       )}
+      {(!linkMetadata || linkMetadata.status === "loading") && (
+        <MetadataNotice>Loading Link metadata...</MetadataNotice>
+      )}
       {linkMetadata?.status === "error" && (
         <MetadataNotice>
-          <div>{linkMetadata.error?.message || "Unable to load links."}</div>
-          <button
-            onClick={() =>
-              dispatch(
-                celanworksmithLinkMetadataLoadRequested(objectTypeId!, true),
-              )
-            }
-            type="button"
-          >
-            Retry links
-          </button>
+          {isLinkPermissionError(linkMetadata.error?.code) ? (
+            <div>You do not have permission to access Link metadata.</div>
+          ) : (
+            <>
+              <div>
+                {linkMetadata.error?.message || "Unable to load links."}
+              </div>
+              <button
+                onClick={() =>
+                  dispatch(
+                    celanworksmithLinkMetadataLoadRequested(
+                      objectTypeId!,
+                      true,
+                      applicationId || undefined,
+                    ),
+                  )
+                }
+                type="button"
+              >
+                Retry links
+              </button>
+            </>
+          )}
         </MetadataNotice>
       )}
       {groups.map((group) => (
         <PropertyGroup key={group.id}>
           <GroupTitle>{group.label}</GroupTitle>
-          {group.properties.map((property) => (
-            <PropertyRow key={property.id}>
-              <PropertyLabel>{property.label}</PropertyLabel>
-              <PropertyValue>{toDisplayValue(property.value)}</PropertyValue>
-            </PropertyRow>
-          ))}
+          <dl>
+            {group.properties.map((property) => (
+              <PropertyRow key={property.id}>
+                <PropertyLabel>{property.label}</PropertyLabel>
+                <PropertyValue>{toDisplayValue(property.value)}</PropertyValue>
+              </PropertyRow>
+            ))}
+          </dl>
         </PropertyGroup>
       ))}
       {!!linkMetadata?.links.length && (
@@ -252,37 +335,80 @@ export default function ObjectDetailComponent({
               </LinkTab>
             ))}
           </LinkTabs>
+          {activeLinkType && (
+            <>
+              <LinkDetails>
+                <span>
+                  Target:{" "}
+                  {getObjectTypeLabel(
+                    activeLinkType.targetTypeId,
+                    activeTargetMetadata,
+                  )}
+                </span>
+                <span>{activeLinkType.cardinality}</span>
+              </LinkDetails>
+              <Input
+                aria-label="Search linked objects"
+                onChange={(value) => setLinkSearch(String(value))}
+                placeholder={`Search ${activeLinkType.targetTypeId}`}
+                value={linkSearch}
+              />
+            </>
+          )}
           {activeLinkEntry?.status === "loading" && <div>Loading links...</div>}
           {activeLinkEntry?.status === "empty" && <div>No linked objects.</div>}
           {activeLinkEntry?.status === "error" && activeRequest && (
             <LinkError>
-              <div>
-                {activeLinkEntry.error?.message || "Unable to load links."}
-              </div>
-              <button
-                onClick={() =>
-                  dispatch(
-                    celanworksmithLinkLoadRequested({
-                      ...activeRequest,
-                      force: true,
-                    }),
-                  )
-                }
-                type="button"
-              >
-                Retry
-              </button>
+              {isLinkPermissionError(activeLinkEntry.error?.code) ? (
+                <div>
+                  You do not have permission to access these linked objects.
+                </div>
+              ) : (
+                <>
+                  <div>
+                    {activeLinkEntry.error?.message || "Unable to load links."}
+                  </div>
+                  <button
+                    onClick={() =>
+                      dispatch(
+                        celanworksmithLinkLoadRequested({
+                          ...activeRequest,
+                          force: true,
+                        }),
+                      )
+                    }
+                    type="button"
+                  >
+                    Retry
+                  </button>
+                </>
+              )}
             </LinkError>
           )}
-          {activeLinkEntry?.result?.items.map((linkedObject) => (
-            <LinkedObjectButton
-              key={linkedObject.id}
-              onClick={() => selectLinkedObject(linkedObject)}
-              type="button"
-            >
-              {linkedObject.id}
-            </LinkedObjectButton>
-          ))}
+          {!!linkSearch &&
+            !!activeLinkEntry?.result?.items.length &&
+            !linkedObjects.length && <div>No matching linked objects.</div>}
+          {linkedObjects.map((linkedObject) => {
+            const summary = getLinkedObjectSummary(
+              linkedObject,
+              activeTargetMetadata,
+            );
+
+            return (
+              <LinkedObjectButton
+                key={linkedObject.id}
+                onClick={() => selectLinkedObject(linkedObject)}
+                type="button"
+              >
+                <LinkedObjectId>{linkedObject.id}</LinkedObjectId>
+                {summary && (
+                  <LinkedObjectSummary>
+                    {summary.label}: {summary.value}
+                  </LinkedObjectSummary>
+                )}
+              </LinkedObjectButton>
+            );
+          })}
         </section>
       )}
     </ObjectDetailContainer>

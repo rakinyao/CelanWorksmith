@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import ObjectBindingState from "./ObjectBindingState";
 import ObjectSetBinding from "./ObjectSetBinding";
 import { getObjectSetListRows } from "./objectSetUtils";
 
@@ -8,6 +9,9 @@ interface ObjectCollectionModeProps {
     isLoading: boolean,
   ) => React.ReactElement;
   objectTypeId?: string;
+  actionId?: string;
+  aggregationVariableName?: string;
+  linkTypeId?: string;
   onRowsChange?: (rows: Array<Record<string, unknown>>) => void;
   widgetId: string;
   widgetType: string;
@@ -45,7 +49,10 @@ function ObjectCollectionRows({
 }
 
 export default function ObjectCollectionMode({
+  actionId,
+  aggregationVariableName,
   children,
+  linkTypeId,
   objectTypeId,
   onRowsChange,
   widgetId,
@@ -53,24 +60,33 @@ export default function ObjectCollectionMode({
 }: ObjectCollectionModeProps) {
   return (
     <ObjectSetBinding
+      actionId={actionId}
+      aggregationVariableName={aggregationVariableName}
+      linkTypeId={linkTypeId}
       objectTypeId={objectTypeId}
       widgetId={widgetId}
       widgetType={widgetType}
     >
       {(binding) => {
         if (binding.status === "typeMismatch") {
-          return <div role="alert">The Object binding is incompatible.</div>;
+          return (
+            <ObjectBindingState
+              diagnostic={binding.diagnostic?.message}
+              status="typeMismatch"
+            />
+          );
         }
 
         if (binding.status === "permissionDenied") {
-          return <div role="alert">Access to object data is denied.</div>;
+          return <ObjectBindingState status="permissionDenied" />;
         }
 
         if (binding.status === "error") {
           return (
-            <div role="alert">
-              {binding.error?.message || "Unable to load objects."}
-            </div>
+            <ObjectBindingState
+              errorMessage={binding.error?.message}
+              status="error"
+            />
           );
         }
 

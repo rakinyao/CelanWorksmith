@@ -1,20 +1,32 @@
 import { useEffect, useRef } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { celanworksmithOntologyLoadRequest } from "actions/celanworksmithOntologyActions";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
 
 const CelanworksmithOntologyLoader = () => {
   const dispatch = useDispatch();
-  const hasAttempted = useRef(false);
+  const attemptedApplicationId = useRef<string | undefined>(undefined);
+  const applicationId = useSelector(getCelanworksmithCurrentApplicationId);
+  const bindingState = useSelector(getCelanworksmithApplicationBindingState);
 
   useEffect(
     function loadCelanworksmithOntologyOnEditorMount() {
-      if (hasAttempted.current) return;
+      if (
+        attemptedApplicationId.current === applicationId ||
+        !applicationId ||
+        bindingState.applicationId !== applicationId ||
+        bindingState.status !== "ready"
+      )
+        return;
 
-      hasAttempted.current = true;
+      attemptedApplicationId.current = applicationId;
 
-      dispatch(celanworksmithOntologyLoadRequest());
+      dispatch(celanworksmithOntologyLoadRequest(applicationId));
     },
-    [dispatch],
+    [applicationId, bindingState, dispatch],
   );
 
   return null;

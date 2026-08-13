@@ -1,20 +1,32 @@
 import { useEffect, useRef } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { celanworksmithObjectsLoadRequest } from "actions/celanworksmithObjectActions";
+import {
+  getCelanworksmithApplicationBindingState,
+  getCelanworksmithCurrentApplicationId,
+} from "selectors/celanworksmithApplicationBindingSelectors";
 
 const CelanworksmithObjectsLoader = () => {
   const dispatch = useDispatch();
-  const hasAttempted = useRef(false);
+  const attemptedApplicationId = useRef<string | undefined>(undefined);
+  const applicationId = useSelector(getCelanworksmithCurrentApplicationId);
+  const bindingState = useSelector(getCelanworksmithApplicationBindingState);
 
   useEffect(
     function loadCelanworksmithObjectsOnEditorMount() {
-      if (hasAttempted.current) return;
+      if (
+        attemptedApplicationId.current === applicationId ||
+        !applicationId ||
+        bindingState.applicationId !== applicationId ||
+        bindingState.status !== "ready"
+      )
+        return;
 
-      hasAttempted.current = true;
+      attemptedApplicationId.current = applicationId;
 
-      dispatch(celanworksmithObjectsLoadRequest());
+      dispatch(celanworksmithObjectsLoadRequest(applicationId));
     },
-    [dispatch],
+    [applicationId, bindingState, dispatch],
   );
 
   return null;

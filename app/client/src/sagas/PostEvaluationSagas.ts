@@ -70,6 +70,7 @@ import {
   buildDataTreeForAutocomplete,
   getCelanworksmithObjectsDataTree,
   getCelanworksmithExecutionDataTree,
+  getCelanworksmithVariablesDataTree,
   getConfigTree,
   getDataTree,
 } from "selectors/dataTreeSelectors";
@@ -265,7 +266,8 @@ export function* updateTernDefinitions(
       if (
         entityName === "$objects" ||
         entityName === "$functions" ||
-        entityName === "$actions"
+        entityName === "$actions" ||
+        entityName === "$variables"
       ) {
         return true;
       }
@@ -297,10 +299,14 @@ export function* updateTernDefinitions(
   const celanworksmithExecution: ReturnType<
     typeof getCelanworksmithExecutionDataTree
   > = yield select(getCelanworksmithExecutionDataTree);
+  const celanworksmithVariables: ReturnType<
+    typeof getCelanworksmithVariablesDataTree
+  > = yield select(getCelanworksmithVariablesDataTree);
   const dataTreeForAutocomplete = buildDataTreeForAutocomplete(
     dataTree,
     celanworksmithObjects,
     celanworksmithExecution,
+    celanworksmithVariables,
   );
   const { def, entityInfo } = dataTreeTypeDefCreator(
     dataTreeForAutocomplete,
@@ -504,7 +510,23 @@ export default function* PostEvaluationSagas() {
       executeReactiveQueries,
     ),
     takeLatest(
+      ReduxActionTypes.CELANWORKSMITH_OBJECTS_METADATA_SUCCESS,
+      refreshCelanworksmithTernDefinitions,
+    ),
+    takeLatest(
+      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_START,
+      refreshCelanworksmithTernDefinitions,
+    ),
+    takeLatest(
+      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_REFRESH_START,
+      refreshCelanworksmithTernDefinitions,
+    ),
+    takeLatest(
       ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_SUCCESS,
+      refreshCelanworksmithTernDefinitions,
+    ),
+    takeLatest(
+      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_ERROR,
       refreshCelanworksmithTernDefinitions,
     ),
     takeLatest(

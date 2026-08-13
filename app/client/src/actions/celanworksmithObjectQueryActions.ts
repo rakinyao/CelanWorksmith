@@ -10,6 +10,7 @@ export interface CelanworksmithObjectQueryRequest {
   typeId: string;
   query?: CelanworksmithObjectQuery;
   applicationId?: string;
+  force?: boolean;
 }
 
 export interface CelanworksmithObjectQueryError {
@@ -47,6 +48,8 @@ export const getCelanworksmithObjectQuerySignature = (
   if (query?.sortDirection) normalizedQuery.sortDirection = query.sortDirection;
 
   if (query?.filter !== undefined) normalizedQuery.filter = query.filter;
+
+  if (query?.searchText?.trim()) normalizedQuery.searchText = query.searchText.trim();
 
   return JSON.stringify(normalizeQueryValue(normalizedQuery));
 };

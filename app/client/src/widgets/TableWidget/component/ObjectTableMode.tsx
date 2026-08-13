@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { isEqual, isNumber } from "lodash";
 import type { DefaultRootState } from "react-redux";
 import {
   celanworksmithObjectQueryRequested,
@@ -13,22 +14,26 @@ import {
 } from "selectors/celanworksmithApplicationBindingSelectors";
 import {
   createObjectTableQueryRequest,
-  getObjectTableColumns,
+  getObjectTablePrimaryColumns,
+  getObjectTableReactColumns,
   getObjectTableRows,
 } from "../widget/objectTableUtils";
 import { getObjectQueryKey } from "reducers/celanworksmithObjectQueryReducer";
 import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
+import ReactTableComponent from "../component";
+import type { ReactTableComponentProps } from "../component/Constants";
+import { CompactModeTypes } from "../component/Constants";
+import { updateWidgetPropertyRequest } from "actions/controlActions";
 
-interface ObjectTableModeProps {
+interface ObjectTableModeProps extends ReactTableComponentProps {
   widgetId: string;
   objectTypeId?: string;
   objectFilter?: unknown;
   pageNo?: number;
   pageSize?: number;
   sortOrder?: { column: string; order: "asc" | "desc" | null };
-  selectedRowIndex?: number;
-  selectedRowIndices?: number[];
-  multiRowSelection?: boolean;
+  primaryColumns?: Record<string, Record<string, unknown>>;
+  columnOrder?: string[];
   widgetType?: "TABLE_WIDGET" | "TABLE_WIDGET_V2";
   updateWidgetMetaProperty: (propertyName: string, value: unknown) => void;
 }
@@ -39,17 +44,15 @@ const DEFAULT_SORT_ORDER = {
 };
 
 export default function ObjectTableMode({
-  multiRowSelection = false,
   objectFilter,
   objectTypeId,
   pageNo = 1,
   pageSize = 10,
-  selectedRowIndex = -1,
-  selectedRowIndices = [],
   sortOrder = DEFAULT_SORT_ORDER,
   updateWidgetMetaProperty,
   widgetId,
   widgetType = "TABLE_WIDGET",
+  ...tableProps
 }: ObjectTableModeProps) {
   const dispatch = useDispatch();
   const objectState = useSelector(getCelanworksmithObjectsState);
@@ -78,71 +81,135 @@ export default function ObjectTableMode({
   const hasMetadataIssue = normalizedBinding.issues.some(
     (issue) => issue.code === "DELETED_OBJECT_TYPE",
   );
+  const normalizedPageNo = Number.isInteger(pageNo) && pageNo > 0 ? pageNo : 1;
+  const normalizedPageSize =
+    Number.isInteger(pageSize) && pageSize > 0 ? pageSize : 10;
   const request = useMemo<CelanworksmithObjectQueryRequest | undefined>(
     () =>
       normalizedObjectTypeId && !normalizedBinding.issues.length
         ? createObjectTableQueryRequest(
             widgetId,
             normalizedObjectTypeId,
-            pageNo,
-            pageSize,
+            normalizedPageNo,
+            normalizedPageSize,
             sortOrder,
             normalizedBinding.binding.filter,
+            applicationId || undefined,
+            tableProps.searchText,
           )
         : undefined,
     [
       normalizedBinding.binding.filter,
       normalizedBinding.issues.length,
+      applicationId,
       normalizedObjectTypeId,
-      pageNo,
-      pageSize,
+      normalizedPageNo,
+      normalizedPageSize,
       sortOrder,
+      tableProps.searchText,
       widgetId,
     ],
   );
   const queryState = useSelector((state: DefaultRootState) =>
     request ? getCelanworksmithObjectQuery(state, request) : undefined,
   );
-  const columns = getObjectTableColumns(metadata);
   const rows = getObjectTableRows(queryState?.result);
+  const reactColumns = useMemo(
+    () =>
+      getObjectTableReactColumns(
+        metadata,
+        tableProps.primaryColumns,
+        tableProps.columnOrder,
+      ),
+    [metadata, tableProps.columnOrder, tableProps.primaryColumns],
+  );
   const previousQueryKeyRef = useRef<string>();
 
   useEffect(() => {
-    if (!request) {
-      if (!normalizedObjectTypeId && previousQueryKeyRef.current) {
-        previousQueryKeyRef.current = undefined;
+    if (!metadata) return;
+
+    const primaryColumns = getObjectTablePrimaryColumns(
+      metadata,
+      tableProps.primaryColumns,
+      tableProps.widgetName,
+    );
+    const currentColumns = tableProps.primaryColumns || {};
+    const hasColumnChanges = Object.entries(primaryColumns).some(
+      ([columnId, column]) => !isEqual(currentColumns[columnId], column),
+    );
+    const columnOrder = tableProps.columnOrder || [];
+    const nextColumnOrder = [
+      ...columnOrder.filter((columnId) => currentColumns[columnId]),
+      ...Object.keys(primaryColumns).filter(
+        (columnId) => !columnOrder.includes(columnId),
+      ),
+    ];
+    const hasColumnOrderChanges = !isEqual(columnOrder, nextColumnOrder);
+
+    if (!hasColumnChanges && !hasColumnOrderChanges) return;
+
+    if (hasColumnChanges) {
+      dispatch(
+        updateWidgetPropertyRequest(widgetId, "primaryColumns", {
+          ...currentColumns,
+          ...primaryColumns,
+        }),
+      );
+    }
+
+    if (hasColumnOrderChanges) {
+      dispatch(
+        updateWidgetPropertyRequest(widgetId, "columnOrder", nextColumnOrder),
+      );
+    }
+  }, [
+    dispatch,
+    metadata,
+    tableProps.columnOrder,
+    tableProps.primaryColumns,
+    tableProps.widgetName,
+    widgetId,
+  ]);
+
+  useEffect(
+    function dispatchObjectQuery() {
+      if (!request) {
+        if (!normalizedObjectTypeId && previousQueryKeyRef.current) {
+          previousQueryKeyRef.current = undefined;
+          updateWidgetMetaProperty("selectedObject", undefined);
+          updateWidgetMetaProperty("selectedObjects", []);
+          updateWidgetMetaProperty("selectedRowIndex", -1);
+          updateWidgetMetaProperty("selectedRowIndices", []);
+        }
+
+        return;
+      }
+
+      if (!bindingResolved) return;
+
+      const queryKey = getObjectQueryKey(request);
+
+      if (
+        previousQueryKeyRef.current &&
+        previousQueryKeyRef.current !== queryKey
+      ) {
         updateWidgetMetaProperty("selectedObject", undefined);
         updateWidgetMetaProperty("selectedObjects", []);
         updateWidgetMetaProperty("selectedRowIndex", -1);
         updateWidgetMetaProperty("selectedRowIndices", []);
       }
 
-      return;
-    }
-
-    if (!bindingResolved) return;
-
-    const queryKey = getObjectQueryKey(request);
-
-    if (
-      previousQueryKeyRef.current &&
-      previousQueryKeyRef.current !== queryKey
-    ) {
-      updateWidgetMetaProperty("selectedObject", undefined);
-      updateWidgetMetaProperty("selectedObjects", []);
-      updateWidgetMetaProperty("selectedRowIndex", -1);
-      updateWidgetMetaProperty("selectedRowIndices", []);
-    }
-
-    previousQueryKeyRef.current = queryKey;
-    dispatch(celanworksmithObjectQueryRequested(request));
-  }, [
-    bindingResolved,
-    dispatch,
-    normalizedObjectTypeId,
-    request,
-    updateWidgetMetaProperty,
-  ]);
+      previousQueryKeyRef.current = queryKey;
+      dispatch(celanworksmithObjectQueryRequested(request));
+    },
+    [
+      bindingResolved,
+      dispatch,
+      normalizedObjectTypeId,
+      request,
+      updateWidgetMetaProperty,
+    ],
+  );
 
   if (!normalizedObjectTypeId)
     return <div>Select an ontology object collection.</div>;
@@ -182,100 +249,137 @@ export default function ObjectTableMode({
     return <div>No objects found.</div>;
   }
 
-  const selectRow = (index: number) => {
-    const selected = rows[index];
-    const selectedObject = queryState.result?.items[index];
+  const updatePageNo = (nextPageNo: number) => {
+    updateWidgetMetaProperty("pageNo", Math.max(1, nextPageNo));
+  };
 
-    if (!selected || !selectedObject) return;
+  const updateSortOrder = (column: string, asc: boolean) => {
+    updateWidgetMetaProperty(
+      "sortOrder",
+      column
+        ? { column, order: asc ? "asc" : "desc" }
+        : { column: "", order: null },
+    );
+  };
 
-    if (multiRowSelection) {
-      const nextSelectedRowIndices = selectedRowIndices.includes(index)
-        ? selectedRowIndices.filter(
-            (selectedRowIndex) => selectedRowIndex !== index,
-          )
-        : [...selectedRowIndices, index];
-      const nextSelectedObjects = nextSelectedRowIndices
-        .map((selectedRowIndex) => queryState.result?.items[selectedRowIndex])
+  const selectAllRows = (
+    pageRows: Array<{ original: Record<string, unknown>; index: number }>,
+  ) => {
+    const selectedRowIndices = pageRows.map((row) => row.index);
+    const selectedObjects = pageRows
+      .map((row) => row.original.__object)
+      .filter(
+        (object): object is NonNullable<typeof object> => object !== undefined,
+      );
+
+    updateWidgetMetaProperty("selectedRowIndices", selectedRowIndices);
+    updateWidgetMetaProperty("selectedObjects", selectedObjects);
+    updateWidgetMetaProperty(
+      "selectedObject",
+      selectedObjects[selectedObjects.length - 1],
+    );
+  };
+
+  const clearAllRows = () => {
+    updateWidgetMetaProperty("selectedRowIndex", -1);
+    updateWidgetMetaProperty("selectedRowIndices", []);
+    updateWidgetMetaProperty("selectedObject", undefined);
+    updateWidgetMetaProperty("selectedObjects", []);
+  };
+
+  // Render the native ReactTableComponent for both TABLE_WIDGET and TABLE_WIDGET_V2.
+  const handleRowClick = (
+    rowData: Record<string, unknown>,
+    rowIndex: number,
+  ) => {
+    const selectedObject =
+      rowData && typeof rowData === "object" ? rowData.__object : undefined;
+
+    if (tableProps.multiRowSelection) {
+      const currentIndices = Array.isArray(tableProps.selectedRowIndices)
+        ? [...tableProps.selectedRowIndices]
+        : [];
+
+      if (currentIndices.includes(rowIndex)) {
+        currentIndices.splice(currentIndices.indexOf(rowIndex), 1);
+      } else {
+        currentIndices.push(rowIndex);
+      }
+
+      const selectedObjects = currentIndices
+        .map((index) => {
+          const data = rows[index];
+
+          return data && typeof data === "object" ? data.__object : undefined;
+        })
         .filter(
           (object): object is NonNullable<typeof object> =>
             object !== undefined,
         );
 
+      updateWidgetMetaProperty("selectedRowIndices", currentIndices);
+      updateWidgetMetaProperty("selectedObjects", selectedObjects);
       updateWidgetMetaProperty(
         "selectedObject",
-        nextSelectedObjects[nextSelectedObjects.length - 1],
+        selectedObjects[selectedObjects.length - 1],
       );
-      updateWidgetMetaProperty("selectedObjects", nextSelectedObjects);
-      updateWidgetMetaProperty("selectedRowIndices", nextSelectedRowIndices);
+    } else {
+      const currentIndex = isNumber(tableProps.selectedRowIndex)
+        ? tableProps.selectedRowIndex
+        : -1;
 
-      return;
+      if (currentIndex !== rowIndex) {
+        updateWidgetMetaProperty("selectedRowIndex", rowIndex);
+
+        if (selectedObject !== undefined) {
+          updateWidgetMetaProperty("selectedObject", selectedObject);
+          updateWidgetMetaProperty("selectedObjects", [selectedObject]);
+        }
+      } else {
+        updateWidgetMetaProperty("selectedRowIndex", -1);
+        updateWidgetMetaProperty("selectedObject", undefined);
+        updateWidgetMetaProperty("selectedObjects", []);
+      }
     }
 
-    updateWidgetMetaProperty("selectedObject", selectedObject);
-    updateWidgetMetaProperty("selectedObjects", [selectedObject]);
-    updateWidgetMetaProperty("selectedRowIndex", index);
+    tableProps.onRowClick?.(rowData, rowIndex);
   };
 
-  const sortColumn = (column: string) => {
-    const order =
-      sortOrder.column === column && sortOrder.order === "asc" ? "desc" : "asc";
-
-    updateWidgetMetaProperty("sortOrder", { column, order });
-    updateWidgetMetaProperty("pageNo", 1);
-  };
-
-  const hasNextPage =
-    !!queryState?.result && pageNo * pageSize < queryState.result.total;
-
-  return (
-    <div className="t--object-table-mode">
-      <table>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column.id}>
-                <button onClick={() => sortColumn(column.id)} type="button">
-                  {column.label}
-                </button>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr
-              aria-selected={
-                multiRowSelection
-                  ? selectedRowIndices.includes(index)
-                  : selectedRowIndex === index
-              }
-              key={String(row.id)}
-            >
-              {columns.map((column) => (
-                <td key={column.id}>
-                  <button onClick={() => selectRow(index)} type="button">
-                    {String(row[column.id] ?? "-")}
-                  </button>
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <button
-        disabled={pageNo <= 1}
-        onClick={() => updateWidgetMetaProperty("pageNo", pageNo - 1)}
-        type="button"
-      >
-        Previous
-      </button>
-      <button
-        disabled={!hasNextPage}
-        onClick={() => updateWidgetMetaProperty("pageNo", pageNo + 1)}
-        type="button"
-      >
-        Next
-      </button>
-    </div>
-  );
+  if (widgetType === "TABLE_WIDGET" || widgetType === "TABLE_WIDGET_V2") {
+    return (
+      <ReactTableComponent
+        {...tableProps}
+        applyFilter={(filters) => updateWidgetMetaProperty("filters", filters)}
+        columns={reactColumns}
+        compactMode={tableProps.compactMode || CompactModeTypes.DEFAULT}
+        disableDrag={() => undefined}
+        handleReorderColumn={(columnOrder) =>
+          updateWidgetMetaProperty("columnOrder", columnOrder)
+        }
+        handleResizeColumn={(columnSizeMap) =>
+          updateWidgetMetaProperty("columnSizeMap", columnSizeMap)
+        }
+        height={tableProps.componentHeight || tableProps.height || 1}
+        isLoading={!!tableProps.isLoading}
+        nextPageClick={() => updatePageNo(normalizedPageNo + 1)}
+        onRowClick={handleRowClick}
+        pageNo={normalizedPageNo}
+        pageSize={normalizedPageSize}
+        prevPageClick={() => updatePageNo(normalizedPageNo - 1)}
+        searchKey={tableProps.searchText || ""}
+        searchTableData={(searchKey) => {
+          updateWidgetMetaProperty("pageNo", 1);
+          updateWidgetMetaProperty("searchText", String(searchKey ?? ""));
+        }}
+        selectAllRow={selectAllRows}
+        serverSidePaginationEnabled
+        sortTableColumn={updateSortOrder}
+        tableData={rows}
+        totalRecordsCount={queryState?.result?.total ?? 0}
+        unSelectAllRow={clearAllRows}
+        updatePageNo={updatePageNo}
+        width={tableProps.componentWidth || tableProps.width || 1}
+      />
+    );
+  }
 }

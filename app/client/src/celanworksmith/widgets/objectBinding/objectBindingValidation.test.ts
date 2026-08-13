@@ -78,6 +78,7 @@ describe("validateObjectBinding", () => {
       {
         code: "INCOMPATIBLE_PROPERTY_TYPE",
         expectedDataTypes: ["INTEGER", "DECIMAL"],
+        objectTypeId: "PurchaseOrder",
         propertyId: "supplierName",
         receivedDataType: "STRING",
       },
@@ -104,5 +105,48 @@ describe("validateObjectBinding", () => {
         metadata,
       ),
     ).toEqual([]);
+  });
+
+  it("reports a deleted Chart label Property", () => {
+    expect(
+      validateObjectBinding(
+        {
+          labelPropertyId: "deletedLabel",
+          objectTypeId: "PurchaseOrder",
+          propertyDataTypes: { valuePropertyId: ["INTEGER", "DECIMAL"] },
+          valuePropertyId: "delayDays",
+        },
+        metadata,
+      ),
+    ).toEqual([
+      {
+        code: "DELETED_PROPERTY",
+        objectTypeId: "PurchaseOrder",
+        propertyId: "deletedLabel",
+      },
+    ]);
+  });
+
+  it("reports deleted Link, Action, and Variable IDs when metadata is available", () => {
+    expect(
+      validateObjectBinding(
+        {
+          actionId: "deletedAction",
+          aggregationVariableName: "deletedVariable",
+          linkTypeId: "deletedLink",
+          objectTypeId: "PurchaseOrder",
+        },
+        {
+          ...metadata,
+          actions: [{ id: "UpdateDeliveryDate" }],
+          links: [{ id: "purchase_order_supplier" }],
+          variables: { delayedOrders: {} },
+        },
+      ),
+    ).toEqual([
+      { code: "DELETED_LINK", linkTypeId: "deletedLink" },
+      { actionId: "deletedAction", code: "DELETED_ACTION" },
+      { code: "DELETED_VARIABLE", variableName: "deletedVariable" },
+    ]);
   });
 });

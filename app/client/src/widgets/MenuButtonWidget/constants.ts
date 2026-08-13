@@ -38,6 +38,9 @@ export interface ConfigureMenuItems {
 export type MenuItems = Record<string, MenuItem>;
 
 export interface MenuButtonWidgetProps extends WidgetProps {
+  actionId?: string;
+  objectData?: unknown;
+  parameters?: unknown;
   label?: string;
   isDisabled?: boolean;
   isVisible?: boolean;

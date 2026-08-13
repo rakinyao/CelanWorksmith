@@ -30,6 +30,7 @@ import ButtonComponent from "widgets/ButtonWidget/component";
 import type { ButtonWidgetProps } from "widgets/ButtonWidget/widget";
 import { DefaultAutocompleteDefinitions } from "widgets/WidgetUtils";
 import IconSVG from "../icon.svg";
+import type { ObjectActionValidationIssue } from "celanworksmith/objectActionValidation";
 
 class FormButtonWidget extends ButtonWidget {
   constructor(props: FormButtonWidgetProps) {
@@ -60,6 +61,9 @@ class FormButtonWidget extends ButtonWidget {
       text: "Submit",
       isDefaultClickDisabled: true,
       recaptchaType: RecaptchaTypes.V3,
+      actionId: undefined,
+      objectData: undefined,
+      parameters: {},
       version: 1,
       animateLoading: true,
       // TODO: Fix this the next time the file is edited
@@ -101,6 +105,16 @@ class FormButtonWidget extends ButtonWidget {
       text: "string",
       isDisabled: "bool",
       recaptchaToken: "string",
+    };
+  }
+
+  static getMetaPropertiesMap() {
+    return {
+      ...ButtonWidget.getMetaPropertiesMap(),
+      formValidationErrorPath: undefined,
+      formValidationFocusPath: undefined,
+      formValidationIssues: [],
+      formValidationSummary: undefined,
     };
   }
 
@@ -225,6 +239,30 @@ class FormButtonWidget extends ButtonWidget {
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: true,
+          },
+          {
+            propertyName: "actionId",
+            label: "Ontology Action",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            propertyName: "objectData",
+            label: "Action Object",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
+          },
+          {
+            propertyName: "parameters",
+            label: "Action Parameters",
+            controlType: "INPUT_TEXT",
+            isBindProperty: true,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.OBJECT },
           },
         ],
       },
@@ -418,6 +456,17 @@ class FormButtonWidget extends ButtonWidget {
   }
 
   onButtonClick() {
+    if (this.props.formValidationErrorPath) {
+      this.props.updateWidgetMetaProperty(
+        "formValidationFocusPath",
+        this.props.formValidationErrorPath,
+      );
+
+      return;
+    }
+
+    if (this.runOntologyAction()) return;
+
     if (this.props.onClick) {
       this.setState({
         isLoading: true,
@@ -453,11 +502,23 @@ class FormButtonWidget extends ButtonWidget {
       !this.props.isFormValid;
 
     return (
-      <ButtonComponent
-        {...super.getWidgetView().props}
-        isDisabled={disabled}
-        onClick={!disabled ? this.onButtonClickBound : undefined}
-      />
+      <>
+        <ButtonComponent
+          {...super.getWidgetView().props}
+          isDisabled={disabled}
+          onClick={!disabled ? this.onButtonClickBound : undefined}
+        />
+        {this.props.formValidationSummary && (
+          <div aria-live="polite" role="alert">
+            {this.props.formValidationSummary}
+          </div>
+        )}
+        {this.props.ontologyActionValidationSummary && (
+          <div aria-live="polite" role="alert">
+            {this.props.ontologyActionValidationSummary}
+          </div>
+        )}
+      </>
     );
   }
 }
@@ -468,6 +529,12 @@ export interface FormButtonWidgetProps extends WidgetProps {
   isVisible?: boolean;
   buttonType: ButtonType;
   isFormValid?: boolean;
+  formValidationErrorPath?: string;
+  formValidationIssues?: ObjectActionValidationIssue[];
+  formValidationSummary?: string;
+  ontologyActionError?: string;
+  ontologyActionErrorPath?: string;
+  ontologyActionValidationSummary?: string;
   resetFormOnClick?: boolean;
   onReset?: () => void;
   disabledWhenInvalid?: boolean;

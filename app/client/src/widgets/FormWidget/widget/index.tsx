@@ -55,6 +55,10 @@ import {
   isInputValueValid,
   type InputWidgetProps,
 } from "widgets/InputWidget/widget";
+import {
+  validateFieldValue,
+  type ObjectActionValidationIssue,
+} from "celanworksmith/objectActionValidation";
 
 export interface FormObjectBinding {
   instance: {
@@ -64,6 +68,150 @@ export interface FormObjectBinding {
   };
   objectTypeId: string;
 }
+
+export interface ObjectFormValidationFeedback {
+  errorPath?: string;
+  firstInvalidField?: string;
+  firstIssue?: ObjectActionValidationIssue;
+  issues: ObjectActionValidationIssue[];
+  summary?: string;
+}
+
+type ObjectFormInput = Partial<InputWidgetProps> & {
+  value?: unknown;
+};
+
+const normalizeObjectFormFieldValue = (
+  value: unknown,
+  property: CelanworksmithProperty,
+) => {
+  if (typeof value !== "string") return value;
+
+  const text = value.trim();
+
+  if (property.dataType === "INTEGER" && /^[-+]?\d+$/.test(text)) {
+    return Number(text);
+  }
+
+  if (
+    property.dataType === "DECIMAL" &&
+    text !== "" &&
+    Number.isFinite(Number(text))
+  ) {
+    return Number(text);
+  }
+
+  if (property.dataType === "BOOLEAN") {
+    if (text === "true") return true;
+
+    if (text === "false") return false;
+  }
+
+  return value;
+};
+
+const createObjectFormBindingIssue = (
+  input: ObjectFormInput,
+  message: string,
+  code: ObjectActionValidationIssue["code"] = "OBJECT_REQUIRED",
+): ObjectActionValidationIssue => {
+  const propertyId = input.displayPropertyId;
+  const path = [input.widgetName, propertyId].filter(Boolean).join(".");
+
+  return {
+    code,
+    displayName: input.objectPropertyMetadata?.displayName,
+    objectTypeId: input.objectTypeId,
+    path: path || input.widgetName || "objectData",
+    propertyId,
+    message,
+  };
+};
+
+export const getObjectFormValidationFeedback = (
+  inputs: ObjectFormInput[],
+): ObjectFormValidationFeedback => {
+  const issues = inputs.flatMap((input) => {
+    if (input.type !== "INPUT_WIDGET" || input.dataMode !== "OBJECT") return [];
+
+    const property = input.objectPropertyMetadata;
+    const object = normalizeObjectData(
+      input.objectBinding?.instance || input.objectData,
+    );
+    const objectTypeId =
+      input.objectTypeId || input.objectBinding?.objectTypeId || object?.typeId;
+
+    if (!property || !input.displayPropertyId) {
+      return [
+        createObjectFormBindingIssue(
+          input,
+          "Object field metadata is not available.",
+        ),
+      ];
+    }
+
+    if (!object) {
+      return [
+        createObjectFormBindingIssue(
+          input,
+          "Object data must include both id and typeId.",
+        ),
+      ];
+    }
+
+    if (objectTypeId && object.typeId !== objectTypeId) {
+      return [
+        createObjectFormBindingIssue(
+          input,
+          `This field requires a ${objectTypeId} object.`,
+          "OBJECT_TYPE_MISMATCH",
+        ),
+      ];
+    }
+
+    const objectProperty = getObjectPropertyValue(object, property.id);
+
+    if (objectProperty?.state !== "ready") {
+      return [
+        createObjectFormBindingIssue(
+          input,
+          `${property.displayName || property.id} is not available on this object.`,
+        ),
+      ];
+    }
+
+    const value = input.isDirty
+      ? input.value !== undefined
+        ? input.value
+        : input.text
+      : objectProperty.value;
+
+    return validateFieldValue(
+      normalizeObjectFormFieldValue(value, property),
+      property,
+      {
+        objectTypeId,
+        path: input.widgetName,
+        uneditedValue: normalizeObjectFormFieldValue(
+          objectProperty.value,
+          property,
+        ),
+      },
+    );
+  });
+  const firstIssue = issues[0];
+  const errorPath = firstIssue?.path;
+
+  return {
+    errorPath,
+    firstInvalidField: errorPath,
+    firstIssue,
+    issues,
+    summary: firstIssue
+      ? `${issues.length} form field validation error${issues.length === 1 ? "" : "s"}. Fix ${errorPath}.`
+      : undefined,
+  };
+};
 
 const isDescendantOf = (
   widget: WidgetProps,
@@ -150,6 +298,10 @@ export function ObjectFormMetadataPublisher(
     >
   >(new Map());
   const publishedButtonValidity = React.useRef<Map<string, boolean>>(new Map());
+  const publishedFormValidation = React.useRef<ObjectFormValidationFeedback>();
+  const publishedButtonValidation = React.useRef<
+    Map<string, ObjectFormValidationFeedback>
+  >(new Map());
   const objectInputs = Object.values(canvasWidgets).filter(
     (widget) =>
       widget.type === "INPUT_WIDGET" &&
@@ -211,36 +363,111 @@ export function ObjectFormMetadataPublisher(
         hasUpdates = true;
       });
 
-      const isObjectFormValid = objectInputs.every((input) => {
+      const preparedObjectInputs = objectInputs.map((input) => {
         const evaluatedInput = dataTree[input.widgetName] as
           | Partial<InputWidgetProps>
           | undefined;
-
-        return isObjectFormInputValid(
-          input,
-          evaluatedInput,
-          objectPropertiesMetadata,
-          instance,
-          objectTypeId,
+        const currentInput = { ...input, ...evaluatedInput };
+        const metadata = objectPropertiesMetadata?.find(
+          (property) => property.id === currentInput.displayPropertyId,
         );
+        const inputObject =
+          normalizeObjectData(currentInput.objectData) || instance;
+
+        return {
+          ...currentInput,
+          objectBinding:
+            inputObject && objectTypeId
+              ? { instance: inputObject, objectTypeId }
+              : currentInput.objectBinding,
+          objectData: inputObject,
+          objectPropertyMetadata: metadata,
+          objectTypeId,
+        } as ObjectFormInput;
       });
+      const validationFeedback =
+        getObjectFormValidationFeedback(preparedObjectInputs);
+      const isObjectFormValid =
+        validationFeedback.issues.length === 0 &&
+        objectInputs.every((input) => {
+          const evaluatedInput = dataTree[input.widgetName] as
+            | Partial<InputWidgetProps>
+            | undefined;
+
+          return isObjectFormInputValid(
+            input,
+            evaluatedInput,
+            objectPropertiesMetadata,
+            instance,
+            objectTypeId,
+          );
+        });
+
+      if (!equal(publishedFormValidation.current, validationFeedback)) {
+        Object.entries({
+          objectValidationErrorPath: validationFeedback.errorPath,
+          objectValidationIssues: validationFeedback.issues,
+          objectValidationSummary: validationFeedback.summary,
+        }).forEach(([propertyName, propertyValue]) => {
+          dispatch(
+            syncUpdateWidgetMetaProperty(
+              props.widgetId,
+              propertyName,
+              propertyValue,
+            ),
+          );
+        });
+        publishedFormValidation.current = validationFeedback;
+        hasUpdates = true;
+      }
 
       formButtons.forEach((button) => {
         if (
           publishedButtonValidity.current.get(button.widgetId) ===
           isObjectFormValid
         ) {
+          // The validation details can change while the boolean validity stays false.
+        } else {
+          dispatch(
+            syncUpdateWidgetMetaProperty(
+              button.widgetId,
+              "isFormValid",
+              isObjectFormValid,
+            ),
+          );
+          publishedButtonValidity.current.set(
+            button.widgetId,
+            isObjectFormValid,
+          );
+          hasUpdates = true;
+        }
+
+        if (
+          equal(
+            publishedButtonValidation.current.get(button.widgetId),
+            validationFeedback,
+          )
+        ) {
           return;
         }
 
-        dispatch(
-          syncUpdateWidgetMetaProperty(
-            button.widgetId,
-            "isFormValid",
-            isObjectFormValid,
-          ),
+        Object.entries({
+          formValidationErrorPath: validationFeedback.errorPath,
+          formValidationIssues: validationFeedback.issues,
+          formValidationSummary: validationFeedback.summary,
+        }).forEach(([propertyName, propertyValue]) => {
+          dispatch(
+            syncUpdateWidgetMetaProperty(
+              button.widgetId,
+              propertyName,
+              propertyValue,
+            ),
+          );
+        });
+        publishedButtonValidation.current.set(
+          button.widgetId,
+          validationFeedback,
         );
-        publishedButtonValidity.current.set(button.widgetId, isObjectFormValid);
         hasUpdates = true;
       });
 
@@ -254,28 +481,32 @@ export function ObjectFormMetadataPublisher(
       objectInputs,
       objectPropertiesMetadata,
       objectTypeId,
+      props.widgetId,
     ],
   );
 
   return null;
 }
 
-function ObjectFormMode(props: FormWidgetProps) {
+export function ObjectFormMode(props: FormWidgetProps) {
   const objectsState = useSelector(getCelanworksmithObjectsState);
   const instance = normalizeObjectData(props.objectData);
   const objectTypeId = props.objectTypeId || instance?.typeId;
   const typeState = objectTypeId ? objectsState.types[objectTypeId] : undefined;
+  const isObjectMetadataReady = typeState?.status === "ready";
 
   return (
     <>
       <ObjectFormMetadataPublisher {...props} />
-      <FormWidget
-        {...props}
-        objectMetadataError={typeState?.error || objectsState.error}
-        objectMetadataResolved
-        objectMetadataStatus={typeState?.status || objectsState.status}
-        objectPropertiesMetadata={typeState?.metadata?.properties}
-      />
+      {isObjectMetadataReady ? (
+        <FormWidget
+          {...props}
+          objectMetadataError={typeState?.error || objectsState.error}
+          objectMetadataResolved
+          objectMetadataStatus={typeState?.status || objectsState.status}
+          objectPropertiesMetadata={typeState?.metadata?.properties}
+        />
+      ) : null}
     </>
   );
 }
@@ -617,6 +848,10 @@ class FormWidget extends ContainerWidget {
   }
 
   checkInvalidChildren = (children: WidgetProps[]): boolean => {
+    if (getObjectFormValidationFeedback(children).issues.length > 0) {
+      return true;
+    }
+
     return some(children, (child) => {
       if ("children" in child) {
         return this.checkInvalidChildren(child.children || []);
@@ -825,6 +1060,9 @@ class FormWidget extends ContainerWidget {
     return {
       hasChanges: false,
       objectBinding: undefined,
+      objectValidationErrorPath: undefined,
+      objectValidationIssues: [],
+      objectValidationSummary: undefined,
     };
   }
 
@@ -837,6 +1075,9 @@ class FormWidget extends ContainerWidget {
       data: generateTypeDef(widget.data, extraDefsToDefine),
       hasChanges: "bool",
       objectBinding: "?",
+      objectValidationErrorPath: "string",
+      objectValidationIssues: "?",
+      objectValidationSummary: "string",
     });
   }
 
@@ -877,6 +1118,9 @@ export interface FormWidgetProps extends ContainerComponentProps {
   objectMetadataResolved?: boolean;
   objectMetadataStatus?: "idle" | "loading" | "ready" | "empty" | "error";
   objectPropertiesMetadata?: CelanworksmithProperty[];
+  objectValidationErrorPath?: string;
+  objectValidationIssues?: ObjectActionValidationIssue[];
+  objectValidationSummary?: string;
   name: string;
   data: Record<string, unknown>;
   hasChanges: boolean;

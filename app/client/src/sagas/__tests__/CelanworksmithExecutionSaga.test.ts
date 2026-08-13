@@ -888,6 +888,7 @@ describe("celanworksmithExecutionSaga", () => {
         },
       ],
     };
+
     jest
       .spyOn(CelanworksmithAPI, "executeAction")
       .mockResolvedValue(successfulResponse(actionResult));
@@ -1074,10 +1075,18 @@ describe("celanworksmithExecutionSaga", () => {
         ),
       ).toEqual([
         expect.objectContaining({
-          payload: { widgetId: "OrdersTable", typeId: "PurchaseOrder" },
+          payload: {
+            widgetId: "OrdersTable",
+            typeId: "PurchaseOrder",
+            force: true,
+          },
         }),
         expect.objectContaining({
-          payload: { widgetId: "$variable/orders", typeId: "PurchaseOrder" },
+          payload: {
+            widgetId: "$variable/orders",
+            typeId: "PurchaseOrder",
+            force: true,
+          },
         }),
       ]);
       expect(
@@ -1116,11 +1125,12 @@ describe("celanworksmithExecutionSaga", () => {
     const refreshResolvers: Array<
       (response: ReturnType<typeof successfulResponse>) => void
     > = [];
+
     jest
       .spyOn(CelanworksmithAPI, "executeAction")
       .mockResolvedValue(successfulResponse(successfulActionResult));
     jest.spyOn(CelanworksmithAPI, "queryObjects").mockImplementation(
-      () =>
+      async () =>
         new Promise((resolve) => {
           refreshResolvers.push(resolve);
         }),

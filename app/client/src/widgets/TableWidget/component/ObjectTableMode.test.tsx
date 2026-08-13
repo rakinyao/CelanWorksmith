@@ -6,6 +6,40 @@ import "@testing-library/jest-dom";
 import ObjectTableMode from "./ObjectTableMode";
 import { getObjectQueryKey } from "reducers/celanworksmithObjectQueryReducer";
 
+let latestTableProps: Record<string, unknown> | undefined;
+
+jest.mock("../component", () => ({
+  __esModule: true,
+  default: function MockReactTableComponent(props: Record<string, unknown>) {
+    latestTableProps = props;
+
+    return (
+      <div>
+        {(props.columns as Array<{ accessor: string; Header: string }>)?.map(
+          (column) => <span key={column.accessor}>{column.Header}</span>,
+        )}
+        {(props.tableData as Array<Record<string, unknown>>)?.map(
+          (row, index) => (
+            <button
+              key={String(row.id)}
+              onClick={() =>
+                (
+                  props.onRowClick as (
+                    rowData: Record<string, unknown>,
+                    rowIndex: number,
+                  ) => void
+                )?.(row, index)
+              }
+            >
+              {String(row.id)}
+            </button>
+          ),
+        )}
+      </div>
+    );
+  },
+}));
+
 const mockStore = configureStore([]);
 const request = {
   widgetId: "Table1",
@@ -67,6 +101,7 @@ test("renders metadata columns and emits the standard selected object", () => {
         objectTypeId="PurchaseOrder"
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -78,6 +113,137 @@ test("renders metadata columns and emits the standard selected object", () => {
     typeId: "PurchaseOrder",
     properties: { status: "DELAYED" },
   });
+  expect(store.getActions()).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          propertyPath: "primaryColumns",
+          propertyValue: expect.objectContaining({
+            id: expect.objectContaining({ label: "ID" }),
+            status: expect.objectContaining({ label: "Order status" }),
+          }),
+        }),
+      }),
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          propertyPath: "columnOrder",
+          propertyValue: ["id", "status"],
+        }),
+      }),
+    ]),
+  );
+});
+
+test("provides native table interaction callbacks in object mode", () => {
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          status: "ready",
+          metadata: { id: "PurchaseOrder", properties: [] },
+        },
+      },
+    },
+    celanworksmithObjectQueries: {
+      entries: {
+        [getObjectQueryKey(request)]: {
+          request,
+          status: "ready",
+          result: {
+            typeId: "PurchaseOrder",
+            items: [{ id: "PO001", typeId: "PurchaseOrder", properties: {} }],
+            offset: 0,
+            limit: 10,
+            total: 1,
+          },
+        },
+      },
+    },
+  });
+
+  render(
+    <Provider store={store}>
+      <ObjectTableMode
+        componentHeight={420}
+        componentWidth={720}
+        isVisibleSearch
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={jest.fn()}
+        widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
+      />
+    </Provider>,
+  );
+
+  expect(latestTableProps).toEqual(
+    expect.objectContaining({
+      applyFilter: expect.any(Function),
+      disableDrag: expect.any(Function),
+      handleReorderColumn: expect.any(Function),
+      handleResizeColumn: expect.any(Function),
+      height: 420,
+      nextPageClick: expect.any(Function),
+      prevPageClick: expect.any(Function),
+      searchTableData: expect.any(Function),
+      selectAllRow: expect.any(Function),
+      sortTableColumn: expect.any(Function),
+      unSelectAllRow: expect.any(Function),
+      updatePageNo: expect.any(Function),
+      width: 720,
+    }),
+  );
+});
+
+test("uses one-based widget pagination and resets it when searching", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          status: "ready",
+          metadata: { id: "PurchaseOrder", properties: [] },
+        },
+      },
+    },
+    celanworksmithObjectQueries: {
+      entries: {
+        [getObjectQueryKey(request)]: {
+          request,
+          status: "ready",
+          result: {
+            typeId: "PurchaseOrder",
+            items: [{ id: "PO001", typeId: "PurchaseOrder", properties: {} }],
+            offset: 0,
+            limit: 10,
+            total: 20,
+          },
+        },
+      },
+    },
+  });
+
+  render(
+    <Provider store={store}>
+      <ObjectTableMode
+        objectTypeId="PurchaseOrder"
+        pageNo={1}
+        pageSize={10}
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+        widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
+      />
+    </Provider>,
+  );
+
+  expect(latestTableProps).toMatchObject({ pageNo: 1, pageSize: 10 });
+  (latestTableProps?.nextPageClick as () => void)();
+  (latestTableProps?.searchTableData as (value: string) => void)("PO005");
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("pageNo", 2);
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("pageNo", 1);
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("searchText", "PO005");
 });
 
 test.each([
@@ -111,6 +277,7 @@ test.each([
         objectTypeId="PurchaseOrder"
         updateWidgetMetaProperty={jest.fn()}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -161,6 +328,7 @@ test("maintains multi-row indices and selected object metadata", () => {
         selectedRowIndices={[]}
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -182,6 +350,7 @@ test("maintains multi-row indices and selected object metadata", () => {
         selectedRowIndices={[0]}
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -223,6 +392,7 @@ test("clears selection when the object query changes", () => {
         selectedRowIndex={0}
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -236,6 +406,7 @@ test("clears selection when the object query changes", () => {
         selectedRowIndex={0}
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -270,6 +441,7 @@ test("clears selection when the object query is removed", () => {
         objectTypeId="PurchaseOrder"
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -280,6 +452,7 @@ test("clears selection when the object query is removed", () => {
       <ObjectTableMode
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -318,6 +491,7 @@ test("keeps selection while an equivalent structured filter is refreshed", () =>
         objectTypeId="PurchaseOrder"
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -330,6 +504,7 @@ test("keeps selection while an equivalent structured filter is refreshed", () =>
         objectTypeId="PurchaseOrder"
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -376,6 +551,7 @@ test("keeps selection while object metadata refreshes for the same query", () =>
         selectedRowIndices={[0]}
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -397,6 +573,7 @@ test("keeps selection while object metadata refreshes for the same query", () =>
         selectedRowIndices={[0]}
         updateWidgetMetaProperty={updateWidgetMetaProperty}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -437,6 +614,7 @@ test("normalizes a structured FilterList output before requesting object rows", 
         objectFilter={filter}
         updateWidgetMetaProperty={jest.fn()}
         widgetId="Table1"
+        widgetType="TABLE_WIDGET_V2"
       />
     </Provider>,
   );
@@ -461,6 +639,7 @@ test("shows distinct missing, metadata, loading, empty, and error states", () =>
           objectTypeId={typeId}
           updateWidgetMetaProperty={jest.fn()}
           widgetId="Table1"
+          widgetType="TABLE_WIDGET_V2"
         />
       </Provider>,
     );

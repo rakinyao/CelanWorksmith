@@ -14,6 +14,7 @@ fi
 
 # Remove previous dist directory
 rm -rf dist/
+mkdir -p dist/plugins
 
 is_tests_enabled=true
 for i in "$@"; do
@@ -49,9 +50,6 @@ else
   echo "mvn Failed"
   exit 1
 fi
-
-# Create the dist directory
-mkdir -p dist/plugins
 
 # Copy the server jar
 cp -v ./appsmith-server/target/server-*.jar dist/

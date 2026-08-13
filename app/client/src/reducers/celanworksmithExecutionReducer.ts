@@ -13,6 +13,7 @@ import type {
   CelanworksmithFunctionRequestPayload,
   CelanworksmithFunctionSuccessPayload,
 } from "actions/celanworksmithExecutionActions";
+import { getCelanworksmithFunctionCacheKey } from "actions/celanworksmithExecutionActions";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import { createReducer } from "utils/ReducerUtils";
 import {
@@ -230,6 +231,27 @@ const updateRequestStatus = (
 ) => ({ ...request, ...updates, status });
 
 const celanworksmithExecutionReducer = createReducer(initialState, {
+  [ReduxActionTypes.CELANWORKSMITH_RUNTIME_CACHE_CLEARED]: (
+    state: CelanworksmithExecutionState,
+    action: ReduxAction<{ applicationId?: string } | undefined>,
+  ) => {
+    const applicationId = action.payload?.applicationId;
+
+    if (!applicationId) return { ...state, functionCache: {} };
+
+    const prefix = `${applicationId}:`;
+
+    return {
+      ...state,
+      functionCache: Object.fromEntries(
+        Object.entries(state.functionCache).filter(
+          ([key]) => !key.startsWith(prefix),
+        ),
+      ),
+    };
+  },
+  [ReduxActionTypes.CELANWORKSMITH_APPLICATION_BINDING_LOAD_REQUEST]: () =>
+    initialState,
   [ReduxActionTypes.CELANWORKSMITH_FUNCTION_RUN]: (
     state: CelanworksmithExecutionState,
     action: { payload: CelanworksmithFunctionRequestPayload },
@@ -308,7 +330,11 @@ const celanworksmithExecutionReducer = createReducer(initialState, {
     const functionCache = cacheExpiresAt
       ? {
           ...state.functionCache,
-          [`${functionId}:${action.payload.parametersHash}`]: {
+          [getCelanworksmithFunctionCacheKey(
+            functionId,
+            action.payload.parametersHash,
+            action.payload.applicationId,
+          )]: {
             data,
             expiresAt: cacheExpiresAt,
           },

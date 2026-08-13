@@ -4,7 +4,8 @@
 
 ## 1. 已交付
 
-- 既有 Table Widget 增加 `dataMode=QUERY|OBJECT`，默认仍为 QUERY。
+- 当前编辑器使用的 `TABLE_WIDGET_V2` 增加 `dataMode=QUERY|OBJECT`，默认仍为 QUERY；旧版 `TABLE_WIDGET` 行为保持不变。
+- Object 模式在当前 Table 的 Data 属性面板提供 `Object type` 和 `Object filter` 配置，并隐藏无效的 Query 数据配置。
 - OBJECT 模式按 Object Type metadata 自动生成稳定 property ID 列和 displayName 表头。
 - Table 页面、排序、FilterList 结构化过滤条件通过 Shared Query Layer 发起服务端查询。
 - 支持上一页/下一页和列头排序，查询期间保留已有结果。
@@ -28,13 +29,15 @@ yarn jest --no-cache --runInBand --silent \
 
 ## 3. 手工验收建议
 
-1. 新建 Table，Data mode 选择 Object，Object type 输入 `PurchaseOrder`。
-2. 确认 metadata 列显示，数据通过 `/api/v1/celanworksmith/runtime/objects/PurchaseOrder` 查询。
-3. 点击列头排序，确认 sortBy/sortDirection 请求变化；绑定 FilterList.filter，确认过滤请求变化。
-4. 翻页并选择行，确认 `{{Table1.selectedObject}}` 是完整 Object Instance。
-5. 切回 Query，确认原生 Table Data、selectedRow 和既有分页行为不变。
+1. 新建当前编辑器的 Table，进入 Data 配置，将 `Data mode` 选择为 `Object`。
+2. `Object type` 输入 `PurchaseOrder`，确认 metadata 列和对象数据出现。
+3. 将 `Object filter` 绑定为 `{{FilterList1.filter}}`，确认 `delayDays > 0` 等条件改变查询结果。
+4. 点击列头排序，确认 sortBy/sortDirection 请求变化；翻页确认 offset/limit 请求变化。
+5. 选择行，确认 `{{Table1.selectedObject}}` 是完整 Object Instance。
+6. 切回 `Query`，确认原生 Table Data、selectedRow 和既有分页行为不变。
 
 ## 4. 当前边界
 
-- Object 模式第一版采用独立轻量渲染分支，后续可复用原生 Table 的更多列样式和工具栏能力。
+- Object 模式第一版采用独立轻量渲染分支，后续可复用原生 Table V2 的更多列样式和工具栏能力。
 - 多行选择当前输出当前页选中对象集合的第一版形态；复杂跨页选择留待后续增强。
+- 本体作为与 Query/REST/Database 同等级的数据提供方，统一通过 Object Instance/Object Set/Filter 契约接入；后续 Widget 优先复用该契约和查询层，不在各 Widget 内复制 API 逻辑。

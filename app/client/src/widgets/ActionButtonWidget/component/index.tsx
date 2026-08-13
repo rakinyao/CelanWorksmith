@@ -85,26 +85,32 @@ export default function ActionButtonComponent({
     actionState?.meta.status === "running";
   const isValid = !!actionId && validation.valid && !!request;
 
-  useEffect(() => {
-    setLocalRequestId(undefined);
-  }, [actionId]);
+  useEffect(
+    function resetLocalRequestOnActionChange() {
+      setLocalRequestId(undefined);
+    },
+    [actionId],
+  );
 
-  useEffect(() => {
-    updateWidgetMetaProperty("executionStatus", status);
-    updateWidgetMetaProperty("lastResult", result);
-    updateWidgetMetaProperty("lastError", error);
-    updateWidgetMetaProperty("requestId", localRequestId);
-    updateWidgetMetaProperty("executionId", executionId);
-    updateWidgetMetaProperty("executionProgress", progress);
-  }, [
-    error,
-    executionId,
-    localRequestId,
-    progress,
-    result,
-    status,
-    updateWidgetMetaProperty,
-  ]);
+  useEffect(
+    function publishExecutionMeta() {
+      updateWidgetMetaProperty("executionStatus", status);
+      updateWidgetMetaProperty("lastResult", result);
+      updateWidgetMetaProperty("lastError", error);
+      updateWidgetMetaProperty("requestId", localRequestId);
+      updateWidgetMetaProperty("executionId", executionId);
+      updateWidgetMetaProperty("executionProgress", progress);
+    },
+    [
+      error,
+      executionId,
+      localRequestId,
+      progress,
+      result,
+      status,
+      updateWidgetMetaProperty,
+    ],
+  );
 
   const dispatchAction = (
     actionIdToRun: string,
@@ -169,7 +175,9 @@ export default function ActionButtonComponent({
       </button>
       {!isValid && (
         <div role="alert">
-          {validation.error || "Select an Action and a valid object."}
+          {validation.summary ||
+            validation.error ||
+            "Select an Action and a valid object."}
         </div>
       )}
       {pendingConfirmation && (

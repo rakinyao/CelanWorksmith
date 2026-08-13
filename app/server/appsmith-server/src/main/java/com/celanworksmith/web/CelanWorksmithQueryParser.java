@@ -14,7 +14,8 @@ public class CelanWorksmithQueryParser {
         this.objectMapper = objectMapper;
     }
 
-    public ObjectSetQuery parse(String filter, String sortBy, String sortDirection, String offset, String limit) {
+    public ObjectSetQuery parse(
+            String filter, String sortBy, String sortDirection, String offset, String limit, String searchText) {
         JsonNode filterNode = null;
         if (filter != null && !filter.isBlank()) {
             try {
@@ -23,8 +24,13 @@ public class CelanWorksmithQueryParser {
                 throw new CelanWorksmithException(CelanWorksmithErrorCode.FILTER_INVALID, "filter must be valid JSON");
             }
         }
-        return new ObjectSetQuery(filterNode, sortBy, sortDirection == null ? "asc" : sortDirection,
-                parseInteger(offset, 0, "offset"), parseInteger(limit, DEFAULT_LIMIT, "limit"));
+        return new ObjectSetQuery(
+                filterNode,
+                sortBy,
+                sortDirection == null ? "asc" : sortDirection,
+                parseInteger(offset, 0, "offset"),
+                parseInteger(limit, DEFAULT_LIMIT, "limit"),
+                searchText == null || searchText.isBlank() ? null : searchText.trim());
     }
 
     private int parseInteger(String value, int fallback, String name) {

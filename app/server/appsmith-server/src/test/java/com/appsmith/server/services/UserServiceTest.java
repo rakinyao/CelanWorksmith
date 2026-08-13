@@ -650,8 +650,7 @@ public class UserServiceTest {
                 .assertNext(userData -> assertThat(userData.getLocale()).isEqualTo("zh-CN"))
                 .verifyComplete();
 
-        StepVerifier.create(
-                        sessionUserService.getCurrentUser().flatMap(userService::buildUserProfileDTO))
+        StepVerifier.create(sessionUserService.getCurrentUser().flatMap(userService::buildUserProfileDTO))
                 .assertNext(profile -> assertThat(profile.getLocale()).isEqualTo("zh-CN"))
                 .verifyComplete();
     }

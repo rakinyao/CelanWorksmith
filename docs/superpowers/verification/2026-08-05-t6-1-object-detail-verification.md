@@ -18,17 +18,17 @@ ObjectDetail 不直接调用 API，统一使用 `CelanworksmithAPI` 与 Redux/Sa
 
 ## 2. 关键提交
 
-| 提交 | 内容 |
-|------|------|
-| `de18d5f1db` | Object 数据归一化与属性分组 |
+| 提交         | 内容                                         |
+| ------------ | -------------------------------------------- |
+| `de18d5f1db` | Object 数据归一化与属性分组                  |
 | `601eceea61` | Link action、reducer、selectors、Saga 与测试 |
-| `0c8373ae0f` | 防止 Link metadata 并发重复加载 |
-| `d7569a998e` | ObjectDetail runtime Widget |
-| `0c5b336137` | 保持同一 Object 身份刷新时的关联选择 |
-| `acc9526b19` | Widget loader、Factory 测试、DSL 兼容配置 |
-| `7199f666a4` | 空绑定清理选择状态、稳定 Link 请求对象 |
+| `0c8373ae0f` | 防止 Link metadata 并发重复加载              |
+| `d7569a998e` | ObjectDetail runtime Widget                  |
+| `0c5b336137` | 保持同一 Object 身份刷新时的关联选择         |
+| `acc9526b19` | Widget loader、Factory 测试、DSL 兼容配置    |
+| `7199f666a4` | 空绑定清理选择状态、稳定 Link 请求对象       |
 
-本次收尾修复尚未提交，内容包括：Link metadata/link 请求的 force retry、in-flight 去重、Object Type 刷新时的关联缓存失效，以及 Link metadata 和 Link 数据的局部 Retry UI。
+上述收尾修复已纳入 T6.1 提交链，内容包括：Link metadata/link 请求的 force retry、in-flight 去重、Object Type 刷新时的关联缓存失效，以及 Link metadata 和 Link 数据的局部 Retry UI。
 
 ## 3. 自动化验证
 

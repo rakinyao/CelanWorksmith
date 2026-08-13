@@ -21,6 +21,7 @@ import {
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import {
   celanworksmithObjectTypeLoadStart,
+  celanworksmithObjectTypeLoadError,
   celanworksmithObjectTypeLoadSuccess,
   celanworksmithObjectsLoadInit,
 } from "actions/celanworksmithObjectActions";
@@ -103,6 +104,27 @@ describe("loadCelanworksmithObjectType", () => {
       ),
     );
     expect(iterator.next().done).toBe(true);
+  });
+
+  it("preserves permission errors from the runtime response", () => {
+    const iterator = loadCelanworksmithObjectType("PurchaseOrder");
+    const permissionError = {
+      code: "PERMISSION_DENIED",
+      message: "PurchaseOrder access denied",
+    };
+
+    iterator.next();
+    iterator.next({
+      responseMeta: { status: 403, success: false, error: permissionError },
+    });
+
+    expect(
+      iterator.next({
+        responseMeta: { status: 403, success: false, error: permissionError },
+      }).value,
+    ).toEqual(
+      put(celanworksmithObjectTypeLoadError("PurchaseOrder", permissionError)),
+    );
   });
 
   it("refreshes autocomplete definitions after object data loads", () => {

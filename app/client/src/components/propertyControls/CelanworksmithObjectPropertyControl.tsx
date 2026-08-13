@@ -7,6 +7,8 @@ import {
   getCelanworksmithObjectMetadataState,
   getCelanworksmithPropertyOptions,
 } from "selectors/celanworksmithObjectMetadataSelectors";
+import { getCelanworksmithObjectsState } from "selectors/dataTreeSelectors";
+import { filterSemanticMetadata } from "celanworksmith/semanticMetadata";
 
 export interface CelanworksmithObjectPropertyControlProps extends ControlProps {
   propertyValue?: string;
@@ -27,12 +29,27 @@ const CelanworksmithObjectPropertySelector = ({
 }: ObjectPropertySelectorProps) => {
   const dispatch = useDispatch();
   const metadataState = useSelector(getCelanworksmithObjectMetadataState);
+  const objectsState = useSelector(getCelanworksmithObjectsState);
   const options = useSelector((state) =>
     getCelanworksmithPropertyOptions(state, objectTypeId),
   );
   const [search, setSearch] = useState("");
   const isDisabled = metadataState.status !== "ready" || !objectTypeId;
+  const isRefreshing =
+    metadataState.status === "ready" && objectsState.status === "loading";
   const selectedValue = propertyValue || "";
+  const selectedProperty = objectsState.types[
+    objectTypeId || ""
+  ]?.metadata?.properties.find((property) => property.id === selectedValue);
+  const semanticDescription = filterSemanticMetadata(selectedProperty, {
+    authorized: true,
+  }).description;
+  const semanticDescriptionText =
+    typeof semanticDescription === "string"
+      ? semanticDescription
+      : semanticDescription
+        ? Object.values(semanticDescription).join(" / ")
+        : undefined;
   const hasSelectedOption = options.some(
     (option) => option.value === selectedValue,
   );
@@ -86,6 +103,9 @@ const CelanworksmithObjectPropertySelector = ({
       {metadataState.status === "loading" ? (
         <div>Loading object metadata / 正在加载对象元数据</div>
       ) : null}
+      {isRefreshing ? (
+        <div>Refreshing object metadata / 正在刷新对象元数据</div>
+      ) : null}
       {metadataState.error ? (
         <div>
           <div>{metadataState.error?.message || "Metadata unavailable"}</div>
@@ -106,6 +126,9 @@ const CelanworksmithObjectPropertySelector = ({
       ) : null}
       {metadataState.status === "ready" && objectTypeId && !options.length ? (
         <div>No properties / 没有属性</div>
+      ) : null}
+      {semanticDescriptionText ? (
+        <div>Semantic description / 语义描述: {semanticDescriptionText}</div>
       ) : null}
     </div>
   );

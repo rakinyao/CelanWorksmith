@@ -17,6 +17,7 @@ const properties = [
   {
     id: "customer-name",
     displayName: "Customer name / 客户名称",
+    description: { en: "Customer contact name", zh: "客户联系人名称" },
     dataType: "STRING",
     required: true,
     readOnly: false,
@@ -109,8 +110,23 @@ describe("CelanworksmithObjectPropertyControl", () => {
     );
   });
 
+  it("shows filtered semantic help for the selected Property", () => {
+    const view = render(
+      <CelanworksmithObjectPropertyControl
+        {...getControlProps("customer-name")}
+      />,
+    );
+
+    expect(
+      view.getByText(
+        "Semantic description / 语义描述: Customer contact name / 客户联系人名称",
+      ),
+    ).toBeTruthy();
+  });
+
   it("limits Properties to the selected Object Type and explains missing metadata", () => {
     const props = getControlProps();
+
     props.widgetProperties = {};
     const noType = render(<CelanworksmithObjectPropertyControl {...props} />);
 
@@ -125,6 +141,7 @@ describe("CelanworksmithObjectPropertyControl", () => {
     const missing = render(
       <CelanworksmithObjectPropertyControl {...getControlProps()} />,
     );
+
     expect(missing.getByText("No properties / 没有属性")).toBeTruthy();
   });
 
@@ -133,6 +150,7 @@ describe("CelanworksmithObjectPropertyControl", () => {
     const loading = render(
       <CelanworksmithObjectPropertyControl {...getControlProps()} />,
     );
+
     expect(
       (loading.getByLabelText("Property / 属性") as HTMLSelectElement).disabled,
     ).toBe(true);
@@ -154,10 +172,27 @@ describe("CelanworksmithObjectPropertyControl", () => {
         {...getControlProps("deleted-property")}
       />,
     );
+
     expect(error.getByText("deleted-property (missing / 已删除)")).toBeTruthy();
     fireEvent.click(error.getByText("Retry / 重试"));
 
     expect(dispatch).toHaveBeenCalledWith(celanworksmithObjectsLoadRequest());
+  });
+
+  it("preserves the selected stable ID while cached metadata refreshes", () => {
+    setMetadataState("loading");
+    const view = render(
+      <CelanworksmithObjectPropertyControl
+        {...getControlProps("customer-name")}
+      />,
+    );
+
+    expect(
+      (view.getByLabelText("Property / 属性") as HTMLSelectElement).value,
+    ).toBe("customer-name");
+    expect(
+      view.getByText("Refreshing object metadata / 正在刷新对象元数据"),
+    ).toBeTruthy();
   });
 
   it("retries an App Binding error through its action contract", () => {

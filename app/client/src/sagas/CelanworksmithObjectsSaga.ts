@@ -68,7 +68,11 @@ const getApiError = (error: unknown): CelanworksmithObjectError => {
 
   if (error && typeof error === "object" && "message" in error) {
     return {
-      code: "CELANWORKSMITH_OBJECTS_ERROR",
+      code:
+        "code" in error &&
+        typeof (error as { code?: unknown }).code === "string"
+          ? (error as { code: string }).code
+          : "CELANWORKSMITH_OBJECTS_ERROR",
       message: String((error as { message: unknown }).message),
     };
   }
@@ -117,6 +121,15 @@ export function* loadCelanworksmithObjectType(
       const response: ApiResponse<CelanworksmithObjectSet> = yield queryCall;
 
       page = assertApiSuccess(response);
+
+      if (applicationId) {
+        const currentApplicationId: string | undefined = yield select(
+          getCelanworksmithCurrentApplicationId,
+        );
+
+        if (currentApplicationId !== applicationId) return;
+      }
+
       const pageItems = page.items || [];
 
       items.push(...pageItems);
@@ -141,6 +154,14 @@ export function* loadCelanworksmithObjectType(
       }),
     );
   } catch (error) {
+    if (applicationId) {
+      const currentApplicationId: string | undefined = yield select(
+        getCelanworksmithCurrentApplicationId,
+      );
+
+      if (currentApplicationId !== applicationId) return;
+    }
+
     yield put(celanworksmithObjectTypeLoadError(typeId, getApiError(error)));
   }
 }

@@ -8,4 +8,11 @@ public record ActionResult(
         String message,
         String executionId,
         List<ObjectInstanceDTO> changedObjects,
-        List<Map<String, Object>> sideEffects) {}
+        List<ChangedProperty> changedProperties,
+        List<ChangedLink> links,
+        List<Map<String, Object>> sideEffects) {
+
+    public record ChangedProperty(String typeId, String objectId, String propertyId, Object value) {}
+
+    public record ChangedLink(String typeId, String objectId, String linkTypeId, String targetTypeId) {}
+}

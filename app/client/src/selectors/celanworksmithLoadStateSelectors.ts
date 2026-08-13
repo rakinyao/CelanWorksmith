@@ -7,6 +7,7 @@ import type { CelanworksmithLinkRequest } from "actions/celanworksmithLinkAction
 import type { CelanworksmithObjectQueryRequest } from "actions/celanworksmithObjectQueryActions";
 import {
   getCelanworksmithLinkKey,
+  getCelanworksmithLinkMetadataKey,
   type CelanworksmithLinksState,
 } from "reducers/celanworksmithLinksReducer";
 import {
@@ -177,11 +178,13 @@ export const getCelanworksmithObjectQueryLoadState = (
 export const getCelanworksmithLinkMetadataLoadState = (
   state: CelanworksmithLoadStateRoot,
   typeId: string,
+  applicationId?: string,
 ) => {
-  const metadata = getLinks(state).metadata[typeId];
+  const key = getCelanworksmithLinkMetadataKey(typeId, applicationId);
+  const metadata = getLinks(state).metadata[key];
 
   return adaptLegacyLoadState({
-    requestKey: `links/metadata/${typeId}`,
+    requestKey: `links/metadata/${key}`,
     status: metadata?.status || "idle",
     data: metadata?.updatedAt !== undefined ? metadata.links : undefined,
     updatedAt: metadata?.updatedAt,

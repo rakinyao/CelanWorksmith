@@ -7,6 +7,16 @@ import ObjectFormMode from "./ObjectFormMode";
 
 const mockStore = configureStore([]);
 
+const selectOption = async (label: string, optionName: string) => {
+  const select = await screen.findByRole("combobox", { name: label });
+  const selector = select.closest(".rc-select-selector");
+
+  if (!selector) throw new Error(`Unable to open ${label}`);
+
+  fireEvent.mouseDown(selector);
+  fireEvent.click(await screen.findByRole("option", { name: optionName }));
+};
+
 test("generates metadata fields and submits changed values through T5", () => {
   const updateWidgetMetaProperty = jest.fn();
   const store = mockStore({
@@ -432,14 +442,16 @@ test("maps supported metadata types and reports unsupported fields", () => {
                 required: true,
                 readOnly: false,
                 derived: false,
+                enumValues: ["PENDING", "APPROVED"],
               },
               {
                 id: "supplierId",
                 displayName: "Supplier",
-                dataType: "REFERENCE",
+                dataType: "STRING",
                 required: false,
                 readOnly: false,
                 derived: false,
+                referenceTypeId: "Supplier",
               },
               {
                 id: "delayDays",
@@ -493,10 +505,135 @@ test("maps supported metadata types and reports unsupported fields", () => {
     "datetime-local",
   );
   expect(screen.getByLabelText("Amount")).toHaveAttribute("type", "number");
-  expect(screen.getByLabelText("Status").tagName).toBe("SELECT");
-  expect(screen.getByLabelText("Supplier")).toHaveAttribute("type", "text");
+  expect(screen.getByRole("combobox", { name: "Status" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Supplier" })).toBeDisabled();
   expect(screen.getByLabelText("Delay days")).toBeDisabled();
   expect(screen.getByText("Unsupported data type: BINARY")).toBeInTheDocument();
+});
+
+test("selects a loaded related Object ID through reference metadata", async () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        PurchaseOrder: {
+          status: "ready",
+          metadata: {
+            id: "PurchaseOrder",
+            displayName: "Purchase order",
+            properties: [
+              {
+                id: "supplierId",
+                displayName: "Supplier",
+                dataType: "STRING",
+                required: false,
+                readOnly: false,
+                derived: false,
+                referenceTypeId: "Supplier",
+              },
+            ],
+          },
+        },
+        Supplier: {
+          status: "ready",
+          metadata: { id: "Supplier", displayName: "Supplier", properties: [] },
+          items: [
+            {
+              id: "S002",
+              typeId: "Supplier",
+              properties: { name: "Beta Parts" },
+            },
+          ],
+        },
+      },
+    },
+    celanworksmithOntology: { actions: [] },
+    celanworksmithExecution: { actions: {}, requests: {} },
+  });
+
+  render(
+    <Provider store={store}>
+      <ObjectFormMode
+        objectData={{
+          id: "PO001",
+          typeId: "PurchaseOrder",
+          properties: { supplierId: "" },
+        }}
+        objectTypeId="PurchaseOrder"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  await selectOption("Supplier", "S002");
+
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("formData", {
+    supplierId: "S002",
+  });
+});
+
+test("locates Object field validation errors and prevents Action submission", () => {
+  const updateWidgetMetaProperty = jest.fn();
+  const store = mockStore({
+    celanworksmithObjects: {
+      status: "ready",
+      types: {
+        Supplier: {
+          status: "ready",
+          metadata: {
+            id: "Supplier",
+            displayName: "Supplier",
+            properties: [
+              {
+                id: "name",
+                displayName: "Supplier name",
+                dataType: "STRING",
+                required: true,
+                readOnly: false,
+                derived: false,
+              },
+            ],
+          },
+        },
+      },
+    },
+    celanworksmithOntology: {
+      actions: [
+        {
+          id: "update_supplier",
+          displayName: "Update supplier",
+          objectTypeId: "Supplier",
+          parameters: [],
+          requiresConfirmation: false,
+        },
+      ],
+    },
+    celanworksmithExecution: { actions: {}, requests: {} },
+  });
+
+  render(
+    <Provider store={store}>
+      <ObjectFormMode
+        actionId="update_supplier"
+        objectData={{
+          id: "S001",
+          typeId: "Supplier",
+          properties: { name: "" },
+        }}
+        objectTypeId="Supplier"
+        updateWidgetMetaProperty={updateWidgetMetaProperty}
+      />
+    </Provider>,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Supplier.name is required.",
+  );
+  expect(store.getActions()).toEqual([]);
+  expect(updateWidgetMetaProperty).toHaveBeenCalledWith("isValid", false);
 });
 
 test("renders Object form fields in metadata layout order and keeps hidden fields absent", () => {
@@ -756,8 +893,6 @@ test("renders a missing Object instance state and safe empty ENUM options", () =
     </Provider>,
   );
 
-  expect(screen.getByLabelText("Status")).toHaveDisplayValue(
-    "No values available",
-  );
-  expect(screen.getByRole("option")).toHaveTextContent("No values available");
+  expect(screen.getByRole("combobox", { name: "Status" })).toBeDisabled();
+  expect(screen.getByText("No values available")).toBeInTheDocument();
 });

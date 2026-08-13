@@ -19,8 +19,11 @@ export interface ObjectBinding {
   objectIdPath?: string;
   filter?: unknown;
   selectedPropertyIds?: string[];
+  labelPropertyId?: string;
+  groupPropertyId?: string;
   displayPropertyId?: string;
   valuePropertyId?: string;
+  aggregationVariableName?: string;
   linkTypeId?: string;
   actionId?: string;
   propertyDataTypes?: Partial<
@@ -30,6 +33,8 @@ export interface ObjectBinding {
 
 export type ObjectBindingPropertyKey =
   | "selectedPropertyIds"
+  | "labelPropertyId"
+  | "groupPropertyId"
   | "displayPropertyId"
   | "valuePropertyId";
 
@@ -39,7 +44,10 @@ export type ObjectBindingIssueCode =
   | "DELETED_OBJECT_TYPE"
   | "DELETED_PROPERTY"
   | "INVALID_SOURCE"
-  | "INCOMPATIBLE_PROPERTY_TYPE";
+  | "INCOMPATIBLE_PROPERTY_TYPE"
+  | "DELETED_LINK"
+  | "DELETED_ACTION"
+  | "DELETED_VARIABLE";
 
 export interface ObjectBindingIssue {
   code: ObjectBindingIssueCode;
@@ -48,6 +56,9 @@ export interface ObjectBindingIssue {
   expectedDataTypes?: string[];
   receivedDataType?: string;
   source?: string;
+  linkTypeId?: string;
+  actionId?: string;
+  variableName?: string;
 }
 
 export interface ObjectBindingMetadata {
@@ -57,6 +68,9 @@ export interface ObjectBindingMetadata {
   types?: Readonly<
     Record<string, { metadata?: CelanworksmithObjectType | undefined }>
   >;
+  links?: readonly { id: string }[];
+  actions?: readonly { id: string }[];
+  variables?: readonly string[] | Readonly<Record<string, unknown>>;
   dataTree?: Record<string, unknown>;
 }
 
@@ -76,6 +90,9 @@ export const getObjectBindingModeProperty = (widgetType: string) => {
     case "SELECT_WIDGET":
     case "DROP_DOWN_WIDGET":
     case "MULTI_SELECT_WIDGET_V2":
+    case "CHART_WIDGET":
+    case "STATBOX_WIDGET":
+    case "PROGRESS_WIDGET":
       return "dataMode";
     case "JSON_FORM_WIDGET":
     case "FORM_WIDGET":

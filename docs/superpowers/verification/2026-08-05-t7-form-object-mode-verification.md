@@ -7,9 +7,9 @@
 - 既有 JSON Form 增加 `formMode=QUERY|OBJECT`，默认仍为 QUERY。
 - OBJECT 模式按 Object Type metadata 生成 STRING、INTEGER、DECIMAL、DATETIME、BOOLEAN 字段。
 - `required` 映射为浏览器必填校验，`readOnly` 映射为禁用控件。
-- 编辑值保存在组件本地；Object metadata/绑定刷新不会覆盖用户已编辑值。
+- 编辑值保存在组件本地；同一对象的 metadata/绑定刷新不会覆盖用户已编辑值，对象身份切换会加载新对象值。
 - 提交前执行客户端必填校验，合法提交复用 T5 Action 执行链，并暴露 `formData`、`isValid`、`executionStatus`。
-- Action 成功后的 changedObjects 刷新继续由 T5 Saga 负责，失败状态不会伪造成功。
+- Action 成功后的 changedObjects 刷新继续由 T5 Saga 负责；成功提交会结束当前 dirty 状态，失败状态不会伪造成功。
 
 ## 2. 自动化验证
 

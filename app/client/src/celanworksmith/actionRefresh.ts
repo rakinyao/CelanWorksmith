@@ -39,10 +39,6 @@ const getChangedTypeIds = (result: CelanworksmithActionResult) =>
     new Set([
       ...result.changedObjects.map((object) => object.typeId),
       ...(result.changedProperties || []).map((property) => property.typeId),
-      ...(result.links || []).flatMap((link) => [
-        link.typeId,
-        link.targetTypeId,
-      ]),
     ]).values(),
   ).filter((typeId): typeId is string => !!typeId);
 

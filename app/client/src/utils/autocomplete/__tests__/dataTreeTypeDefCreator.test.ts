@@ -270,6 +270,32 @@ describe("getFunctionsArgsType", () => {
 });
 
 describe("CelanWorksmith execution definitions", () => {
+  it("adds safe ontology descriptions to Object autocomplete documentation", () => {
+    const { def } = dataTreeTypeDefCreator(
+      {
+        $objects: {
+          ENTITY_TYPE: ENTITY_TYPE.CELANWORKSMITH_OBJECTS,
+          PurchaseOrder: {
+            all: [],
+            _meta: { status: "ready" },
+            __metadata: {
+              description: { en: "Purchase order", zh: "采购订单" },
+              id: "PurchaseOrder",
+              properties: [],
+            },
+          },
+        },
+      } as never,
+      {},
+      {},
+    );
+
+    expect(def).toHaveProperty(
+      "$objects.PurchaseOrder.!doc",
+      "Ontology Object Type PurchaseOrder: Purchase order / 采购订单; collection path is $objects.PurchaseOrder.all.",
+    );
+  });
+
   it("defines known Function and Action execution paths", () => {
     const { def, entityInfo } = dataTreeTypeDefCreator(
       {
@@ -324,7 +350,11 @@ describe("CelanWorksmith execution definitions", () => {
 
     expect(def).toHaveProperty(
       "$functions.CalculateDelayDays.run.!type",
-      "fn(parameters?: {poId: string}) -> string",
+      "fn(parameters: {poId: string}) -> string",
+    );
+    expect(def).toHaveProperty(
+      "$functions.CalculateDelayDays.run.!type",
+      "fn(parameters: {poId: string}) -> string",
     );
     expect(def).toHaveProperty("$functions.CalculateDelayDays.data", "number");
     expect(def).toHaveProperty(

@@ -163,6 +163,21 @@ describe("CelanworksmithObjectTypeControl", () => {
     expect(dispatch).toHaveBeenCalledWith(celanworksmithObjectsLoadRequest());
   });
 
+  it("preserves the selected stable ID while cached metadata refreshes", () => {
+    setMetadataState("loading");
+    const view = render(
+      <CelanworksmithObjectTypeControl {...getControlProps("customer")} />,
+    );
+
+    expect(
+      (view.getByLabelText("Object type / 对象类型") as HTMLSelectElement)
+        .value,
+    ).toBe("customer");
+    expect(
+      view.getByText("Refreshing object metadata / 正在刷新对象元数据"),
+    ).toBeTruthy();
+  });
+
   it("shows a binding prompt for an unbound application", () => {
     state = {
       ...state,

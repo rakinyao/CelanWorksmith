@@ -1,0 +1,11 @@
+id: UpdateProductionSchedule
+displayName: Update Production Schedule
+objectTypeId: PurchaseOrder
+parameters:
+  - id: newScheduleDate
+    displayName: New Schedule Date
+    dataType: DATETIME
+    required: true
+    readOnly: false
+    derived: false
+requiresConfirmation: true

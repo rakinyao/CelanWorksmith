@@ -49,3 +49,7 @@ mongodb*
 
 # ignore the task file as it will be different for different project implementations.
 TASKS.md
+
+# CelanWorksmith runtime artifacts (logs, plugin bundles)
+app/server/.runtime-logs/
+app/server/plugins/

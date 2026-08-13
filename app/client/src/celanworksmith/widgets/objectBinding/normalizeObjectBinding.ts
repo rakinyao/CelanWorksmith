@@ -23,6 +23,8 @@ const asStringArray = (value: unknown) =>
     ? [...value]
     : undefined;
 
+const CHART_VALUE_DATA_TYPES = ["INTEGER", "DECIMAL"];
+
 const getMode = (
   widgetType: string,
   widgetProps: WidgetBindingProps,
@@ -69,6 +71,8 @@ const getSource = (binding: ObjectBinding): ObjectBindingSource | string => {
 
   if (
     binding.selectedPropertyIds?.length ||
+    binding.labelPropertyId ||
+    binding.groupPropertyId ||
     binding.displayPropertyId ||
     binding.valuePropertyId
   ) {
@@ -79,8 +83,10 @@ const getSource = (binding: ObjectBinding): ObjectBindingSource | string => {
 };
 
 const getBinding = (
+  widgetType: string,
   widgetProps: WidgetBindingProps,
   metadata: ObjectBindingMetadata,
+  mode: BindingMode,
 ): ObjectBinding => {
   const filter =
     widgetProps.objectFilter !== undefined
@@ -90,6 +96,9 @@ const getBinding = (
   const explicitObjectTypeId = asString(widgetProps.objectTypeId);
   const inferredObjectTypeId =
     getFilterTypeId(filter) || inferObjectTypeId(objectPath, metadata.dataTree);
+  const propertyDataTypes = isRecord(widgetProps.propertyDataTypes)
+    ? (widgetProps.propertyDataTypes as ObjectBinding["propertyDataTypes"])
+    : undefined;
   const binding: ObjectBinding = {
     objectTypeId: explicitObjectTypeId || inferredObjectTypeId,
     source: asString(widgetProps.source),
@@ -97,13 +106,20 @@ const getBinding = (
     objectIdPath: asString(widgetProps.objectIdPath),
     filter,
     selectedPropertyIds: asStringArray(widgetProps.selectedPropertyIds),
+    labelPropertyId: asString(widgetProps.labelPropertyId),
+    groupPropertyId: asString(widgetProps.groupPropertyId),
     displayPropertyId: asString(widgetProps.displayPropertyId),
     valuePropertyId: asString(widgetProps.valuePropertyId),
+    aggregationVariableName: asString(widgetProps.aggregationVariableName),
     linkTypeId: asString(widgetProps.linkTypeId),
     actionId: asString(widgetProps.actionId || widgetProps.objectActionId),
-    propertyDataTypes: isRecord(widgetProps.propertyDataTypes)
-      ? (widgetProps.propertyDataTypes as ObjectBinding["propertyDataTypes"])
-      : undefined,
+    propertyDataTypes:
+      widgetType === "CHART_WIDGET" && mode === "OBJECT"
+        ? {
+            ...propertyDataTypes,
+            valuePropertyId: CHART_VALUE_DATA_TYPES,
+          }
+        : propertyDataTypes,
   };
 
   objectKeys(binding).forEach((key) => {
@@ -120,7 +136,7 @@ export const normalizeObjectBinding = (
   metadata: ObjectBindingMetadata,
 ): NormalizedObjectBinding => {
   const mode = getMode(widgetType, widgetProps);
-  const binding = getBinding(widgetProps, metadata);
+  const binding = getBinding(widgetType, widgetProps, metadata, mode);
 
   return {
     mode,
