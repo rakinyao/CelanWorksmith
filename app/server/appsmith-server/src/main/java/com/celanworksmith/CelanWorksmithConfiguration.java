@@ -17,6 +17,8 @@ import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceUpgradeService;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
 import com.celanworksmith.ontology.datasource.OntologyProjectImportSource;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
+import com.celanworksmith.ontology.datasource.OntologySnapshotRuntimeGateway;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.ontology.datasource.PlatformOntologyProjectImporter;
 import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
@@ -64,6 +66,12 @@ public class CelanWorksmithConfiguration {
     @Bean
     public RuntimeProviderRegistry runtimeProviderRegistry(List<RuntimeProvider> runtimeProviders) {
         return new RuntimeProviderRegistry(runtimeProviders);
+    }
+
+    @Bean
+    public OntologyRuntimeGateway ontologyRuntimeGateway(
+            OntologySnapshotService snapshotService, RuntimeProviderRegistry runtimeProviderRegistry) {
+        return new OntologySnapshotRuntimeGateway(snapshotService, runtimeProviderRegistry);
     }
 
     @Bean

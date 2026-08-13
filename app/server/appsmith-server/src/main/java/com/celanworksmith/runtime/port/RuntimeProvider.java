@@ -1,5 +1,6 @@
 package com.celanworksmith.runtime.port;
 
+import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.runtime.context.CelanworksmithRuntimeContext;
 import com.celanworksmith.runtime.dto.ActionExecutionRequest;
 import com.celanworksmith.runtime.dto.ActionResult;
@@ -35,6 +36,11 @@ public interface RuntimeProvider {
     }
 
     Mono<ObjectSetResult> queryObjects(String typeId, ObjectSetQuery query);
+
+    default Mono<ObjectSetResult> queryObjects(
+            OntologyProjectDefinition definition, String typeId, ObjectSetQuery query) {
+        return queryObjects(typeId, query);
+    }
 
     Mono<ObjectInstanceDTO> getObject(String typeId, String instanceId);
 

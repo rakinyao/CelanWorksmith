@@ -1,9 +1,9 @@
 package com.celanworksmith.plugins.ontology;
 
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.ObjectQuery;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.ObjectTypeMetadata;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.PropertyMetadata;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.Snapshot;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectTypeMetadata;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.PropertyMetadata;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

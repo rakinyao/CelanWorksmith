@@ -2,6 +2,7 @@ package com.celanworksmith.runtime;
 
 import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.application.CelanworksmithApplicationBindingResolver;
+import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeObjectDocument;
 import com.celanworksmith.runtime.dto.ObjectSetResult;
@@ -54,6 +55,26 @@ class MongoRuntimeDataProviderTest {
                     assertThat(result.items().getFirst().properties()).containsEntry("status", "CONFIRMED");
                 })
                 .verifyComplete();
+    }
+
+    @Test
+    void queriesObjectsUsingThePinnedOntologyDefinitionWithoutAnApplicationBinding() {
+        when(template.find(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Flux.just(document("PO001", "CONFIRMED", 0)));
+        when(template.count(any(), eq("purchase_orders"))).thenReturn(Mono.just(1L));
+
+        OntologyProjectDefinition pinnedDefinition =
+                RuntimeProviderTestFixtures.binding().project();
+        StepVerifier.create(provider.queryObjects(
+                        pinnedDefinition, "PurchaseOrder", RuntimeProviderTestFixtures.query(0, 10)))
+                .assertNext(result -> assertThat(result.items()).singleElement().satisfies(item -> {
+                    assertThat(item.id()).isEqualTo("PO001");
+                    assertThat(item.properties()).containsEntry("status", "CONFIRMED");
+                }))
+                .verifyComplete();
+
+        verify(template).find(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
+        verify(resolver, never()).resolve(any());
     }
 
     @Test

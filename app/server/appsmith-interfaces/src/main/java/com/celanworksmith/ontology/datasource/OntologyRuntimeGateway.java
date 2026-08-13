@@ -1,4 +1,4 @@
-package com.celanworksmith.plugins.ontology;
+package com.celanworksmith.ontology.datasource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import reactor.core.publisher.Mono;
@@ -36,5 +36,5 @@ public interface OntologyRuntimeGateway {
 
     Mono<Snapshot> getRequiredSnapshot(String snapshotId, String digest);
 
-    Mono<ObjectQueryResult> queryObjects(String providerId, String objectTypeId, ObjectQuery query);
+    Mono<ObjectQueryResult> queryObjects(String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query);
 }

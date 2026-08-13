@@ -97,6 +97,16 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
     }
 
     @Override
+    public Mono<ObjectSetResult> queryObjects(
+            OntologyProjectDefinition definition, String typeId, ObjectSetQuery query) {
+        if (definition == null) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Ontology project definition is required"));
+        }
+        return resolveType(definition, typeId).flatMap(type -> queryMongo(type, query));
+    }
+
+    @Override
     public Mono<ObjectInstanceDTO> getObject(CelanworksmithRuntimeContext context, String typeId, String instanceId) {
         if (context == null || context.legacyDefault() || context.applicationId() == null) {
             return super.getObject(typeId, instanceId);

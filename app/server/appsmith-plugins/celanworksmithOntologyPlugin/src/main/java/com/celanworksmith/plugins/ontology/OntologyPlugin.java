@@ -8,8 +8,9 @@ import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.DatasourceTestResult;
 import com.appsmith.external.plugins.BasePlugin;
 import com.appsmith.external.plugins.PluginExecutor;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.ObjectQueryResult;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.Snapshot;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQueryResult;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.pf4j.Extension;
 import org.pf4j.PluginWrapper;
@@ -29,11 +30,7 @@ public class OntologyPlugin extends BasePlugin {
         private final OntologyRuntimeGateway runtimeGateway;
         private final OntologyQueryValidator queryValidator;
 
-        public OntologyPluginExecutor() {
-            this(new UnconfiguredOntologyRuntimeGateway());
-        }
-
-        OntologyPluginExecutor(OntologyRuntimeGateway runtimeGateway) {
+        public OntologyPluginExecutor(OntologyRuntimeGateway runtimeGateway) {
             this.runtimeGateway = runtimeGateway;
             this.queryValidator = new OntologyQueryValidator(new ObjectMapper());
         }
@@ -96,7 +93,7 @@ public class OntologyPlugin extends BasePlugin {
             OntologyRuntimeGateway.ObjectQuery query = queryValidator.validateObjectQuery(configuration, snapshot);
             String objectTypeId = (String) configuration.definition().get("objectTypeId");
             return runtimeGateway
-                    .queryObjects(datasourceConfiguration.runtimeProviderId(), objectTypeId, query)
+                    .queryObjects(datasourceConfiguration.runtimeProviderId(), snapshot, objectTypeId, query)
                     .map(result -> successResult(result, query));
         }
 
@@ -127,19 +124,6 @@ public class OntologyPlugin extends BasePlugin {
                             : AppsmithPluginError.PLUGIN_ERROR,
                     error.getMessage()));
             return Mono.just(executionResult);
-        }
-    }
-
-    private static final class UnconfiguredOntologyRuntimeGateway implements OntologyRuntimeGateway {
-        @Override
-        public Mono<Snapshot> getRequiredSnapshot(String snapshotId, String digest) {
-            return Mono.error(new IllegalStateException("Ontology runtime gateway is not configured"));
-        }
-
-        @Override
-        public Mono<ObjectQueryResult> queryObjects(
-                String providerId, String objectTypeId, OntologyRuntimeGateway.ObjectQuery query) {
-            return Mono.error(new IllegalStateException("Ontology runtime gateway is not configured"));
         }
     }
 }

@@ -1,12 +1,16 @@
 package com.celanworksmith;
 
 import com.appsmith.server.datasources.base.DatasourceService;
+import com.appsmith.server.datasourcestorages.base.DatasourceStorageService;
+import com.appsmith.server.repositories.NewActionRepository;
 import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
+import com.celanworksmith.ontology.datasource.OntologyDatasourceUpgradeService;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
 import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
@@ -17,6 +21,7 @@ import com.celanworksmith.runtime.adapter.production.ProductionRuntimeProvider;
 import com.celanworksmith.runtime.port.RuntimeProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +36,13 @@ class CelanWorksmithConfigurationTest {
                     CelanworksmithApplicationBindingRepository.class,
                     () -> mock(CelanworksmithApplicationBindingRepository.class))
             .withBean(WorkspaceService.class, () -> mock(WorkspaceService.class))
-            .withBean(DatasourceService.class, () -> mock(DatasourceService.class));
+            .withBean(DatasourceService.class, () -> mock(DatasourceService.class))
+            .withBean(DatasourceStorageService.class, () -> mock(DatasourceStorageService.class))
+            .withBean(NewActionRepository.class, () -> mock(NewActionRepository.class))
+            .withBean(
+                    OntologyDatasourceUpgradeService.AuditStore.class,
+                    () -> mock(OntologyDatasourceUpgradeService.AuditStore.class))
+            .withBean(TransactionalOperator.class, () -> mock(TransactionalOperator.class));
 
     @Test
     void defaultsToProjectAndMongoProviders() {
@@ -57,6 +68,12 @@ class CelanWorksmithConfigurationTest {
             assertThat(context.getBean(RuntimeProviderRegistry.class).resolveRequired("demo-mongo-readonly"))
                     .isInstanceOf(MongoRuntimeDataProvider.class);
         });
+    }
+
+    @Test
+    void registersThePluginRuntimeGateway() {
+        contextRunner.run(context -> assertThat(context.getBean(OntologyRuntimeGateway.class))
+                .isInstanceOf(com.celanworksmith.ontology.datasource.OntologySnapshotRuntimeGateway.class));
     }
 
     @Test

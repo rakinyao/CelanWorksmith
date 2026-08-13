@@ -2,11 +2,12 @@ package com.celanworksmith.plugins.ontology;
 
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionExecutionResult;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.ObjectQuery;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.ObjectQueryResult;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.ObjectTypeMetadata;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.PropertyMetadata;
-import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.Snapshot;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQueryResult;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectTypeMetadata;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.PropertyMetadata;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -170,7 +171,8 @@ class OntologyObjectQueryExecutorTest {
         }
 
         @Override
-        public Mono<ObjectQueryResult> queryObjects(String providerId, String objectTypeId, ObjectQuery query) {
+        public Mono<ObjectQueryResult> queryObjects(
+                String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
             queryCalls++;
             this.providerId = providerId;
             this.objectTypeId = objectTypeId;
