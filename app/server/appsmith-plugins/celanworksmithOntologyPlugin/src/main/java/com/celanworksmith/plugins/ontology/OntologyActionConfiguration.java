@@ -1,0 +1,74 @@
+package com.celanworksmith.plugins.ontology;
+
+import com.appsmith.external.models.ActionConfiguration;
+
+import java.util.Map;
+import java.util.Set;
+
+public record OntologyActionConfiguration(Operation operation, Map<String, Object> definition) {
+
+    private static final Set<String> PROTECTED_CONTEXT_KEYS = Set.of(
+            "projectId",
+            "projectVersion",
+            "metadataSnapshotId",
+            "metadataDigest",
+            "runtimeProviderId",
+            "callerContext");
+
+    public enum Operation {
+        OBJECT_QUERY,
+        FUNCTION_QUERY,
+        ACTION_QUERY,
+        LINK_QUERY
+    }
+
+    public static OntologyActionConfiguration from(ActionConfiguration actionConfiguration) {
+        if (actionConfiguration == null || actionConfiguration.getFormData() == null) {
+            throw new IllegalArgumentException("Ontology action configuration is required");
+        }
+
+        Map<String, Object> formData = actionConfiguration.getFormData();
+        for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
+            if (formData.containsKey(protectedKey)) {
+                throw new IllegalArgumentException("Action configuration cannot override: " + protectedKey);
+            }
+        }
+
+        Object operationValue = formData.get("operation");
+        if (!(operationValue instanceof String operationName)) {
+            throw new IllegalArgumentException("Ontology operation is required");
+        }
+
+        Operation operation;
+        try {
+            operation = Operation.valueOf(operationName);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Unsupported ontology operation: " + operationName, exception);
+        }
+
+        Object definitionValue = formData.get("definition");
+        if (!(definitionValue instanceof Map<?, ?> rawDefinition)) {
+            throw new IllegalArgumentException("Ontology operation definition is required");
+        }
+
+        Map<String, Object> definition = rawDefinition.entrySet().stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                        entry -> String.valueOf(entry.getKey()), Map.Entry::getValue));
+        validateRequiredIdentifier(operation, definition);
+        return new OntologyActionConfiguration(operation, definition);
+    }
+
+    private static void validateRequiredIdentifier(Operation operation, Map<String, Object> definition) {
+        String requiredKey =
+                switch (operation) {
+                    case OBJECT_QUERY -> "objectTypeId";
+                    case FUNCTION_QUERY -> "functionId";
+                    case ACTION_QUERY -> "actionId";
+                    case LINK_QUERY -> "linkId";
+                };
+        Object value = definition.get(requiredKey);
+        if (!(value instanceof String identifier) || identifier.isBlank()) {
+            throw new IllegalArgumentException("Ontology operation definition requires: " + requiredKey);
+        }
+    }
+}

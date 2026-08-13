@@ -1,0 +1,44 @@
+{
+  "form": [
+    {
+      "sectionName": "Ontology Project",
+      "children": [
+        {
+          "label": "Project ID",
+          "configProperty": "datasourceConfiguration.properties[0].value",
+          "initialValue": "",
+          "controlType": "INPUT_TEXT",
+          "disabled": true
+        },
+        {
+          "label": "Project Version",
+          "configProperty": "datasourceConfiguration.properties[1].value",
+          "initialValue": "",
+          "controlType": "INPUT_TEXT",
+          "disabled": true
+        },
+        {
+          "label": "Metadata Snapshot ID",
+          "configProperty": "datasourceConfiguration.properties[2].value",
+          "initialValue": "",
+          "controlType": "INPUT_TEXT",
+          "disabled": true
+        },
+        {
+          "label": "Metadata Digest",
+          "configProperty": "datasourceConfiguration.properties[3].value",
+          "initialValue": "",
+          "controlType": "INPUT_TEXT",
+          "disabled": true
+        },
+        {
+          "label": "Runtime Provider ID",
+          "configProperty": "datasourceConfiguration.properties[4].value",
+          "initialValue": "",
+          "controlType": "INPUT_TEXT",
+          "disabled": true
+        }
+      ]
+    }
+  ]
+}

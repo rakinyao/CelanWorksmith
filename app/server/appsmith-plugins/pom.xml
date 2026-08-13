@@ -19,6 +19,7 @@
         <module>postgresPlugin</module>
         <module>restApiPlugin</module>
         <module>mongoPlugin</module>
+        <module>celanworksmithOntologyPlugin</module>
         <module>mysqlPlugin</module>
         <module>elasticSearchPlugin</module>
         <module>dynamoPlugin</module>

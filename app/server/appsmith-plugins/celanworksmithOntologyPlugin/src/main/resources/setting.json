@@ -1,0 +1,25 @@
+{
+  "setting": [
+    {
+      "sectionName": "Run behavior",
+      "children": [
+        {
+          "label": "Run behavior",
+          "configProperty": "runBehaviour",
+          "controlType": "DROP_DOWN",
+          "initialValue": "MANUAL",
+          "options": [
+            { "label": "Automatic", "value": "AUTOMATIC" },
+            { "label": "On page load", "value": "ON_PAGE_LOAD" },
+            { "label": "Manual", "value": "MANUAL" }
+          ]
+        },
+        {
+          "label": "Request confirmation before running this query",
+          "configProperty": "confirmBeforeExecute",
+          "controlType": "SWITCH"
+        }
+      ]
+    }
+  ]
+}
