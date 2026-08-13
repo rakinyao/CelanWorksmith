@@ -1,5 +1,6 @@
 package com.celanworksmith.plugins.ontology;
 
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ActionMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.FunctionMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.LinkMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery;
@@ -50,30 +51,50 @@ final class OntologyQueryValidator {
                 .filter(candidate -> functionId.equals(candidate.id()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + functionId));
-        Object supplied = configuration.definition().getOrDefault("parameters", Map.of());
+        return parameters(configuration.definition(), function.parameters(), "function");
+    }
+
+    Map<String, Object> validateActionParameters(OntologyActionConfiguration configuration, Snapshot snapshot) {
+        String actionId = requiredStableId(configuration.definition(), "actionId");
+        ActionMetadata action = snapshot.actions().stream()
+                .filter(candidate -> actionId.equals(candidate.id()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown ontology action: " + actionId));
+        String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
+        if (!objectTypeId.equals(action.objectTypeId())) {
+            throw new IllegalArgumentException("Ontology action does not apply to object type: " + objectTypeId);
+        }
+        requiredStableId(configuration.definition(), "objectId");
+        return parameters(configuration.definition(), action.parameters(), "action");
+    }
+
+    private Map<String, Object> parameters(
+            Map<String, Object> definition, List<PropertyMetadata> metadata, String operationName) {
+        Object supplied = definition.getOrDefault("parameters", Map.of());
         if (!(supplied instanceof Map<?, ?> rawParameters)) {
-            throw new IllegalArgumentException("Ontology function parameters must be an object");
+            throw new IllegalArgumentException("Ontology " + operationName + " parameters must be an object");
         }
         Map<String, Object> parameters = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : rawParameters.entrySet()) {
             if (!(entry.getKey() instanceof String parameterId)) {
-                throw new IllegalArgumentException("Ontology function parameter IDs must be strings");
+                throw new IllegalArgumentException("Ontology " + operationName + " parameter IDs must be strings");
             }
-            PropertyMetadata parameter = function.parameters().stream()
+            PropertyMetadata parameter = metadata.stream()
                     .filter(candidate -> parameterId.equals(candidate.id()))
                     .findFirst()
-                    .orElseThrow(
-                            () -> new IllegalArgumentException("Unknown ontology function parameter: " + parameterId));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Unknown ontology " + operationName + " parameter: " + parameterId));
             JsonNode value = objectMapper.valueToTree(entry.getValue());
             if (!matchesType(value, parameter.dataType())) {
-                throw new IllegalArgumentException("Ontology function parameter " + parameterId + " must be an "
-                        + parameter.dataType().toLowerCase(java.util.Locale.ROOT));
+                throw new IllegalArgumentException("Ontology " + operationName + " parameter " + parameterId
+                        + " must be an " + parameter.dataType().toLowerCase(java.util.Locale.ROOT));
             }
             parameters.put(parameterId, entry.getValue());
         }
-        for (PropertyMetadata parameter : function.parameters()) {
+        for (PropertyMetadata parameter : metadata) {
             if (parameter.required() && !parameters.containsKey(parameter.id())) {
-                throw new IllegalArgumentException("Ontology function parameter is required: " + parameter.id());
+                throw new IllegalArgumentException(
+                        "Ontology " + operationName + " parameter is required: " + parameter.id());
             }
         }
         return Map.copyOf(parameters);

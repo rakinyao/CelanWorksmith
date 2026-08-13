@@ -13,7 +13,11 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             "metadataSnapshotId",
             "metadataDigest",
             "runtimeProviderId",
-            "callerContext");
+            "callerContext",
+            "workspaceId",
+            "datasourceId",
+            "idempotencyKey",
+            "context");
 
     public enum Operation {
         OBJECT_QUERY,

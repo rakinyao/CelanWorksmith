@@ -29,6 +29,7 @@ class OntologyConfigurationTest {
                 configuration.metadataDigest());
         assertEquals("demo-mongo-readonly", configuration.runtimeProviderId());
         assertEquals("workspace-1", configuration.workspaceId());
+        assertEquals("datasource-1", configuration.datasourceId());
     }
 
     @Test
@@ -39,7 +40,8 @@ class OntologyConfigurationTest {
                 property("projectVersion", "1.0.0"),
                 property("metadataDigest", "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"),
                 property("runtimeProviderId", "demo-mongo-readonly"),
-                property("workspaceId", "workspace-1")));
+                property("workspaceId", "workspace-1"),
+                property("datasourceId", "datasource-1")));
 
         assertThrows(IllegalArgumentException.class, () -> OntologyDatasourceConfiguration.from(configuration));
     }
@@ -53,7 +55,8 @@ class OntologyConfigurationTest {
                 property("metadataSnapshotId", "snapshot-001"),
                 property("metadataDigest", "not-a-digest"),
                 property("runtimeProviderId", "demo-mongo-readonly"),
-                property("workspaceId", "workspace-1")));
+                property("workspaceId", "workspace-1"),
+                property("datasourceId", "datasource-1")));
 
         assertThrows(IllegalArgumentException.class, () -> OntologyDatasourceConfiguration.from(configuration));
     }
@@ -93,6 +96,7 @@ class OntologyConfigurationTest {
         assertHiddenPropertyKey(children, 3, "metadataDigest");
         assertHiddenPropertyKey(children, 4, "runtimeProviderId");
         assertHiddenPropertyKey(children, 5, "workspaceId");
+        assertHiddenPropertyKey(children, 6, "datasourceId");
     }
 
     @Test
@@ -101,10 +105,10 @@ class OntologyConfigurationTest {
                 .readTree(getClass().getResourceAsStream("/form.json"))
                 .at("/form/0/children");
 
-        assertHiddenPropertyKey(children, 6, "projectName");
-        assertHiddenPropertyKey(children, 7, "sourceKind");
-        assertReadOnlyPropertyValue(children, 6);
+        assertHiddenPropertyKey(children, 7, "projectName");
+        assertHiddenPropertyKey(children, 8, "sourceKind");
         assertReadOnlyPropertyValue(children, 7);
+        assertReadOnlyPropertyValue(children, 8);
     }
 
     private DatasourceConfiguration datasourceConfiguration() {
@@ -115,7 +119,8 @@ class OntologyConfigurationTest {
                 property("metadataSnapshotId", "snapshot-001"),
                 property("metadataDigest", "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"),
                 property("runtimeProviderId", "demo-mongo-readonly"),
-                property("workspaceId", "workspace-1")));
+                property("workspaceId", "workspace-1"),
+                property("datasourceId", "datasource-1")));
         return configuration;
     }
 

@@ -2,6 +2,7 @@ package com.celanworksmith.plugins.ontology;
 
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionExecutionResult;
+import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -87,8 +88,104 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals(0, gateway.linkCalls);
     }
 
+    @Test
+    void executesActionThroughTheWorkspaceActionServerWithTrustedContext() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "objectTypeId", "PurchaseOrder",
+                        "objectId", "PO001",
+                        "parameters", Map.of("newScheduleDate", "2026-09-01")));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(Map.of("status", "accepted", "auditId", "audit-123"), result.getBody());
+        assertEquals("workspace-1", actionServer.request.workspaceId());
+        assertEquals("supply-chain", actionServer.request.projectId());
+        assertEquals("1.0.0", actionServer.request.projectVersion());
+        assertEquals("datasource-1", actionServer.request.datasourceId());
+        assertEquals("reschedulePurchaseOrder", actionServer.request.actionId());
+        assertEquals("PurchaseOrder", actionServer.request.objectTypeId());
+        assertEquals("PO001", actionServer.request.objectId());
+        assertEquals(Map.of("newScheduleDate", "2026-09-01"), actionServer.request.parameters());
+        assertEquals(DIGEST, actionServer.request.context().get("metadataDigest"));
+        assertEquals("snapshot-001", actionServer.request.context().get("metadataSnapshotId"));
+        assertTrue(actionServer.request.idempotencyKey().startsWith("ontology-action:"));
+    }
+
+    @Test
+    void retainsAuditIdWhenTheActionServerReturnsADomainError() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        actionServer.domainFailure = new OntologyActionServerClient.DomainException("Schedule rejected", "audit-456");
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "objectTypeId", "PurchaseOrder",
+                        "objectId", "PO001"));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Schedule rejected"));
+        assertTrue(result.getReadableError().contains("audit-456"));
+    }
+
+    @Test
+    void rejectsCallerSuppliedActionServerContextBeforeItIsInvoked() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "projectVersion", "2.0.0",
+                        "objectTypeId", "PurchaseOrder",
+                        "objectId", "PO001"));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("cannot override: projectVersion"));
+        assertEquals(0, actionServer.calls);
+    }
+
+    @Test
+    void rejectsUnknownActionBeforeItInvokesTheActionServer() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of("actionId", "unknown", "objectTypeId", "PurchaseOrder", "objectId", "PO001"));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown ontology action"));
+        assertEquals(0, actionServer.calls);
+    }
+
     private ActionExecutionResult execute(RecordingGateway gateway, String operation, Map<String, Object> definition) {
-        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+        return execute(gateway, null, operation, definition);
+    }
+
+    private ActionExecutionResult execute(
+            RecordingGateway gateway,
+            RecordingActionServer actionServer,
+            String operation,
+            Map<String, Object> definition) {
+        OntologyPlugin.OntologyPluginExecutor executor = actionServer == null
+                ? new OntologyPlugin.OntologyPluginExecutor(gateway)
+                : new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> Mono.just(actionServer));
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(Map.of("operation", operation, "definition", definition));
         return executor.execute(datasource(), null, action).block();
@@ -96,7 +193,7 @@ class OntologyFunctionLinkActionExecutorTest {
 
     private OntologyDatasourceConfiguration datasource() {
         return new OntologyDatasourceConfiguration(
-                "supply-chain", "1.0.0", "snapshot-001", DIGEST, "provider-1", "workspace-1");
+                "supply-chain", "1.0.0", "snapshot-001", DIGEST, "provider-1", "workspace-1", "datasource-1");
     }
 
     private static final class RecordingGateway implements OntologyRuntimeGateway {
@@ -114,7 +211,10 @@ class OntologyFunctionLinkActionExecutorTest {
                                 "integer",
                                 List.of(new PropertyMetadata("threshold", "integer", false, false)))),
                 List.of(new LinkMetadata("po_delivery", "PurchaseOrder", "DeliveryOrder")),
-                List.of());
+                List.of(new ActionMetadata(
+                        "reschedulePurchaseOrder",
+                        "PurchaseOrder",
+                        List.of(new PropertyMetadata("newScheduleDate", "string", false, false)))));
         private Map<String, Object> functionParameters;
         private String linkId;
         private int functionCalls;
@@ -145,6 +245,22 @@ class OntologyFunctionLinkActionExecutorTest {
             linkCalls++;
             linkId = requestedLinkId;
             return Mono.just(List.of(Map.of("id", "delivery-1")));
+        }
+    }
+
+    private static final class RecordingActionServer implements OntologyActionServerClient {
+        private Request request;
+        private int calls;
+        private DomainException domainFailure;
+
+        @Override
+        public Mono<Result> execute(Request actionRequest) {
+            calls++;
+            request = actionRequest;
+            if (domainFailure != null) {
+                return Mono.error(domainFailure);
+            }
+            return Mono.just(new Result(Map.of("status", "accepted"), "audit-123"));
         }
     }
 }

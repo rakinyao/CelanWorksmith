@@ -8,9 +8,11 @@ import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.DatasourceTestResult;
 import com.appsmith.external.plugins.BasePlugin;
 import com.appsmith.external.plugins.PluginExecutor;
+import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQueryResult;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
+import com.celanworksmith.ontology.datasource.WorkspaceActionServerConfigurationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.pf4j.Extension;
 import org.pf4j.PluginWrapper;
@@ -18,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public class OntologyPlugin extends BasePlugin {
 
@@ -28,10 +31,21 @@ public class OntologyPlugin extends BasePlugin {
     @Extension
     public static class OntologyPluginExecutor implements PluginExecutor<OntologyDatasourceConfiguration> {
         private final OntologyRuntimeGateway runtimeGateway;
+        private final WorkspaceActionServerConfigurationResolver actionServerResolver;
         private final OntologyQueryValidator queryValidator;
 
         public OntologyPluginExecutor(OntologyRuntimeGateway runtimeGateway) {
+            this(
+                    runtimeGateway,
+                    workspaceId -> Mono.error(new IllegalStateException(
+                            "Ontology Action Server is not configured for workspace: " + workspaceId)));
+        }
+
+        public OntologyPluginExecutor(
+                OntologyRuntimeGateway runtimeGateway,
+                WorkspaceActionServerConfigurationResolver actionServerResolver) {
             this.runtimeGateway = runtimeGateway;
+            this.actionServerResolver = actionServerResolver;
             this.queryValidator = new OntologyQueryValidator(new ObjectMapper());
         }
 
@@ -80,8 +94,7 @@ public class OntologyPlugin extends BasePlugin {
                             executeValidatedObjectQuery(datasourceConfiguration, configuration, snapshot);
                         case FUNCTION_QUERY -> executeFunctionQuery(datasourceConfiguration, configuration, snapshot);
                         case LINK_QUERY -> executeLinkQuery(datasourceConfiguration, configuration, snapshot);
-                        case ACTION_QUERY ->
-                            Mono.error(new IllegalArgumentException("Ontology ACTION_QUERY is not configured"));
+                        case ACTION_QUERY -> executeActionQuery(datasourceConfiguration, configuration, snapshot);
                     });
         }
 
@@ -139,11 +152,55 @@ public class OntologyPlugin extends BasePlugin {
                     .map(this::successResult);
         }
 
+        private Mono<ActionExecutionResult> executeActionQuery(
+                OntologyDatasourceConfiguration datasourceConfiguration,
+                OntologyActionConfiguration configuration,
+                Snapshot snapshot) {
+            validateSnapshotPin(datasourceConfiguration, snapshot);
+            Map<String, Object> parameters = queryValidator.validateActionParameters(configuration, snapshot);
+            OntologyActionServerClient.Request request = new OntologyActionServerClient.Request(
+                    datasourceConfiguration.workspaceId(),
+                    datasourceConfiguration.projectId(),
+                    datasourceConfiguration.projectVersion(),
+                    datasourceConfiguration.datasourceId(),
+                    (String) configuration.definition().get("actionId"),
+                    (String) configuration.definition().get("objectTypeId"),
+                    (String) configuration.definition().get("objectId"),
+                    parameters,
+                    Map.of(
+                            "metadataSnapshotId", datasourceConfiguration.metadataSnapshotId(),
+                            "metadataDigest", datasourceConfiguration.metadataDigest()),
+                    "ontology-action:" + UUID.randomUUID());
+            return actionServerResolver
+                    .resolveRequired(datasourceConfiguration.workspaceId())
+                    .flatMap(client -> client.execute(request))
+                    .map(this::actionSuccessResult)
+                    .onErrorMap(OntologyActionServerClient.DomainException.class, this::actionServerFailure);
+        }
+
         private ActionExecutionResult successResult(Object body) {
             ActionExecutionResult executionResult = new ActionExecutionResult();
             executionResult.setBody(body);
             executionResult.setIsExecutionSuccess(true);
             return executionResult;
+        }
+
+        private ActionExecutionResult actionSuccessResult(OntologyActionServerClient.Result result) {
+            return successResult(actionResultBody(result));
+        }
+
+        private Map<String, Object> actionResultBody(OntologyActionServerClient.Result result) {
+            if (result.body() instanceof Map<?, ?> values) {
+                Map<String, Object> body = new java.util.LinkedHashMap<>();
+                values.forEach((key, value) -> body.put(String.valueOf(key), value));
+                body.put("auditId", result.auditId());
+                return Map.copyOf(body);
+            }
+            return Map.of("data", result.body(), "auditId", result.auditId());
+        }
+
+        private IllegalStateException actionServerFailure(OntologyActionServerClient.DomainException error) {
+            return new IllegalStateException(error.getMessage() + " (auditId: " + error.auditId() + ")", error);
         }
 
         private void validateSnapshotPin(OntologyDatasourceConfiguration datasourceConfiguration, Snapshot snapshot) {

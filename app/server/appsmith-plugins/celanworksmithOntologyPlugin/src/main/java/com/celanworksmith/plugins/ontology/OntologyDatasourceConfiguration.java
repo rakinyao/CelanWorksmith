@@ -14,7 +14,8 @@ public record OntologyDatasourceConfiguration(
         String metadataSnapshotId,
         String metadataDigest,
         String runtimeProviderId,
-        String workspaceId) {
+        String workspaceId,
+        String datasourceId) {
 
     private static final Pattern SHA_256_DIGEST = Pattern.compile("sha256:[0-9a-fA-F]{64}");
 
@@ -30,13 +31,20 @@ public record OntologyDatasourceConfiguration(
         String metadataDigest = required(properties, "metadataDigest");
         String runtimeProviderId = required(properties, "runtimeProviderId");
         String workspaceId = required(properties, "workspaceId");
+        String datasourceId = required(properties, "datasourceId");
 
         if (!SHA_256_DIGEST.matcher(metadataDigest).matches()) {
             throw new IllegalArgumentException("Metadata digest must be a sha256 digest");
         }
 
         return new OntologyDatasourceConfiguration(
-                projectId, projectVersion, metadataSnapshotId, metadataDigest, runtimeProviderId, workspaceId);
+                projectId,
+                projectVersion,
+                metadataSnapshotId,
+                metadataDigest,
+                runtimeProviderId,
+                workspaceId,
+                datasourceId);
     }
 
     private static Map<String, String> propertiesByKey(List<Property> properties) {

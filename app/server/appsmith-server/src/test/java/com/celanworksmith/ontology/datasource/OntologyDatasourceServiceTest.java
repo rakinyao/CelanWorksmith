@@ -46,6 +46,11 @@ class OntologyDatasourceServiceTest {
             created.set(datasource);
             return Mono.just(datasource);
         });
+        when(datasourceService.updateDatasourceStorage(any(), eq(""), eq(true))).thenAnswer(invocation -> {
+            DatasourceStorageDTO storage = invocation.getArgument(0);
+            created.get().setDatasourceStorages(Map.of("", storage));
+            return Mono.just(created.get());
+        });
         OntologyDatasourceService service =
                 new OntologyDatasourceService(workspaceService, datasourceService, List.of(importer), validator);
 
@@ -73,6 +78,8 @@ class OntologyDatasourceServiceTest {
                         Map.entry("metadataSnapshotId", "snapshot-1"),
                         Map.entry("metadataDigest", "sha256:" + "a".repeat(64)),
                         Map.entry("runtimeProviderId", "demo-mongo-readonly"),
+                        Map.entry("workspaceId", "workspace-1"),
+                        Map.entry("datasourceId", "datasource-1"),
                         Map.entry("projectName", "Supply Chain"),
                         Map.entry("sourceKind", "local-yaml"));
     }
@@ -243,6 +250,8 @@ class OntologyDatasourceServiceTest {
                         new Property("metadataSnapshotId", snapshot.id()),
                         new Property("metadataDigest", snapshot.metadataDigest()),
                         new Property("runtimeProviderId", snapshot.runtimeProviderId()),
+                        new Property("workspaceId", "workspace-1"),
+                        new Property("datasourceId", "datasource-1"),
                         new Property("projectName", "Supply Chain"),
                         new Property("sourceKind", snapshot.sourceKind())))
                 .build();

@@ -53,6 +53,7 @@ public class OntologyDatasourceService {
                                         + String.join("; ", validation.errors())))))
                 .map(snapshot -> datasource(request, snapshot))
                 .flatMap(datasourceService::create)
+                .flatMap(this::persistDatasourceId)
                 .map(datasource -> summary(datasource, request.changeNote()));
     }
 
@@ -121,9 +122,26 @@ public class OntologyDatasourceService {
                         property("metadataDigest", snapshot.metadataDigest()),
                         property("runtimeProviderId", snapshot.runtimeProviderId()),
                         property("workspaceId", workspaceId),
+                        property("datasourceId", "pending"),
                         property("projectName", datasourceName),
                         property("sourceKind", snapshot.sourceKind())))
                 .build();
+    }
+
+    private Mono<Datasource> persistDatasourceId(Datasource datasource) {
+        if (isBlank(datasource.getId())) {
+            return Mono.error(new IllegalStateException("Created ontology datasource has no ID"));
+        }
+        DatasourceStorageDTO storage = requiredStorage(datasource);
+        DatasourceConfiguration configuration = storage.getDatasourceConfiguration();
+        List<Property> properties = configuration.getProperties().stream()
+                .map(property -> property != null && "datasourceId".equals(property.getKey())
+                        ? property("datasourceId", datasource.getId())
+                        : property)
+                .toList();
+        configuration.setProperties(List.copyOf(properties));
+        storage.setDatasourceId(datasource.getId());
+        return datasourceService.updateDatasourceStorage(storage, storage.getEnvironmentId(), true);
     }
 
     private OntologyDatasourceSummary summary(Datasource datasource, String changeNote) {

@@ -23,6 +23,7 @@ import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.ontology.datasource.PlatformOntologyProjectImporter;
 import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
 import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
+import com.celanworksmith.ontology.datasource.WorkspaceActionServerConfigurationResolver;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.ontology.project.OntologyProjectYamlImporter;
@@ -72,6 +73,12 @@ public class CelanWorksmithConfiguration {
     public OntologyRuntimeGateway ontologyRuntimeGateway(
             OntologySnapshotService snapshotService, RuntimeProviderRegistry runtimeProviderRegistry) {
         return new OntologySnapshotRuntimeGateway(snapshotService, runtimeProviderRegistry);
+    }
+
+    @Bean
+    public WorkspaceActionServerConfigurationResolver workspaceActionServerConfigurationResolver() {
+        return workspaceId -> reactor.core.publisher.Mono.error(
+                new IllegalStateException("Ontology Action Server is not configured for workspace: " + workspaceId));
     }
 
     @Bean
