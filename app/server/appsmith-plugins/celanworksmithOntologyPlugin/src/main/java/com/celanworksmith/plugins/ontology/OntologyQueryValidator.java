@@ -1,5 +1,7 @@
 package com.celanworksmith.plugins.ontology;
 
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.FunctionMetadata;
+import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.LinkMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectTypeMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.PropertyMetadata;
@@ -40,6 +42,54 @@ final class OntologyQueryValidator {
         Sort sort = sort(definition, properties);
         Page page = page(definition);
         return new ObjectQuery(projection, filter, sort.propertyId(), sort.direction(), page.offset(), page.limit());
+    }
+
+    Map<String, Object> validateFunctionParameters(OntologyActionConfiguration configuration, Snapshot snapshot) {
+        String functionId = requiredStableId(configuration.definition(), "functionId");
+        FunctionMetadata function = snapshot.functions().stream()
+                .filter(candidate -> functionId.equals(candidate.id()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + functionId));
+        Object supplied = configuration.definition().getOrDefault("parameters", Map.of());
+        if (!(supplied instanceof Map<?, ?> rawParameters)) {
+            throw new IllegalArgumentException("Ontology function parameters must be an object");
+        }
+        Map<String, Object> parameters = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawParameters.entrySet()) {
+            if (!(entry.getKey() instanceof String parameterId)) {
+                throw new IllegalArgumentException("Ontology function parameter IDs must be strings");
+            }
+            PropertyMetadata parameter = function.parameters().stream()
+                    .filter(candidate -> parameterId.equals(candidate.id()))
+                    .findFirst()
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("Unknown ontology function parameter: " + parameterId));
+            JsonNode value = objectMapper.valueToTree(entry.getValue());
+            if (!matchesType(value, parameter.dataType())) {
+                throw new IllegalArgumentException("Ontology function parameter " + parameterId + " must be an "
+                        + parameter.dataType().toLowerCase(java.util.Locale.ROOT));
+            }
+            parameters.put(parameterId, entry.getValue());
+        }
+        for (PropertyMetadata parameter : function.parameters()) {
+            if (parameter.required() && !parameters.containsKey(parameter.id())) {
+                throw new IllegalArgumentException("Ontology function parameter is required: " + parameter.id());
+            }
+        }
+        return Map.copyOf(parameters);
+    }
+
+    void validateLink(OntologyActionConfiguration configuration, Snapshot snapshot) {
+        String linkId = requiredStableId(configuration.definition(), "linkId");
+        String sourceTypeId = requiredStableId(configuration.definition(), "sourceTypeId");
+        requiredStableId(configuration.definition(), "sourceId");
+        LinkMetadata link = snapshot.links().stream()
+                .filter(candidate -> linkId.equals(candidate.id()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown ontology link: " + linkId));
+        if (!sourceTypeId.equals(link.sourceTypeId())) {
+            throw new IllegalArgumentException("Ontology link does not apply to source type: " + sourceTypeId);
+        }
     }
 
     private ObjectTypeMetadata objectType(Snapshot snapshot, String objectTypeId) {

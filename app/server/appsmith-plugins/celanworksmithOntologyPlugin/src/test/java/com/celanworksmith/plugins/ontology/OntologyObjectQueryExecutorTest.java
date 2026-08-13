@@ -132,7 +132,8 @@ class OntologyObjectQueryExecutorTest {
     }
 
     private OntologyDatasourceConfiguration datasource() {
-        return new OntologyDatasourceConfiguration("supply-chain", "1.0.0", SNAPSHOT_ID, DIGEST, "demo-mongo-readonly");
+        return new OntologyDatasourceConfiguration(
+                "supply-chain", "1.0.0", SNAPSHOT_ID, DIGEST, "demo-mongo-readonly", "workspace-1");
     }
 
     private RecordingGateway gateway() {

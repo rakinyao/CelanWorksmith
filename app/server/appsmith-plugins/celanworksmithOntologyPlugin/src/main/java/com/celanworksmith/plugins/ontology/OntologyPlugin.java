@@ -65,20 +65,24 @@ public class OntologyPlugin extends BasePlugin {
                 OntologyDatasourceConfiguration datasourceConfiguration,
                 DatasourceConfiguration datasourceConfigurationInput,
                 ActionConfiguration actionConfiguration) {
-            return Mono.defer(() -> executeObjectQuery(datasourceConfiguration, actionConfiguration))
+            return Mono.defer(() -> executeQuery(datasourceConfiguration, actionConfiguration))
                     .onErrorResume(this::failedResult);
         }
 
-        private Mono<ActionExecutionResult> executeObjectQuery(
+        private Mono<ActionExecutionResult> executeQuery(
                 OntologyDatasourceConfiguration datasourceConfiguration, ActionConfiguration actionConfiguration) {
             OntologyActionConfiguration configuration = OntologyActionConfiguration.from(actionConfiguration);
-            if (configuration.operation() != OntologyActionConfiguration.Operation.OBJECT_QUERY) {
-                return Mono.error(new IllegalArgumentException("Ontology executor only supports OBJECT_QUERY"));
-            }
             return runtimeGateway
                     .getRequiredSnapshot(
                             datasourceConfiguration.metadataSnapshotId(), datasourceConfiguration.metadataDigest())
-                    .flatMap(snapshot -> executeValidatedObjectQuery(datasourceConfiguration, configuration, snapshot));
+                    .flatMap(snapshot -> switch (configuration.operation()) {
+                        case OBJECT_QUERY ->
+                            executeValidatedObjectQuery(datasourceConfiguration, configuration, snapshot);
+                        case FUNCTION_QUERY -> executeFunctionQuery(datasourceConfiguration, configuration, snapshot);
+                        case LINK_QUERY -> executeLinkQuery(datasourceConfiguration, configuration, snapshot);
+                        case ACTION_QUERY ->
+                            Mono.error(new IllegalArgumentException("Ontology ACTION_QUERY is not configured"));
+                    });
         }
 
         private Mono<ActionExecutionResult> executeValidatedObjectQuery(
@@ -105,6 +109,48 @@ public class OntologyPlugin extends BasePlugin {
                     .toList());
             executionResult.setIsExecutionSuccess(true);
             return executionResult;
+        }
+
+        private Mono<ActionExecutionResult> executeFunctionQuery(
+                OntologyDatasourceConfiguration datasourceConfiguration,
+                OntologyActionConfiguration configuration,
+                Snapshot snapshot) {
+            validateSnapshotPin(datasourceConfiguration, snapshot);
+            Map<String, Object> parameters = queryValidator.validateFunctionParameters(configuration, snapshot);
+            String functionId = (String) configuration.definition().get("functionId");
+            return runtimeGateway
+                    .executeFunction(datasourceConfiguration.runtimeProviderId(), snapshot, functionId, parameters)
+                    .map(this::successResult);
+        }
+
+        private Mono<ActionExecutionResult> executeLinkQuery(
+                OntologyDatasourceConfiguration datasourceConfiguration,
+                OntologyActionConfiguration configuration,
+                Snapshot snapshot) {
+            validateSnapshotPin(datasourceConfiguration, snapshot);
+            queryValidator.validateLink(configuration, snapshot);
+            return runtimeGateway
+                    .resolveLink(
+                            datasourceConfiguration.runtimeProviderId(),
+                            snapshot,
+                            (String) configuration.definition().get("sourceTypeId"),
+                            (String) configuration.definition().get("sourceId"),
+                            (String) configuration.definition().get("linkId"))
+                    .map(this::successResult);
+        }
+
+        private ActionExecutionResult successResult(Object body) {
+            ActionExecutionResult executionResult = new ActionExecutionResult();
+            executionResult.setBody(body);
+            executionResult.setIsExecutionSuccess(true);
+            return executionResult;
+        }
+
+        private void validateSnapshotPin(OntologyDatasourceConfiguration datasourceConfiguration, Snapshot snapshot) {
+            if (!datasourceConfiguration.metadataSnapshotId().equals(snapshot.id())
+                    || !datasourceConfiguration.metadataDigest().equals(snapshot.digest())) {
+                throw new IllegalArgumentException("Ontology metadata snapshot does not match datasource pin");
+            }
         }
 
         private Map<String, Object> projectedItem(Map<String, Object> item, java.util.List<String> projection) {

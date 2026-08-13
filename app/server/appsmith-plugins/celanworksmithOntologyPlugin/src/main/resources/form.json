@@ -5,31 +5,38 @@
       "children": [
         {
           "label": "Project Name key",
-          "configProperty": "datasourceConfiguration.properties[5].key",
+          "configProperty": "datasourceConfiguration.properties[6].key",
           "initialValue": "projectName",
           "controlType": "INPUT_TEXT",
           "hidden": true
         },
         {
           "label": "Project Name",
-          "configProperty": "datasourceConfiguration.properties[5].value",
+          "configProperty": "datasourceConfiguration.properties[6].value",
           "initialValue": "",
           "controlType": "INPUT_TEXT",
           "disabled": true
         },
         {
           "label": "Source Kind key",
-          "configProperty": "datasourceConfiguration.properties[6].key",
+          "configProperty": "datasourceConfiguration.properties[7].key",
           "initialValue": "sourceKind",
           "controlType": "INPUT_TEXT",
           "hidden": true
         },
         {
           "label": "Source Kind",
-          "configProperty": "datasourceConfiguration.properties[6].value",
+          "configProperty": "datasourceConfiguration.properties[7].value",
           "initialValue": "",
           "controlType": "INPUT_TEXT",
           "disabled": true
+        },
+        {
+          "label": "Workspace ID key",
+          "configProperty": "datasourceConfiguration.properties[5].key",
+          "initialValue": "workspaceId",
+          "controlType": "INPUT_TEXT",
+          "hidden": true
         },
         {
           "label": "Project ID key",

@@ -46,6 +46,15 @@ public interface RuntimeProvider {
 
     Mono<ObjectSetResult> getLinks(String typeId, String instanceId, String linkTypeId, ObjectSetQuery query);
 
+    default Mono<ObjectSetResult> getLinks(
+            OntologyProjectDefinition definition,
+            String typeId,
+            String instanceId,
+            String linkTypeId,
+            ObjectSetQuery query) {
+        return getLinks(typeId, instanceId, linkTypeId, query);
+    }
+
     default Mono<ObjectSetResult> queryObjects(
             CelanworksmithRuntimeContext context, String typeId, ObjectSetQuery query) {
         return queryObjects(typeId, query);
@@ -72,6 +81,11 @@ public interface RuntimeProvider {
     }
 
     Mono<Object> executeFunction(String functionId, FunctionExecutionRequest request);
+
+    default Mono<Object> executeFunction(
+            OntologyProjectDefinition definition, String functionId, FunctionExecutionRequest request) {
+        return executeFunction(functionId, request);
+    }
 
     default Mono<Object> executeFunction(
             CelanworksmithRuntimeContext context, String functionId, FunctionExecutionRequest request) {

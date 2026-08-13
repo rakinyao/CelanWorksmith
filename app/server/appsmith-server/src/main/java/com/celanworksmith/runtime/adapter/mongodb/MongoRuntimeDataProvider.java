@@ -165,6 +165,51 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         });
     }
 
+    @Override
+    public Mono<ObjectSetResult> getLinks(
+            OntologyProjectDefinition definition,
+            String typeId,
+            String instanceId,
+            String linkTypeId,
+            ObjectSetQuery query) {
+        if (definition == null) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Ontology project definition is required"));
+        }
+        ObjectTypeDTO sourceType = definition.objectTypes().stream()
+                .filter(candidate -> candidate.id().equals(typeId))
+                .findFirst()
+                .orElseThrow(() -> new CelanWorksmithException(
+                        CelanWorksmithErrorCode.OBJECT_TYPE_NOT_FOUND, "Unknown object type: " + typeId));
+        LinkTypeDTO link = definition.linkTypes().stream()
+                .filter(candidate -> candidate.id().equals(linkTypeId)
+                        && candidate.sourceTypeId().equals(typeId))
+                .findFirst()
+                .orElseThrow(() -> new CelanWorksmithException(
+                        CelanWorksmithErrorCode.LINK_TYPE_NOT_FOUND,
+                        "Link type is not valid for source type: " + typeId + "/" + linkTypeId));
+        return template.findOne(
+                        Query.query(Criteria.where("_id").is(instanceId)),
+                        MongoRuntimeObjectDocument.class,
+                        collection(sourceType))
+                .switchIfEmpty(Mono.error(new CelanWorksmithException(
+                        CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: " + typeId + "/" + instanceId)))
+                .then(resolveType(definition, link.targetTypeId()))
+                .flatMap(targetType -> {
+                    String reference = typeId.substring(0, 1).toLowerCase() + typeId.substring(1) + "Id";
+                    ObjectSetQuery supplied = query == null ? ObjectSetQuery.defaults() : query;
+                    return queryMongo(
+                            targetType,
+                            new ObjectSetQuery(
+                                    mergeRelationshipFilter(targetType, supplied.filter(), reference, instanceId),
+                                    supplied.sortBy(),
+                                    supplied.sortDirection(),
+                                    supplied.offset(),
+                                    supplied.limit(),
+                                    supplied.searchText()));
+                });
+    }
+
     private Mono<ObjectSetResult> queryMongo(ObjectTypeDTO type, ObjectSetQuery supplied) {
         ObjectSetQuery query = supplied == null ? ObjectSetQuery.defaults() : supplied;
         validateQuery(type, query);

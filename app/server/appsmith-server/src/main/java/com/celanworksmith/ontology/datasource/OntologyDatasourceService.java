@@ -105,11 +105,14 @@ public class OntologyDatasourceService {
         datasource.setDatasourceStorages(Map.of(
                 DEFAULT_ENVIRONMENT_ID,
                 new DatasourceStorageDTO(
-                        null, DEFAULT_ENVIRONMENT_ID, configuration(request.datasourceName(), snapshot))));
+                        null,
+                        DEFAULT_ENVIRONMENT_ID,
+                        configuration(request.datasourceName(), request.workspaceId(), snapshot))));
         return datasource;
     }
 
-    private DatasourceConfiguration configuration(String datasourceName, OntologyMetadataSnapshot snapshot) {
+    private DatasourceConfiguration configuration(
+            String datasourceName, String workspaceId, OntologyMetadataSnapshot snapshot) {
         return DatasourceConfiguration.builder()
                 .properties(List.of(
                         property("projectId", snapshot.projectId()),
@@ -117,6 +120,7 @@ public class OntologyDatasourceService {
                         property("metadataSnapshotId", snapshot.id()),
                         property("metadataDigest", snapshot.metadataDigest()),
                         property("runtimeProviderId", snapshot.runtimeProviderId()),
+                        property("workspaceId", workspaceId),
                         property("projectName", datasourceName),
                         property("sourceKind", snapshot.sourceKind())))
                 .build();

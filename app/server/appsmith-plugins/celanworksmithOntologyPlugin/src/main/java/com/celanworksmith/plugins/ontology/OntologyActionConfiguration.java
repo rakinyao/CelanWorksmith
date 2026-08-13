@@ -54,6 +54,11 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         Map<String, Object> definition = rawDefinition.entrySet().stream()
                 .collect(java.util.stream.Collectors.toUnmodifiableMap(
                         entry -> String.valueOf(entry.getKey()), Map.Entry::getValue));
+        for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
+            if (definition.containsKey(protectedKey)) {
+                throw new IllegalArgumentException("Action configuration cannot override: " + protectedKey);
+            }
+        }
         validateRequiredIdentifier(operation, definition);
         return new OntologyActionConfiguration(operation, definition);
     }

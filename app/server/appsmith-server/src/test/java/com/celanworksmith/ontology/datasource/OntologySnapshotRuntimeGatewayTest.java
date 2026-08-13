@@ -77,6 +77,52 @@ class OntologySnapshotRuntimeGatewayTest {
                         snapshot.definition(), "PurchaseOrder", new ObjectSetQuery(null, "amount", "desc", 20, 10));
     }
 
+    @Test
+    void executesFunctionsAndResolvesLinksThroughThePinnedDefinition() {
+        OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
+        RuntimeProvider provider = mock(RuntimeProvider.class);
+        OntologyMetadataSnapshot snapshot = snapshot();
+        when(snapshotService.getRequiredSnapshot(snapshot.id(), snapshot.metadataDigest()))
+                .thenReturn(Mono.just(snapshot));
+        when(provider.providerId()).thenReturn("demo-mongo-readonly");
+        when(provider.executeFunction(eq(snapshot.definition()), eq("delayScore"), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Mono.just(50));
+        when(provider.getLinks(
+                        eq(snapshot.definition()),
+                        eq("PurchaseOrder"),
+                        eq("po-1"),
+                        eq("po_delivery"),
+                        org.mockito.ArgumentMatchers.any(ObjectSetQuery.class)))
+                .thenReturn(Mono.just(new ObjectSetResult(
+                        "DeliveryOrder",
+                        List.of(new ObjectInstanceDTO("delivery-1", "DeliveryOrder", Map.of("status", "LATE"))),
+                        0,
+                        50,
+                        1)));
+        OntologyRuntimeGateway gateway =
+                new OntologySnapshotRuntimeGateway(snapshotService, new RuntimeProviderRegistry(List.of(provider)));
+        OntologyRuntimeGateway.Snapshot pinned =
+                new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
+
+        StepVerifier.create(
+                        gateway.executeFunction("demo-mongo-readonly", pinned, "delayScore", Map.of("delayDays", 5)))
+                .expectNext(50)
+                .verifyComplete();
+        StepVerifier.create(gateway.resolveLink("demo-mongo-readonly", pinned, "PurchaseOrder", "po-1", "po_delivery"))
+                .expectNext(List.of(Map.of("id", "delivery-1", "status", "LATE")))
+                .verifyComplete();
+
+        verify(provider)
+                .executeFunction(eq(snapshot.definition()), eq("delayScore"), org.mockito.ArgumentMatchers.any());
+        verify(provider)
+                .getLinks(
+                        eq(snapshot.definition()),
+                        eq("PurchaseOrder"),
+                        eq("po-1"),
+                        eq("po_delivery"),
+                        org.mockito.ArgumentMatchers.any(ObjectSetQuery.class));
+    }
+
     private OntologyMetadataSnapshot snapshot() {
         return new OntologyMetadataSnapshot(
                 "snapshot-1",
@@ -100,8 +146,14 @@ class OntologySnapshotRuntimeGatewayTest {
                                         new PropertyDTO("amount", "Amount", "DECIMAL", true, false, false)),
                                 null,
                                 "id")),
-                        List.of(),
-                        List.of(),
+                        List.of(new com.celanworksmith.ontology.dto.LinkTypeDTO(
+                                "po_delivery", "Delivery", "PurchaseOrder", "DeliveryOrder", "ONE_TO_ONE")),
+                        List.of(new com.celanworksmith.ontology.dto.FunctionDTO(
+                                "delayScore",
+                                "Delay Score",
+                                "INTEGER",
+                                List.of(new PropertyDTO("delayDays", "Delay Days", "INTEGER", true, false, false)),
+                                true)),
                         List.of()));
     }
 }
