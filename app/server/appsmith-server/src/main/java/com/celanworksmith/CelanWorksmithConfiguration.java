@@ -1,6 +1,7 @@
 package com.celanworksmith;
 
 import com.appsmith.server.datasources.base.DatasourceService;
+import com.appsmith.server.repositories.NewActionRepository;
 import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
 import com.celanworksmith.application.CelanworksmithApplicationBindingResolver;
@@ -10,7 +11,9 @@ import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
 import com.celanworksmith.ontology.datasource.DemoOntologyProjectBootstrap;
 import com.celanworksmith.ontology.datasource.LocalYamlOntologyProjectImporter;
+import com.celanworksmith.ontology.datasource.OntologyDatasourceCompatibilityService;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
+import com.celanworksmith.ontology.datasource.OntologyDatasourceUpgradeService;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
 import com.celanworksmith.ontology.datasource.OntologyProjectImportSource;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
@@ -32,6 +35,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -99,6 +103,30 @@ public class CelanWorksmithConfiguration {
             List<OntologyProjectImportSource> importers,
             RuntimeProviderCompatibilityValidator compatibilityValidator) {
         return new OntologyDatasourceService(workspaceService, datasourceService, importers, compatibilityValidator);
+    }
+
+    @Bean
+    public OntologyDatasourceCompatibilityService ontologyDatasourceCompatibilityService(
+            DatasourceService datasourceService,
+            NewActionRepository actionRepository,
+            OntologyMetadataSnapshotRepository snapshotRepository) {
+        return new OntologyDatasourceCompatibilityService(datasourceService, actionRepository, snapshotRepository);
+    }
+
+    @Bean
+    public OntologyDatasourceUpgradeService ontologyDatasourceUpgradeService(
+            DatasourceService datasourceService,
+            NewActionRepository actionRepository,
+            OntologyDatasourceCompatibilityService compatibilityService,
+            OntologyDatasourceUpgradeService.AuditStore auditStore,
+            TransactionalOperator transactionalOperator) {
+        return new OntologyDatasourceUpgradeService(
+                datasourceService,
+                actionRepository,
+                compatibilityService,
+                auditStore,
+                Clock.systemUTC(),
+                transactionalOperator);
     }
 
     @Bean

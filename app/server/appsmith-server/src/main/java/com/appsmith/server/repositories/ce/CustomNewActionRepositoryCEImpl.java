@@ -56,6 +56,16 @@ public class CustomNewActionRepositoryCEImpl extends BaseAppsmithRepositoryImpl<
     }
 
     @Override
+    public Flux<NewAction> findByDatasourceId(String datasourceId, AclPermission aclPermission) {
+        return queryBuilder()
+                .criteria(Bridge.or(
+                        Bridge.equal(NewAction.Fields.unpublishedAction_datasource_id, datasourceId),
+                        Bridge.equal(NewAction.Fields.publishedAction_datasource_id, datasourceId)))
+                .permission(aclPermission)
+                .all();
+    }
+
+    @Override
     public Flux<NewAction> findByApplicationId(
             String applicationId, Optional<AclPermission> aclPermission, Optional<Sort> sort) {
         return queryBuilder()

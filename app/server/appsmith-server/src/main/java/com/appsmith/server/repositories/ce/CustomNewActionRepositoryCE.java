@@ -50,6 +50,8 @@ public interface CustomNewActionRepositoryCE extends AppsmithRepository<NewActio
 
     Mono<Long> countByDatasourceId(String datasourceId);
 
+    Flux<NewAction> findByDatasourceId(String datasourceId, AclPermission aclPermission);
+
     Flux<NewAction> findByPageIds(List<String> pageIds, AclPermission permission);
 
     Flux<NewAction> findByPageIds(List<String> pageIds, Optional<AclPermission> permission);
