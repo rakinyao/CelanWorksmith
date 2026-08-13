@@ -1,15 +1,21 @@
 package com.celanworksmith.plugins.ontology;
 
+import com.appsmith.external.exceptions.pluginExceptions.AppsmithPluginError;
+import com.appsmith.external.exceptions.pluginExceptions.AppsmithPluginException;
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionExecutionResult;
 import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.DatasourceTestResult;
 import com.appsmith.external.plugins.BasePlugin;
 import com.appsmith.external.plugins.PluginExecutor;
+import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.ObjectQueryResult;
+import com.celanworksmith.plugins.ontology.OntologyRuntimeGateway.Snapshot;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.pf4j.Extension;
 import org.pf4j.PluginWrapper;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
 import java.util.Set;
 
 public class OntologyPlugin extends BasePlugin {
@@ -20,6 +26,17 @@ public class OntologyPlugin extends BasePlugin {
 
     @Extension
     public static class OntologyPluginExecutor implements PluginExecutor<OntologyDatasourceConfiguration> {
+        private final OntologyRuntimeGateway runtimeGateway;
+        private final OntologyQueryValidator queryValidator;
+
+        public OntologyPluginExecutor() {
+            this(new UnconfiguredOntologyRuntimeGateway());
+        }
+
+        OntologyPluginExecutor(OntologyRuntimeGateway runtimeGateway) {
+            this.runtimeGateway = runtimeGateway;
+            this.queryValidator = new OntologyQueryValidator(new ObjectMapper());
+        }
 
         @Override
         public Mono<OntologyDatasourceConfiguration> datasourceCreate(DatasourceConfiguration datasourceConfiguration) {
@@ -51,7 +68,78 @@ public class OntologyPlugin extends BasePlugin {
                 OntologyDatasourceConfiguration datasourceConfiguration,
                 DatasourceConfiguration datasourceConfigurationInput,
                 ActionConfiguration actionConfiguration) {
-            return Mono.error(new UnsupportedOperationException("Ontology query execution is not configured"));
+            return Mono.defer(() -> executeObjectQuery(datasourceConfiguration, actionConfiguration))
+                    .onErrorResume(this::failedResult);
+        }
+
+        private Mono<ActionExecutionResult> executeObjectQuery(
+                OntologyDatasourceConfiguration datasourceConfiguration, ActionConfiguration actionConfiguration) {
+            OntologyActionConfiguration configuration = OntologyActionConfiguration.from(actionConfiguration);
+            if (configuration.operation() != OntologyActionConfiguration.Operation.OBJECT_QUERY) {
+                return Mono.error(new IllegalArgumentException("Ontology executor only supports OBJECT_QUERY"));
+            }
+            return runtimeGateway
+                    .getRequiredSnapshot(
+                            datasourceConfiguration.metadataSnapshotId(), datasourceConfiguration.metadataDigest())
+                    .flatMap(snapshot -> executeValidatedObjectQuery(datasourceConfiguration, configuration, snapshot));
+        }
+
+        private Mono<ActionExecutionResult> executeValidatedObjectQuery(
+                OntologyDatasourceConfiguration datasourceConfiguration,
+                OntologyActionConfiguration configuration,
+                Snapshot snapshot) {
+            if (!datasourceConfiguration.metadataSnapshotId().equals(snapshot.id())
+                    || !datasourceConfiguration.metadataDigest().equals(snapshot.digest())) {
+                return Mono.error(
+                        new IllegalArgumentException("Ontology metadata snapshot does not match datasource pin"));
+            }
+            OntologyRuntimeGateway.ObjectQuery query = queryValidator.validateObjectQuery(configuration, snapshot);
+            String objectTypeId = (String) configuration.definition().get("objectTypeId");
+            return runtimeGateway
+                    .queryObjects(datasourceConfiguration.runtimeProviderId(), objectTypeId, query)
+                    .map(result -> successResult(result, query));
+        }
+
+        private ActionExecutionResult successResult(
+                ObjectQueryResult result, OntologyRuntimeGateway.ObjectQuery query) {
+            ActionExecutionResult executionResult = new ActionExecutionResult();
+            executionResult.setBody(result.items().stream()
+                    .map(item -> projectedItem(item, query.projection()))
+                    .toList());
+            executionResult.setIsExecutionSuccess(true);
+            return executionResult;
+        }
+
+        private Map<String, Object> projectedItem(Map<String, Object> item, java.util.List<String> projection) {
+            return projection.stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            propertyId -> propertyId, item::get, (left, right) -> left, java.util.LinkedHashMap::new));
+        }
+
+        private Mono<ActionExecutionResult> failedResult(Throwable error) {
+            ActionExecutionResult executionResult = new ActionExecutionResult();
+            executionResult.setIsExecutionSuccess(false);
+            executionResult.setReadableError(error.getMessage());
+            executionResult.setErrorInfo(new AppsmithPluginException(
+                    error,
+                    error instanceof IllegalArgumentException
+                            ? AppsmithPluginError.PLUGIN_EXECUTE_ARGUMENT_ERROR
+                            : AppsmithPluginError.PLUGIN_ERROR,
+                    error.getMessage()));
+            return Mono.just(executionResult);
+        }
+    }
+
+    private static final class UnconfiguredOntologyRuntimeGateway implements OntologyRuntimeGateway {
+        @Override
+        public Mono<Snapshot> getRequiredSnapshot(String snapshotId, String digest) {
+            return Mono.error(new IllegalStateException("Ontology runtime gateway is not configured"));
+        }
+
+        @Override
+        public Mono<ObjectQueryResult> queryObjects(
+                String providerId, String objectTypeId, OntologyRuntimeGateway.ObjectQuery query) {
+            return Mono.error(new IllegalStateException("Ontology runtime gateway is not configured"));
         }
     }
 }
