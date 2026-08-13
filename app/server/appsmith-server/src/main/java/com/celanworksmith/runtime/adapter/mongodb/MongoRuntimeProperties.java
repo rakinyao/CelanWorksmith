@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class MongoRuntimeProperties {
     private String uri = "mongodb://localhost:27017";
     private String database = "celanworksmith_runtime";
-    private String providerId = "mongodb-readonly";
+    private String providerId = "demo-mongo-readonly";
 
     public String getUri() {
         return uri;

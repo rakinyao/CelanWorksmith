@@ -34,9 +34,10 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
     private final ReactiveMongoTemplate template;
     private final CelanworksmithApplicationBindingResolver resolver;
     private final MongoClient client;
+    private final String providerId;
 
     public MongoRuntimeDataProvider(ReactiveMongoTemplate template, CelanworksmithApplicationBindingResolver resolver) {
-        this(template, resolver, null, new MockDataStore());
+        this(template, resolver, null, new MockDataStore(), "demo-mongo-readonly");
     }
 
     public MongoRuntimeDataProvider(
@@ -52,17 +53,38 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         this.client = MongoClients.create(properties.getUri());
         this.template = new ReactiveMongoTemplate(client, properties.getDatabase());
         this.resolver = resolver;
+        this.providerId = properties.getProviderId();
     }
 
     private MongoRuntimeDataProvider(
             ReactiveMongoTemplate template,
             CelanworksmithApplicationBindingResolver resolver,
             MongoClient client,
-            MockDataStore legacyStore) {
+            MockDataStore legacyStore,
+            String providerId) {
         super(legacyStore);
         this.template = template;
         this.resolver = resolver;
         this.client = client;
+        this.providerId = providerId;
+    }
+
+    @Override
+    public String providerId() {
+        return providerId;
+    }
+
+    @Override
+    public Mono<RuntimeMetadataCapabilities> metadataCapabilities() {
+        return Mono.just(new RuntimeMetadataCapabilities(Map.of(
+                "PurchaseOrder",
+                Map.of(
+                        "supplierId", "REFERENCE",
+                        "status", "ENUM",
+                        "amount", "DECIMAL",
+                        "delayDays", "INTEGER"),
+                "Supplier",
+                Map.of("name", "STRING"))));
     }
 
     @Override

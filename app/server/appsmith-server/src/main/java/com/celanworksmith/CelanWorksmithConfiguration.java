@@ -8,6 +8,8 @@ import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
+import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
+import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.ontology.project.OntologyProjectYamlImporter;
@@ -25,6 +27,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import java.time.Clock;
+import java.util.List;
 
 @Configuration
 @EnableConfigurationProperties(MongoRuntimeProperties.class)
@@ -43,6 +46,17 @@ public class CelanWorksmithConfiguration {
     @Bean
     public OntologySnapshotService ontologySnapshotService(OntologyMetadataSnapshotRepository repository) {
         return new OntologySnapshotService(repository, Clock.systemUTC());
+    }
+
+    @Bean
+    public RuntimeProviderRegistry runtimeProviderRegistry(List<RuntimeProvider> runtimeProviders) {
+        return new RuntimeProviderRegistry(runtimeProviders);
+    }
+
+    @Bean
+    public RuntimeProviderCompatibilityValidator runtimeProviderCompatibilityValidator(
+            RuntimeProviderRegistry runtimeProviderRegistry) {
+        return new RuntimeProviderCompatibilityValidator(runtimeProviderRegistry);
     }
 
     @Bean

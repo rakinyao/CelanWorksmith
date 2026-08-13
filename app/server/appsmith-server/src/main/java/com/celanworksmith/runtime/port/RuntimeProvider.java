@@ -11,7 +11,29 @@ import com.celanworksmith.runtime.dto.ReasoningRequest;
 import com.celanworksmith.runtime.dto.ReasoningResult;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 public interface RuntimeProvider {
+    record RuntimeMetadataCapabilities(Map<String, Map<String, String>> objectProperties) {
+        public RuntimeMetadataCapabilities {
+            if (objectProperties == null) {
+                objectProperties = Map.of();
+            } else {
+                objectProperties = objectProperties.entrySet().stream()
+                        .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                                Map.Entry::getKey, entry -> Map.copyOf(entry.getValue())));
+            }
+        }
+    }
+
+    default String providerId() {
+        return "unconfigured";
+    }
+
+    default Mono<RuntimeMetadataCapabilities> metadataCapabilities() {
+        return Mono.just(new RuntimeMetadataCapabilities(Map.of()));
+    }
+
     Mono<ObjectSetResult> queryObjects(String typeId, ObjectSetQuery query);
 
     Mono<ObjectInstanceDTO> getObject(String typeId, String instanceId);

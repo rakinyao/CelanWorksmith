@@ -5,6 +5,8 @@ import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
+import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
+import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
@@ -40,6 +42,16 @@ class CelanWorksmithConfigurationTest {
     @Test
     void registersTheOntologySnapshotService() {
         contextRunner.run(context -> assertThat(context).hasSingleBean(OntologySnapshotService.class));
+    }
+
+    @Test
+    void registersProviderCompatibilityServicesForTheActiveRuntimeProvider() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(RuntimeProviderRegistry.class);
+            assertThat(context).hasSingleBean(RuntimeProviderCompatibilityValidator.class);
+            assertThat(context.getBean(RuntimeProviderRegistry.class).resolveRequired("demo-mongo-readonly"))
+                    .isInstanceOf(MongoRuntimeDataProvider.class);
+        });
     }
 
     @Test
