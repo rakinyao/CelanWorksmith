@@ -7,6 +7,8 @@ import com.appsmith.external.models.ActionExecutionResult;
 import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.DatasourceStructure;
 import com.appsmith.external.models.DatasourceTestResult;
+import com.appsmith.external.models.TriggerRequestDTO;
+import com.appsmith.external.models.TriggerResultDTO;
 import com.appsmith.external.plugins.BasePlugin;
 import com.appsmith.external.plugins.PluginExecutor;
 import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
@@ -86,6 +88,22 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         @Override
+        public Mono<TriggerResultDTO> trigger(
+                OntologyDatasourceConfiguration datasourceConfiguration,
+                DatasourceConfiguration datasourceConfigurationInput,
+                TriggerRequestDTO request) {
+            if (request == null
+                    || request.getRequestType() == null
+                    || request.getRequestType().isBlank()) {
+                return Mono.error(new IllegalArgumentException("Ontology metadata request type is required"));
+            }
+            return runtimeGateway
+                    .getRequiredSnapshot(
+                            datasourceConfiguration.metadataSnapshotId(), datasourceConfiguration.metadataDigest())
+                    .map(snapshot -> metadataTriggerResult(datasourceConfiguration, snapshot, request));
+        }
+
+        @Override
         public Mono<ActionExecutionResult> execute(
                 OntologyDatasourceConfiguration datasourceConfiguration,
                 DatasourceConfiguration datasourceConfigurationInput,
@@ -124,6 +142,57 @@ public class OntologyPlugin extends BasePlugin {
                                     .toList(),
                             java.util.List.of(),
                             java.util.List.of()))
+                    .toList());
+        }
+
+        private TriggerResultDTO metadataTriggerResult(
+                OntologyDatasourceConfiguration datasourceConfiguration, Snapshot snapshot, TriggerRequestDTO request) {
+            validateSnapshotPin(datasourceConfiguration, snapshot);
+            return switch (request.getRequestType()) {
+                case "ONTOLOGY_OBJECT_TYPES" ->
+                    dropdownResult(snapshot.objectTypes().stream()
+                            .map(OntologyRuntimeGateway.ObjectTypeMetadata::id)
+                            .toList());
+                case "ONTOLOGY_OBJECT_PROPERTIES" -> dropdownResult(objectProperties(snapshot, request));
+                case "ONTOLOGY_FUNCTIONS" ->
+                    dropdownResult(snapshot.functions().stream()
+                            .map(OntologyRuntimeGateway.FunctionMetadata::id)
+                            .toList());
+                case "ONTOLOGY_ACTIONS" ->
+                    dropdownResult(snapshot.actions().stream()
+                            .map(OntologyRuntimeGateway.ActionMetadata::id)
+                            .toList());
+                case "ONTOLOGY_LINKS" ->
+                    dropdownResult(snapshot.links().stream()
+                            .map(OntologyRuntimeGateway.LinkMetadata::id)
+                            .toList());
+                default ->
+                    throw new IllegalArgumentException(
+                            "Unsupported ontology metadata request: " + request.getRequestType());
+            };
+        }
+
+        private java.util.List<String> objectProperties(Snapshot snapshot, TriggerRequestDTO request) {
+            Object objectTypeId = request.getParameters() == null
+                    ? null
+                    : request.getParameters().get("objectTypeId");
+            if (!(objectTypeId instanceof String value) || value.isBlank()) {
+                throw new IllegalArgumentException("Ontology object type is required for property metadata");
+            }
+            return snapshot.objectTypes().stream()
+                    .filter(objectType -> value.equals(objectType.id()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown ontology object type: " + value))
+                    .properties()
+                    .stream()
+                    .filter(property -> !property.hidden())
+                    .map(OntologyRuntimeGateway.PropertyMetadata::id)
+                    .toList();
+        }
+
+        private TriggerResultDTO dropdownResult(java.util.List<String> identifiers) {
+            return new TriggerResultDTO(identifiers.stream()
+                    .map(identifier -> Map.of("label", identifier, "value", identifier))
                     .toList());
         }
 

@@ -2,6 +2,9 @@ package com.celanworksmith.plugins.ontology;
 
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionExecutionResult;
+import com.appsmith.external.models.DatasourceConfiguration;
+import com.appsmith.external.models.TriggerRequestDTO;
+import com.appsmith.external.models.TriggerResultDTO;
 import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import org.junit.jupiter.api.Test;
@@ -174,6 +177,26 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals(0, actionServer.calls);
     }
 
+    @Test
+    void exposesPinnedFunctionActionAndLinkMetadataToTheNativeQueryEditor() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO functions = trigger(executor, "ONTOLOGY_FUNCTIONS");
+        TriggerResultDTO actions = trigger(executor, "ONTOLOGY_ACTIONS");
+        TriggerResultDTO links = trigger(executor, "ONTOLOGY_LINKS");
+
+        assertEquals(
+                List.of(
+                        Map.of("label", "delayScore", "value", "delayScore"),
+                        Map.of("label", "optionalScore", "value", "optionalScore")),
+                functions.getTrigger());
+        assertEquals(
+                List.of(Map.of("label", "reschedulePurchaseOrder", "value", "reschedulePurchaseOrder")),
+                actions.getTrigger());
+        assertEquals(List.of(Map.of("label", "po_delivery", "value", "po_delivery")), links.getTrigger());
+    }
+
     private ActionExecutionResult execute(RecordingGateway gateway, String operation, Map<String, Object> definition) {
         return execute(gateway, null, operation, definition);
     }
@@ -194,6 +217,13 @@ class OntologyFunctionLinkActionExecutorTest {
     private OntologyDatasourceConfiguration datasource() {
         return new OntologyDatasourceConfiguration(
                 "supply-chain", "1.0.0", "snapshot-001", DIGEST, "provider-1", "workspace-1", "datasource-1");
+    }
+
+    private TriggerResultDTO trigger(OntologyPlugin.OntologyPluginExecutor executor, String requestType) {
+        DatasourceConfiguration datasourceConfiguration = new DatasourceConfiguration();
+        return executor.trigger(
+                        datasource(), datasourceConfiguration, new TriggerRequestDTO(requestType, Map.of(), null))
+                .block();
     }
 
     private static final class RecordingGateway implements OntologyRuntimeGateway {

@@ -10,6 +10,25 @@
       "identifier": "ONTOLOGY_FUNCTION_QUERY_ZONE",
       "children": [
         {
+          "label": "Function",
+          "configProperty": "actionConfiguration.formData.functionId.data",
+          "controlType": "DROP_DOWN",
+          "isRequired": true,
+          "placeholderText": "Select a function",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "fetchDynamicValues": {
+              "condition": "{{true}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_FUNCTIONS",
+                  "displayType": "DROP_DOWN"
+                }
+              }
+            }
+          }
+        },
+        {
           "label": "Function query definition",
           "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",

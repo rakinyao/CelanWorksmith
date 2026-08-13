@@ -10,6 +10,39 @@
       "identifier": "ONTOLOGY_LINK_QUERY_ZONE",
       "children": [
         {
+          "label": "Link",
+          "configProperty": "actionConfiguration.formData.linkId.data",
+          "controlType": "DROP_DOWN",
+          "isRequired": true,
+          "placeholderText": "Select a link",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "fetchDynamicValues": {
+              "condition": "{{true}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_LINKS",
+                  "displayType": "DROP_DOWN"
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "Source object type",
+          "configProperty": "actionConfiguration.formData.sourceTypeId.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "isRequired": true,
+          "placeholderText": "Supplier"
+        },
+        {
+          "label": "Source object ID",
+          "configProperty": "actionConfiguration.formData.sourceId.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "isRequired": true,
+          "placeholderText": "S001"
+        },
+        {
           "label": "Link query definition",
           "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",

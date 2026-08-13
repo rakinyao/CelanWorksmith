@@ -10,6 +10,39 @@
       "identifier": "ONTOLOGY_ACTION_QUERY_ZONE",
       "children": [
         {
+          "label": "Action",
+          "configProperty": "actionConfiguration.formData.actionId.data",
+          "controlType": "DROP_DOWN",
+          "isRequired": true,
+          "placeholderText": "Select an action",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "fetchDynamicValues": {
+              "condition": "{{true}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_ACTIONS",
+                  "displayType": "DROP_DOWN"
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "Object type",
+          "configProperty": "actionConfiguration.formData.objectTypeId.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "isRequired": true,
+          "placeholderText": "PurchaseOrder"
+        },
+        {
+          "label": "Object ID",
+          "configProperty": "actionConfiguration.formData.objectId.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "isRequired": true,
+          "placeholderText": "PO001"
+        },
+        {
           "label": "Action query definition",
           "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",

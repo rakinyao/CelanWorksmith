@@ -98,6 +98,24 @@ class OntologyConfigurationTest {
     }
 
     @Test
+    void mergesNativeUqiSelectorFieldsIntoTheAdvancedDefinition() {
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", Map.of("data", "ACTION_QUERY"),
+                "actionId", Map.of("data", "ReschedulePurchaseOrder"),
+                "objectTypeId", Map.of("data", "PurchaseOrder"),
+                "objectId", Map.of("data", "PO001"),
+                "definition", Map.of("data", "{\"actionId\":\"ignored\",\"parameters\":{}}")));
+
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
+
+        assertEquals("ReschedulePurchaseOrder", configuration.definition().get("actionId"));
+        assertEquals("PurchaseOrder", configuration.definition().get("objectTypeId"));
+        assertEquals("PO001", configuration.definition().get("objectId"));
+        assertEquals(Map.of(), configuration.definition().get("parameters"));
+    }
+
+    @Test
     void rejectsActionConfigurationThatOverridesDatasourceContext() {
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(Map.of(
@@ -146,13 +164,24 @@ class OntologyConfigurationTest {
         for (String resource :
                 List.of("object-query.json", "function-query.json", "action-query.json", "link-query.json")) {
             JsonNode editor = readEditorResource(resource);
+            JsonNode children = editor.at("/children/0/children");
             assertEquals(
                     "actionConfiguration.formData.definition.data",
-                    editor.at("/children/0/children/0/configProperty").asText());
+                    findControl(children, "actionConfiguration.formData.definition.data")
+                            .path("configProperty")
+                            .asText());
             assertTrue(editor.toString().contains("definition"));
             assertTrue(!editor.toString().contains("metadataDigest"));
             assertTrue(!editor.toString().contains("workspaceId"));
         }
+    }
+
+    @Test
+    void exposesNativeMetadataSelectorsForEachOntologyOperation() throws IOException {
+        assertSelector("object-query.json", "objectTypeId", "ONTOLOGY_OBJECT_TYPES");
+        assertSelector("function-query.json", "functionId", "ONTOLOGY_FUNCTIONS");
+        assertSelector("action-query.json", "actionId", "ONTOLOGY_ACTIONS");
+        assertSelector("link-query.json", "linkId", "ONTOLOGY_LINKS");
     }
 
     private DatasourceConfiguration datasourceConfiguration() {
@@ -205,5 +234,27 @@ class OntologyConfigurationTest {
         }
 
         assertTrue(exists, "Expected read-only datasource property value at index " + propertyIndex);
+    }
+
+    private void assertSelector(String resource, String selectorField, String requestType) throws IOException {
+        JsonNode editor = readEditorResource(resource);
+        JsonNode selector = editor.at("/children/0/children/0");
+        assertEquals(
+                "actionConfiguration.formData." + selectorField + ".data",
+                selector.path("configProperty").asText());
+        assertEquals("DROP_DOWN", selector.path("controlType").asText());
+        assertEquals(
+                requestType,
+                selector.at("/conditionals/fetchDynamicValues/config/params/requestType")
+                        .asText());
+    }
+
+    private JsonNode findControl(JsonNode children, String configProperty) {
+        for (JsonNode child : children) {
+            if (configProperty.equals(child.path("configProperty").asText())) {
+                return child;
+            }
+        }
+        throw new AssertionError("Expected control: " + configProperty);
     }
 }

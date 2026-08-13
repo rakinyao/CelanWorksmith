@@ -59,16 +59,16 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             throw new IllegalArgumentException("Ontology operation definition is required");
         }
 
-        Map<String, Object> definition = rawDefinition.entrySet().stream()
-                .collect(java.util.stream.Collectors.toUnmodifiableMap(
-                        entry -> String.valueOf(entry.getKey()), Map.Entry::getValue));
+        Map<String, Object> definition = new java.util.LinkedHashMap<>();
+        rawDefinition.forEach((key, value) -> definition.put(String.valueOf(key), value));
+        mergeSelectorFields(formData, definition);
         for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
             if (definition.containsKey(protectedKey)) {
                 throw new IllegalArgumentException("Action configuration cannot override: " + protectedKey);
             }
         }
         validateRequiredIdentifier(operation, definition);
-        return new OntologyActionConfiguration(operation, definition);
+        return new OntologyActionConfiguration(operation, Map.copyOf(definition));
     }
 
     private static Map<String, Object> unwrapUqiValues(Map<String, Object> values) {
@@ -92,6 +92,16 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             return OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {});
         } catch (Exception exception) {
             throw new IllegalArgumentException("Ontology operation definition must be a JSON object", exception);
+        }
+    }
+
+    private static void mergeSelectorFields(Map<String, Object> formData, Map<String, Object> definition) {
+        for (String field :
+                Set.of("objectTypeId", "objectId", "functionId", "actionId", "linkId", "sourceTypeId", "sourceId")) {
+            Object value = formData.get(field);
+            if (value instanceof String identifier && !identifier.isBlank()) {
+                definition.put(field, identifier);
+            }
         }
     }
 

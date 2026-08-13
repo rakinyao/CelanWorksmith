@@ -4,6 +4,8 @@ import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionExecutionResult;
 import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.DatasourceStructure;
+import com.appsmith.external.models.TriggerRequestDTO;
+import com.appsmith.external.models.TriggerResultDTO;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQueryResult;
@@ -144,6 +146,21 @@ class OntologyObjectQueryExecutorTest {
                         .map(DatasourceStructure.Column::getType)
                         .toList());
         assertEquals(1, gateway.snapshotRequests.size());
+    }
+
+    @Test
+    void exposesPinnedObjectTypesForTheNativeQueryEditor() {
+        RecordingGateway gateway = gateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO result = executor.trigger(
+                        datasource(),
+                        datasourceConfiguration(),
+                        new TriggerRequestDTO("ONTOLOGY_OBJECT_TYPES", Map.of(), null))
+                .block();
+
+        assertEquals(List.of(Map.of("label", "PurchaseOrder", "value", "PurchaseOrder")), result.getTrigger());
+        assertEquals(List.of(new SnapshotRequest(SNAPSHOT_ID, DIGEST)), gateway.snapshotRequests);
     }
 
     private ActionExecutionResult execute(RecordingGateway gateway, Map<String, Object> definition) {
