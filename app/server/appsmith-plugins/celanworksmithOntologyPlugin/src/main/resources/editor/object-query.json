@@ -1,0 +1,24 @@
+{
+  "controlType": "SECTION_V2",
+  "identifier": "ONTOLOGY_OBJECT_QUERY",
+  "conditionals": {
+    "show": "{{actionConfiguration.formData.operation.data === 'OBJECT_QUERY'}}"
+  },
+  "children": [
+    {
+      "controlType": "SINGLE_COLUMN_ZONE",
+      "identifier": "ONTOLOGY_OBJECT_QUERY_ZONE",
+      "children": [
+        {
+          "label": "Object query definition",
+          "configProperty": "actionConfiguration.formData.definition.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "inputType": "JSON",
+          "evaluationSubstitutionType": "TEMPLATE",
+          "initialValue": { "objectTypeId": "" },
+          "placeholderText": "{\"objectTypeId\": \"PurchaseOrder\"}"
+        }
+      ]
+    }
+  ]
+}

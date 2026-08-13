@@ -1,0 +1,35 @@
+{
+  "editor": [
+    {
+      "controlType": "SECTION_V2",
+      "identifier": "ONTOLOGY_OPERATION",
+      "children": [
+        {
+          "controlType": "DOUBLE_COLUMN_ZONE",
+          "identifier": "ONTOLOGY_OPERATION_ZONE",
+          "children": [
+            {
+              "label": "Operation",
+              "configProperty": "actionConfiguration.formData.operation.data",
+              "controlType": "DROP_DOWN",
+              "initialValue": "OBJECT_QUERY",
+              "isRequired": true,
+              "options": [
+                { "label": "Query objects", "value": "OBJECT_QUERY" },
+                { "label": "Run function", "value": "FUNCTION_QUERY" },
+                { "label": "Run action", "value": "ACTION_QUERY" },
+                { "label": "Resolve link", "value": "LINK_QUERY" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "files": [
+    "object-query.json",
+    "function-query.json",
+    "action-query.json",
+    "link-query.json"
+  ]
+}

@@ -73,6 +73,31 @@ class OntologyConfigurationTest {
     }
 
     @Test
+    void unwrapsNativeUqiEditorValuesBeforeValidatingTheOntologyQuery() {
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", Map.of("data", "OBJECT_QUERY"),
+                "definition", Map.of("data", Map.of("objectTypeId", "PurchaseOrder"))));
+
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
+
+        assertEquals(OntologyActionConfiguration.Operation.OBJECT_QUERY, configuration.operation());
+        assertEquals("PurchaseOrder", configuration.definition().get("objectTypeId"));
+    }
+
+    @Test
+    void parsesNativeUqiJsonDefinitionTextBeforeValidatingTheOntologyQuery() {
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", Map.of("data", "OBJECT_QUERY"),
+                "definition", Map.of("data", "{\"objectTypeId\":\"PurchaseOrder\"}")));
+
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
+
+        assertEquals("PurchaseOrder", configuration.definition().get("objectTypeId"));
+    }
+
+    @Test
     void rejectsActionConfigurationThatOverridesDatasourceContext() {
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(Map.of(
@@ -111,6 +136,25 @@ class OntologyConfigurationTest {
         assertReadOnlyPropertyValue(children, 8);
     }
 
+    @Test
+    void shipsNativeUqiResourcesForEachOntologyOperationWithoutTrustedContextInputs() throws IOException {
+        JsonNode root = readEditorResource("root.json");
+        assertEquals(
+                "OBJECT_QUERY",
+                root.at("/editor/0/children/0/children/0/initialValue").asText());
+        assertEquals(4, root.at("/editor/0/children/0/children/0/options").size());
+        for (String resource :
+                List.of("object-query.json", "function-query.json", "action-query.json", "link-query.json")) {
+            JsonNode editor = readEditorResource(resource);
+            assertEquals(
+                    "actionConfiguration.formData.definition.data",
+                    editor.at("/children/0/children/0/configProperty").asText());
+            assertTrue(editor.toString().contains("definition"));
+            assertTrue(!editor.toString().contains("metadataDigest"));
+            assertTrue(!editor.toString().contains("workspaceId"));
+        }
+    }
+
     private DatasourceConfiguration datasourceConfiguration() {
         DatasourceConfiguration configuration = new DatasourceConfiguration();
         configuration.setProperties(List.of(
@@ -126,6 +170,10 @@ class OntologyConfigurationTest {
 
     private Property property(String key, String value) {
         return new Property(key, value);
+    }
+
+    private JsonNode readEditorResource(String resource) throws IOException {
+        return new ObjectMapper().readTree(getClass().getResourceAsStream("/editor/" + resource));
     }
 
     private void assertHiddenPropertyKey(JsonNode children, int propertyIndex, String propertyKey) {

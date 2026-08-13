@@ -5,6 +5,7 @@ import com.appsmith.external.exceptions.pluginExceptions.AppsmithPluginException
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionExecutionResult;
 import com.appsmith.external.models.DatasourceConfiguration;
+import com.appsmith.external.models.DatasourceStructure;
 import com.appsmith.external.models.DatasourceTestResult;
 import com.appsmith.external.plugins.BasePlugin;
 import com.appsmith.external.plugins.PluginExecutor;
@@ -75,6 +76,16 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         @Override
+        public Mono<DatasourceStructure> getStructure(
+                OntologyDatasourceConfiguration datasourceConfiguration,
+                DatasourceConfiguration datasourceConfigurationInput) {
+            return runtimeGateway
+                    .getRequiredSnapshot(
+                            datasourceConfiguration.metadataSnapshotId(), datasourceConfiguration.metadataDigest())
+                    .map(snapshot -> datasourceStructure(datasourceConfiguration, snapshot));
+        }
+
+        @Override
         public Mono<ActionExecutionResult> execute(
                 OntologyDatasourceConfiguration datasourceConfiguration,
                 DatasourceConfiguration datasourceConfigurationInput,
@@ -96,6 +107,24 @@ public class OntologyPlugin extends BasePlugin {
                         case LINK_QUERY -> executeLinkQuery(datasourceConfiguration, configuration, snapshot);
                         case ACTION_QUERY -> executeActionQuery(datasourceConfiguration, configuration, snapshot);
                     });
+        }
+
+        private DatasourceStructure datasourceStructure(
+                OntologyDatasourceConfiguration datasourceConfiguration, Snapshot snapshot) {
+            validateSnapshotPin(datasourceConfiguration, snapshot);
+            return new DatasourceStructure(snapshot.objectTypes().stream()
+                    .map(objectType -> new DatasourceStructure.Table(
+                            DatasourceStructure.TableType.TABLE,
+                            null,
+                            objectType.id(),
+                            objectType.properties().stream()
+                                    .filter(property -> !property.hidden())
+                                    .map(property -> new DatasourceStructure.Column(
+                                            property.id(), property.dataType(), null, false))
+                                    .toList(),
+                            java.util.List.of(),
+                            java.util.List.of()))
+                    .toList());
         }
 
         private Mono<ActionExecutionResult> executeValidatedObjectQuery(

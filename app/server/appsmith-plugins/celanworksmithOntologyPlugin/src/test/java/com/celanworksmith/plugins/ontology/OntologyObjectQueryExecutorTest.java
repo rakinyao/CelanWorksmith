@@ -2,6 +2,8 @@ package com.celanworksmith.plugins.ontology;
 
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionExecutionResult;
+import com.appsmith.external.models.DatasourceConfiguration;
+import com.appsmith.external.models.DatasourceStructure;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQueryResult;
@@ -119,6 +121,31 @@ class OntologyObjectQueryExecutorTest {
         assertEquals(0, gateway.liveMetadataRefreshCalls);
     }
 
+    @Test
+    void exposesPinnedObjectTypesAndVisiblePropertiesAsNativeDatasourceStructure() {
+        RecordingGateway gateway = gateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        DatasourceStructure structure =
+                executor.getStructure(datasource(), datasourceConfiguration()).block();
+
+        assertEquals(1, structure.getTables().size());
+        DatasourceStructure.Table objectType = structure.getTables().getFirst();
+        assertEquals(DatasourceStructure.TableType.TABLE, objectType.getType());
+        assertEquals("PurchaseOrder", objectType.getName());
+        assertEquals(
+                List.of("id", "supplierId", "delayDays"),
+                objectType.getColumns().stream()
+                        .map(DatasourceStructure.Column::getName)
+                        .toList());
+        assertEquals(
+                List.of("string", "string", "integer"),
+                objectType.getColumns().stream()
+                        .map(DatasourceStructure.Column::getType)
+                        .toList());
+        assertEquals(1, gateway.snapshotRequests.size());
+    }
+
     private ActionExecutionResult execute(RecordingGateway gateway, Map<String, Object> definition) {
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
         ActionConfiguration action = new ActionConfiguration();
@@ -134,6 +161,19 @@ class OntologyObjectQueryExecutorTest {
     private OntologyDatasourceConfiguration datasource() {
         return new OntologyDatasourceConfiguration(
                 "supply-chain", "1.0.0", SNAPSHOT_ID, DIGEST, "demo-mongo-readonly", "workspace-1", "datasource-1");
+    }
+
+    private DatasourceConfiguration datasourceConfiguration() {
+        DatasourceConfiguration configuration = new DatasourceConfiguration();
+        configuration.setProperties(List.of(
+                new com.appsmith.external.models.Property("projectId", "supply-chain"),
+                new com.appsmith.external.models.Property("projectVersion", "1.0.0"),
+                new com.appsmith.external.models.Property("metadataSnapshotId", SNAPSHOT_ID),
+                new com.appsmith.external.models.Property("metadataDigest", DIGEST),
+                new com.appsmith.external.models.Property("runtimeProviderId", "demo-mongo-readonly"),
+                new com.appsmith.external.models.Property("workspaceId", "workspace-1"),
+                new com.appsmith.external.models.Property("datasourceId", "datasource-1")));
+        return configuration;
     }
 
     private RecordingGateway gateway() {

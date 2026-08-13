@@ -1,0 +1,24 @@
+{
+  "controlType": "SECTION_V2",
+  "identifier": "ONTOLOGY_FUNCTION_QUERY",
+  "conditionals": {
+    "show": "{{actionConfiguration.formData.operation.data === 'FUNCTION_QUERY'}}"
+  },
+  "children": [
+    {
+      "controlType": "SINGLE_COLUMN_ZONE",
+      "identifier": "ONTOLOGY_FUNCTION_QUERY_ZONE",
+      "children": [
+        {
+          "label": "Function query definition",
+          "configProperty": "actionConfiguration.formData.definition.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "inputType": "JSON",
+          "evaluationSubstitutionType": "TEMPLATE",
+          "initialValue": { "functionId": "", "parameters": {} },
+          "placeholderText": "{\"functionId\": \"CalculateDelayDays\", \"parameters\": {}}"
+        }
+      ]
+    }
+  ]
+}

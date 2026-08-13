@@ -1,11 +1,15 @@
 package com.celanworksmith.plugins.ontology;
 
 import com.appsmith.external.models.ActionConfiguration;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 import java.util.Set;
 
 public record OntologyActionConfiguration(Operation operation, Map<String, Object> definition) {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final Set<String> PROTECTED_CONTEXT_KEYS = Set.of(
             "projectId",
@@ -31,7 +35,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             throw new IllegalArgumentException("Ontology action configuration is required");
         }
 
-        Map<String, Object> formData = actionConfiguration.getFormData();
+        Map<String, Object> formData = unwrapUqiValues(actionConfiguration.getFormData());
         for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
             if (formData.containsKey(protectedKey)) {
                 throw new IllegalArgumentException("Action configuration cannot override: " + protectedKey);
@@ -50,7 +54,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             throw new IllegalArgumentException("Unsupported ontology operation: " + operationName, exception);
         }
 
-        Object definitionValue = formData.get("definition");
+        Object definitionValue = parseDefinition(formData.get("definition"));
         if (!(definitionValue instanceof Map<?, ?> rawDefinition)) {
             throw new IllegalArgumentException("Ontology operation definition is required");
         }
@@ -65,6 +69,30 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         }
         validateRequiredIdentifier(operation, definition);
         return new OntologyActionConfiguration(operation, definition);
+    }
+
+    private static Map<String, Object> unwrapUqiValues(Map<String, Object> values) {
+        return values.entrySet().stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey, entry -> unwrapUqiValue(entry.getValue())));
+    }
+
+    private static Object unwrapUqiValue(Object value) {
+        if (value instanceof Map<?, ?> map && map.containsKey("data")) {
+            return map.get("data");
+        }
+        return value;
+    }
+
+    private static Object parseDefinition(Object definition) {
+        if (!(definition instanceof String json)) {
+            return definition;
+        }
+        try {
+            return OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Ontology operation definition must be a JSON object", exception);
+        }
     }
 
     private static void validateRequiredIdentifier(Operation operation, Map<String, Object> definition) {

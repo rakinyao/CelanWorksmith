@@ -1,0 +1,24 @@
+{
+  "controlType": "SECTION_V2",
+  "identifier": "ONTOLOGY_LINK_QUERY",
+  "conditionals": {
+    "show": "{{actionConfiguration.formData.operation.data === 'LINK_QUERY'}}"
+  },
+  "children": [
+    {
+      "controlType": "SINGLE_COLUMN_ZONE",
+      "identifier": "ONTOLOGY_LINK_QUERY_ZONE",
+      "children": [
+        {
+          "label": "Link query definition",
+          "configProperty": "actionConfiguration.formData.definition.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "inputType": "JSON",
+          "evaluationSubstitutionType": "TEMPLATE",
+          "initialValue": { "linkId": "", "sourceTypeId": "", "sourceId": "" },
+          "placeholderText": "{\"linkId\": \"supplier_orders\", \"sourceTypeId\": \"Supplier\", \"sourceId\": \"S001\"}"
+        }
+      ]
+    }
+  ]
+}
