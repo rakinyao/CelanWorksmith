@@ -56,7 +56,7 @@ Record the exact class implementing `PluginExecutor`, PF4J resource files, Maven
 
 - [ ] **Step 2: Verify the audit against a clean compile target**
 
-Run: `cd app/server && ./mvnw -pl appsmith-plugins/mongoPlugin -am test -DskipTests`
+Run: `cd app/server && mvn -pl appsmith-plugins/mongoPlugin -am test -DskipTests`
 
 Expected: the exemplar module resolves without requiring the development server.
 
@@ -93,7 +93,7 @@ Cover a valid pinned datasource config; missing snapshot ID; invalid digest; an 
 
 - [ ] **Step 2: Run configuration test**
 
-Run: `cd app/server && ./mvnw -pl appsmith-plugins/celanworksmithOntologyPlugin -Dtest=OntologyConfigurationTest test`
+Run: `cd app/server && mvn -pl appsmith-plugins/celanworksmithOntologyPlugin -Dtest=OntologyConfigurationTest test`
 
 Expected: compilation/test failure because the module and contracts do not exist.
 
@@ -129,7 +129,7 @@ Assert canonical digest stability for equivalent YAML/platform payloads, immutab
 
 - [ ] **Step 2: Run snapshot service test**
 
-Run: `cd app/server && ./mvnw -pl appsmith-server -Dtest=OntologySnapshotServiceTest test`
+Run: `cd app/server && mvn -pl appsmith-server -Dtest=OntologySnapshotServiceTest test`
 
 Expected: FAIL because the snapshot service is absent.
 
@@ -167,7 +167,7 @@ Cover valid local YAML; a platform release response test double; unsupported sou
 
 - [ ] **Step 2: Run import tests**
 
-Run: `cd app/server && ./mvnw -pl appsmith-server -Dtest=OntologyProjectImportTest test`
+Run: `cd app/server && mvn -pl appsmith-server -Dtest=OntologyProjectImportTest test`
 
 Expected: FAIL because import-source adapters do not exist.
 
@@ -200,7 +200,7 @@ Cover registered demo provider; unknown provider; missing Object mapping; incomp
 
 - [ ] **Step 2: Run validator test**
 
-Run: `cd app/server && ./mvnw -pl appsmith-server -Dtest=RuntimeProviderCompatibilityValidatorTest test`
+Run: `cd app/server && mvn -pl appsmith-server -Dtest=RuntimeProviderCompatibilityValidatorTest test`
 
 Expected: FAIL because the registry and compatibility result do not exist.
 
@@ -233,7 +233,7 @@ Cover admin import creating an Appsmith datasource with pinned snapshot fields; 
 
 - [ ] **Step 2: Run service test**
 
-Run: `cd app/server && ./mvnw -pl appsmith-server -Dtest=OntologyDatasourceServiceTest test`
+Run: `cd app/server && mvn -pl appsmith-server -Dtest=OntologyDatasourceServiceTest test`
 
 Expected: FAIL because lifecycle service/controller do not exist.
 
@@ -265,7 +265,7 @@ Cover added Property classified compatible; deleted Property referenced by a sav
 
 - [ ] **Step 2: Run upgrade test**
 
-Run: `cd app/server && ./mvnw -pl appsmith-server -Dtest=OntologyDatasourceUpgradeServiceTest test`
+Run: `cd app/server && mvn -pl appsmith-server -Dtest=OntologyDatasourceUpgradeServiceTest test`
 
 Expected: FAIL because compatibility/upgrade services are absent.
 
@@ -297,7 +297,7 @@ Cover default displayable projection; explicit stable-ID projection; typed filte
 
 - [ ] **Step 2: Run plugin executor test**
 
-Run: `cd app/server && ./mvnw -pl appsmith-plugins/celanworksmithOntologyPlugin -Dtest=OntologyObjectQueryExecutorTest test`
+Run: `cd app/server && mvn -pl appsmith-plugins/celanworksmithOntologyPlugin -Dtest=OntologyObjectQueryExecutorTest test`
 
 Expected: FAIL because executor collaborators are absent.
 
@@ -329,7 +329,7 @@ Cover typed Function parameters/result; Link resolution by link ID; Action reque
 
 - [ ] **Step 2: Run operation test**
 
-Run: `cd app/server && ./mvnw -pl appsmith-plugins/celanworksmithOntologyPlugin -Dtest=OntologyFunctionLinkActionExecutorTest test`
+Run: `cd app/server && mvn -pl appsmith-plugins/celanworksmithOntologyPlugin -Dtest=OntologyFunctionLinkActionExecutorTest test`
 
 Expected: FAIL because operation dispatch/client abstractions are absent.
 
