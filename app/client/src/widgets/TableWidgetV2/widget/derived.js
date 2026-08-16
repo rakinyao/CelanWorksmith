@@ -196,9 +196,10 @@ export default {
         tableSizes.COLUMN_HEADER_HEIGHT) /
       tableSizes.ROW_HEIGHT;
 
-    pageSize = pageSize % 1 > 0.3 && props.tableData.length > pageSize
-      ? Math.ceil(pageSize)
-      : Math.floor(pageSize);
+    pageSize =
+      pageSize % 1 > 0.3 && props.tableData.length > pageSize
+        ? Math.ceil(pageSize)
+        : Math.floor(pageSize);
 
     return Math.max(1, Number.isFinite(pageSize) ? Math.floor(pageSize) : 1);
   },
