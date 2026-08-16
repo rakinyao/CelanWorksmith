@@ -1057,17 +1057,32 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       this.updatePaginationDirectionFlags(PaginationDirection.INITIAL);
     }
 
-    //check if pageNo does not excede the max Page no, due to change of totalRecordsCount
     if (serverSidePaginationEnabled !== prevProps.serverSidePaginationEnabled) {
       //reset pageNo when serverSidePaginationEnabled is toggled
       pushBatchMetaUpdates("pageNo", 1);
       this.updatePaginationDirectionFlags(PaginationDirection.INITIAL);
     } else {
-      //check if pageNo does not excede the max Page no, due to change of totalRecordsCount or change of pageSize
-      if (serverSidePaginationEnabled && totalRecordsCount) {
-        const maxAllowedPageNumber = Math.ceil(totalRecordsCount / pageSize);
+      const normalizedPageSize = Number.isFinite(pageSize)
+        ? Math.max(1, Math.floor(pageSize))
+        : 1;
+      const hasServerTotal =
+        serverSidePaginationEnabled &&
+        Number.isFinite(totalRecordsCount) &&
+        totalRecordsCount >= 0;
+      const clientRowCount = Array.isArray(this.props.filteredTableData)
+        ? this.props.filteredTableData.length
+        : Array.isArray(this.props.tableData)
+          ? this.props.tableData.length
+          : 0;
 
-        if (pageNo > maxAllowedPageNumber) {
+      if (hasServerTotal || !serverSidePaginationEnabled) {
+        const rowCount = hasServerTotal ? totalRecordsCount : clientRowCount;
+        const maxAllowedPageNumber = Math.max(
+          1,
+          Math.ceil(rowCount / normalizedPageSize),
+        );
+
+        if (pageNo > maxAllowedPageNumber || pageNo < 1) {
           pushBatchMetaUpdates("pageNo", maxAllowedPageNumber);
           this.updatePaginationDirectionFlags(PaginationDirection.NEXT_PAGE);
         }

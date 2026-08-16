@@ -116,18 +116,23 @@ export function Table(props: TableProps) {
     showConnectDataOverlay,
     toggleAllRowSelect,
   } = props;
+  const pageSize = Number.isFinite(props.pageSize)
+    ? Math.max(1, Math.floor(props.pageSize))
+    : 1;
+  const hasServerTotal =
+    props.serverSidePaginationEnabled &&
+    Number.isFinite(props.totalRecordsCount) &&
+    props.totalRecordsCount >= 0;
 
   const pageCount = useMemo(
     () =>
-      props.serverSidePaginationEnabled && props.totalRecordsCount
-        ? Math.ceil(props.totalRecordsCount / props.pageSize)
-        : Math.ceil(props.data.length / props.pageSize),
-    [
-      props.serverSidePaginationEnabled,
-      props.totalRecordsCount,
-      props.pageSize,
-      props.data.length,
-    ],
+      Math.max(
+        1,
+        hasServerTotal
+          ? Math.ceil(props.totalRecordsCount! / pageSize)
+          : Math.ceil(props.data.length / pageSize),
+      ),
+    [hasServerTotal, props.totalRecordsCount, pageSize, props.data.length],
   );
 
   const currentPageIndex = useMemo(
@@ -152,7 +157,7 @@ export function Table(props: TableProps) {
       defaultColumn,
       initialState: {
         pageIndex: currentPageIndex,
-        pageSize: props.pageSize,
+        pageSize,
       },
       manualPagination: true,
       pageCount,
@@ -179,8 +184,8 @@ export function Table(props: TableProps) {
     }
   }
 
-  let startIndex = currentPageIndex * props.pageSize;
-  let endIndex = startIndex + props.pageSize;
+  let startIndex = currentPageIndex * pageSize;
+  let endIndex = startIndex + pageSize;
 
   if (props.serverSidePaginationEnabled) {
     startIndex = 0;
@@ -310,6 +315,7 @@ export function Table(props: TableProps) {
       subPage={subPage}
       totalColumnsWidth={totalColumnsWidth}
       {...props}
+      pageSize={pageSize}
     >
       {showConnectDataOverlay && (
         <ConnectDataOverlay

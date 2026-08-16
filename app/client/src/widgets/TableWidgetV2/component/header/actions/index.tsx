@@ -130,6 +130,8 @@ function Actions() {
       }),
     [tableColumns],
   );
+  const hasTotalRecordsCount =
+    Number.isFinite(totalRecordsCount) && totalRecordsCount >= 0;
 
   return (
     <>
@@ -192,13 +194,14 @@ function Actions() {
           <PaginationWrapper>
             <TableHeaderContentWrapper className="show-page-items">
               {tableData.length}{" "}
-              {totalRecordsCount ? `out of ${totalRecordsCount}` : ""} Records
+              {hasTotalRecordsCount ? `out of ${totalRecordsCount}` : ""}{" "}
+              Records
             </TableHeaderContentWrapper>
           </PaginationWrapper>
         ) : serverSidePaginationEnabled ? (
           // When server side pagination is enabled, n Records is displayed with prev and next buttons
           <PaginationWrapper>
-            {totalRecordsCount ? (
+            {hasTotalRecordsCount ? (
               <TableHeaderContentWrapper className="show-page-items">
                 {totalRecordsCount} Records
               </TableHeaderContentWrapper>
@@ -214,7 +217,7 @@ function Actions() {
             >
               <Icon color={Colors.HIT_GRAY} icon="chevron-left" iconSize={16} />
             </PaginationItemWrapper>
-            {totalRecordsCount ? (
+            {hasTotalRecordsCount ? (
               <TableHeaderContentWrapper>
                 Page&nbsp;
                 <PaginationItemWrapper
@@ -242,9 +245,9 @@ function Actions() {
               accentColor={accentColor}
               borderRadius={borderRadius}
               className="t--table-widget-next-page"
-              disabled={!!totalRecordsCount && pageNo === pageCount - 1}
+              disabled={hasTotalRecordsCount && pageNo === pageCount - 1}
               onClick={() => {
-                if (!(!!totalRecordsCount && pageNo === pageCount - 1))
+                if (!(hasTotalRecordsCount && pageNo === pageCount - 1))
                   nextPageClick();
               }}
             >
@@ -285,7 +288,7 @@ function Actions() {
                 pageNo={pageNo + 1}
                 updatePageNo={updatePageNo}
               />{" "}
-              of {pageCount}
+              {`of ${pageCount}`}
             </TableHeaderContentWrapper>
             <PaginationItemWrapper
               accentColor={accentColor}

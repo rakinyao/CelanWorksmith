@@ -250,4 +250,50 @@ describe("TableWidgetV2 getWidgetView", () => {
     expect(batchUpdateWidgetProperty).toHaveBeenCalledTimes(1);
     expect(updateColumnProperties).toHaveBeenCalledTimes(1);
   });
+
+  it("resets search to page one and invokes only its configured callback", () => {
+    const pushBatchMetaUpdates = jest.fn();
+    const tableWidget = new TableWidgetV2({
+      ...tableWidgetProps,
+      onPageChange: "{{ GetOrders.run() }}",
+      onSearchTextChanged: "{{ SearchOrders.run() }}",
+      pushBatchMetaUpdates,
+    });
+
+    tableWidget.handleSearchTable("widgets");
+
+    expect(pushBatchMetaUpdates).toHaveBeenCalledWith("pageNo", 1);
+    expect(pushBatchMetaUpdates).toHaveBeenCalledWith(
+      "searchText",
+      "widgets",
+      expect.objectContaining({
+        dynamicString: "{{ SearchOrders.run() }}",
+        triggerPropertyName: "onSearchTextChanged",
+      }),
+    );
+    expect(pushBatchMetaUpdates).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ triggerPropertyName: "onPageChange" }),
+    );
+  });
+
+  it("clamps a high page number when page size changes", () => {
+    const pushBatchMetaUpdates = jest.fn();
+    const nextProps = {
+      ...tableWidgetProps,
+      filteredTableData: Array.from({ length: 15 }, (_, index) => ({ index })),
+      pageNo: 9,
+      pageSize: 10,
+      pushBatchMetaUpdates,
+    };
+    const tableWidget = new TableWidgetV2(nextProps);
+
+    tableWidget.componentDidUpdate({
+      ...nextProps,
+      pageSize: 2,
+    });
+
+    expect(pushBatchMetaUpdates).toHaveBeenCalledWith("pageNo", 2);
+  });
 });

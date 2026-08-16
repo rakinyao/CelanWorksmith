@@ -3,11 +3,14 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { lightTheme } from "selectors/themeSelectors";
 import { ThemeProvider } from "styled-components";
+import { Table } from "../../Table";
 import { TableProvider, type TableProviderProps } from "../../TableContext";
+import type { TableProps } from "../../types";
 import Actions from "./index";
 
 // Mock child components
 jest.mock("@design-system/widgets-old", () => ({
+  ...jest.requireActual("@design-system/widgets-old"),
   SearchComponent: ({
     onSearch,
     placeholder,
@@ -153,6 +156,22 @@ describe("TableWidget Actions Component", () => {
     );
   };
 
+  const renderTable = (props: Partial<TableProps>) => {
+    const {
+      children: _children,
+      currentPageIndex: _currentPageIndex,
+      pageCount: _pageCount,
+      pageOptions: _pageOptions,
+      ...tableProps
+    } = defaultProps;
+
+    return render(
+      <ThemeProvider theme={lightTheme}>
+        <Table {...tableProps} {...props} />
+      </ThemeProvider>,
+    );
+  };
+
   it("1. Renders search component when isVisibleSearch is true", () => {
     renderWithTableProvider({});
     expect(screen.getByTestId("search-input")).toBeInTheDocument();
@@ -262,5 +281,32 @@ describe("TableWidget Actions Component", () => {
     });
 
     expect(screen.getByText("2 out of 10 Records")).toBeInTheDocument();
+  });
+
+  it.each([0, undefined, Number.NaN])(
+    "keeps client page counts finite for pageSize %p",
+    (pageSize) => {
+      renderTable({ data: [], pageSize: pageSize as number });
+
+      expect(document.body.textContent).toContain("of 1");
+    },
+  );
+
+  it("treats a zero server total as a single empty page", () => {
+    renderTable({
+      data: [{ id: 1 }],
+      pageSize: 10,
+      serverSidePaginationEnabled: true,
+      totalRecordsCount: 0,
+    });
+
+    expect(screen.getByText("0 Records")).toBeInTheDocument();
+    expect(screen.getByText("of 1")).toBeInTheDocument();
+  });
+
+  it("converts one-based widget page metadata to a zero-based table page", () => {
+    renderTable({ data: [], pageNo: 1, pageSize: 10 });
+
+    expect(screen.getByDisplayValue("1")).toBeInTheDocument();
   });
 });
