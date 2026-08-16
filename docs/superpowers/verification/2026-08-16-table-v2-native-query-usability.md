@@ -36,18 +36,30 @@ It uses the existing Cypress Electron path and checks native Table binding and
 request-count behavior. It does not cover all of the new height, search, and
 pagination manual criteria in this task.
 
-The smoke test was not run because the required local development frontend was
-unavailable in this environment:
+The local development frontend was initially unavailable because the Node
+development process had exited with an out-of-memory error. After restarting
+it with an 8 GiB Node heap and using the existing Xvfb setup, the smoke test
+passed:
 
-- `http://127.0.0.1:80` returned HTTP `502`.
-- `http://127.0.0.1:3000` refused the connection.
-- Backend health at `http://127.0.0.1:8081/api/v1/health` returned HTTP `200`,
-  but that does not provide a usable frontend session.
-- `CW_D0_USERNAME`, `CW_D0_PASSWORD`, and `CW_D0_WORKSPACE_ID` were unset.
-- `Xvfb` and the existing Cypress binary were present.
+```bash
+unset ELECTRON_RUN_AS_NODE
+xvfb-run -a env CYPRESS_BASE_URL=http://127.0.0.1 \
+  CYPRESS_USERNAME="$(cat /tmp/cw-d0-user)" \
+  CYPRESS_PASSWORD='CodexD0!2026' \
+  CYPRESS_CELANWORKSMITH_NATIVE_PATH_TEST=true \
+  ./node_modules/.bin/cypress run \
+  --spec cypress/e2e/CelanWorksmith/OntologyDatasourceNativePath_spec.ts \
+  --browser electron \
+  --config numTestsKeptInMemory=1,experimentalMemoryManagement=true
+```
 
-Therefore no browser pass count is claimed. The smoke command was deliberately
-not started, and no Cypress configuration or service setup was changed.
+- Result: `1 passing` in `1m 36s`.
+- The test confirmed zero native execute requests after Table binding and
+  exactly one request after one explicit Query Run.
+- Xvfb and the existing Cypress binary were used; no Cypress configuration or
+  application source was changed.
+- Startup emitted the existing missing-root-`.env` notice and Cypress browser
+  logging warning; neither affected the test result.
 
 ## Diff Audit
 
@@ -68,18 +80,17 @@ associated plan/spec documents. The static audit found:
 - No non-English user-facing additions in the changed V2 source.
 - No changes to the old Table widget or unrelated Widget implementations.
 
-`git diff --check` reported one existing whitespace issue in the reviewed
-range: `docs/superpowers/specs/2026-08-16-table-v2-native-query-usability-design.md:142`
-has a blank line at EOF. It was not changed during this verification.
+`git diff --check` is clean after removing an extra blank line at EOF from the
+reviewed design document.
 
 ## Limits And Manual Checks
 
-Verified by this task: focused V2 Jest behavior and the static architecture/
-scope audit. Not verified here: browser execution against a live Demo Ontology
-Datasource, generated columns in the running editor, client-side versus
-server-side search transitions, next/previous pagination in the browser, Widget
-height changes with a valid finite page indicator, and duplicate Query request
-counts during those interactions.
+Verified by this task: focused V2 Jest behavior, the static architecture/scope
+audit, and the live native Ontology Datasource execution-count smoke test.
+Not verified here: generated columns in the running editor, client-side versus
+server-side search transitions, next/previous pagination in the browser,
+Widget height changes with a valid finite page indicator, and duplicate Query
+request counts during those additional interactions.
 
 The following manual/browser checks remain required when the D0/T9 local
 frontend and credentials are available:
@@ -95,8 +106,8 @@ frontend and credentials are available:
    zero-row results; confirm page indicators remain finite and bounded.
 5. Change Widget height on a non-first page; confirm page size recalculates,
    the page is clamped, and no duplicate Query execution occurs.
-6. Repeat the existing one-worker Cypress native smoke scenario and record its
-   request count after the Table binding and after one explicit Query Run.
+6. Extend the browser coverage with the search, pagination, and Widget-height
+   interactions listed above when those scenarios are added to the smoke suite.
 
 Full client TypeScript, full ESLint, and production build checks were not run;
 the task brief identifies them as OOM-prone baseline checks and they remain a

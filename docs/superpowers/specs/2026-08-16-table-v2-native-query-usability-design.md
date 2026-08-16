@@ -139,4 +139,3 @@ The design is accepted when focused tests demonstrate:
 7. Native DB/API Table Query tests remain green.
 8. A single-worker browser smoke test confirms native Ontology Query to Table
    binding, search, pagination, and a Widget height change.
-
