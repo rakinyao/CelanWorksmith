@@ -189,4 +189,65 @@ describe("TableWidgetV2 getWidgetView", () => {
       });
     });
   });
+
+  it("updates runtime columns once for an equivalent schema", () => {
+    const tableData = [
+      { id: "PO001", delayDays: 4 },
+      { id: "PO002", supplier: "S001" },
+    ];
+    const batchUpdateWidgetProperty = jest.fn();
+    const tableWidget = new TableWidgetV2({
+      ...tableWidgetProps,
+      tableData,
+    });
+    const updateColumnProperties = jest.spyOn(
+      tableWidget,
+      "updateColumnProperties",
+    );
+
+    tableWidget.context = { batchUpdateWidgetProperty };
+    tableWidget.componentDidUpdate({
+      ...tableWidgetProps,
+      tableData: [],
+    });
+
+    expect(batchUpdateWidgetProperty).toHaveBeenCalledTimes(1);
+    const firstUpdateKeys = Object.keys(
+      batchUpdateWidgetProperty.mock.calls[0][1].modify,
+    );
+    expect(
+      firstUpdateKeys.some((key) => key.startsWith("primaryColumns.id.")),
+    ).toBe(true);
+    expect(
+      firstUpdateKeys.some((key) =>
+        key.startsWith("primaryColumns.delayDays."),
+      ),
+    ).toBe(true);
+
+    const updatedProps = {
+      ...tableWidgetProps,
+      tableData: [
+        { id: "PO001", delayDays: 5 },
+        { id: "PO002", supplier: "S002" },
+      ],
+      primaryColumns: {
+        id: { originalId: "id", id: "id", isDerived: false },
+        delayDays: {
+          originalId: "delayDays",
+          id: "delayDays",
+          isDerived: false,
+        },
+        supplier: { originalId: "supplier", id: "supplier", isDerived: false },
+      },
+    } as TableWidgetProps;
+
+    tableWidget.props = updatedProps;
+    tableWidget.componentDidUpdate({
+      ...updatedProps,
+      tableData,
+    });
+
+    expect(batchUpdateWidgetProperty).toHaveBeenCalledTimes(1);
+    expect(updateColumnProperties).toHaveBeenCalledTimes(1);
+  });
 });

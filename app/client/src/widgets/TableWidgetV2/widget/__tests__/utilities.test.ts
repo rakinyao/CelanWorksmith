@@ -969,6 +969,15 @@ describe("getAllTableColumnKeys - ", () => {
     ]);
   });
 
+  it("should preserve first-seen keys across rows", () => {
+    expect(
+      getAllTableColumnKeys([
+        { id: "PO001", delayDays: 4 },
+        { id: "PO002", supplier: "S001" },
+      ]),
+    ).toEqual(["id", "delayDays", "supplier"]);
+  });
+
   it("should test with a empty tableData", () => {
     expect(getAllTableColumnKeys([] as Array<Record<string, unknown>>)).toEqual(
       [],

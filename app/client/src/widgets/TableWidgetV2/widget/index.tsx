@@ -1008,9 +1008,9 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       const newColumnIds: string[] = getAllTableColumnKeys(
         this.props.tableData,
       );
-      const primaryColumnIds = Object.keys(primaryColumns).filter(
-        (id: string) => !primaryColumns[id].isDerived,
-      );
+      const primaryColumnIds = Object.entries(primaryColumns)
+        .filter(([, column]) => !column.isDerived)
+        .map(([id, column]) => column.originalId || id);
 
       if (xor(newColumnIds, primaryColumnIds).length > 0) {
         const newTableColumns = this.createTablePrimaryColumns();
