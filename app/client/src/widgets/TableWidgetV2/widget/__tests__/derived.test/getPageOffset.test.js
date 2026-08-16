@@ -56,6 +56,17 @@ describe("getPageOffset -", () => {
     ).toEqual(0);
   });
 
+  it("should return 0 when pageSize is non-finite", () => {
+    const { getPageOffset } = derivedProperty;
+
+    expect(
+      getPageOffset({
+        pageNo: 10,
+        pageSize: Infinity,
+      }),
+    ).toEqual(0);
+  });
+
   it("should return 0 when pageNo is 0 and pageSize is any random number >= 0", () => {
     const { getPageOffset } = derivedProperty;
 

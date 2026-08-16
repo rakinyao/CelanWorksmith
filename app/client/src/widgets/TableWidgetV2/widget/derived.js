@@ -181,7 +181,12 @@ export default {
         EDIT_ICON_TOP: 21,
       },
     };
-    const compactMode = props.compactMode || "DEFAULT";
+    const compactMode = TABLE_SIZES[props.compactMode]
+      ? props.compactMode
+      : "DEFAULT";
+    if (!Number.isFinite(props.componentHeight) || props.componentHeight <= 0) {
+      return 1;
+    }
     const componentHeight = props.componentHeight - 10;
     const tableSizes = TABLE_SIZES[compactMode];
 
@@ -191,9 +196,11 @@ export default {
         tableSizes.COLUMN_HEADER_HEIGHT) /
       tableSizes.ROW_HEIGHT;
 
-    return pageSize % 1 > 0.3 && props.tableData.length > pageSize
+    pageSize = pageSize % 1 > 0.3 && props.tableData.length > pageSize
       ? Math.ceil(pageSize)
       : Math.floor(pageSize);
+
+    return Math.max(1, Number.isFinite(pageSize) ? Math.floor(pageSize) : 1);
   },
   //
   getProcessedTableData: (props, moment, _) => {
