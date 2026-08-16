@@ -464,23 +464,23 @@ Review only new plugin/lifecycle/editor/import diffs for violations of native da
 
 **Produces:** no executable `$objects/$functions/$actions/$variables` roots, Object Widget modes, object-specific reducers/sagas, or AppIDE ontology loaders.
 
-- [ ] **Step 1: Inventory exact legacy reachability**
+- [x] **Step 1: Inventory exact legacy reachability**
 
 Use `rg` to produce a ledger grouped by DataTree, Redux/Saga, loader, Widget property/rendering, API/controller, tests, and generated artifact. Mark each entry `remove`, `retain behind plugin adapter`, or `archive-readable`.
 
-- [ ] **Step 2: Write failing absence/regression tests**
+- [x] **Step 2: Write failing absence/regression tests**
 
 Assert native datasource Actions still appear in DataTree and bind to a native Table. Assert removed Object-mode widget properties are no longer registered. Do not write a test that preserves `$objects` behavior.
 
-- [ ] **Step 3: Remove one layer at a time**
+- [x] **Step 3: Remove one layer at a time**
 
 Remove client paths in the order DataTree roots/loaders, Widget mode configuration/renderers, reducers/sagas/actions/selectors, then obsolete server controllers used exclusively by the old route. After each layer, run only its direct tests.
 
-- [ ] **Step 4: Archive readable material and clear generated output**
+- [x] **Step 4: Archive readable material and clear generated output**
 
 Move explanatory code extracts/reports only to the ignored archive directory with source paths, commit IDs, and removal reasons. Delete stale generated plugin jars/build output rather than archiving them.
 
-- [ ] **Step 5: Run native-path gate again and review**
+- [x] **Step 5: Run native-path gate again and review**
 
 Repeat Task 12 targeted verification. Review for any remaining active old-route references; acceptable references exist only in the archive ledger.
 
@@ -498,19 +498,19 @@ Repeat Task 12 targeted verification. Review for any remaining active old-route 
 
 **Produces:** a Git checkpoint-ready verification record and superseded-plan status without preserving conflicting architecture as active guidance.
 
-- [ ] **Step 1: Record implementation state**
+- [x] **Step 1: Record implementation state**
 
 Document plugin ID, import sources, snapshot/version semantics, Provider validation, Action Server boundary, known protocol stubs, test commands/results, and manual test results.
 
-- [ ] **Step 2: Mark old contract superseded**
+- [x] **Step 2: Mark old contract superseded**
 
 Add a prominent historical note to the Object-first Widget contract and replan, linking this design. Do not rewrite historical validation claims as if they described the new architecture.
 
-- [ ] **Step 3: Review documentation consistency**
+- [x] **Step 3: Review documentation consistency**
 
 Search `docs/superpowers` for claims that new Widgets default to Object mode or `$objects` is the primary path. Update active guidance or add a supersession link.
 
-- [ ] **Step 4: Checkpoint preparation**
+- [x] **Step 4: Checkpoint preparation**
 
 Run `git diff --check`, capture `git status --short`, and record the exact staged scope proposed for the checkpoint. Do not create a commit unless explicitly requested by the user.
 

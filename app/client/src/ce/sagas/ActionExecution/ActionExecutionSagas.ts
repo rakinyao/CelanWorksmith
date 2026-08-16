@@ -46,15 +46,6 @@ import type { DefaultRootState } from "react-redux";
 import { getAction } from "ee/selectors/entitiesSelector";
 import { getSourceFromTriggerMeta } from "ee/entities/AppsmithConsole/utils";
 import { globalFunctionLogoutUser } from "../userSagas";
-import {
-  celanworksmithActionRun,
-  celanworksmithFunctionRun,
-} from "actions/celanworksmithExecutionActions";
-import {
-  CELANWORKSMITH_ACTION_TRIGGER_PREFIX,
-  CELANWORKSMITH_FUNCTION_TRIGGER_PREFIX,
-} from "ee/entities/DataTree/types";
-import type { CelanworksmithActionExecutionRequest } from "api/CelanworksmithAPI";
 
 export interface TriggerMeta {
   source?: TriggerSource;
@@ -82,47 +73,6 @@ export function* executeActionTriggers(
 
   switch (trigger.type) {
     case "RUN_PLUGIN_ACTION":
-      if (
-        trigger.payload.actionId.startsWith(
-          CELANWORKSMITH_FUNCTION_TRIGGER_PREFIX,
-        )
-      ) {
-        const functionId = trigger.payload.actionId.slice(
-          CELANWORKSMITH_FUNCTION_TRIGGER_PREFIX.length,
-        );
-        const action = celanworksmithFunctionRun(
-          functionId,
-          (trigger.payload.params as { parameters?: Record<string, unknown> })
-            ?.parameters || {},
-        );
-
-        yield put(action);
-        response = action.payload.requestId;
-        break;
-      }
-
-      if (
-        trigger.payload.actionId.startsWith(
-          CELANWORKSMITH_ACTION_TRIGGER_PREFIX,
-        )
-      ) {
-        const actionId = trigger.payload.actionId.slice(
-          CELANWORKSMITH_ACTION_TRIGGER_PREFIX.length,
-        );
-        const action = celanworksmithActionRun(
-          actionId,
-          (
-            trigger.payload.params as {
-              request?: CelanworksmithActionExecutionRequest;
-            }
-          )?.request as CelanworksmithActionExecutionRequest,
-        );
-
-        yield put(action);
-        response = action.payload.requestId;
-        break;
-      }
-
       response = yield call(executePluginActionTriggerSaga, trigger, eventType);
       break;
     case "CLEAR_PLUGIN_ACTION":

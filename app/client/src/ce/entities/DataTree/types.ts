@@ -12,13 +12,6 @@ import type { AppDataState } from "reducers/entityReducers/appReducer";
 import type { AppTheme } from "entities/AppTheming";
 import type { ActionRunBehaviourType } from "PluginActionEditor/types/PluginActionTypes";
 import type { EvaluationSubstitutionType } from "constants/EvaluationConstants";
-import type { AnyAction, Dispatch } from "redux";
-import type {
-  CelanworksmithActionExecutionRequest,
-  CelanworksmithActionResult,
-  CelanworksmithExecutionMeta,
-  CelanworksmithObjectInstance,
-} from "api/CelanworksmithAPI";
 
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,10 +22,6 @@ export const ENTITY_TYPE = {
   WIDGET: "WIDGET",
   APPSMITH: "APPSMITH",
   JSACTION: "JSACTION",
-  CELANWORKSMITH_OBJECTS: "CELANWORKSMITH_OBJECTS",
-  CELANWORKSMITH_FUNCTION: "CELANWORKSMITH_FUNCTION",
-  CELANWORKSMITH_ACTION: "CELANWORKSMITH_ACTION",
-  CELANWORKSMITH_VARIABLES: "CELANWORKSMITH_VARIABLES",
 } as const;
 export const JSACTION_TYPE = ENTITY_TYPE.JSACTION;
 export const ACTION_TYPE = ENTITY_TYPE.ACTION;
@@ -164,10 +153,7 @@ export interface EntityConfig {
 export type UnEvalTreeEntityObject =
   | ActionEntity
   | JSActionEntity
-  | WidgetEntity
-  | CelanworksmithObjectsEntity
-  | CelanworksmithFunctionsEntity
-  | CelanworksmithActionsEntity;
+  | WidgetEntity;
 
 export interface WidgetEntity extends WidgetProps {
   meta: Record<string, unknown>;
@@ -177,83 +163,7 @@ export type DataTreeEntityObject =
   | ActionEntity
   | JSActionEntity
   | WidgetEntity
-  | CelanworksmithObjectsEntity
-  | CelanworksmithFunctionsEntity
-  | CelanworksmithActionsEntity
-  | CelanworksmithVariablesEntity
   | AppsmithEntity;
-
-export interface CelanworksmithObjectTypeEntity {
-  all: Record<string, unknown>[];
-  _meta: {
-    status: "idle" | "loading" | "ready" | "empty" | "error";
-    total: number;
-    path?: string;
-    returnType?: string;
-    stableId?: string;
-    updatedAt?: number;
-    error?: { code: string; message: string };
-  };
-  [key: string]: unknown;
-}
-
-export interface CelanworksmithObjectsEntity {
-  ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_OBJECTS;
-  [objectTypeId: string]: unknown;
-}
-
-export interface CelanworksmithVariablesEntity {
-  ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_VARIABLES;
-  _meta: Record<string, unknown>;
-  [variableName: string]: unknown;
-}
-
-export type CelanworksmithDataTreeDispatch = Dispatch<AnyAction>;
-
-export const CELANWORKSMITH_FUNCTION_TRIGGER_PREFIX =
-  "__CELANWORKSMITH_FUNCTION__:";
-export const CELANWORKSMITH_ACTION_TRIGGER_PREFIX =
-  "__CELANWORKSMITH_ACTION__:";
-
-export interface CelanworksmithFunctionEntity {
-  run: (parameters?: Record<string, unknown>) => string;
-  data?: unknown;
-  _meta: CelanworksmithExecutionMeta;
-  ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_FUNCTION;
-  __metadata?: {
-    returnType: string;
-    parameters: Array<{
-      id: string;
-      dataType: string;
-      required: boolean;
-    }>;
-  };
-}
-
-export interface CelanworksmithActionEntity {
-  run: (request: CelanworksmithActionExecutionRequest) => string;
-  data?: CelanworksmithActionResult;
-  changedObjects: CelanworksmithObjectInstance[];
-  sideEffects: Record<string, unknown>[];
-  _meta: CelanworksmithExecutionMeta;
-  ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_ACTION;
-  __metadata?: {
-    objectTypeId: string;
-    parameters: Array<{
-      id: string;
-      dataType: string;
-      required: boolean;
-    }>;
-  };
-}
-
-export type CelanworksmithFunctionsEntity = Record<string, unknown> & {
-  ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_FUNCTION;
-};
-
-export type CelanworksmithActionsEntity = Record<string, unknown> & {
-  ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_ACTION;
-};
 
 export interface WidgetEntityConfig
   extends Partial<WidgetProps>,
@@ -281,10 +191,3 @@ export type DataTreeEntityConfig =
   | WidgetEntityConfig
   | ActionEntityConfig
   | JSActionEntityConfig;
-
-export type {
-  CelanworksmithExecutionError,
-  CelanworksmithExecutionErrorCode,
-  CelanworksmithExecutionMeta,
-  CelanworksmithExecutionStatus,
-} from "api/CelanworksmithAPI";

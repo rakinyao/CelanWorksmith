@@ -10,6 +10,7 @@ import com.appsmith.server.acl.AclPermission;
 import com.appsmith.server.datasources.base.DatasourceService;
 import com.appsmith.server.datasourcestorages.base.DatasourceStorageService;
 import com.appsmith.server.domains.NewAction;
+import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
@@ -30,16 +31,19 @@ public class OntologyDatasourceCompatibilityService {
     private final DatasourceStorageService datasourceStorageService;
     private final NewActionRepository actionRepository;
     private final OntologyMetadataSnapshotRepository snapshotRepository;
+    private final PluginService pluginService;
 
     public OntologyDatasourceCompatibilityService(
             DatasourceService datasourceService,
             DatasourceStorageService datasourceStorageService,
             NewActionRepository actionRepository,
-            OntologyMetadataSnapshotRepository snapshotRepository) {
+            OntologyMetadataSnapshotRepository snapshotRepository,
+            PluginService pluginService) {
         this.datasourceService = datasourceService;
         this.datasourceStorageService = datasourceStorageService;
         this.actionRepository = actionRepository;
         this.snapshotRepository = snapshotRepository;
+        this.pluginService = pluginService;
     }
 
     public Mono<Report> analyzeUpgrade(String datasourceId, String candidateSnapshotId) {
@@ -57,17 +61,23 @@ public class OntologyDatasourceCompatibilityService {
         if (isBlank(datasourceId)) {
             return Mono.error(new IllegalArgumentException("Datasource ID is required"));
         }
-        return datasourceService
-                .findById(datasourceId, AclPermission.READ_DATASOURCES)
-                .flatMap(datasource -> datasourceStorageService
-                        .findByDatasource(datasource)
-                        .map(datasourceStorageService::createDatasourceStorageDTOFromDatasourceStorage)
-                        .collectMap(DatasourceStorageDTO::getEnvironmentId)
-                        .map(storages -> {
-                            datasource.setDatasourceStorages(storages);
-                            return datasource;
-                        }))
-                .filter(datasource -> OntologyDatasourceService.PLUGIN_ID.equals(datasource.getPluginId()))
+        return pluginService
+                .findByPackageName(OntologyDatasourceService.PLUGIN_PACKAGE_NAME)
+                .filter(plugin -> plugin.getId() != null && !plugin.getId().isBlank())
+                .map(com.appsmith.server.domains.Plugin::getId)
+                .switchIfEmpty(Mono.error(new IllegalStateException("Ontology datasource plugin is not registered: "
+                        + OntologyDatasourceService.PLUGIN_PACKAGE_NAME)))
+                .flatMap(pluginId -> datasourceService
+                        .findById(datasourceId, AclPermission.READ_DATASOURCES)
+                        .flatMap(datasource -> datasourceStorageService
+                                .findByDatasource(datasource)
+                                .map(datasourceStorageService::createDatasourceStorageDTOFromDatasourceStorage)
+                                .collectMap(DatasourceStorageDTO::getEnvironmentId)
+                                .map(storages -> {
+                                    datasource.setDatasourceStorages(storages);
+                                    return datasource;
+                                }))
+                        .filter(datasource -> pluginId.equals(datasource.getPluginId())))
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Ontology datasource was not found")));
     }
 

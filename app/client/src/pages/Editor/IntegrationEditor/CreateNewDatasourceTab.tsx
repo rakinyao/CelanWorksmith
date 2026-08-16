@@ -32,6 +32,8 @@ import RequestNewIntegration from "./RequestNewIntegration";
 import { StyledDivider } from "./IntegrationStyledComponents";
 import CreateNewDatasourceHeader from "./CreateNewDatasourceHeader";
 import EmptySearchedPlugins from "./EmptySearchedPlugins";
+import OntologyDatasourceImport from "./OntologyDatasourceImport";
+import { fetchDatasources } from "actions/datasourceActions";
 // This css file contains for the EXTERNAL_SAAS plugin modal
 import "./index.css";
 
@@ -57,6 +59,8 @@ interface CreateNewDatasourceScreenProps {
   showDebugger: boolean;
   pageId: string;
   isOnboardingScreen?: boolean;
+  workspaceId: string;
+  refreshDatasources: () => void;
 }
 
 interface CreateNewDatasourceScreenState {
@@ -89,7 +93,9 @@ class CreateNewDatasourceTab extends React.Component<
       isCreating,
       isOnboardingScreen,
       pageId,
+      refreshDatasources,
       showDebugger,
+      workspaceId,
     } = this.props;
 
     if (!canCreateDatasource) return null;
@@ -104,6 +110,10 @@ class CreateNewDatasourceTab extends React.Component<
         >
           <CreateNewDatasourceHeader />
           <StyledDivider />
+          <OntologyDatasourceImport
+            onImported={refreshDatasources}
+            workspaceId={workspaceId}
+          />
           {dataSources.length === 0 && <AddDatasourceSecurely />}
           {dataSources.length === 0 && mockDataSectionVisible && (
             <MockDataSources
@@ -194,7 +204,15 @@ const mapStateToProps = (state: DefaultRootState) => {
     canCreateDatasource,
     showDebugger,
     pageId,
+    workspaceId: getCurrentAppWorkspace(state).id,
   };
 };
 
-export default connect(mapStateToProps)(CreateNewDatasourceTab);
+const mapDispatchToProps = {
+  refreshDatasources: fetchDatasources,
+};
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(CreateNewDatasourceTab);

@@ -3,37 +3,32 @@ import type { TableWidgetProps } from "../../../constants";
 import type { PropertyPaneSectionConfig } from "constants/PropertyControlConstants";
 
 describe("TableWidgetV2 contentConfig tests", () => {
-  it("exposes the CelanWorksmith object data mode controls", () => {
-    const objectDataSection = contentConfig.find(
-      (section) =>
-        (section as PropertyPaneSectionConfig).sectionName ===
-        "CelanWorksmith Object data",
-    ) as PropertyPaneSectionConfig;
-
-    expect(objectDataSection).toBeDefined();
-    expect(objectDataSection.expandedByDefault).toBe(true);
-    expect(
-      objectDataSection.children?.map((child) => child.propertyName),
-    ).toEqual(["dataMode", "objectTypeId", "objectFilter"]);
-    const objectTypeControl = objectDataSection.children?.find(
-      (child) => child.propertyName === "objectTypeId",
-    );
-
-    expect(objectTypeControl).toMatchObject({
-      controlType: "CELANWORKSMITH_OBJECT_TYPE",
-      helpText:
-        "Select the ontology object collection that supplies table rows.",
-      label: "Ontology Object / 本体对象",
-    });
-  });
-
-  it("keeps the Query data section collapsed by default", () => {
+  it("exposes the native table data and column controls", () => {
     const dataSection = contentConfig.find(
       (section) =>
         (section as PropertyPaneSectionConfig).sectionName === "Data",
     ) as PropertyPaneSectionConfig;
 
-    expect(dataSection.expandedByDefault).toBe(false);
+    expect(dataSection).toBeDefined();
+    expect(dataSection.children?.map((child) => child.propertyName)).toEqual(
+      expect.arrayContaining(["tableData", "primaryColumns"]),
+    );
+    expect(
+      contentConfig.some(
+        (section) =>
+          (section as PropertyPaneSectionConfig).sectionName ===
+          "CelanWorksmith Object data",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the native Data section expanded by default", () => {
+    const dataSection = contentConfig.find(
+      (section) =>
+        (section as PropertyPaneSectionConfig).sectionName === "Data",
+    ) as PropertyPaneSectionConfig;
+
+    expect(dataSection.expandedByDefault).toBe(true);
   });
 
   it("should disable relevant sections when infinite scroll is enabled", () => {

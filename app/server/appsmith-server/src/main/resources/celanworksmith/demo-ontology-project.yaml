@@ -4,6 +4,7 @@ schemaVersion: 1
 objectTypes:
   - id: PurchaseOrder
     displayName: Purchase Order
+    runtimeTable: purchase_orders
     primaryKey: id
     properties:
       - id: supplierId
@@ -34,6 +35,7 @@ objectTypes:
         derived: true
   - id: Supplier
     displayName: Supplier
+    runtimeTable: suppliers
     primaryKey: id
     properties:
       - id: name

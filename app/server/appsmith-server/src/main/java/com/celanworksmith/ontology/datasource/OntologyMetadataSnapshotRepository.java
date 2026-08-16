@@ -4,6 +4,7 @@ import com.celanworksmith.ontology.persistence.CelanWorksmithMongoProperties;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -15,6 +16,7 @@ public class OntologyMetadataSnapshotRepository {
     private final MongoClient client;
     private final ReactiveMongoTemplate template;
 
+    @Autowired
     public OntologyMetadataSnapshotRepository(CelanWorksmithMongoProperties properties) {
         this(MongoClients.create(properties.getUri()), properties.getDatabase());
     }

@@ -17,4 +17,31 @@ public record OntologyMetadataSnapshot(
         String createdBy,
         Instant createdAt,
         String metadataDigest,
-        OntologyProjectDefinition definition) {}
+        OntologyProjectDefinition definition,
+        boolean deprecated) {
+
+    public OntologyMetadataSnapshot(
+            String id,
+            String projectId,
+            String projectVersion,
+            String sourceKind,
+            String sourceReleaseId,
+            String runtimeProviderId,
+            String createdBy,
+            Instant createdAt,
+            String metadataDigest,
+            OntologyProjectDefinition definition) {
+        this(
+                id,
+                projectId,
+                projectVersion,
+                sourceKind,
+                sourceReleaseId,
+                runtimeProviderId,
+                createdBy,
+                createdAt,
+                metadataDigest,
+                definition,
+                false);
+    }
+}

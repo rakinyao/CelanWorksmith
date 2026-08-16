@@ -1,7 +1,6 @@
 import { ResponsiveBehavior } from "layoutSystems/common/utils/constants";
 import TableWidgetV2 from "..";
 import type { TableWidgetProps } from "../../constants";
-import ObjectTableMode from "widgets/TableWidget/component/ObjectTableMode";
 
 describe("TableWidgetV2 getWidgetView", () => {
   const tableWidgetProps: TableWidgetProps = {
@@ -114,33 +113,12 @@ describe("TableWidgetV2 getWidgetView", () => {
   };
 
   describe("TableWidgetV2 loading checks", () => {
-    it("renders the object table mode when data mode is OBJECT", () => {
-      const tableWidget = new TableWidgetV2({
-        ...tableWidgetProps,
-        dataMode: "OBJECT",
-        objectTypeId: "PurchaseOrder",
-        multiRowSelection: true,
-        selectedRowIndices: [1],
-      });
+    it("renders the native table view", () => {
+      const tableWidget = new TableWidgetV2(tableWidgetProps);
+      const widgetView = tableWidget.getWidgetView();
 
-      const objectTable = tableWidget.getWidgetView();
-
-      expect(objectTable.type).toBe(ObjectTableMode);
-      expect(objectTable.props).toMatchObject({
-        multiRowSelection: true,
-        selectedRowIndices: [1],
-      });
-    });
-
-    it("declares object selection outputs for autocomplete", () => {
-      const autocomplete =
-        TableWidgetV2.getAutocompleteDefinitions()(tableWidgetProps);
-
-      expect(autocomplete).toMatchObject({
-        selectedObject: "?",
-        selectedObjects: "[]",
-        selectedRowIndices: expect.anything(),
-      });
+      expect(widgetView).toBeDefined();
+      expect(widgetView.props.children.props.tableData).toEqual([]);
     });
 
     describe("When custom loading logic is not provided", () => {

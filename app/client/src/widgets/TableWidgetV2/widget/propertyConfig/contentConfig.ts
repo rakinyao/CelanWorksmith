@@ -35,46 +35,6 @@ const INFINITE_SCROLL_DISABLED_HELP_TEXT =
 
 export default [
   {
-    sectionName: "CelanWorksmith Object data",
-    expandedByDefault: true,
-    children: [
-      {
-        propertyName: "dataMode",
-        label: "Data mode",
-        controlType: "DROP_DOWN",
-        options: [
-          { label: "Query", value: "QUERY" },
-          { label: "Object", value: "OBJECT" },
-        ],
-        isBindProperty: false,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.TEXT },
-      },
-      {
-        propertyName: "objectTypeId",
-        label: "Ontology Object / 本体对象",
-        helpText:
-          "Select the ontology object collection that supplies table rows.",
-        controlType: "CELANWORKSMITH_OBJECT_TYPE",
-        isBindProperty: false,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.TEXT },
-        dependencies: ["dataMode"],
-        hidden: (props: TableWidgetProps) => props.dataMode !== "OBJECT",
-      },
-      {
-        propertyName: "objectFilter",
-        label: "Object filter",
-        controlType: "INPUT_TEXT",
-        isBindProperty: true,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.OBJECT },
-        dependencies: ["dataMode"],
-        hidden: (props: TableWidgetProps) => props.dataMode !== "OBJECT",
-      },
-    ],
-  },
-  {
     sectionName: "Data",
     children: [
       {
@@ -91,9 +51,6 @@ export default [
         inputType: "ARRAY",
         isBindProperty: true,
         isTriggerProperty: false,
-        hidden: (props: TableWidgetProps) =>
-          props.dataMode === "OBJECT" &&
-          !Object.keys(props.primaryColumns || {}).length,
         isJSConvertible: true,
         validation: {
           type: ValidationTypes.FUNCTION,
@@ -136,7 +93,6 @@ export default [
         ],
         isBindProperty: false,
         isTriggerProperty: false,
-        hidden: (props: TableWidgetProps) => props.dataMode === "OBJECT",
         validation: {
           type: ValidationTypes.FUNCTION,
           params: {
@@ -202,7 +158,7 @@ export default [
     // We already have a isDefaultOpen prop configured to keep a section expanded or not
     // but introducing new prop so that we can control is based on flag
     // Once we decide to keep this feature, we can go back to using isDefaultOpen and removeexpandedByDefault
-    expandedByDefault: false,
+    expandedByDefault: true,
   },
   {
     sectionName: "Pagination",

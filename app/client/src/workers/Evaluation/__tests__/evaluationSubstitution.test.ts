@@ -80,7 +80,7 @@ describe("substituteDynamicBindingWithValues", () => {
     });
   });
   describe("parameter substitution", () => {
-    it("replaces bindings with $variables", () => {
+    it("replaces dynamic bindings with query parameters", () => {
       const binding = "SELECT * from {{tableName}} LIMIT {{limit}}";
       const subBindings = [
         "SELECT * from ",

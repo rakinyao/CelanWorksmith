@@ -85,6 +85,14 @@ before(function () {
   if (RapidMode.config.enabled) {
     return;
   }
+  if (Cypress.env("CELANWORKSMITH_NATIVE_PATH_TEST") === true) {
+    initLocalstorage();
+    initLocalstorageRegistry();
+    cy.startServerAndRoutes();
+    cy.LoginFromAPI(Cypress.env("USERNAME"), Cypress.env("PASSWORD"));
+    cy.CreateNewAppInNewWorkspace();
+    return;
+  }
   initLocalstorage();
   initLocalstorageRegistry();
   cy.startServerAndRoutes();

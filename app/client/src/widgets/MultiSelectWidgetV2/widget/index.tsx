@@ -50,8 +50,6 @@ import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS, layoutConfigurations } from "constants/WidgetConstants";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import type { DynamicPath } from "utils/DynamicBindingUtils";
-import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
-import ObjectSelectionMode from "celanworksmith/widgets/objectBinding/ObjectSelectionMode";
 
 class MultiSelectWidget extends BaseWidget<
   MultiSelectWidgetProps,
@@ -84,10 +82,6 @@ class MultiSelectWidget extends BaseWidget<
     return {
       rows: 7,
       columns: 20,
-      dataMode: "OBJECT",
-      objectTypeId: undefined,
-      displayPropertyId: undefined,
-      valuePropertyId: undefined,
       animateLoading: true,
       labelText: "Label",
       labelPosition: LabelPosition.Top,
@@ -235,60 +229,6 @@ class MultiSelectWidget extends BaseWidget<
 
   static getPropertyPaneContentConfig() {
     return [
-      {
-        sectionName: "CelanWorksmith Object data",
-        children: [
-          {
-            propertyName: "dataMode",
-            label: "Data mode",
-            controlType: "DROP_DOWN",
-            options: [
-              { label: "Object", value: "OBJECT" },
-              { label: "Query", value: "QUERY" },
-            ],
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-          },
-          {
-            propertyName: "objectTypeId",
-            label: "Ontology Object / 本体对象",
-            helpText:
-              "Select the ontology object collection that supplies options.",
-            controlType: "CELANWORKSMITH_OBJECT_TYPE",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode"],
-            hidden: (props: MultiSelectWidgetProps) =>
-              props.dataMode !== "OBJECT",
-          },
-          {
-            propertyName: "displayPropertyId",
-            label: "Display property",
-            helpText: "Select the stable property ID shown to users.",
-            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode", "objectTypeId"],
-            hidden: (props: MultiSelectWidgetProps) =>
-              props.dataMode !== "OBJECT",
-          },
-          {
-            propertyName: "valuePropertyId",
-            label: "Value property",
-            helpText: "Select the stable property ID returned by this widget.",
-            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode", "objectTypeId"],
-            hidden: (props: MultiSelectWidgetProps) =>
-              props.dataMode !== "OBJECT",
-          },
-        ],
-      },
       {
         sectionName: "Data",
         children: [
@@ -816,10 +756,10 @@ class MultiSelectWidget extends BaseWidget<
   static getDerivedPropertiesMap() {
     return {
       options: `{{(()=>{${derivedProperties.getOptions}})()}}`,
-      value: `{{this.dataMode === "OBJECT" ? (this.selectedOptions ?? []).map((option) => option.value ?? option) : this.selectedOptionValues}}`,
-      isValid: `{{this.dataMode === "OBJECT" ? (this.isRequired ? (this.selectedOptions ?? []).length > 0 : true) : (()=>{${derivedProperties.getIsValid}})()}}`,
-      selectedOptionValues: `{{this.dataMode === "OBJECT" ? (this.selectedOptions ?? []).map((option) => option.value ?? option) : (()=>{${derivedProperties.getSelectedOptionValues}})()}}`,
-      selectedOptionLabels: `{{this.dataMode === "OBJECT" ? (this.selectedOptions ?? []).map((option) => option.label ?? "") : (()=>{${derivedProperties.getSelectedOptionLabels}})()}}`,
+      value: `{{this.selectedOptionValues}}`,
+      isValid: `{{(()=>{${derivedProperties.getIsValid}})()}}`,
+      selectedOptionValues: `{{(()=>{${derivedProperties.getSelectedOptionValues}})()}}`,
+      selectedOptionLabels: `{{(()=>{${derivedProperties.getSelectedOptionLabels}})()}}`,
     };
   }
 
@@ -896,35 +836,7 @@ class MultiSelectWidget extends BaseWidget<
   }
 
   getWidgetView() {
-    const objectBinding = normalizeObjectBinding(
-      MultiSelectWidget.type,
-      this.props as unknown as Record<string, unknown>,
-      {},
-    );
-
-    if (objectBinding.mode === "OBJECT") {
-      return (
-        <ObjectSelectionMode
-          displayPropertyId={objectBinding.binding.displayPropertyId}
-          objectTypeId={objectBinding.binding.objectTypeId}
-          valuePropertyId={objectBinding.binding.valuePropertyId}
-          widgetId={this.props.widgetId}
-          widgetType={MultiSelectWidget.type}
-        >
-          {(options, isLoading) =>
-            this.getWidgetViewForOptions(options as DropdownOption[], isLoading)
-          }
-        </ObjectSelectionMode>
-      );
-    }
-
-    return this.getWidgetViewForOptions(
-      isArray(this.props.options) ? this.props.options : [],
-      this.props.isLoading,
-    );
-  }
-
-  getWidgetViewForOptions(options: DropdownOption[], isLoading?: boolean) {
+    const options = isArray(this.props.options) ? this.props.options : [];
     const minDropDownWidth =
       (MinimumPopupWidthInPercentage / 100) *
       (this.props.mainCanvasWidth ?? layoutConfigurations.MOBILE.maxWidth);
@@ -957,7 +869,7 @@ class MultiSelectWidget extends BaseWidget<
         labelTextSize={this.props.labelTextSize}
         labelTooltip={this.props.labelTooltip}
         labelWidth={this.props.labelComponentWidth}
-        loading={isLoading}
+        loading={this.props.isLoading}
         onChange={this.onOptionChange}
         onDropdownClose={this.onDropdownClose}
         onDropdownOpen={this.onDropdownOpen}
@@ -1052,10 +964,6 @@ export interface DropdownOption extends OptionValue {
 }
 
 export interface MultiSelectWidgetProps extends WidgetProps {
-  dataMode?: "QUERY" | "OBJECT";
-  objectTypeId?: string;
-  displayPropertyId?: string;
-  valuePropertyId?: string;
   placeholderText?: string;
   selectedIndex?: number;
   selectedIndexArr?: number[];

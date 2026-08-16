@@ -6,6 +6,8 @@ import com.appsmith.external.models.DatasourceStorageDTO;
 import com.appsmith.external.models.Property;
 import com.appsmith.server.acl.AclPermission;
 import com.appsmith.server.datasources.base.DatasourceService;
+import com.appsmith.server.domains.Plugin;
+import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.ontology.datasource.dto.ImportOntologyDatasourceRequest;
 import com.celanworksmith.ontology.datasource.dto.OntologyDatasourceSummary;
@@ -17,21 +19,25 @@ import java.util.List;
 import java.util.Map;
 
 public class OntologyDatasourceService {
-    public static final String PLUGIN_ID = "celanworksmith-ontology-plugin";
+    public static final String PLUGIN_PACKAGE_NAME = "celanworksmith-ontology-plugin";
+    public static final String PROVIDER_CONTRACT_VERSION = "1";
     private static final String DEFAULT_ENVIRONMENT_ID = "";
 
     private final WorkspaceService workspaceService;
     private final DatasourceService datasourceService;
+    private final PluginService pluginService;
     private final Map<OntologyProjectImportSource.Kind, OntologyProjectImportSource> importers;
     private final RuntimeProviderCompatibilityValidator compatibilityValidator;
 
     public OntologyDatasourceService(
             WorkspaceService workspaceService,
             DatasourceService datasourceService,
+            PluginService pluginService,
             List<OntologyProjectImportSource> importers,
             RuntimeProviderCompatibilityValidator compatibilityValidator) {
         this.workspaceService = workspaceService;
         this.datasourceService = datasourceService;
+        this.pluginService = pluginService;
         this.compatibilityValidator = compatibilityValidator;
         this.importers = indexImporters(importers);
     }
@@ -42,18 +48,21 @@ public class OntologyDatasourceService {
                 .findById(request.workspaceId(), AclPermission.WORKSPACE_MANAGE_DATASOURCES)
                 .switchIfEmpty(
                         Mono.error(new IllegalArgumentException("Workspace datasource administration is required")))
-                .then(Mono.defer(
-                        () -> importerFor(request.projectImportRequest().sourceKind())
-                                .importProject(request.projectImportRequest())))
-                .flatMap(snapshot -> compatibilityValidator
-                        .validate(snapshot, snapshot.runtimeProviderId())
-                        .flatMap(validation -> validation.compatible()
-                                ? Mono.just(snapshot)
-                                : Mono.error(new IllegalArgumentException("Runtime Provider is incompatible: "
-                                        + String.join("; ", validation.errors())))))
-                .map(snapshot -> datasource(request, snapshot))
+                .then(ontologyPluginId())
+                .flatMap(pluginId -> importerFor(request.projectImportRequest().sourceKind())
+                        .importProject(request.projectImportRequest())
+                        .flatMap(snapshot -> compatibilityValidator
+                                .validate(snapshot, snapshot.runtimeProviderId())
+                                .flatMap(validation -> validation.compatible()
+                                        ? Mono.just(snapshot)
+                                        : Mono.error(new IllegalArgumentException("Runtime Provider is incompatible: "
+                                                + String.join("; ", validation.errors())))))
+                        .map(snapshot -> datasource(request, snapshot, pluginId)))
                 .flatMap(datasourceService::create)
-                .flatMap(this::persistDatasourceId)
+                .flatMap(datasource -> persistDatasourceId(datasource).onErrorResume(error -> datasourceService
+                        .archiveById(datasource.getId())
+                        .onErrorResume(cleanupError -> Mono.empty())
+                        .then(Mono.error(error))))
                 .map(datasource -> summary(datasource, request.changeNote()));
     }
 
@@ -61,21 +70,25 @@ public class OntologyDatasourceService {
         if (isBlank(workspaceId)) {
             return Flux.error(new IllegalArgumentException("Workspace ID is required"));
         }
-        return datasourceService
+        return ontologyPluginId().flatMapMany(pluginId -> datasourceService
                 .getAllByWorkspaceIdWithStorages(workspaceId, AclPermission.READ_DATASOURCES)
-                .filter(datasource -> PLUGIN_ID.equals(datasource.getPluginId()))
-                .map(datasource -> summary(datasource, null));
+                .filter(datasource -> pluginId.equals(datasource.getPluginId()))
+                .map(datasource -> summary(datasource, null)));
     }
 
     public Mono<OntologyDatasourceSummary> getDatasourceSummary(String datasourceId) {
         return findOntologyDatasource(datasourceId, AclPermission.READ_DATASOURCES)
-                .flatMap(datasource -> loadDatasourceWithStorages(datasource, AclPermission.READ_DATASOURCES))
+                .flatMap(datasource -> ontologyPluginId()
+                        .flatMap(pluginId ->
+                                loadDatasourceWithStorages(datasource, pluginId, AclPermission.READ_DATASOURCES)))
                 .map(datasource -> summary(datasource, null));
     }
 
     public Mono<OntologyDatasourceSummary> stopDatasource(String datasourceId) {
         return findOntologyDatasource(datasourceId, AclPermission.MANAGE_DATASOURCES)
-                .flatMap(datasource -> loadDatasourceWithStorages(datasource, AclPermission.MANAGE_DATASOURCES))
+                .flatMap(datasource -> ontologyPluginId()
+                        .flatMap(pluginId ->
+                                loadDatasourceWithStorages(datasource, pluginId, AclPermission.MANAGE_DATASOURCES)))
                 .flatMap(datasource -> {
                     DatasourceStorageDTO storage = requiredStorage(datasource);
                     storage.setIsConfigured(false);
@@ -98,10 +111,11 @@ public class OntologyDatasourceService {
         return importer;
     }
 
-    private Datasource datasource(ImportOntologyDatasourceRequest request, OntologyMetadataSnapshot snapshot) {
+    private Datasource datasource(
+            ImportOntologyDatasourceRequest request, OntologyMetadataSnapshot snapshot, String pluginId) {
         Datasource datasource = new Datasource();
         datasource.setName(request.datasourceName());
-        datasource.setPluginId(PLUGIN_ID);
+        datasource.setPluginId(pluginId);
         datasource.setWorkspaceId(request.workspaceId());
         datasource.setDatasourceStorages(Map.of(
                 DEFAULT_ENVIRONMENT_ID,
@@ -121,6 +135,7 @@ public class OntologyDatasourceService {
                         property("metadataSnapshotId", snapshot.id()),
                         property("metadataDigest", snapshot.metadataDigest()),
                         property("runtimeProviderId", snapshot.runtimeProviderId()),
+                        property("providerContractVersion", PROVIDER_CONTRACT_VERSION),
                         property("workspaceId", workspaceId),
                         property("datasourceId", "pending"),
                         property("projectName", datasourceName),
@@ -163,23 +178,37 @@ public class OntologyDatasourceService {
         if (isBlank(datasourceId)) {
             return Mono.error(new IllegalArgumentException("Datasource ID is required"));
         }
-        return datasourceService
+        return ontologyPluginId().flatMap(pluginId -> datasourceService
                 .findById(datasourceId, permission)
-                .filter(datasource -> PLUGIN_ID.equals(datasource.getPluginId()))
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Ontology datasource was not found")));
+                .filter(datasource -> pluginId.equals(datasource.getPluginId()))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Ontology datasource was not found"))));
     }
 
-    private Mono<Datasource> loadDatasourceWithStorages(Datasource datasource, AclPermission permission) {
+    private Mono<Datasource> loadDatasourceWithStorages(
+            Datasource datasource, String pluginId, AclPermission permission) {
         return datasourceService
                 .getAllByWorkspaceIdWithStorages(datasource.getWorkspaceId(), permission)
                 .filter(candidate -> datasource.getId().equals(candidate.getId()))
-                .filter(candidate -> PLUGIN_ID.equals(candidate.getPluginId()))
+                .filter(candidate -> pluginId.equals(candidate.getPluginId()))
                 .singleOrEmpty()
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("Ontology datasource was not found")));
     }
 
+    private Mono<String> ontologyPluginId() {
+        return pluginService
+                .findByPackageName(PLUGIN_PACKAGE_NAME)
+                .filter(plugin -> !isBlank(plugin.getId()))
+                .map(Plugin::getId)
+                .switchIfEmpty(Mono.error(new IllegalStateException(
+                        "Ontology datasource plugin is not registered: " + PLUGIN_PACKAGE_NAME)));
+    }
+
     private DatasourceStorageDTO requiredStorage(Datasource datasource) {
-        DatasourceStorageDTO storage = datasource.getDatasourceStorages().get(DEFAULT_ENVIRONMENT_ID);
+        Map<String, DatasourceStorageDTO> storages = datasource.getDatasourceStorages();
+        DatasourceStorageDTO storage = storages == null ? null : storages.get(DEFAULT_ENVIRONMENT_ID);
+        if (storage == null && storages != null && storages.size() == 1) {
+            storage = storages.values().iterator().next();
+        }
         if (storage == null || storage.getDatasourceConfiguration() == null) {
             throw new IllegalArgumentException("Ontology datasource configuration is missing");
         }

@@ -57,11 +57,6 @@ export function getCurrentEntityInfo(entity: FocusEntity) {
         segment: EditorEntityTab.UI,
         segmentMode: EditorEntityTabState.List,
       };
-    case FocusEntity.ONTOLOGY:
-      return {
-        segment: EditorEntityTab.ONTOLOGY,
-        segmentMode: EditorEntityTabState.List,
-      };
     default:
       return {
         segment: EditorEntityTab.UI,

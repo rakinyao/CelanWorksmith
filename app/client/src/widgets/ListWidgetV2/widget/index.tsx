@@ -58,8 +58,6 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { renderAppsmithCanvas } from "layoutSystems/CanvasFactory";
 import { klonaRegularWithTelemetry } from "utils/helpers";
-import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
-import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
 
 const getCurrentItemsViewBindingTemplate = () => ({
   prefix: "{{[",
@@ -147,8 +145,6 @@ class ListWidget extends BaseWidget<
   WidgetState,
   MetaWidgetCache
 > {
-  private objectListData?: Array<Record<string, unknown>>;
-
   componentRef: RefObject<HTMLDivElement>;
   metaWidgetGenerator: MetaWidgetGenerator;
   prevFlattenedChildCanvasWidgets?: Record<string, FlattenedWidgetProps>;
@@ -1053,33 +1049,6 @@ class ListWidget extends BaseWidget<
   };
 
   onItemClick = (rowIndex: number) => {
-    const objectItem = this.objectListData?.[rowIndex];
-
-    if (objectItem) {
-      this.props.updateWidgetMetaProperty("selectedItemKey", objectItem.id);
-      this.props.updateWidgetMetaProperty("selectedItem", objectItem);
-
-      if (!this.props.onItemClick) return;
-
-      try {
-        const { jsSnippets } = getDynamicBindings(this.props.onItemClick);
-        const modifiedAction = jsSnippets.reduce(
-          (prev: string, next: string) => prev + `{{${next}}} `,
-          "",
-        );
-
-        super.executeAction({
-          dynamicString: modifiedAction,
-          event: { type: EventType.ON_CLICK },
-          globalContext: { currentIndex: rowIndex, currentItem: objectItem },
-        });
-      } catch (error) {
-        log.debug("Error parsing row action", error);
-      }
-
-      return;
-    }
-
     this.handleSelectedItemAndKey(rowIndex);
     this.handleSelectedItemView(rowIndex);
 
@@ -1483,55 +1452,6 @@ class ListWidget extends BaseWidget<
   };
 
   getWidgetView() {
-    const objectBinding = normalizeObjectBinding(
-      ListWidget.type,
-      this.props as unknown as Record<string, unknown>,
-      {},
-    );
-
-    if (objectBinding.mode === "OBJECT") {
-      return (
-        <ObjectCollectionMode
-          objectTypeId={objectBinding.binding.objectTypeId}
-          onRowsChange={(rows) =>
-            this.props.updateWidgetMetaProperty("listData", rows)
-          }
-          widgetId={this.props.widgetId}
-          widgetType={ListWidget.type}
-        >
-          {(rows, isLoading) => this.getWidgetViewForListData(rows, isLoading)}
-        </ObjectCollectionMode>
-      );
-    }
-
-    return this.getWidgetViewForListData(
-      this.props.listData,
-      this.props.isLoading,
-    );
-  }
-
-  private getWidgetViewForListData(
-    listData: Array<Record<string, unknown>> | undefined,
-    isLoading: boolean | undefined,
-  ) {
-    this.objectListData =
-      this.props.dataMode === "OBJECT" ? listData : undefined;
-    const originalProps = this.props;
-
-    (this as unknown as { props: ListWidgetProps }).props = {
-      ...originalProps,
-      isLoading,
-      listData,
-    };
-
-    try {
-      return this.getNativeWidgetView();
-    } finally {
-      (this as unknown as { props: ListWidgetProps }).props = originalProps;
-    }
-  }
-
-  private getNativeWidgetView() {
     const { componentHeight, componentWidth } = this.props;
     const { infiniteScroll, isLoading, parentColumnSpace, selectedItemKey } =
       this.props;
@@ -1599,8 +1519,6 @@ class ListWidget extends BaseWidget<
 
 export interface ListWidgetProps<T extends WidgetProps = WidgetProps>
   extends WidgetProps {
-  dataMode?: "QUERY" | "OBJECT";
-  objectTypeId?: string;
   accentColor: string;
   backgroundColor: string;
   borderRadius: string;

@@ -10,6 +10,7 @@ import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -63,6 +64,20 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void rejectsHiddenFunctionParametersBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of("functionId", "delayScore", "parameters", Map.of("internalToken", "secret")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown ontology function parameter"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
     void permitsOmittedOptionalFunctionParameters() {
         RecordingGateway gateway = new RecordingGateway();
         ActionExecutionResult result = execute(gateway, "FUNCTION_QUERY", Map.of("functionId", "optionalScore"));
@@ -89,6 +104,34 @@ class OntologyFunctionLinkActionExecutorTest {
         assertFalse(mismatchedSource.getIsExecutionSuccess());
         assertTrue(mismatchedSource.getReadableError().contains("does not apply"));
         assertEquals(0, gateway.linkCalls);
+    }
+
+    @Test
+    void returnsAnEmptyNativeResultWhenAValidLinkHasNoRelatedObjects() {
+        RecordingGateway gateway = new RecordingGateway();
+        gateway.linkResult = List.of();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "LINK_QUERY",
+                Map.of("linkId", "po_delivery", "sourceTypeId", "PurchaseOrder", "sourceId", "po-1"));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(List.of(), result.getBody());
+    }
+
+    @Test
+    void returnsAReadableFailureWhenTheLinkProviderFails() {
+        RecordingGateway gateway = new RecordingGateway();
+        gateway.linkFailure = new IllegalStateException("Runtime Provider unavailable");
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "LINK_QUERY",
+                Map.of("linkId", "po_delivery", "sourceTypeId", "PurchaseOrder", "sourceId", "po-1"));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Runtime Provider unavailable"));
     }
 
     @Test
@@ -142,6 +185,44 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void rejectsActionServerResponseWithoutAuditIdAsMalformed() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        actionServer.response = new OntologyActionServerClient.Result(Map.of("status", "accepted"), null);
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "objectTypeId", "PurchaseOrder",
+                        "objectId", "PO001"));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Action Server returned a malformed response"));
+    }
+
+    @Test
+    void returnsAReadableFailureWhenTheActionServerTransportFails() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        actionServer.transportFailure = new IllegalStateException("Action Server timeout");
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "objectTypeId", "PurchaseOrder",
+                        "objectId", "PO001"));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Action Server timeout"));
+    }
+
+    @Test
     void rejectsCallerSuppliedActionServerContextBeforeItIsInvoked() {
         RecordingGateway gateway = new RecordingGateway();
         RecordingActionServer actionServer = new RecordingActionServer();
@@ -188,13 +269,55 @@ class OntologyFunctionLinkActionExecutorTest {
 
         assertEquals(
                 List.of(
-                        Map.of("label", "delayScore", "value", "delayScore"),
-                        Map.of("label", "optionalScore", "value", "optionalScore")),
+                        metadata("Calculate delay", "delayScore", "integer", false, true, false),
+                        metadata("Optional score", "optionalScore", "integer", false, true, false)),
                 functions.getTrigger());
         assertEquals(
-                List.of(Map.of("label", "reschedulePurchaseOrder", "value", "reschedulePurchaseOrder")),
+                List.of(metadata(
+                        "Reschedule purchase order", "reschedulePurchaseOrder", "action", false, false, false)),
                 actions.getTrigger());
-        assertEquals(List.of(Map.of("label", "po_delivery", "value", "po_delivery")), links.getTrigger());
+        assertEquals(
+                List.of(metadata("Purchase order deliveries", "po_delivery", "link", false, true, false)),
+                links.getTrigger());
+    }
+
+    @Test
+    void exposesSafeDisplayNamesAndTypeMetadataFromThePinnedSnapshot() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO functions = trigger(executor, "ONTOLOGY_FUNCTIONS");
+        Map<?, ?> firstFunction = ((List<?>) functions.getTrigger())
+                .stream().map(value -> (Map<?, ?>) value).findFirst().orElseThrow();
+
+        assertEquals("Calculate delay", firstFunction.get("label"));
+        assertEquals("integer", firstFunction.get("dataType"));
+        assertEquals("Calculate delay (integer); read-only", firstFunction.get("description"));
+        assertEquals(true, firstFunction.get("readOnly"));
+    }
+
+    private static Map<String, Object> metadata(
+            String label, String value, String dataType, boolean required, boolean readOnly, boolean derived) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("label", label);
+        metadata.put("value", value);
+        metadata.put("dataType", dataType);
+        metadata.put("description", description(label, dataType, required, readOnly, derived));
+        metadata.put("enumValues", List.of());
+        metadata.put("referenceTypeId", null);
+        metadata.put("required", required);
+        metadata.put("readOnly", readOnly);
+        metadata.put("derived", derived);
+        return metadata;
+    }
+
+    private static String description(
+            String label, String dataType, boolean required, boolean readOnly, boolean derived) {
+        String description = label + " (" + dataType + ")";
+        if (required) description += "; required";
+        if (readOnly) description += "; read-only";
+        if (derived) description += "; derived";
+        return description;
     }
 
     private ActionExecutionResult execute(RecordingGateway gateway, String operation, Map<String, Object> definition) {
@@ -234,21 +357,38 @@ class OntologyFunctionLinkActionExecutorTest {
                 List.of(
                         new FunctionMetadata(
                                 "delayScore",
+                                "Calculate delay",
                                 "integer",
-                                List.of(new PropertyMetadata("delayDays", "integer", false, true))),
+                                List.of(
+                                        new PropertyMetadata("delayDays", "integer", false, true),
+                                        new PropertyMetadata(
+                                                "internalToken",
+                                                "Internal token",
+                                                "string",
+                                                true,
+                                                false,
+                                                false,
+                                                false,
+                                                List.of(),
+                                                null))),
                         new FunctionMetadata(
                                 "optionalScore",
+                                "Optional score",
                                 "integer",
                                 List.of(new PropertyMetadata("threshold", "integer", false, false)))),
-                List.of(new LinkMetadata("po_delivery", "PurchaseOrder", "DeliveryOrder")),
+                List.of(new LinkMetadata(
+                        "po_delivery", "Purchase order deliveries", "PurchaseOrder", "DeliveryOrder", "many")),
                 List.of(new ActionMetadata(
                         "reschedulePurchaseOrder",
+                        "Reschedule purchase order",
                         "PurchaseOrder",
                         List.of(new PropertyMetadata("newScheduleDate", "string", false, false)))));
         private Map<String, Object> functionParameters;
         private String linkId;
         private int functionCalls;
         private int linkCalls;
+        private List<Map<String, Object>> linkResult = List.of(Map.of("id", "delivery-1"));
+        private RuntimeException linkFailure;
 
         @Override
         public Mono<Snapshot> getRequiredSnapshot(String snapshotId, String digest) {
@@ -274,7 +414,10 @@ class OntologyFunctionLinkActionExecutorTest {
                 String providerId, Snapshot snapshot, String sourceTypeId, String sourceId, String requestedLinkId) {
             linkCalls++;
             linkId = requestedLinkId;
-            return Mono.just(List.of(Map.of("id", "delivery-1")));
+            if (linkFailure != null) {
+                return Mono.error(linkFailure);
+            }
+            return Mono.just(linkResult);
         }
     }
 
@@ -282,6 +425,8 @@ class OntologyFunctionLinkActionExecutorTest {
         private Request request;
         private int calls;
         private DomainException domainFailure;
+        private RuntimeException transportFailure;
+        private Result response = new Result(Map.of("status", "accepted"), "audit-123");
 
         @Override
         public Mono<Result> execute(Request actionRequest) {
@@ -290,7 +435,10 @@ class OntologyFunctionLinkActionExecutorTest {
             if (domainFailure != null) {
                 return Mono.error(domainFailure);
             }
-            return Mono.just(new Result(Map.of("status", "accepted"), "audit-123"));
+            if (transportFailure != null) {
+                return Mono.error(transportFailure);
+            }
+            return Mono.just(response);
         }
     }
 }

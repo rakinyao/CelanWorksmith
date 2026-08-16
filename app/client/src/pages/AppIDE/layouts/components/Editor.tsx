@@ -25,7 +25,7 @@ const Editor = () => {
   const { path } = useRouteMatch();
   const { segment } = useCurrentEditorState();
 
-  if (segment === EditorEntityTab.UI || segment === EditorEntityTab.ONTOLOGY) {
+  if (segment === EditorEntityTab.UI) {
     return null;
   }
 

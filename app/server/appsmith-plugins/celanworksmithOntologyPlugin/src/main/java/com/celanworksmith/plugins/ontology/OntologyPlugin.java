@@ -21,7 +21,10 @@ import org.pf4j.Extension;
 import org.pf4j.PluginWrapper;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -150,21 +153,46 @@ public class OntologyPlugin extends BasePlugin {
             validateSnapshotPin(datasourceConfiguration, snapshot);
             return switch (request.getRequestType()) {
                 case "ONTOLOGY_OBJECT_TYPES" ->
-                    dropdownResult(snapshot.objectTypes().stream()
-                            .map(OntologyRuntimeGateway.ObjectTypeMetadata::id)
+                    dropdownResult(safeList(snapshot.objectTypes()).stream()
+                            .map(objectType -> metadataEntry(
+                                    objectType.id(),
+                                    objectType.displayName(),
+                                    "object",
+                                    false,
+                                    true,
+                                    false,
+                                    List.<String>of(),
+                                    null))
                             .toList());
                 case "ONTOLOGY_OBJECT_PROPERTIES" -> dropdownResult(objectProperties(snapshot, request));
                 case "ONTOLOGY_FUNCTIONS" ->
-                    dropdownResult(snapshot.functions().stream()
-                            .map(OntologyRuntimeGateway.FunctionMetadata::id)
+                    dropdownResult(safeList(snapshot.functions()).stream()
+                            .map(function -> metadataEntry(
+                                    function.id(),
+                                    function.displayName(),
+                                    function.returnType(),
+                                    false,
+                                    true,
+                                    false,
+                                    List.<String>of(),
+                                    null))
                             .toList());
                 case "ONTOLOGY_ACTIONS" ->
-                    dropdownResult(snapshot.actions().stream()
-                            .map(OntologyRuntimeGateway.ActionMetadata::id)
+                    dropdownResult(safeList(snapshot.actions()).stream()
+                            .map(action -> metadataEntry(
+                                    action.id(),
+                                    action.displayName(),
+                                    "action",
+                                    false,
+                                    false,
+                                    false,
+                                    List.<String>of(),
+                                    null))
                             .toList());
                 case "ONTOLOGY_LINKS" ->
-                    dropdownResult(snapshot.links().stream()
-                            .map(OntologyRuntimeGateway.LinkMetadata::id)
+                    dropdownResult(safeList(snapshot.links()).stream()
+                            .map(link -> metadataEntry(
+                                    link.id(), link.displayName(), "link", false, true, false, List.<String>of(), null))
                             .toList());
                 default ->
                     throw new IllegalArgumentException(
@@ -172,28 +200,80 @@ public class OntologyPlugin extends BasePlugin {
             };
         }
 
-        private java.util.List<String> objectProperties(Snapshot snapshot, TriggerRequestDTO request) {
+        private <T> List<T> safeList(List<T> values) {
+            return values == null
+                    ? List.of()
+                    : values.stream().filter(Objects::nonNull).toList();
+        }
+
+        private List<Map<String, Object>> objectProperties(Snapshot snapshot, TriggerRequestDTO request) {
             Object objectTypeId = request.getParameters() == null
                     ? null
                     : request.getParameters().get("objectTypeId");
             if (!(objectTypeId instanceof String value) || value.isBlank()) {
                 throw new IllegalArgumentException("Ontology object type is required for property metadata");
             }
-            return snapshot.objectTypes().stream()
-                    .filter(objectType -> value.equals(objectType.id()))
+            OntologyRuntimeGateway.ObjectTypeMetadata objectType = snapshot.objectTypes().stream()
+                    .filter(candidate -> value.equals(candidate.id()))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown ontology object type: " + value))
-                    .properties()
-                    .stream()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown ontology object type: " + value));
+            return objectType.properties().stream()
                     .filter(property -> !property.hidden())
-                    .map(OntologyRuntimeGateway.PropertyMetadata::id)
+                    .map(property -> metadataEntry(
+                            property.id(),
+                            property.displayName(),
+                            property.dataType(),
+                            property.required(),
+                            property.readOnly(),
+                            property.derived(),
+                            property.enumValues(),
+                            property.referenceTypeId()))
                     .toList();
         }
 
-        private TriggerResultDTO dropdownResult(java.util.List<String> identifiers) {
-            return new TriggerResultDTO(identifiers.stream()
-                    .map(identifier -> Map.of("label", identifier, "value", identifier))
-                    .toList());
+        private TriggerResultDTO dropdownResult(List<Map<String, Object>> metadata) {
+            return new TriggerResultDTO(metadata);
+        }
+
+        private Map<String, Object> metadataEntry(
+                String id,
+                String displayName,
+                String dataType,
+                boolean required,
+                boolean readOnly,
+                boolean derived,
+                List<String> enumValues,
+                String referenceTypeId) {
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("label", safeDisplayLabel(displayName, id));
+            metadata.put("value", id);
+            metadata.put("dataType", dataType);
+            metadata.put("description", semanticDescription(displayName, id, dataType, required, readOnly, derived));
+            metadata.put("enumValues", enumValues == null ? List.of() : List.copyOf(enumValues));
+            metadata.put("referenceTypeId", referenceTypeId);
+            metadata.put("required", required);
+            metadata.put("readOnly", readOnly);
+            metadata.put("derived", derived);
+            return metadata;
+        }
+
+        private String safeDisplayLabel(String displayName, String id) {
+            if (displayName == null || displayName.isBlank()) {
+                return id;
+            }
+            String safeLabel = displayName.replaceAll("[\\p{Cntrl}]", "").trim();
+            return safeLabel.isBlank() ? id : safeLabel;
+        }
+
+        private String semanticDescription(
+                String displayName, String id, String dataType, boolean required, boolean readOnly, boolean derived) {
+            String description = safeDisplayLabel(displayName, id) + " (" + dataType + ")";
+            if (required) description += "; required";
+            if (readOnly) description += "; read-only";
+            if (derived) description += "; derived";
+            return description.replaceAll(
+                    "(?i)(\\b(?:token|password|secret|authorization|apiKey)\\b\\s*[:=]\\s*)(\\\"[^\\\"]*\\\"|'[^']*'|(?:Bearer\\s+)?[^,\\s)}]+)",
+                    "$1[REDACTED]");
         }
 
         private Mono<ActionExecutionResult> executeValidatedObjectQuery(
@@ -288,13 +368,19 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         private Map<String, Object> actionResultBody(OntologyActionServerClient.Result result) {
+            if (result == null || result.auditId() == null || result.auditId().isBlank()) {
+                throw new IllegalStateException("Action Server returned a malformed response: auditId is required");
+            }
             if (result.body() instanceof Map<?, ?> values) {
                 Map<String, Object> body = new java.util.LinkedHashMap<>();
                 values.forEach((key, value) -> body.put(String.valueOf(key), value));
                 body.put("auditId", result.auditId());
-                return Map.copyOf(body);
+                return body;
             }
-            return Map.of("data", result.body(), "auditId", result.auditId());
+            Map<String, Object> body = new java.util.LinkedHashMap<>();
+            body.put("data", result.body());
+            body.put("auditId", result.auditId());
+            return body;
         }
 
         private IllegalStateException actionServerFailure(OntologyActionServerClient.DomainException error) {
@@ -317,13 +403,14 @@ public class OntologyPlugin extends BasePlugin {
         private Mono<ActionExecutionResult> failedResult(Throwable error) {
             ActionExecutionResult executionResult = new ActionExecutionResult();
             executionResult.setIsExecutionSuccess(false);
-            executionResult.setReadableError(error.getMessage());
+            String readableError = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+            executionResult.setReadableError(readableError);
             executionResult.setErrorInfo(new AppsmithPluginException(
                     error,
                     error instanceof IllegalArgumentException
                             ? AppsmithPluginError.PLUGIN_EXECUTE_ARGUMENT_ERROR
                             : AppsmithPluginError.PLUGIN_ERROR,
-                    error.getMessage()));
+                    readableError));
             return Mono.just(executionResult);
         }
     }

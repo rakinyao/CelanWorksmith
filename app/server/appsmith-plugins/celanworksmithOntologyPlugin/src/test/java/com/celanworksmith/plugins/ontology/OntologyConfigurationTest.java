@@ -184,6 +184,87 @@ class OntologyConfigurationTest {
         assertSelector("link-query.json", "linkId", "ONTOLOGY_LINKS");
     }
 
+    @Test
+    void objectQueryEditorExposesProjectionPropertiesForSelectedObjectType() throws IOException {
+        JsonNode editor = readEditorResource("object-query.json");
+        JsonNode projection =
+                findControl(editor.at("/children/0/children"), "actionConfiguration.formData.projection.data");
+
+        assertEquals("DROP_DOWN", projection.path("controlType").asText());
+        assertTrue(projection.path("isMultiSelect").asBoolean());
+        assertTrue(projection.path("fetchOptionsConditionally").asBoolean());
+        assertEquals(
+                "{{!!actionConfiguration.formData.objectTypeId.data}}",
+                projection.at("/conditionals/enable").asText());
+        assertEquals(
+                "{{!!actionConfiguration.formData.objectTypeId.data}}",
+                projection.at("/conditionals/fetchDynamicValues/condition").asText());
+        assertEquals(
+                "ONTOLOGY_OBJECT_PROPERTIES",
+                projection
+                        .at("/conditionals/fetchDynamicValues/config/params/requestType")
+                        .asText());
+        assertEquals(
+                "{{actionConfiguration.formData.objectTypeId.data}}",
+                projection
+                        .at("/conditionals/fetchDynamicValues/config/params/parameters/objectTypeId")
+                        .asText());
+    }
+
+    @Test
+    void nativeProjectionOverridesJsonProjectionWithStablePropertyIds() {
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", "OBJECT_QUERY",
+                "objectTypeId", "PurchaseOrder",
+                "projection", List.of("po_number", "supplier_id"),
+                "definition", "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"]}"));
+
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
+
+        assertEquals(
+                List.of("po_number", "supplier_id"), configuration.definition().get("projection"));
+        List<?> projection = (List<?>) configuration.definition().get("projection");
+        assertThrows(UnsupportedOperationException.class, projection::clear);
+    }
+
+    @Test
+    void absentNativeProjectionPreservesJsonProjection() {
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", "OBJECT_QUERY",
+                "objectTypeId", "PurchaseOrder",
+                "definition", "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"]}"));
+
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
+
+        assertEquals(List.of("id"), configuration.definition().get("projection"));
+    }
+
+    @Test
+    void rejectsInvalidNativeProjectionSelector() {
+        ActionConfiguration nonListAction = new ActionConfiguration();
+        nonListAction.setFormData(Map.of(
+                "operation", "OBJECT_QUERY",
+                "objectTypeId", "PurchaseOrder",
+                "projection", "id",
+                "definition", Map.of("objectTypeId", "PurchaseOrder")));
+
+        ActionConfiguration nonStringEntryAction = new ActionConfiguration();
+        nonStringEntryAction.setFormData(Map.of(
+                "operation",
+                "OBJECT_QUERY",
+                "objectTypeId",
+                "PurchaseOrder",
+                "projection",
+                List.of("id", 42),
+                "definition",
+                Map.of("objectTypeId", "PurchaseOrder")));
+
+        assertThrows(IllegalArgumentException.class, () -> OntologyActionConfiguration.from(nonListAction));
+        assertThrows(IllegalArgumentException.class, () -> OntologyActionConfiguration.from(nonStringEntryAction));
+    }
+
     private DatasourceConfiguration datasourceConfiguration() {
         DatasourceConfiguration configuration = new DatasourceConfiguration();
         configuration.setProperties(List.of(
@@ -238,7 +319,8 @@ class OntologyConfigurationTest {
 
     private void assertSelector(String resource, String selectorField, String requestType) throws IOException {
         JsonNode editor = readEditorResource(resource);
-        JsonNode selector = editor.at("/children/0/children/0");
+        JsonNode selector = findControl(
+                editor.at("/children/0/children"), "actionConfiguration.formData." + selectorField + ".data");
         assertEquals(
                 "actionConfiguration.formData." + selectorField + ".data",
                 selector.path("configProperty").asText());

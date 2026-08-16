@@ -72,8 +72,6 @@ import {
   PropertyPaneContentConfig,
   PropertyPaneStyleConfig,
 } from "./propertyConfig";
-import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
-import ObjectCollectionMode from "celanworksmith/widgets/objectBinding/ObjectCollectionMode";
 
 const LIST_WIDGET_PAGINATION_HEIGHT = 36;
 
@@ -84,8 +82,6 @@ const PATH_TO_ALL_WIDGETS_IN_LIST_WIDGET =
   "children.0.children.0.children.0.children";
 
 class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
-  private objectListData?: Array<Record<string, unknown>>;
-
   state = {
     page: 1,
   };
@@ -109,8 +105,6 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
   static getDefaults() {
     return {
       backgroundColor: "transparent",
-      dataMode: "OBJECT",
-      objectTypeId: undefined,
       itemBackgroundColor: "#FFFFFF",
       rows: 40,
       columns: 24,
@@ -890,15 +884,10 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
       });
     }
 
-    const rowData = this.getActiveListData()?.[rowIndex];
-
-    if (this.objectListData) {
-      this.props.updateWidgetMetaProperty("selectedItem", rowData);
-    }
-
     if (!action) return;
 
     try {
+      const rowData = this.props.listData?.[rowIndex];
       const { jsSnippets } = getDynamicBindings(action);
       const modifiedAction = jsSnippets.reduce((prev: string, next: string) => {
         return prev + `{{${next}}} `;
@@ -1453,58 +1442,6 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
    * view that is rendered in editor
    */
   getWidgetView() {
-    const objectBinding = normalizeObjectBinding(
-      ListWidget.type,
-      this.props as unknown as Record<string, unknown>,
-      {},
-    );
-
-    if (objectBinding.mode === "OBJECT") {
-      return (
-        <ObjectCollectionMode
-          objectTypeId={objectBinding.binding.objectTypeId}
-          onRowsChange={(rows) =>
-            this.props.updateWidgetMetaProperty("listData", rows)
-          }
-          widgetId={this.props.widgetId}
-          widgetType={ListWidget.type}
-        >
-          {(rows, isLoading) => this.getWidgetViewForListData(rows, isLoading)}
-        </ObjectCollectionMode>
-      );
-    }
-
-    return this.getWidgetViewForListData(
-      this.props.listData,
-      this.props.isLoading,
-    );
-  }
-
-  private getActiveListData = () => this.objectListData || this.props.listData;
-
-  private getWidgetViewForListData(
-    listData: Array<Record<string, unknown>> | undefined,
-    isLoading: boolean | undefined,
-  ) {
-    this.objectListData =
-      this.props.dataMode === "OBJECT" ? listData : undefined;
-    const originalProps = this.props;
-
-    (this as unknown as { props: ListWidgetProps<WidgetProps> }).props = {
-      ...originalProps,
-      isLoading,
-      listData,
-    };
-
-    try {
-      return this.getNativeWidgetView();
-    } finally {
-      (this as unknown as { props: ListWidgetProps<WidgetProps> }).props =
-        originalProps;
-    }
-  }
-
-  private getNativeWidgetView() {
     const children = this.renderChildren();
     const { componentHeight } = this.props;
     const { pageNo, serverSidePaginationEnabled } = this.props;
@@ -1601,8 +1538,6 @@ class ListWidget extends BaseWidget<ListWidgetProps<WidgetProps>, WidgetState> {
 }
 
 export interface ListWidgetProps<T extends WidgetProps> extends WidgetProps {
-  dataMode?: "QUERY" | "OBJECT";
-  objectTypeId?: string;
   children?: T[];
   shouldScrollContents?: boolean;
   onListItemClick?: string;

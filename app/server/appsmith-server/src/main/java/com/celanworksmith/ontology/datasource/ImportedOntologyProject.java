@@ -7,4 +7,15 @@ public record ImportedOntologyProject(
         String sourceKind,
         String sourceReleaseId,
         String runtimeProviderId,
-        String importedBy) {}
+        String importedBy,
+        boolean deprecated) {
+
+    public ImportedOntologyProject(
+            OntologyProjectDefinition definition,
+            String sourceKind,
+            String sourceReleaseId,
+            String runtimeProviderId,
+            String importedBy) {
+        this(definition, sourceKind, sourceReleaseId, runtimeProviderId, importedBy, false);
+    }
+}

@@ -43,6 +43,8 @@ public class RuntimeProviderCompatibilityValidator {
                 }
             }
         }
-        return new ProviderValidationResult(errors.isEmpty(), errors);
+        List<String> warnings =
+                snapshot.deprecated() ? List.of("Ontology metadata snapshot is deprecated but compatible") : List.of();
+        return new ProviderValidationResult(errors.isEmpty(), errors, warnings);
     }
 }

@@ -4,6 +4,8 @@ import com.appsmith.external.models.ActionConfiguration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -62,6 +64,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         Map<String, Object> definition = new java.util.LinkedHashMap<>();
         rawDefinition.forEach((key, value) -> definition.put(String.valueOf(key), value));
         mergeSelectorFields(formData, definition);
+        mergeProjection(formData, definition);
         for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
             if (definition.containsKey(protectedKey)) {
                 throw new IllegalArgumentException("Action configuration cannot override: " + protectedKey);
@@ -103,6 +106,25 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
                 definition.put(field, identifier);
             }
         }
+    }
+
+    private static void mergeProjection(Map<String, Object> formData, Map<String, Object> definition) {
+        Object value = formData.get("projection");
+        if (value == null) {
+            return;
+        }
+        if (!(value instanceof List<?> rawProjection)) {
+            throw new IllegalArgumentException("Ontology projection selector must be a list");
+        }
+
+        List<String> projection = new ArrayList<>(rawProjection.size());
+        for (Object propertyId : rawProjection) {
+            if (!(propertyId instanceof String)) {
+                throw new IllegalArgumentException("Ontology projection selector entries must be strings");
+            }
+            projection.add((String) propertyId);
+        }
+        definition.put("projection", List.copyOf(projection));
     }
 
     private static void validateRequiredIdentifier(Operation operation, Map<String, Object> definition) {

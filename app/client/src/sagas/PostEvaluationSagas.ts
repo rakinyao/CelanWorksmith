@@ -53,10 +53,7 @@ import { getJSActionPathNameToDisplay } from "ee/utils/actionExecutionUtils";
 import { showToastOnExecutionError } from "./ActionExecution/errorUtils";
 import { waitForFetchEnvironments } from "ee/sagas/EnvironmentSagas";
 import { startExecutingJSFunction } from "actions/jsPaneActions";
-import {
-  getAllJSActionsData,
-  getJSCollection,
-} from "ee/selectors/entitiesSelector";
+import { getJSCollection } from "ee/selectors/entitiesSelector";
 import {
   ReduxActionErrorTypes,
   ReduxActionTypes,
@@ -66,14 +63,7 @@ import { ActionRunBehaviour } from "PluginActionEditor/types/PluginActionTypes";
 import { getOnLoadActionsWithExecutionStatus } from "selectors/editorSelectors";
 import { executionForJSModuleInstance } from "ee/sagas/moduleInstanceSagaUtils";
 import { runAction } from "actions/pluginActionActions";
-import {
-  buildDataTreeForAutocomplete,
-  getCelanworksmithObjectsDataTree,
-  getCelanworksmithExecutionDataTree,
-  getCelanworksmithVariablesDataTree,
-  getConfigTree,
-  getDataTree,
-} from "selectors/dataTreeSelectors";
+import { buildDataTreeForAutocomplete } from "selectors/dataTreeSelectors";
 
 let successfulBindingsMap: SuccessfulBindingMap | undefined;
 
@@ -263,15 +253,6 @@ export function* updateTernDefinitions(
         update.payload.propertyPath,
       );
 
-      if (
-        entityName === "$objects" ||
-        entityName === "$functions" ||
-        entityName === "$actions" ||
-        entityName === "$variables"
-      ) {
-        return true;
-      }
-
       if (update.event === DataTreeDiffEvent.EDIT) return false;
 
       const entity = dataTree[entityName];
@@ -292,22 +273,7 @@ export function* updateTernDefinitions(
 
   const start = performance.now();
 
-  // remove private and suppressAutoComplete widgets from dataTree used for autocompletion
-  const celanworksmithObjects: ReturnType<
-    typeof getCelanworksmithObjectsDataTree
-  > = yield select(getCelanworksmithObjectsDataTree);
-  const celanworksmithExecution: ReturnType<
-    typeof getCelanworksmithExecutionDataTree
-  > = yield select(getCelanworksmithExecutionDataTree);
-  const celanworksmithVariables: ReturnType<
-    typeof getCelanworksmithVariablesDataTree
-  > = yield select(getCelanworksmithVariablesDataTree);
-  const dataTreeForAutocomplete = buildDataTreeForAutocomplete(
-    dataTree,
-    celanworksmithObjects,
-    celanworksmithExecution,
-    celanworksmithVariables,
-  );
+  const dataTreeForAutocomplete = buildDataTreeForAutocomplete(dataTree);
   const { def, entityInfo } = dataTreeTypeDefCreator(
     dataTreeForAutocomplete,
     jsData,
@@ -320,22 +286,6 @@ export function* updateTernDefinitions(
   log.debug("Tern", { updates });
   log.debug("Tern definitions updated took ", (end - start).toFixed(2));
   endSpan(span);
-}
-
-export function* refreshCelanworksmithTernDefinitions() {
-  const dataTree: DataTree = yield select(getDataTree);
-  const configTree: ConfigTree = getConfigTree();
-  const jsData: Record<string, unknown> = yield select(getAllJSActionsData);
-
-  yield call(
-    updateTernDefinitions,
-    dataTree,
-    configTree,
-    [],
-    false,
-    jsData,
-    true,
-  );
 }
 
 export function* handleJSFunctionExecutionErrorLog(
@@ -508,30 +458,6 @@ export default function* PostEvaluationSagas() {
       1000,
       ReduxActionTypes.EXECUTE_REACTIVE_QUERIES,
       executeReactiveQueries,
-    ),
-    takeLatest(
-      ReduxActionTypes.CELANWORKSMITH_OBJECTS_METADATA_SUCCESS,
-      refreshCelanworksmithTernDefinitions,
-    ),
-    takeLatest(
-      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_START,
-      refreshCelanworksmithTernDefinitions,
-    ),
-    takeLatest(
-      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_REFRESH_START,
-      refreshCelanworksmithTernDefinitions,
-    ),
-    takeLatest(
-      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_SUCCESS,
-      refreshCelanworksmithTernDefinitions,
-    ),
-    takeLatest(
-      ReduxActionTypes.CELANWORKSMITH_OBJECT_TYPE_LOAD_ERROR,
-      refreshCelanworksmithTernDefinitions,
-    ),
-    takeLatest(
-      ReduxActionTypes.CELANWORKSMITH_ONTOLOGY_LOAD_SUCCESS,
-      refreshCelanworksmithTernDefinitions,
     ),
   ]);
 }

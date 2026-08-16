@@ -82,10 +82,6 @@ import ArrayControl from "./ArrayControl";
 import TableCustomSortControl, {
   type TableCustomSortControlProps,
 } from "./TableCustomSortControl";
-import type { CelanworksmithObjectTypeControlProps } from "./CelanworksmithObjectTypeControl";
-import CelanworksmithObjectTypeControl from "./CelanworksmithObjectTypeControl";
-import type { CelanworksmithObjectPropertyControlProps } from "./CelanworksmithObjectPropertyControl";
-import CelanworksmithObjectPropertyControl from "./CelanworksmithObjectPropertyControl";
 import EEPropertyControls from "ee/components/propertyControls";
 
 export const PropertyControls = {
@@ -142,8 +138,6 @@ export const PropertyControls = {
   PrimaryColumnsControlWDS,
   ToolbarButtonListControl,
   TableCustomSortControl,
-  CelanworksmithObjectTypeControl,
-  CelanworksmithObjectPropertyControl,
   ...EEPropertyControls,
 };
 
@@ -175,9 +169,7 @@ export type PropertyControlPropsType =
   | ZoneStepperControlProps
   | SectionSplitterControlProps
   | IconSelectControlV2Props
-  | TableCustomSortControlProps
-  | CelanworksmithObjectTypeControlProps
-  | CelanworksmithObjectPropertyControlProps;
+  | TableCustomSortControlProps;
 
 export const getPropertyControlTypes = (): { [key: string]: string } => {
   const _types: { [key: string]: string } = {};

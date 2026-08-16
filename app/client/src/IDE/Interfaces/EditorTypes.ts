@@ -2,7 +2,6 @@ export enum EditorEntityTab {
   QUERIES = "queries",
   JS = "js",
   UI = "ui",
-  ONTOLOGY = "ontology",
 }
 
 export enum EditorEntityTabState {

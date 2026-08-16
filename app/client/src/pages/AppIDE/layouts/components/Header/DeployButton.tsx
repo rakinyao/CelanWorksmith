@@ -23,7 +23,7 @@ import {
   useGitConnected,
   useGitModEnabled,
 } from "pages/Editor/gitSync/hooks/modHooks";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getCurrentApplicationId,
@@ -31,6 +31,7 @@ import {
 } from "selectors/editorSelectors";
 import styled from "styled-components";
 import { getIsAnvilEnabledInCurrentApplication } from "layoutSystems/anvil/integrations/selectors";
+import ApplicationReleasePanel from "pages/AppIDE/components/ApplicationReleasePanel";
 
 // This wrapper maintains pointer events for tooltips when the child button is disabled.
 // Without this, disabled buttons won't trigger tooltips because they have pointer-events: none
@@ -39,6 +40,7 @@ const StyledTooltipTarget = styled.span`
 `;
 
 function DeployButton() {
+  const [isReleasePanelOpen, setIsReleasePanelOpen] = useState(false);
   const applicationId = useSelector(getCurrentApplicationId);
   const isPackageUpgrading = useSelector(getIsPackageUpgrading);
   const isProtectedMode = useGitProtectedMode();
@@ -86,10 +88,8 @@ function DeployButton() {
       AnalyticsUtil.logEvent("GS_DEPLOY_GIT_CLICK", {
         source: "Deploy button",
       });
-    } else if (isAnvilEnabled) {
-      dispatch(publishAnvilApplication(applicationId));
     } else {
-      dispatch(publishApplication(applicationId));
+      setIsReleasePanelOpen(true);
     }
   }, [
     applicationId,
@@ -117,24 +117,42 @@ function DeployButton() {
     return "rocket";
   }, [isGitConnected, gitStatusState, redeployTrigger]);
 
+  const publishNativeApplication = useCallback(() => {
+    if (isAnvilEnabled) {
+      dispatch(publishAnvilApplication(applicationId));
+    } else {
+      dispatch(publishApplication(applicationId));
+    }
+
+    setIsReleasePanelOpen(false);
+  }, [applicationId, dispatch, isAnvilEnabled]);
+
   return (
-    <Tooltip content={tooltipText} placement="bottomRight">
-      <StyledTooltipTarget>
-        <Button
-          className="t--application-publish-btn"
-          data-guided-tour-iid="deploy"
-          id={"application-publish-btn"}
-          isDisabled={isDeployDisabled}
-          isLoading={isPublishing}
-          kind="tertiary"
-          onClick={handleClickDeploy}
-          size="md"
-          startIcon={startIcon}
-        >
-          {createMessage(DEPLOY_MENU_OPTION)}
-        </Button>
-      </StyledTooltipTarget>
-    </Tooltip>
+    <>
+      <Tooltip content={tooltipText} placement="bottomRight">
+        <StyledTooltipTarget>
+          <Button
+            className="t--application-publish-btn"
+            data-guided-tour-iid="deploy"
+            id={"application-publish-btn"}
+            isDisabled={isDeployDisabled}
+            isLoading={isPublishing}
+            kind="tertiary"
+            onClick={handleClickDeploy}
+            size="md"
+            startIcon={startIcon}
+          >
+            {createMessage(DEPLOY_MENU_OPTION)}
+          </Button>
+        </StyledTooltipTarget>
+      </Tooltip>
+      <ApplicationReleasePanel
+        applicationId={applicationId}
+        isOpen={isReleasePanelOpen}
+        onClose={() => setIsReleasePanelOpen(false)}
+        onPublish={publishNativeApplication}
+      />
+    </>
   );
 }
 

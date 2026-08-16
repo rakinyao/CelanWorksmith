@@ -31,9 +31,21 @@
         {
           "label": "Object type",
           "configProperty": "actionConfiguration.formData.objectTypeId.data",
-          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "controlType": "DROP_DOWN",
           "isRequired": true,
-          "placeholderText": "PurchaseOrder"
+          "placeholderText": "Select an object type",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "fetchDynamicValues": {
+              "condition": "{{true}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_OBJECT_TYPES",
+                  "displayType": "DROP_DOWN"
+                }
+              }
+            }
+          }
         },
         {
           "label": "Object ID",

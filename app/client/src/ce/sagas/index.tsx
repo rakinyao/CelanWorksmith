@@ -55,13 +55,6 @@ import sendSideBySideWidgetHoverAnalyticsEventSaga from "sagas/AnalyticsSaga";
 import gitSagas from "git/sagas";
 import PostEvaluationSagas from "sagas/PostEvaluationSagas";
 import copyToAppSagas from "ee/sagas/CopyToAppSagas";
-import celanworksmithObjectsSaga from "sagas/CelanworksmithObjectsSaga";
-import celanworksmithOntologySaga from "sagas/CelanworksmithOntologySaga";
-import celanworksmithExecutionSaga from "sagas/CelanworksmithExecutionSaga";
-import celanworksmithLinksSaga from "sagas/CelanworksmithLinksSaga";
-import celanworksmithLoadRetrySaga from "sagas/CelanworksmithLoadRetrySaga";
-import celanworksmithObjectQuerySaga from "sagas/CelanworksmithObjectQuerySaga";
-import celanworksmithApplicationBindingSaga from "sagas/CelanworksmithApplicationBindingSaga";
 
 /* Sagas that are registered by a module that is designed to be independent of the core platform */
 import ternSagas from "sagas/TernSaga";
@@ -126,11 +119,4 @@ export const sagas = [
   PostEvaluationSagas,
   favoritesSagasListener,
   copyToAppSagas,
-  celanworksmithObjectsSaga,
-  celanworksmithOntologySaga,
-  celanworksmithExecutionSaga,
-  celanworksmithLinksSaga,
-  celanworksmithLoadRetrySaga,
-  celanworksmithObjectQuerySaga,
-  celanworksmithApplicationBindingSaga,
 ];

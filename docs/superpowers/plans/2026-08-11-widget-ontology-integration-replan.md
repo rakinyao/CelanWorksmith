@@ -1,4 +1,21 @@
-# CelanWorksmith Widget-Ontology 集成再规划
+# Historical Plan: CelanWorksmith Widget-Ontology 集成再规划
+
+> **SUPERSEDED (2026-08-14):** This plan records the former Object-first
+> Widget integration direction and is retained as historical design context.
+> Do not implement its Object-mode, `$objects`, `$functions`, `$actions`, or
+> `$variables` work items. The active replacement is the standard Datasource
+> plugin plan at
+> [2026-08-13-ontology-datasource-plugin-implementation.md](2026-08-13-ontology-datasource-plugin-implementation.md).
+> The current checkpoint is recorded in
+> [2026-08-13-ontology-datasource-replacement-checkpoint.md](../verification/2026-08-13-ontology-datasource-replacement-checkpoint.md).
+
+## Replacement Status
+
+The replacement plan completed its Task 13 legacy-path removal and Task 14
+checkpoint documentation on 2026-08-14. The next active work is usability and
+native query-editor refinement on top of the ontology Datasource plugin. Table,
+Chart, binding-assistant, ACL, and production platform-client improvements are
+future iterations and must not reintroduce ontology-specific Widget modes.
 
 > 日期：2026-08-11
 > 重基线：2026-08-12

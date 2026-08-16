@@ -26,11 +26,6 @@ const SegmentSwitcher = () => {
         startIcon: "dashboard-line",
         value: EditorEntityTab.UI,
       },
-      {
-        label: createMessage(EDITOR_PANE_TEXTS.ontology_tab),
-        startIcon: "database-2-line",
-        value: EditorEntityTab.ONTOLOGY,
-      },
     ];
   }, []);
 

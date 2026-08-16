@@ -1,9 +1,13 @@
 package com.celanworksmith;
 
+import com.appsmith.server.applications.base.ApplicationService;
 import com.appsmith.server.datasources.base.DatasourceService;
 import com.appsmith.server.datasourcestorages.base.DatasourceStorageService;
+import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.appsmith.server.services.WorkspaceService;
+import com.appsmith.server.solutions.ApplicationPermission;
+import com.appsmith.server.solutions.DatasourcePermission;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
@@ -16,9 +20,12 @@ import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValida
 import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
+import com.celanworksmith.release.ActionServerAdapterConfigurationValidator;
+import com.celanworksmith.release.ApplicationReleaseProviderHealthGate;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
 import com.celanworksmith.runtime.adapter.production.ProductionRuntimeProvider;
 import com.celanworksmith.runtime.port.RuntimeProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -31,6 +38,7 @@ class CelanWorksmithConfigurationTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(CelanWorksmithConfiguration.class)
             .withBean(OntologyProjectRegistry.class, () -> mock(OntologyProjectRegistry.class))
+            .withBean(ObjectMapper.class, () -> new ObjectMapper().findAndRegisterModules())
             .withBean(OntologyMetadataSnapshotRepository.class, () -> mock(OntologyMetadataSnapshotRepository.class))
             .withBean(
                     CelanworksmithApplicationBindingRepository.class,
@@ -38,7 +46,11 @@ class CelanWorksmithConfigurationTest {
             .withBean(WorkspaceService.class, () -> mock(WorkspaceService.class))
             .withBean(DatasourceService.class, () -> mock(DatasourceService.class))
             .withBean(DatasourceStorageService.class, () -> mock(DatasourceStorageService.class))
+            .withBean(PluginService.class, () -> mock(PluginService.class))
             .withBean(NewActionRepository.class, () -> mock(NewActionRepository.class))
+            .withBean(ApplicationService.class, () -> mock(ApplicationService.class))
+            .withBean(ApplicationPermission.class, () -> mock(ApplicationPermission.class))
+            .withBean(DatasourcePermission.class, () -> mock(DatasourcePermission.class))
             .withBean(
                     OntologyDatasourceUpgradeService.AuditStore.class,
                     () -> mock(OntologyDatasourceUpgradeService.AuditStore.class))
@@ -58,6 +70,18 @@ class CelanWorksmithConfigurationTest {
     @Test
     void registersTheOntologySnapshotService() {
         contextRunner.run(context -> assertThat(context).hasSingleBean(OntologySnapshotService.class));
+    }
+
+    @Test
+    void registersTheReleaseHealthGateAndAdapterValidator() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(ApplicationReleaseProviderHealthGate.class);
+            assertThat(context).hasSingleBean(ActionServerAdapterConfigurationValidator.class);
+            assertThat(context.getBean(ApplicationReleaseProviderHealthGate.class))
+                    .isNotNull();
+            assertThat(context.getBean(ActionServerAdapterConfigurationValidator.class))
+                    .isNotNull();
+        });
     }
 
     @Test

@@ -56,8 +56,6 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import type { DynamicPath } from "utils/DynamicBindingUtils";
-import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
-import ObjectSelectionMode from "celanworksmith/widgets/objectBinding/ObjectSelectionMode";
 
 class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
   constructor(props: SelectWidgetProps) {
@@ -91,10 +89,6 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
     return {
       rows: 7,
       columns: 20,
-      dataMode: "OBJECT",
-      objectTypeId: undefined,
-      displayPropertyId: undefined,
-      valuePropertyId: undefined,
       placeholderText: "Select option",
       labelText: "Label",
       labelPosition: LabelPosition.Top,
@@ -258,57 +252,6 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
 
   static getPropertyPaneContentConfig() {
     return [
-      {
-        sectionName: "CelanWorksmith Object data",
-        children: [
-          {
-            propertyName: "dataMode",
-            label: "Data mode",
-            controlType: "DROP_DOWN",
-            options: [
-              { label: "Object", value: "OBJECT" },
-              { label: "Query", value: "QUERY" },
-            ],
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-          },
-          {
-            propertyName: "objectTypeId",
-            label: "Ontology Object / 本体对象",
-            helpText:
-              "Select the ontology object collection that supplies options.",
-            controlType: "CELANWORKSMITH_OBJECT_TYPE",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode"],
-            hidden: (props: SelectWidgetProps) => props.dataMode !== "OBJECT",
-          },
-          {
-            propertyName: "displayPropertyId",
-            label: "Display property",
-            helpText: "Select the stable property ID shown to users.",
-            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode", "objectTypeId"],
-            hidden: (props: SelectWidgetProps) => props.dataMode !== "OBJECT",
-          },
-          {
-            propertyName: "valuePropertyId",
-            label: "Value property",
-            helpText: "Select the stable property ID returned by this widget.",
-            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode", "objectTypeId"],
-            hidden: (props: SelectWidgetProps) => props.dataMode !== "OBJECT",
-          },
-        ],
-      },
       {
         sectionName: "Data",
         children: [
@@ -832,9 +775,10 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
   static getDerivedPropertiesMap() {
     return {
       options: `{{(()=>{${derivedProperties.getOptions}})()}}`,
-      isValid: `{{this.dataMode === "OBJECT" ? (this.isRequired ? this.value !== undefined && this.value !== "" : true) : (()=>{${derivedProperties.getIsValid}})()}}`,
-      selectedOptionValue: `{{this.dataMode === "OBJECT" ? (this.value?.value ?? this.value ?? "") : (()=>{${derivedProperties.getSelectedOptionValue}})()}}`,
-      selectedOptionLabel: `{{this.dataMode === "OBJECT" ? (this.label?.label ?? this.label ?? "") : (()=>{${derivedProperties.getSelectedOptionLabel}})()}}`,
+      isValid: `{{(()=>{${derivedProperties.getIsValid}})()}}`,
+      selectedOptionValue: `{{(()=>{${derivedProperties.getSelectedOptionValue}})()}}`,
+
+      selectedOptionLabel: `{{(()=>{${derivedProperties.getSelectedOptionLabel}})()}}`,
     };
   }
 
@@ -886,42 +830,14 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
     isString(value) || isNumber(value);
 
   getWidgetView() {
-    const objectBinding = normalizeObjectBinding(
-      SelectWidget.type,
-      this.props as unknown as Record<string, unknown>,
-      {},
-    );
-
-    if (objectBinding.mode === "OBJECT") {
-      return (
-        <ObjectSelectionMode
-          displayPropertyId={objectBinding.binding.displayPropertyId}
-          objectTypeId={objectBinding.binding.objectTypeId}
-          valuePropertyId={objectBinding.binding.valuePropertyId}
-          widgetId={this.props.widgetId}
-          widgetType={SelectWidget.type}
-        >
-          {(options, isLoading) =>
-            this.getWidgetViewForOptions(options as DropdownOption[], isLoading)
-          }
-        </ObjectSelectionMode>
-      );
-    }
-
-    return this.getWidgetViewForOptions(
-      isArray(this.props.options) ? this.props.options : [],
-      this.props.isLoading,
-    );
-  }
-
-  getWidgetViewForOptions(options: DropdownOption[], isLoading?: boolean) {
+    const options = isArray(this.props.options) ? this.props.options : [];
     const isInvalid =
       "isValid" in this.props && !this.props.isValid && !!this.props.isDirty;
     const dropDownWidth =
       (MinimumPopupWidthInPercentage / 100) *
       (this.props.mainCanvasWidth ?? layoutConfigurations.MOBILE.maxWidth);
 
-    const selectedIndex = findIndex(options, {
+    const selectedIndex = findIndex(this.props.options, {
       value: this.props.selectedOptionValue,
     });
     const { componentHeight, componentWidth } = this.props;
@@ -939,7 +855,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
         height={componentHeight}
         isDynamicHeightEnabled={isAutoHeightEnabledForWidget(this.props)}
         isFilterable={this.props.isFilterable}
-        isLoading={isLoading}
+        isLoading={this.props.isLoading}
         isRequired={this.props.isRequired}
         isValid={this.props.isValid}
         label={this.props.selectedOptionLabel}
@@ -1043,10 +959,6 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
 }
 
 export interface SelectWidgetProps extends WidgetProps {
-  dataMode?: "QUERY" | "OBJECT";
-  objectTypeId?: string;
-  displayPropertyId?: string;
-  valuePropertyId?: string;
   placeholderText?: string;
   labelText: string;
   labelPosition?: LabelPosition;

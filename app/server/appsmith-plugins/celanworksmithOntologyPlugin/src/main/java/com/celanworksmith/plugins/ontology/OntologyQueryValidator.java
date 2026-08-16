@@ -74,12 +74,14 @@ final class OntologyQueryValidator {
         if (!(supplied instanceof Map<?, ?> rawParameters)) {
             throw new IllegalArgumentException("Ontology " + operationName + " parameters must be an object");
         }
+        List<PropertyMetadata> visibleParameters =
+                metadata.stream().filter(parameter -> !parameter.hidden()).toList();
         Map<String, Object> parameters = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : rawParameters.entrySet()) {
             if (!(entry.getKey() instanceof String parameterId)) {
                 throw new IllegalArgumentException("Ontology " + operationName + " parameter IDs must be strings");
             }
-            PropertyMetadata parameter = metadata.stream()
+            PropertyMetadata parameter = visibleParameters.stream()
                     .filter(candidate -> parameterId.equals(candidate.id()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(
@@ -91,7 +93,7 @@ final class OntologyQueryValidator {
             }
             parameters.put(parameterId, entry.getValue());
         }
-        for (PropertyMetadata parameter : metadata) {
+        for (PropertyMetadata parameter : visibleParameters) {
             if (parameter.required() && !parameters.containsKey(parameter.id())) {
                 throw new IllegalArgumentException(
                         "Ontology " + operationName + " parameter is required: " + parameter.id());
@@ -123,7 +125,10 @@ final class OntologyQueryValidator {
     private Map<String, PropertyMetadata> propertiesById(ObjectTypeMetadata objectType) {
         Map<String, PropertyMetadata> properties = new LinkedHashMap<>();
         for (PropertyMetadata property : objectType.properties()) {
-            if (property == null || isBlank(property.id()) || properties.putIfAbsent(property.id(), property) != null) {
+            if (property == null || isBlank(property.id())) {
+                throw new IllegalArgumentException("Ontology snapshot has invalid property metadata");
+            }
+            if (!property.hidden() && properties.putIfAbsent(property.id(), property) != null) {
                 throw new IllegalArgumentException("Ontology snapshot has invalid property metadata");
             }
         }

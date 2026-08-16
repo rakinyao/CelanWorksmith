@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import _, { get, some } from "lodash";
 import equal from "fast-deep-equal/es6";
 import type { WidgetProps } from "../../BaseWidget";
@@ -35,481 +35,6 @@ import type { FlexLayer } from "layoutSystems/autolayout/utils/types";
 import type { LayoutProps } from "layoutSystems/anvil/utils/anvilTypes";
 import { formPreset } from "layoutSystems/anvil/layoutComponents/presets/FormPreset";
 import { LayoutSystemTypes } from "layoutSystems/types";
-import { ValidationTypes } from "constants/WidgetValidation";
-import {
-  getObjectPropertyValue,
-  normalizeObjectData,
-} from "widgets/ObjectDetailWidget/widget/objectDetailUtils";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  getCelanworksmithObjectsState,
-  getDataTree,
-} from "selectors/dataTreeSelectors";
-import {
-  syncUpdateWidgetMetaProperty,
-  triggerEvalOnMetaUpdate,
-} from "actions/metaActions";
-import type { CelanworksmithProperty } from "api/CelanworksmithAPI";
-import { getWidgets } from "sagas/selectors";
-import {
-  isInputValueValid,
-  type InputWidgetProps,
-} from "widgets/InputWidget/widget";
-import {
-  validateFieldValue,
-  type ObjectActionValidationIssue,
-} from "celanworksmith/objectActionValidation";
-
-export interface FormObjectBinding {
-  instance: {
-    id: string;
-    typeId: string;
-    properties: Record<string, unknown>;
-  };
-  objectTypeId: string;
-}
-
-export interface ObjectFormValidationFeedback {
-  errorPath?: string;
-  firstInvalidField?: string;
-  firstIssue?: ObjectActionValidationIssue;
-  issues: ObjectActionValidationIssue[];
-  summary?: string;
-}
-
-type ObjectFormInput = Partial<InputWidgetProps> & {
-  value?: unknown;
-};
-
-const normalizeObjectFormFieldValue = (
-  value: unknown,
-  property: CelanworksmithProperty,
-) => {
-  if (typeof value !== "string") return value;
-
-  const text = value.trim();
-
-  if (property.dataType === "INTEGER" && /^[-+]?\d+$/.test(text)) {
-    return Number(text);
-  }
-
-  if (
-    property.dataType === "DECIMAL" &&
-    text !== "" &&
-    Number.isFinite(Number(text))
-  ) {
-    return Number(text);
-  }
-
-  if (property.dataType === "BOOLEAN") {
-    if (text === "true") return true;
-
-    if (text === "false") return false;
-  }
-
-  return value;
-};
-
-const createObjectFormBindingIssue = (
-  input: ObjectFormInput,
-  message: string,
-  code: ObjectActionValidationIssue["code"] = "OBJECT_REQUIRED",
-): ObjectActionValidationIssue => {
-  const propertyId = input.displayPropertyId;
-  const path = [input.widgetName, propertyId].filter(Boolean).join(".");
-
-  return {
-    code,
-    displayName: input.objectPropertyMetadata?.displayName,
-    objectTypeId: input.objectTypeId,
-    path: path || input.widgetName || "objectData",
-    propertyId,
-    message,
-  };
-};
-
-export const getObjectFormValidationFeedback = (
-  inputs: ObjectFormInput[],
-): ObjectFormValidationFeedback => {
-  const issues = inputs.flatMap((input) => {
-    if (input.type !== "INPUT_WIDGET" || input.dataMode !== "OBJECT") return [];
-
-    const property = input.objectPropertyMetadata;
-    const object = normalizeObjectData(
-      input.objectBinding?.instance || input.objectData,
-    );
-    const objectTypeId =
-      input.objectTypeId || input.objectBinding?.objectTypeId || object?.typeId;
-
-    if (!property || !input.displayPropertyId) {
-      return [
-        createObjectFormBindingIssue(
-          input,
-          "Object field metadata is not available.",
-        ),
-      ];
-    }
-
-    if (!object) {
-      return [
-        createObjectFormBindingIssue(
-          input,
-          "Object data must include both id and typeId.",
-        ),
-      ];
-    }
-
-    if (objectTypeId && object.typeId !== objectTypeId) {
-      return [
-        createObjectFormBindingIssue(
-          input,
-          `This field requires a ${objectTypeId} object.`,
-          "OBJECT_TYPE_MISMATCH",
-        ),
-      ];
-    }
-
-    const objectProperty = getObjectPropertyValue(object, property.id);
-
-    if (objectProperty?.state !== "ready") {
-      return [
-        createObjectFormBindingIssue(
-          input,
-          `${property.displayName || property.id} is not available on this object.`,
-        ),
-      ];
-    }
-
-    const value = input.isDirty
-      ? input.value !== undefined
-        ? input.value
-        : input.text
-      : objectProperty.value;
-
-    return validateFieldValue(
-      normalizeObjectFormFieldValue(value, property),
-      property,
-      {
-        objectTypeId,
-        path: input.widgetName,
-        uneditedValue: normalizeObjectFormFieldValue(
-          objectProperty.value,
-          property,
-        ),
-      },
-    );
-  });
-  const firstIssue = issues[0];
-  const errorPath = firstIssue?.path;
-
-  return {
-    errorPath,
-    firstInvalidField: errorPath,
-    firstIssue,
-    issues,
-    summary: firstIssue
-      ? `${issues.length} form field validation error${issues.length === 1 ? "" : "s"}. Fix ${errorPath}.`
-      : undefined,
-  };
-};
-
-const isDescendantOf = (
-  widget: WidgetProps,
-  ancestorId: string,
-  widgets: CanvasWidgetsReduxState,
-) => {
-  let currentWidget = widget;
-
-  while (currentWidget.parentId) {
-    if (currentWidget.parentId === ancestorId) return true;
-
-    const parentWidget = widgets[currentWidget.parentId];
-
-    if (!parentWidget) return false;
-
-    currentWidget = parentWidget;
-  }
-
-  return false;
-};
-
-export function isObjectFormInputValid(
-  input: Partial<InputWidgetProps>,
-  evaluatedInput: Partial<InputWidgetProps> | undefined,
-  objectPropertiesMetadata: CelanworksmithProperty[] | undefined,
-  instance: ReturnType<typeof normalizeObjectData>,
-  objectTypeId?: string,
-) {
-  const currentInput = { ...input, ...evaluatedInput } as InputWidgetProps;
-
-  if (currentInput.objectTypeId && currentInput.objectTypeId !== objectTypeId) {
-    return false;
-  }
-
-  const metadata = objectPropertiesMetadata?.find(
-    (property) => property.id === currentInput.displayPropertyId,
-  );
-  const inputObject = normalizeObjectData(currentInput.objectData) || instance;
-  const objectProperty = getObjectPropertyValue(
-    inputObject,
-    currentInput.displayPropertyId,
-  );
-
-  if (
-    !inputObject ||
-    !metadata ||
-    !objectTypeId ||
-    inputObject.typeId !== objectTypeId ||
-    objectProperty?.state !== "ready"
-  ) {
-    return false;
-  }
-
-  return isInputValueValid(
-    currentInput.isDirty ? currentInput.text : objectProperty.value,
-    {
-      ...currentInput,
-      objectData: inputObject,
-      objectPropertyMetadata: metadata,
-    },
-  );
-}
-
-export function ObjectFormMetadataPublisher(
-  props: Pick<FormWidgetProps, "objectData" | "objectTypeId" | "widgetId">,
-) {
-  const dispatch = useDispatch();
-  const objectsState = useSelector(getCelanworksmithObjectsState);
-  const dataTree = useSelector(getDataTree);
-  const canvasWidgets = useSelector(getWidgets);
-  const instance = normalizeObjectData(props.objectData);
-  const objectTypeId = props.objectTypeId || instance?.typeId;
-  const typeState = objectTypeId ? objectsState.types[objectTypeId] : undefined;
-  const objectPropertiesMetadata = typeState?.metadata?.properties;
-  const publishedInputState = React.useRef<
-    Map<
-      string,
-      {
-        objectBinding?: FormObjectBinding;
-        objectData?: unknown;
-        objectPropertyMetadata?: CelanworksmithProperty;
-        objectTypeId?: string;
-      }
-    >
-  >(new Map());
-  const publishedButtonValidity = React.useRef<Map<string, boolean>>(new Map());
-  const publishedFormValidation = React.useRef<ObjectFormValidationFeedback>();
-  const publishedButtonValidation = React.useRef<
-    Map<string, ObjectFormValidationFeedback>
-  >(new Map());
-  const objectInputs = Object.values(canvasWidgets).filter(
-    (widget) =>
-      widget.type === "INPUT_WIDGET" &&
-      widget.dataMode === "OBJECT" &&
-      isDescendantOf(widget, props.widgetId, canvasWidgets),
-  );
-  const formButtons = Object.values(canvasWidgets).filter(
-    (widget) =>
-      (widget.type === "FORM_BUTTON_WIDGET" ||
-        widget.type === "BUTTON_WIDGET") &&
-      isDescendantOf(widget, props.widgetId, canvasWidgets),
-  );
-
-  React.useEffect(
-    function publishObjectMetadata() {
-      let hasUpdates = false;
-
-      objectInputs.forEach((input) => {
-        const evaluatedInput = dataTree[input.widgetName] as
-          | Partial<InputWidgetProps>
-          | undefined;
-        const currentInput = { ...input, ...evaluatedInput };
-        const hasTypeMismatch = Boolean(
-          currentInput.objectTypeId &&
-            currentInput.objectTypeId !== objectTypeId,
-        );
-        const metadata = objectPropertiesMetadata?.find(
-          (property) => property.id === currentInput.displayPropertyId,
-        );
-        const inputObject =
-          normalizeObjectData(currentInput.objectData) ||
-          (hasTypeMismatch ? undefined : instance);
-        const inputObjectTypeId = currentInput.objectTypeId || objectTypeId;
-        const objectBinding =
-          !hasTypeMismatch && inputObject && inputObjectTypeId
-            ? { instance: inputObject, objectTypeId: inputObjectTypeId }
-            : undefined;
-        const nextState = {
-          objectBinding,
-          objectData: inputObject,
-          objectPropertyMetadata: hasTypeMismatch ? undefined : metadata,
-          objectTypeId: inputObjectTypeId,
-        };
-
-        if (equal(publishedInputState.current.get(input.widgetId), nextState)) {
-          return;
-        }
-
-        Object.entries(nextState).forEach(([propertyName, propertyValue]) => {
-          dispatch(
-            syncUpdateWidgetMetaProperty(
-              input.widgetId,
-              propertyName,
-              propertyValue,
-            ),
-          );
-        });
-        publishedInputState.current.set(input.widgetId, nextState);
-        hasUpdates = true;
-      });
-
-      const preparedObjectInputs = objectInputs.map((input) => {
-        const evaluatedInput = dataTree[input.widgetName] as
-          | Partial<InputWidgetProps>
-          | undefined;
-        const currentInput = { ...input, ...evaluatedInput };
-        const metadata = objectPropertiesMetadata?.find(
-          (property) => property.id === currentInput.displayPropertyId,
-        );
-        const inputObject =
-          normalizeObjectData(currentInput.objectData) || instance;
-
-        return {
-          ...currentInput,
-          objectBinding:
-            inputObject && objectTypeId
-              ? { instance: inputObject, objectTypeId }
-              : currentInput.objectBinding,
-          objectData: inputObject,
-          objectPropertyMetadata: metadata,
-          objectTypeId,
-        } as ObjectFormInput;
-      });
-      const validationFeedback =
-        getObjectFormValidationFeedback(preparedObjectInputs);
-      const isObjectFormValid =
-        validationFeedback.issues.length === 0 &&
-        objectInputs.every((input) => {
-          const evaluatedInput = dataTree[input.widgetName] as
-            | Partial<InputWidgetProps>
-            | undefined;
-
-          return isObjectFormInputValid(
-            input,
-            evaluatedInput,
-            objectPropertiesMetadata,
-            instance,
-            objectTypeId,
-          );
-        });
-
-      if (!equal(publishedFormValidation.current, validationFeedback)) {
-        Object.entries({
-          objectValidationErrorPath: validationFeedback.errorPath,
-          objectValidationIssues: validationFeedback.issues,
-          objectValidationSummary: validationFeedback.summary,
-        }).forEach(([propertyName, propertyValue]) => {
-          dispatch(
-            syncUpdateWidgetMetaProperty(
-              props.widgetId,
-              propertyName,
-              propertyValue,
-            ),
-          );
-        });
-        publishedFormValidation.current = validationFeedback;
-        hasUpdates = true;
-      }
-
-      formButtons.forEach((button) => {
-        if (
-          publishedButtonValidity.current.get(button.widgetId) ===
-          isObjectFormValid
-        ) {
-          // The validation details can change while the boolean validity stays false.
-        } else {
-          dispatch(
-            syncUpdateWidgetMetaProperty(
-              button.widgetId,
-              "isFormValid",
-              isObjectFormValid,
-            ),
-          );
-          publishedButtonValidity.current.set(
-            button.widgetId,
-            isObjectFormValid,
-          );
-          hasUpdates = true;
-        }
-
-        if (
-          equal(
-            publishedButtonValidation.current.get(button.widgetId),
-            validationFeedback,
-          )
-        ) {
-          return;
-        }
-
-        Object.entries({
-          formValidationErrorPath: validationFeedback.errorPath,
-          formValidationIssues: validationFeedback.issues,
-          formValidationSummary: validationFeedback.summary,
-        }).forEach(([propertyName, propertyValue]) => {
-          dispatch(
-            syncUpdateWidgetMetaProperty(
-              button.widgetId,
-              propertyName,
-              propertyValue,
-            ),
-          );
-        });
-        publishedButtonValidation.current.set(
-          button.widgetId,
-          validationFeedback,
-        );
-        hasUpdates = true;
-      });
-
-      if (hasUpdates) dispatch(triggerEvalOnMetaUpdate());
-    },
-    [
-      dispatch,
-      dataTree,
-      formButtons,
-      instance,
-      objectInputs,
-      objectPropertiesMetadata,
-      objectTypeId,
-      props.widgetId,
-    ],
-  );
-
-  return null;
-}
-
-export function ObjectFormMode(props: FormWidgetProps) {
-  const objectsState = useSelector(getCelanworksmithObjectsState);
-  const instance = normalizeObjectData(props.objectData);
-  const objectTypeId = props.objectTypeId || instance?.typeId;
-  const typeState = objectTypeId ? objectsState.types[objectTypeId] : undefined;
-  const isObjectMetadataReady = typeState?.status === "ready";
-
-  return (
-    <>
-      <ObjectFormMetadataPublisher {...props} />
-      {isObjectMetadataReady ? (
-        <FormWidget
-          {...props}
-          objectMetadataError={typeState?.error || objectsState.error}
-          objectMetadataResolved
-          objectMetadataStatus={typeState?.status || objectsState.status}
-          objectPropertiesMetadata={typeState?.metadata?.properties}
-        />
-      ) : null}
-    </>
-  );
-}
 
 class FormWidget extends ContainerWidget {
   static type = "FORM_WIDGET";
@@ -558,10 +83,6 @@ class FormWidget extends ContainerWidget {
       borderColor: Colors.GREY_5,
       borderWidth: "1",
       animateLoading: true,
-      formMode: "OBJECT",
-      objectTypeId: undefined,
-      objectData: undefined,
-      objectActionId: undefined,
       widgetName: "Form",
       backgroundColor: Colors.WHITE,
       children: [],
@@ -783,58 +304,6 @@ class FormWidget extends ContainerWidget {
     };
   }
 
-  static getPropertyPaneConfig() {
-    return [
-      {
-        sectionName: "CelanWorksmith Object form",
-        children: [
-          {
-            propertyName: "formMode",
-            label: "Form mode",
-            controlType: "DROP_DOWN",
-            options: [
-              { label: "Query", value: "QUERY" },
-              { label: "Object", value: "OBJECT" },
-            ],
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-          },
-          {
-            propertyName: "objectTypeId",
-            label: "Ontology Object / 本体对象",
-            controlType: "CELANWORKSMITH_OBJECT_TYPE",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["formMode"],
-            hidden: (props: FormWidgetProps) => props.formMode !== "OBJECT",
-          },
-          {
-            propertyName: "objectData",
-            label: "Object data",
-            controlType: "INPUT_TEXT",
-            isBindProperty: true,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.OBJECT },
-            dependencies: ["formMode"],
-            hidden: (props: FormWidgetProps) => props.formMode !== "OBJECT",
-          },
-          {
-            propertyName: "objectActionId",
-            label: "Submit Action",
-            controlType: "INPUT_TEXT",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["formMode"],
-            hidden: (props: FormWidgetProps) => props.formMode !== "OBJECT",
-          },
-        ],
-      },
-    ];
-  }
-
   static getAnvilConfig(): AnvilConfig | null {
     return {
       isLargeWidget: false,
@@ -848,30 +317,9 @@ class FormWidget extends ContainerWidget {
   }
 
   checkInvalidChildren = (children: WidgetProps[]): boolean => {
-    if (getObjectFormValidationFeedback(children).issues.length > 0) {
-      return true;
-    }
-
     return some(children, (child) => {
       if ("children" in child) {
         return this.checkInvalidChildren(child.children || []);
-      }
-
-      if (
-        child.type === "INPUT_WIDGET" &&
-        child.dataMode === "OBJECT" &&
-        child.objectPropertyMetadata
-      ) {
-        const objectProperty = getObjectPropertyValue(
-          child.objectBinding?.instance || child.objectData,
-          child.displayPropertyId,
-        );
-        const value =
-          !child.isDirty && objectProperty?.state === "ready"
-            ? objectProperty.value
-            : child.text;
-
-        return !isInputValueValid(value, child as InputWidgetProps);
       }
 
       if ("isValid" in child) {
@@ -889,7 +337,6 @@ class FormWidget extends ContainerWidget {
   componentDidMount() {
     super.componentDidMount();
     this.updateFormData();
-    this.updateObjectBinding();
 
     // Check if the form is dirty
     const hasChanges = this.checkFormValueChanges(this.getChildContainer());
@@ -904,7 +351,6 @@ class FormWidget extends ContainerWidget {
   componentDidUpdate(prevProps: ContainerWidgetProps<any>) {
     super.componentDidUpdate(prevProps);
     this.updateFormData();
-    this.updateObjectBinding();
     // Check if the form is dirty
     const hasChanges = this.checkFormValueChanges(this.getChildContainer());
 
@@ -949,27 +395,6 @@ class FormWidget extends ContainerWidget {
     }
   }
 
-  getObjectBinding(): FormObjectBinding | undefined {
-    if (this.props.formMode !== "OBJECT") return undefined;
-
-    const instance = normalizeObjectData(this.props.objectData);
-
-    if (!instance) return undefined;
-
-    return {
-      instance,
-      objectTypeId: this.props.objectTypeId || instance.typeId,
-    };
-  }
-
-  updateObjectBinding() {
-    const objectBinding = this.getObjectBinding();
-
-    if (!equal(objectBinding, this.props.objectBinding)) {
-      this.props.updateWidgetMetaProperty("objectBinding", objectBinding);
-    }
-  }
-
   getFormData(formWidget: ContainerWidgetProps<WidgetProps>) {
     // TODO: Fix this the next time the file is edited
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -997,48 +422,21 @@ class FormWidget extends ContainerWidget {
 
     const { componentHeight, componentWidth } = this.props;
 
-    const objectBinding = this.getObjectBinding();
-
     if (childContainer.children) {
-      const children = childContainer.children.map((child: WidgetProps) => {
-        const grandChild = { ...child };
+      const isInvalid = this.checkInvalidChildren(childContainer.children);
 
-        if (
-          objectBinding &&
-          grandChild.type === "INPUT_WIDGET" &&
-          grandChild.dataMode === "OBJECT"
-        ) {
-          grandChild.objectData =
-            grandChild.objectData === undefined
-              ? objectBinding.instance
-              : grandChild.objectData;
-          grandChild.objectTypeId =
-            grandChild.objectTypeId || objectBinding.objectTypeId;
-          grandChild.objectBinding = objectBinding;
-          grandChild.objectMetadataError = this.props.objectMetadataError;
-          grandChild.objectMetadataStatus = this.props.objectMetadataStatus;
-          grandChild.objectBindingResolved = this.props.objectMetadataResolved;
-          grandChild.objectPropertyMetadata =
-            this.props.objectPropertiesMetadata?.find(
-              (property: CelanworksmithProperty) =>
-                property.id === grandChild.displayPropertyId,
-            );
-        }
+      childContainer.children = childContainer.children.map(
+        (child: WidgetProps) => {
+          const grandChild = { ...child };
 
-        return grandChild;
-      });
-      const isInvalid = this.checkInvalidChildren(children);
+          if (isInvalid) grandChild.isFormValid = false;
 
-      childContainer.children = children.map((child: WidgetProps) => {
-        const grandChild = { ...child };
+          // Add submit and reset handlers
+          grandChild.onReset = this.handleResetInputs;
 
-        if (isInvalid) grandChild.isFormValid = false;
-
-        // Add submit and reset handlers
-        grandChild.onReset = this.handleResetInputs;
-
-        return grandChild;
-      });
+          return grandChild;
+        },
+      );
     }
 
     childContainer.rightColumn = componentWidth;
@@ -1059,10 +457,6 @@ class FormWidget extends ContainerWidget {
   static getMetaPropertiesMap(): Record<string, any> {
     return {
       hasChanges: false,
-      objectBinding: undefined,
-      objectValidationErrorPath: undefined,
-      objectValidationIssues: [],
-      objectValidationSummary: undefined,
     };
   }
 
@@ -1074,10 +468,6 @@ class FormWidget extends ContainerWidget {
       isVisible: DefaultAutocompleteDefinitions.isVisible,
       data: generateTypeDef(widget.data, extraDefsToDefine),
       hasChanges: "bool",
-      objectBinding: "?",
-      objectValidationErrorPath: "string",
-      objectValidationIssues: "?",
-      objectValidationSummary: "string",
     });
   }
 
@@ -1095,32 +485,9 @@ class FormWidget extends ContainerWidget {
   static getDerivedPropertiesMap(): DerivedPropertiesMap {
     return { positioning: Positioning.Fixed };
   }
-
-  getWidgetView() {
-    if (
-      this.props.formMode === "OBJECT" &&
-      !this.props.objectMetadataResolved
-    ) {
-      return <ObjectFormMode {...this.props} />;
-    }
-
-    return this.renderAsContainerComponent(this.props);
-  }
 }
 
 export interface FormWidgetProps extends ContainerComponentProps {
-  formMode?: "QUERY" | "OBJECT";
-  objectTypeId?: string;
-  objectData?: unknown;
-  objectActionId?: string;
-  objectBinding?: FormObjectBinding;
-  objectMetadataError?: { code?: string; message?: string };
-  objectMetadataResolved?: boolean;
-  objectMetadataStatus?: "idle" | "loading" | "ready" | "empty" | "error";
-  objectPropertiesMetadata?: CelanworksmithProperty[];
-  objectValidationErrorPath?: string;
-  objectValidationIssues?: ObjectActionValidationIssue[];
-  objectValidationSummary?: string;
   name: string;
   data: Record<string, unknown>;
   hasChanges: boolean;

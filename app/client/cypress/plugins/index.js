@@ -5,7 +5,8 @@ const dotenv = require("dotenv");
 const chalk = require("chalk");
 const cypressLogToOutput = require("cypress-log-to-output");
 const installLogsPrinter = require("cypress-terminal-report/src/installLogsPrinter");
-const { tagify } = require("cypress-tags");
+const browserifyPreprocessor = require("@cypress/browserify-preprocessor");
+const { transform: tagifyTransform } = require("cypress-tags");
 const { cypressHooks } = require("../scripts/cypress-hooks");
 const { dynamicSplit } = require("../scripts/cypress-split-dynamic");
 const { staticSplit } = require("../scripts/cypress-split-static");
@@ -44,7 +45,22 @@ module.exports = async (on, config) => {
   };
   installLogsPrinter(on, logsPrinterOptions);
 
-  on("file:preprocessor", tagify(config));
+  on(
+    "file:preprocessor",
+    browserifyPreprocessor({
+      ...browserifyPreprocessor.defaultOptions,
+      typescript: require.resolve("typescript"),
+      browserifyOptions: {
+        ...browserifyPreprocessor.defaultOptions.browserifyOptions,
+        extensions: [".ts"],
+        paths: [path.resolve(__dirname, "../../src")],
+        transform: [
+          ...browserifyPreprocessor.defaultOptions.browserifyOptions.transform,
+          (fileName) => tagifyTransform(fileName, config),
+        ],
+      },
+    }),
+  );
 
   on("before:browser:launch", (browser = {}, launchOptions) => {
     /*

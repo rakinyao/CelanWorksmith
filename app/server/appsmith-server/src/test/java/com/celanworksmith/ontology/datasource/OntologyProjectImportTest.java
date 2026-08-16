@@ -98,6 +98,11 @@ class OntologyProjectImportTest {
                     assertThat(snapshot.projectVersion()).isEqualTo("1.0.0");
                     assertThat(snapshot.sourceKind()).isEqualTo("demo");
                     assertThat(snapshot.runtimeProviderId()).isEqualTo("demo-mongo-readonly");
+                    assertThat(snapshot.definition().objectTypes())
+                            .extracting(ObjectTypeDTO::id, ObjectTypeDTO::runtimeTable)
+                            .containsExactlyInAnyOrder(
+                                    org.assertj.core.groups.Tuple.tuple("PurchaseOrder", "purchase_orders"),
+                                    org.assertj.core.groups.Tuple.tuple("Supplier", "suppliers"));
                 })
                 .verifyComplete();
     }

@@ -1,6 +1,7 @@
 import { PluginType } from "entities/Plugin";
 import type { JSCollectionData } from "ee/reducers/entityReducers/jsActionsReducer";
 import { getPropsForJSActionEntity } from "ee/pages/Editor/Explorer/Entity/getEntityProperties";
+import { entityDefinitions } from "ee/utils/autocomplete/EntityDefinitions";
 import type { JSActionEntity } from "ee/entities/DataTree/types";
 
 const jsObject: JSCollectionData = {
@@ -169,5 +170,35 @@ describe("getPropsForJSActionEntity", () => {
     );
 
     expect(expectedProperties).toStrictEqual(result);
+  });
+});
+
+describe("native ontology-shaped query autocomplete", () => {
+  it("exposes standard query fields without adding ontology roots", () => {
+    const definition = entityDefinitions.ACTION(
+      {
+        data: {
+          items: [{ id: "PO001", delayDays: 4 }],
+        },
+        responseMeta: { status: 200 },
+      } as never,
+      jest.fn(),
+    );
+
+    expect(definition).toEqual(
+      expect.objectContaining({
+        data: expect.anything(),
+        responseMeta: expect.anything(),
+        run: expect.objectContaining({
+          "!type": expect.stringContaining("fn"),
+        }),
+        clear: expect.objectContaining({
+          "!type": expect.stringContaining("fn"),
+        }),
+      }),
+    );
+    expect(definition).not.toHaveProperty("objects");
+    expect(definition).not.toHaveProperty("functions");
+    expect(definition).not.toHaveProperty("actions");
   });
 });

@@ -5,8 +5,15 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public interface OntologyRuntimeGateway {
+    static <T> List<T> immutableList(List<T> values) {
+        return values == null
+                ? List.of()
+                : values.stream().filter(Objects::nonNull).toList();
+    }
+
     record Snapshot(
             String id,
             String digest,
@@ -15,10 +22,10 @@ public interface OntologyRuntimeGateway {
             List<LinkMetadata> links,
             List<ActionMetadata> actions) {
         public Snapshot {
-            objectTypes = List.copyOf(objectTypes);
-            functions = List.copyOf(functions);
-            links = List.copyOf(links);
-            actions = List.copyOf(actions);
+            objectTypes = immutableList(objectTypes);
+            functions = immutableList(functions);
+            links = immutableList(links);
+            actions = immutableList(actions);
         }
 
         public Snapshot(String id, String digest, List<ObjectTypeMetadata> objectTypes) {
@@ -26,42 +33,75 @@ public interface OntologyRuntimeGateway {
         }
     }
 
-    record ObjectTypeMetadata(String id, List<PropertyMetadata> properties) {
+    record ObjectTypeMetadata(String id, String displayName, List<PropertyMetadata> properties) {
         public ObjectTypeMetadata {
-            properties = List.copyOf(properties);
+            properties = immutableList(properties);
+        }
+
+        public ObjectTypeMetadata(String id, List<PropertyMetadata> properties) {
+            this(id, id, properties);
         }
     }
 
-    record PropertyMetadata(String id, String dataType, boolean hidden, boolean required) {
+    record PropertyMetadata(
+            String id,
+            String displayName,
+            String dataType,
+            boolean hidden,
+            boolean required,
+            boolean readOnly,
+            boolean derived,
+            List<String> enumValues,
+            String referenceTypeId) {
+        public PropertyMetadata {
+            enumValues = enumValues == null ? List.of() : List.copyOf(enumValues);
+        }
+
         public PropertyMetadata(String id, String dataType, boolean hidden) {
-            this(id, dataType, hidden, false);
+            this(id, id, dataType, hidden, false, false, false, List.of(), null);
+        }
+
+        public PropertyMetadata(String id, String dataType, boolean hidden, boolean required) {
+            this(id, id, dataType, hidden, required, false, false, List.of(), null);
         }
     }
 
-    record FunctionMetadata(String id, String returnType, List<PropertyMetadata> parameters) {
+    record FunctionMetadata(String id, String displayName, String returnType, List<PropertyMetadata> parameters) {
         public FunctionMetadata {
-            parameters = List.copyOf(parameters);
+            parameters = immutableList(parameters);
+        }
+
+        public FunctionMetadata(String id, String returnType, List<PropertyMetadata> parameters) {
+            this(id, id, returnType, parameters);
         }
     }
 
-    record LinkMetadata(String id, String sourceTypeId, String targetTypeId) {}
+    record LinkMetadata(String id, String displayName, String sourceTypeId, String targetTypeId, String cardinality) {
+        public LinkMetadata(String id, String sourceTypeId, String targetTypeId) {
+            this(id, id, sourceTypeId, targetTypeId, null);
+        }
+    }
 
-    record ActionMetadata(String id, String objectTypeId, List<PropertyMetadata> parameters) {
+    record ActionMetadata(String id, String displayName, String objectTypeId, List<PropertyMetadata> parameters) {
         public ActionMetadata {
-            parameters = List.copyOf(parameters);
+            parameters = immutableList(parameters);
+        }
+
+        public ActionMetadata(String id, String objectTypeId, List<PropertyMetadata> parameters) {
+            this(id, id, objectTypeId, parameters);
         }
     }
 
     record ObjectQuery(
             List<String> projection, JsonNode filter, String sortBy, String sortDirection, int offset, int limit) {
         public ObjectQuery {
-            projection = List.copyOf(projection);
+            projection = immutableList(projection);
         }
     }
 
     record ObjectQueryResult(List<Map<String, Object>> items, int offset, int limit, long total) {
         public ObjectQueryResult {
-            items = List.copyOf(items);
+            items = immutableList(items);
         }
     }
 

@@ -3,7 +3,6 @@ import { EditorEntityTab } from "IDE/Interfaces/EditorTypes";
 import history, { NavigationMethod } from "utils/history";
 import {
   jsCollectionListURL,
-  ontologyListURL,
   queryListURL,
   widgetListURL,
 } from "ee/RouteBuilder";
@@ -37,11 +36,6 @@ export const useSegmentNavigation = (): {
         break;
       case EditorEntityTab.UI:
         history.push(widgetListURL({ baseParentEntityId }), {
-          invokedBy: NavigationMethod.SegmentControl,
-        });
-        break;
-      case EditorEntityTab.ONTOLOGY:
-        history.push(ontologyListURL({ baseParentEntityId }), {
           invokedBy: NavigationMethod.SegmentControl,
         });
         break;

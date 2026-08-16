@@ -11,6 +11,8 @@ import com.appsmith.server.acl.AclPermission;
 import com.appsmith.server.datasources.base.DatasourceService;
 import com.appsmith.server.datasourcestorages.base.DatasourceStorageService;
 import com.appsmith.server.domains.NewAction;
+import com.appsmith.server.domains.Plugin;
+import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
@@ -136,7 +138,8 @@ class OntologyDatasourceUpgradeServiceTest {
                 .containsEntry("projectVersion", "2.0.0")
                 .containsEntry("metadataSnapshotId", "snapshot-2")
                 .containsEntry("metadataDigest", "sha256:" + "b".repeat(64))
-                .containsEntry("runtimeProviderId", "demo-mongo-readonly");
+                .containsEntry("runtimeProviderId", "demo-mongo-readonly")
+                .containsEntry("providerContractVersion", "1");
     }
 
     @Test
@@ -308,6 +311,12 @@ class OntologyDatasourceUpgradeServiceTest {
         DatasourceStorageService storages = mock(DatasourceStorageService.class);
         NewActionRepository actions = mock(NewActionRepository.class);
         OntologyMetadataSnapshotRepository snapshots = mock(OntologyMetadataSnapshotRepository.class);
+        PluginService plugins = mock(PluginService.class);
+        Plugin ontologyPlugin = new Plugin();
+        ontologyPlugin.setId("plugin-db-id");
+        ontologyPlugin.setPackageName(OntologyDatasourceService.PLUGIN_PACKAGE_NAME);
+        when(plugins.findByPackageName(OntologyDatasourceService.PLUGIN_PACKAGE_NAME))
+                .thenReturn(Mono.just(ontologyPlugin));
         OntologyDatasourceUpgradeService.AuditStore auditRepository =
                 mock(OntologyDatasourceUpgradeService.AuditStore.class);
         Datasource datasource = datasource("datasource-1", current);
@@ -341,7 +350,7 @@ class OntologyDatasourceUpgradeServiceTest {
         when(auditRepository.save(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
         when(auditRepository.findByRollbackOfAuditId(any())).thenReturn(Mono.empty());
         OntologyDatasourceCompatibilityService compatibility =
-                new OntologyDatasourceCompatibilityService(datasources, storages, actions, snapshots);
+                new OntologyDatasourceCompatibilityService(datasources, storages, actions, snapshots, plugins);
         return new Fixture(
                 new OntologyDatasourceUpgradeService(
                         datasources, actions, compatibility, auditRepository, CLOCK, transaction),
@@ -409,7 +418,7 @@ class OntologyDatasourceUpgradeServiceTest {
     private static Datasource datasource(String id, OntologyMetadataSnapshot snapshot) {
         Datasource datasource = new Datasource();
         datasource.setId(id);
-        datasource.setPluginId(OntologyDatasourceService.PLUGIN_ID);
+        datasource.setPluginId("plugin-db-id");
         datasource.setWorkspaceId("workspace-1");
         datasource.setDatasourceStorages(Map.of("", new DatasourceStorageDTO(null, "", configuration(snapshot))));
         return datasource;
@@ -423,6 +432,7 @@ class OntologyDatasourceUpgradeServiceTest {
                         new Property("metadataSnapshotId", snapshot.id()),
                         new Property("metadataDigest", snapshot.metadataDigest()),
                         new Property("runtimeProviderId", snapshot.runtimeProviderId()),
+                        new Property("providerContractVersion", "1"),
                         new Property("sourceKind", snapshot.sourceKind())))
                 .build();
     }

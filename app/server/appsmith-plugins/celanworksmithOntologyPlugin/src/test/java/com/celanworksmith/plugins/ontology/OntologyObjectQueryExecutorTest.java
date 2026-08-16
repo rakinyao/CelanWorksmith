@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +40,21 @@ class OntologyObjectQueryExecutorTest {
         assertTrue(result.getIsExecutionSuccess());
         List<Map<String, Object>> rows = rows(result);
         assertEquals(List.of(Map.of("id", "po-1", "supplierId", "supplier-7", "delayDays", 5)), rows);
+        assertEquals(1, gateway.queryCalls);
+        assertEquals("demo-mongo-readonly", gateway.providerId);
         assertEquals(List.of("id", "supplierId", "delayDays"), gateway.query.projection());
+    }
+
+    @Test
+    void returnsEmptyResultWithoutTriggeringAnotherProviderCall() {
+        RecordingGateway gateway = gateway();
+        gateway.emptyResult = true;
+
+        ActionExecutionResult result = execute(gateway, Map.of("objectTypeId", "PurchaseOrder"));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(List.of(), rows(result));
+        assertEquals(1, gateway.queryCalls);
     }
 
     @Test
@@ -103,6 +118,18 @@ class OntologyObjectQueryExecutorTest {
     }
 
     @Test
+    void rejectsHiddenPropertyProjectionBeforeProviderCall() {
+        RecordingGateway gateway = gateway();
+
+        ActionExecutionResult result =
+                execute(gateway, Map.of("objectTypeId", "PurchaseOrder", "projection", List.of("internalNote")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.queryCalls);
+        assertTrue(result.getReadableError().contains("Unknown ontology property"));
+    }
+
+    @Test
     void mapsProviderErrorsToAStandardFailedResult() {
         RecordingGateway gateway = gateway();
         gateway.queryFailure = new IllegalStateException("Provider unavailable");
@@ -111,6 +138,7 @@ class OntologyObjectQueryExecutorTest {
 
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("Provider unavailable"));
+        assertEquals(1, gateway.queryCalls);
     }
 
     @Test
@@ -159,8 +187,43 @@ class OntologyObjectQueryExecutorTest {
                         new TriggerRequestDTO("ONTOLOGY_OBJECT_TYPES", Map.of(), null))
                 .block();
 
-        assertEquals(List.of(Map.of("label", "PurchaseOrder", "value", "PurchaseOrder")), result.getTrigger());
+        assertEquals(
+                List.of(metadata("PurchaseOrder", "PurchaseOrder", "object", false, true, false)), result.getTrigger());
         assertEquals(List.of(new SnapshotRequest(SNAPSHOT_ID, DIGEST)), gateway.snapshotRequests);
+    }
+
+    @Test
+    void exposesEmptyFunctionMetadataWithoutBlockingTheQueryEditor() {
+        RecordingGateway gateway = gateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO result = executor.trigger(
+                        datasource(),
+                        datasourceConfiguration(),
+                        new TriggerRequestDTO("ONTOLOGY_FUNCTIONS", Map.of(), null))
+                .block();
+
+        assertEquals(List.of(), result.getTrigger());
+    }
+
+    @Test
+    void exposesRichVisiblePropertyMetadataAndFiltersHiddenProperties() {
+        RecordingGateway gateway = gateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO result = executor.trigger(
+                        datasource(),
+                        datasourceConfiguration(),
+                        new TriggerRequestDTO(
+                                "ONTOLOGY_OBJECT_PROPERTIES", Map.of("objectTypeId", "PurchaseOrder"), null))
+                .block();
+
+        assertEquals(
+                List.of(
+                        metadata("id", "id", "string", false, false, false),
+                        metadata("supplierId", "supplierId", "string", false, false, false),
+                        metadata("delayDays", "delayDays", "integer", false, false, false)),
+                result.getTrigger());
     }
 
     private ActionExecutionResult execute(RecordingGateway gateway, Map<String, Object> definition) {
@@ -178,6 +241,29 @@ class OntologyObjectQueryExecutorTest {
     private OntologyDatasourceConfiguration datasource() {
         return new OntologyDatasourceConfiguration(
                 "supply-chain", "1.0.0", SNAPSHOT_ID, DIGEST, "demo-mongo-readonly", "workspace-1", "datasource-1");
+    }
+
+    private Map<String, Object> metadata(
+            String label, String value, String dataType, boolean required, boolean readOnly, boolean derived) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("label", label);
+        metadata.put("value", value);
+        metadata.put("dataType", dataType);
+        metadata.put("description", description(label, dataType, required, readOnly, derived));
+        metadata.put("enumValues", List.of());
+        metadata.put("referenceTypeId", null);
+        metadata.put("required", required);
+        metadata.put("readOnly", readOnly);
+        metadata.put("derived", derived);
+        return metadata;
+    }
+
+    private String description(String label, String dataType, boolean required, boolean readOnly, boolean derived) {
+        String description = label + " (" + dataType + ")";
+        if (required) description += "; required";
+        if (readOnly) description += "; read-only";
+        if (derived) description += "; derived";
+        return description;
     }
 
     private DatasourceConfiguration datasourceConfiguration() {
@@ -217,6 +303,7 @@ class OntologyObjectQueryExecutorTest {
         private String objectTypeId;
         private ObjectQuery query;
         private RuntimeException queryFailure;
+        private boolean emptyResult;
 
         private RecordingGateway(Snapshot snapshot) {
             this.snapshot = snapshot;
@@ -238,12 +325,11 @@ class OntologyObjectQueryExecutorTest {
             if (queryFailure != null) {
                 return Mono.error(queryFailure);
             }
-            return Mono.just(new ObjectQueryResult(
-                    List.of(Map.of(
-                            "id", "po-1", "supplierId", "supplier-7", "delayDays", 5, "internalNote", "private")),
-                    query.offset(),
-                    query.limit(),
-                    21));
+            List<Map<String, Object>> items = emptyResult
+                    ? List.of()
+                    : List.of(Map.of(
+                            "id", "po-1", "supplierId", "supplier-7", "delayDays", 5, "internalNote", "private"));
+            return Mono.just(new ObjectQueryResult(items, query.offset(), query.limit(), 21));
         }
     }
 }

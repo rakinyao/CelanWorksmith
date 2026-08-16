@@ -46,20 +46,21 @@ public class OntologySnapshotService {
                 project.importedBy(),
                 clock.instant(),
                 digest(definition),
-                definition);
+                definition,
+                project.deprecated());
         return repository.insert(snapshot);
     }
 
     public Mono<OntologyMetadataSnapshot> getRequiredSnapshot(String snapshotId, String digest) {
         if (isBlank(snapshotId) || isBlank(digest)) {
-            return Mono.error(new IllegalArgumentException("Snapshot ID and metadata digest are required"));
+            return Mono.error(new SnapshotUnavailableException("Snapshot ID and metadata digest are required"));
         }
 
         return repository
                 .findById(snapshotId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Ontology metadata snapshot was not found")))
+                .switchIfEmpty(Mono.error(new SnapshotNotFoundException()))
                 .filter(snapshot -> digest.equals(snapshot.metadataDigest()))
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Ontology metadata digest does not match")));
+                .switchIfEmpty(Mono.error(new SnapshotDigestMismatchException()));
     }
 
     private void validate(ImportedOntologyProject project) {
@@ -191,5 +192,23 @@ public class OntologySnapshotService {
             value.append(String.format("%02x", current));
         }
         return value.toString();
+    }
+
+    public static class SnapshotUnavailableException extends IllegalArgumentException {
+        public SnapshotUnavailableException(String message) {
+            super(message);
+        }
+    }
+
+    public static final class SnapshotNotFoundException extends SnapshotUnavailableException {
+        public SnapshotNotFoundException() {
+            super("Ontology metadata snapshot was not found");
+        }
+    }
+
+    public static final class SnapshotDigestMismatchException extends SnapshotUnavailableException {
+        public SnapshotDigestMismatchException() {
+            super("Ontology metadata snapshot digest does not match");
+        }
     }
 }

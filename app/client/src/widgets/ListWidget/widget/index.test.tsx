@@ -53,3 +53,22 @@ describe("Autocomplete suggestions test", () => {
     }
   });
 });
+
+describe("native Query result path", () => {
+  it("keeps array list data as the native pagination input", () => {
+    const listWidget = new ListWidget({
+      listData: [{ id: "PO001" }, { id: "PO002" }],
+      pageSize: 1,
+      serverSidePaginationEnabled: false,
+    } as never);
+
+    expect(listWidget.props.listData).toEqual([
+      { id: "PO001" },
+      { id: "PO002" },
+    ]);
+    expect(listWidget.shouldPaginate()).toEqual({
+      shouldPaginate: true,
+      perPage: 1,
+    });
+  });
+});

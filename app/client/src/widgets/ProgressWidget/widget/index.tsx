@@ -19,90 +19,6 @@ import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { ResponsiveBehavior } from "layoutSystems/common/utils/constants";
 import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
-import ObjectSetBinding from "celanworksmith/widgets/objectBinding/ObjectSetBinding";
-import { useSelector } from "react-redux";
-import { getCelanworksmithVariablesDataTree } from "selectors/dataTreeSelectors";
-import { getProgressObjectValue } from "./progressObjectBinding";
-
-const getProgressObjectStateMessage = (
-  status: "loading" | "empty" | "error" | "permissionDenied" | "typeMismatch",
-  error?: string,
-) => {
-  switch (status) {
-    case "loading":
-      return "Loading object data...";
-    case "empty":
-      return "No objects found.";
-    case "permissionDenied":
-      return "Access to object data is denied.";
-    case "error":
-      return error || "Unable to load objects.";
-    case "typeMismatch":
-      return "The Object binding is incompatible.";
-  }
-};
-
-interface ProgressObjectModeProps {
-  aggregationVariableName?: string;
-  componentProps: Omit<ProgressComponentProps, "value">;
-  objectFilter?: unknown;
-  objectTypeId?: string;
-  valuePropertyId?: string;
-  widgetId: string;
-}
-
-export function ProgressObjectMode({
-  aggregationVariableName,
-  componentProps,
-  objectFilter,
-  objectTypeId,
-  valuePropertyId,
-  widgetId,
-}: ProgressObjectModeProps) {
-  const variables = useSelector(getCelanworksmithVariablesDataTree);
-
-  return (
-    <ObjectSetBinding
-      filter={objectFilter}
-      objectTypeId={objectTypeId}
-      widgetId={widgetId}
-      widgetType="PROGRESS_WIDGET"
-    >
-      {(objectSet) => {
-        const progressValue = getProgressObjectValue({
-          aggregationVariableName,
-          error: objectSet.error,
-          metadata: objectSet.metadata,
-          result: objectSet.result,
-          status: objectSet.status,
-          valuePropertyId,
-          variables,
-        });
-
-        if (progressValue.status === "ready") {
-          return (
-            <ProgressComponent
-              {...componentProps}
-              value={progressValue.value!}
-            />
-          );
-        }
-
-        const message = getProgressObjectStateMessage(
-          progressValue.status,
-          progressValue.error,
-        );
-
-        return progressValue.status === "loading" ? (
-          <div aria-live="polite">{message}</div>
-        ) : (
-          <div role="alert">{message}</div>
-        );
-      }}
-    </ObjectSetBinding>
-  );
-}
-
 class ProgressWidget extends BaseWidget<ProgressWidgetProps, WidgetState> {
   static type = "PROGRESS_WIDGET";
 
@@ -131,10 +47,6 @@ class ProgressWidget extends BaseWidget<ProgressWidgetProps, WidgetState> {
       steps: 1,
       progressType: ProgressType.LINEAR,
       progress: 50,
-      dataMode: "OBJECT",
-      objectTypeId: undefined,
-      valuePropertyId: undefined,
-      aggregationVariableName: undefined,
       version: 1,
       responsiveBehavior: ResponsiveBehavior.Fill,
     };
@@ -176,59 +88,6 @@ class ProgressWidget extends BaseWidget<ProgressWidgetProps, WidgetState> {
 
   static getPropertyPaneContentConfig() {
     return [
-      {
-        sectionName: "CelanWorksmith Object data",
-        children: [
-          {
-            propertyName: "dataMode",
-            label: "Data mode / 数据模式",
-            controlType: "DROP_DOWN",
-            options: [
-              { label: "Object / 本体", value: "OBJECT" },
-              { label: "Query / 查询", value: "QUERY" },
-            ],
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-          },
-          {
-            propertyName: "objectTypeId",
-            label: "Ontology Object / 本体对象",
-            helpText:
-              "Select the ontology object collection that supplies progress values.",
-            controlType: "CELANWORKSMITH_OBJECT_TYPE",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode"],
-            hidden: (props: ProgressWidgetProps) => props.dataMode !== "OBJECT",
-          },
-          {
-            propertyName: "valuePropertyId",
-            label: "Value property / 数值属性",
-            helpText: "Select the numeric property used for progress.",
-            controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode", "objectTypeId"],
-            hidden: (props: ProgressWidgetProps) => props.dataMode !== "OBJECT",
-          },
-          {
-            propertyName: "aggregationVariableName",
-            label: "Aggregation variable / 聚合变量",
-            helpText:
-              "Optional variable name or $variables path used instead of the Object value.",
-            controlType: "INPUT_TEXT",
-            placeholderText: "orderCompletion or $variables.orderCompletion",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode"],
-            hidden: (props: ProgressWidgetProps) => props.dataMode !== "OBJECT",
-          },
-        ],
-      },
       {
         sectionName: "Basic",
         children: [
@@ -276,9 +135,8 @@ class ProgressWidget extends BaseWidget<ProgressWidgetProps, WidgetState> {
               type: ValidationTypes.NUMBER,
               params: { min: 0, max: 100, default: 50 },
             },
-            hidden: (props: ProgressWidgetProps) =>
-              props.isIndeterminate || props.dataMode === "OBJECT",
-            dependencies: ["dataMode", "isIndeterminate"],
+            hidden: (props: ProgressWidgetProps) => props.isIndeterminate,
+            dependencies: ["isIndeterminate"],
           },
         ],
       },
@@ -432,49 +290,35 @@ class ProgressWidget extends BaseWidget<ProgressWidgetProps, WidgetState> {
     } = this.props;
     const { componentHeight, componentWidth } = this.props;
     const isScaleY = componentHeight > componentWidth;
-    const componentProps = {
-      borderRadius,
-      counterClockwise,
-      fillColor,
-      isScaleY,
-      showResult,
-      steps,
-      type: progressType,
-      variant: isIndeterminate
-        ? ProgressVariant.INDETERMINATE
-        : ProgressVariant.DETERMINATE,
-    };
 
-    if (this.props.dataMode === "OBJECT") {
-      return (
-        <ProgressObjectMode
-          aggregationVariableName={this.props.aggregationVariableName}
-          componentProps={componentProps}
-          objectFilter={this.props.objectFilter}
-          objectTypeId={this.props.objectTypeId}
-          valuePropertyId={this.props.valuePropertyId}
-          widgetId={this.props.widgetId}
-        />
-      );
-    }
-
-    return <ProgressComponent {...componentProps} value={progress} />;
+    return (
+      <ProgressComponent
+        borderRadius={borderRadius}
+        counterClockwise={counterClockwise}
+        fillColor={fillColor}
+        isScaleY={isScaleY}
+        showResult={showResult}
+        steps={steps}
+        type={progressType}
+        value={progress}
+        variant={
+          isIndeterminate
+            ? ProgressVariant.INDETERMINATE
+            : ProgressVariant.DETERMINATE
+        }
+      />
+    );
   }
 }
 
 export interface ProgressWidgetProps extends WidgetProps {
-  aggregationVariableName?: string;
-  dataMode?: "OBJECT" | "QUERY";
   isIndeterminate: boolean;
-  objectFilter?: unknown;
-  objectTypeId?: string;
   progressType: ProgressType;
   progress: number;
   steps: number;
   showResult: boolean;
   counterClockwise: boolean;
   fillColor: string;
-  valuePropertyId?: string;
 }
 
 export default ProgressWidget;

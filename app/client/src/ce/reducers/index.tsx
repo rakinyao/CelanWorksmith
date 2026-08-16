@@ -35,6 +35,7 @@ import type { OnboardingState } from "reducers/uiReducers/onBoardingReducer";
 import type { GlobalSearchReduxState } from "reducers/uiReducers/globalSearchReducer";
 import type { ActionSelectorReduxState } from "reducers/uiReducers/actionSelectorReducer";
 import type { ReleasesState } from "reducers/uiReducers/releasesReducer";
+import type { ApplicationReleaseState } from "reducers/uiReducers/applicationReleaseReducer";
 import type { LoadingEntitiesState } from "reducers/evaluationReducers/loadingEntitiesReducer";
 import type { DebuggerReduxState } from "reducers/uiReducers/debuggerReducer";
 import type { TourReducerState } from "reducers/uiReducers/tourReducer";
@@ -72,18 +73,6 @@ import type { OneClickBindingState } from "reducers/uiReducers/oneClickBindingRe
 import type { IDEState } from "reducers/uiReducers/ideReducer";
 import type { PluginActionEditorState } from "PluginActionEditor";
 import type { FirstEvaluationState } from "reducers/evaluationReducers/firstEvaluationReducer";
-import celanworksmithObjectsReducer from "reducers/celanworksmithObjectsReducer";
-import type { CelanworksmithObjectsState } from "reducers/celanworksmithObjectsReducer";
-import celanworksmithOntologyReducer from "reducers/celanworksmithOntologyReducer";
-import type { CelanworksmithOntologyState } from "reducers/celanworksmithOntologyReducer";
-import celanworksmithExecutionReducer from "reducers/celanworksmithExecutionReducer";
-import type { CelanworksmithExecutionState } from "reducers/celanworksmithExecutionReducer";
-import celanworksmithLinksReducer from "reducers/celanworksmithLinksReducer";
-import type { CelanworksmithLinksState } from "reducers/celanworksmithLinksReducer";
-import celanworksmithObjectQueryReducer from "reducers/celanworksmithObjectQueryReducer";
-import type { CelanworksmithObjectQueryState } from "reducers/celanworksmithObjectQueryReducer";
-import celanworksmithApplicationBindingReducer from "reducers/celanworksmithApplicationBindingReducer";
-import type { CelanworksmithApplicationBindingState } from "reducers/celanworksmithApplicationBindingReducer";
 
 /* Reducers which are integrated into the core system when registering a pluggable module
     or done so by a module that is designed to be eventually pluggable */
@@ -103,12 +92,6 @@ export const reducerObject = {
   entities: entityReducer,
   ui: uiReducer,
   evaluations: evaluationsReducer,
-  celanworksmithObjects: celanworksmithObjectsReducer,
-  celanworksmithOntology: celanworksmithOntologyReducer,
-  celanworksmithExecution: celanworksmithExecutionReducer,
-  celanworksmithLinks: celanworksmithLinksReducer,
-  celanworksmithObjectQueries: celanworksmithObjectQueryReducer,
-  celanworksmithApplicationBinding: celanworksmithApplicationBindingReducer,
   form: formReducer,
   settings: SettingsReducer,
   organization: organizationReducer,
@@ -146,6 +129,7 @@ export interface AppState {
     onBoarding: OnboardingState;
     globalSearch: GlobalSearchReduxState;
     releases: ReleasesState;
+    applicationRelease: ApplicationReleaseState;
     debugger: DebuggerReduxState;
     tour: TourReducerState;
     jsPane: JsPaneReduxState;
@@ -196,12 +180,6 @@ export interface AppState {
     triggers: TriggerValuesEvaluationState;
     firstEvaluation: FirstEvaluationState;
   };
-  celanworksmithObjects: CelanworksmithObjectsState;
-  celanworksmithOntology: CelanworksmithOntologyState;
-  celanworksmithExecution: CelanworksmithExecutionState;
-  celanworksmithLinks: CelanworksmithLinksState;
-  celanworksmithObjectQueries: CelanworksmithObjectQueryState;
-  celanworksmithApplicationBinding: CelanworksmithApplicationBindingState;
   linting: {
     errors: LintErrorsStore;
   };

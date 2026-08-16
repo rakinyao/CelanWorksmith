@@ -39,10 +39,6 @@ import { IDE_HEADER_HEIGHT } from "@appsmith/ads";
 import { GitApplicationContextProvider } from "git-artifact-helpers/application/components";
 import { AppIDEModals } from "ee/pages/AppIDE/components/AppIDEModals";
 import { updateWindowDimensions } from "actions/windowActions";
-import CelanworksmithObjectsLoader from "./components/CelanworksmithObjectsLoader";
-import CelanworksmithOntologyLoader from "./components/CelanworksmithOntologyLoader";
-import CelanworksmithVariablesLoader from "./components/CelanworksmithVariablesLoader";
-import CelanworksmithApplicationBindingLoader from "./components/CelanworksmithApplicationBindingLoader";
 
 interface EditorProps {
   currentApplicationId?: string;
@@ -248,10 +244,6 @@ class Editor extends Component<Props> {
           </Helmet>
           <GitApplicationContextProvider>
             <GlobalHotKeys>
-              <CelanworksmithApplicationBindingLoader />
-              <CelanworksmithObjectsLoader />
-              <CelanworksmithOntologyLoader />
-              <CelanworksmithVariablesLoader />
               <IDE />
               <AppIDEModals />
             </GlobalHotKeys>

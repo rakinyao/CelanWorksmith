@@ -95,6 +95,23 @@ class OntologySnapshotServiceTest {
                 .verifyComplete();
     }
 
+    @Test
+    void persistsDeprecatedImportStateWithBackwardCompatibleDefault() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+        OntologySnapshotService service = new OntologySnapshotService(repository, FIXED_CLOCK);
+
+        OntologyMetadataSnapshot snapshot = service.createSnapshot(new ImportedOntologyProject(
+                        definitionInSourceOrder(), "demo", "builtin-demo", "demo-mongo-readonly", "admin-1", true))
+                .block();
+
+        assertThat(snapshot.deprecated()).isTrue();
+        assertThat(service.createSnapshot(importedProject("demo", "builtin-demo", definitionInSourceOrder()))
+                        .block()
+                        .deprecated())
+                .isFalse();
+    }
+
     private ImportedOntologyProject importedProject(
             String sourceKind, String sourceReleaseId, OntologyProjectDefinition definition) {
         return new ImportedOntologyProject(definition, sourceKind, sourceReleaseId, "demo-mongo-readonly", "admin-1");

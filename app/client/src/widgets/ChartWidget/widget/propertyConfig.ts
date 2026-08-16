@@ -52,77 +52,6 @@ export const contentConfig = () => {
       sectionName: "Data",
       children: [
         {
-          propertyName: "dataMode",
-          label: "Data mode / 数据模式",
-          controlType: "DROP_DOWN",
-          options: [
-            { label: "Object / 本体", value: "OBJECT" },
-            { label: "Query / 查询", value: "QUERY" },
-          ],
-          isBindProperty: false,
-          isTriggerProperty: false,
-          validation: { type: ValidationTypes.TEXT },
-        },
-        {
-          propertyName: "objectTypeId",
-          label: "Ontology Object / 本体对象",
-          helpText:
-            "Select the ontology object collection that supplies chart data.",
-          controlType: "CELANWORKSMITH_OBJECT_TYPE",
-          isBindProperty: false,
-          isTriggerProperty: false,
-          validation: { type: ValidationTypes.TEXT },
-          dependencies: ["dataMode"],
-          hidden: (props: ChartWidgetProps) => props.dataMode !== "OBJECT",
-        },
-        {
-          propertyName: "labelPropertyId",
-          label: "Label property / 标签属性",
-          helpText: "Select the stable property ID used for the x-axis.",
-          controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-          isBindProperty: false,
-          isTriggerProperty: false,
-          validation: { type: ValidationTypes.TEXT },
-          dependencies: ["dataMode", "objectTypeId"],
-          hidden: (props: ChartWidgetProps) => props.dataMode !== "OBJECT",
-        },
-        {
-          propertyName: "valuePropertyId",
-          label: "Value property / 数值属性",
-          helpText:
-            "Select the stable numeric property ID used for the y-axis.",
-          controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-          isBindProperty: false,
-          isTriggerProperty: false,
-          validation: { type: ValidationTypes.TEXT },
-          dependencies: ["dataMode", "objectTypeId"],
-          hidden: (props: ChartWidgetProps) => props.dataMode !== "OBJECT",
-        },
-        {
-          propertyName: "groupPropertyId",
-          label: "Group property / 分组属性",
-          helpText:
-            "Optional property used to create native chart series. Enum and linked object IDs are typical choices.",
-          controlType: "CELANWORKSMITH_OBJECT_PROPERTY",
-          isBindProperty: false,
-          isTriggerProperty: false,
-          validation: { type: ValidationTypes.TEXT },
-          dependencies: ["dataMode", "objectTypeId"],
-          hidden: (props: ChartWidgetProps) => props.dataMode !== "OBJECT",
-        },
-        {
-          propertyName: "aggregationVariableName",
-          label: "Aggregation variable / 聚合变量",
-          helpText:
-            "Use a numeric CelanWorksmith aggregation variable as a single chart statistic.",
-          controlType: "INPUT_TEXT",
-          isBindProperty: false,
-          isTriggerProperty: false,
-          validation: { type: ValidationTypes.TEXT },
-          dependencies: ["dataMode"],
-          hidden: (props: ChartWidgetProps) => props.dataMode !== "OBJECT",
-        },
-        {
           helpText: "Changes the visualisation of the chart data",
           propertyName: "chartType",
           label: "Chart type",
@@ -260,9 +189,8 @@ export const contentConfig = () => {
           isBindProperty: false,
           isTriggerProperty: false,
           hidden: (props: ChartWidgetProps) =>
-            props.dataMode === "OBJECT" ||
             ["CUSTOM_FUSION_CHART", "CUSTOM_ECHART"].includes(props.chartType),
-          dependencies: ["chartType", "dataMode"],
+          dependencies: ["chartType"],
           children: [
             {
               helpText: "Series data",

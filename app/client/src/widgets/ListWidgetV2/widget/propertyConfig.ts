@@ -232,36 +232,6 @@ export const primaryKeyOptions = (props: ListWidgetProps) => {
 
 export const PropertyPaneContentConfig = [
   {
-    sectionName: "CelanWorksmith Object data",
-    children: [
-      {
-        propertyName: "dataMode",
-        label: "Data mode",
-        controlType: "DROP_DOWN",
-        options: [
-          { label: "Object", value: "OBJECT" },
-          { label: "Query", value: "QUERY" },
-        ],
-        isBindProperty: false,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.TEXT },
-      },
-      {
-        propertyName: "objectTypeId",
-        label: "Ontology Object / 本体对象",
-        helpText:
-          "Select the ontology object collection that supplies list items.",
-        controlType: "CELANWORKSMITH_OBJECT_TYPE",
-        isBindProperty: false,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.TEXT },
-        dependencies: ["dataMode"],
-        hidden: (props: ListWidgetProps<WidgetProps>) =>
-          props.dataMode !== "OBJECT",
-      },
-    ],
-  },
-  {
     sectionName: "Data",
     children: [
       {
@@ -280,9 +250,6 @@ export const PropertyPaneContentConfig = [
           },
         },
         evaluationSubstitutionType: EvaluationSubstitutionType.SMART_SUBSTITUTE,
-        hidden: (props: ListWidgetProps<WidgetProps>) =>
-          props.dataMode === "OBJECT",
-        dependencies: ["dataMode"],
       },
       {
         propertyName: "primaryKeys",

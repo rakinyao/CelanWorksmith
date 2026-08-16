@@ -133,5 +133,8 @@ class OntologyDatasourceControllerTest {
         assertEquals(
                 "trusted@example.com",
                 requestCaptor.getValue().projectImportRequest().importedBy());
+        assertEquals(
+                OntologyProjectImportSource.Kind.DEMO,
+                requestCaptor.getValue().projectImportRequest().sourceKind());
     }
 }

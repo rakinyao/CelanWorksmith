@@ -29,13 +29,43 @@
           }
         },
         {
+          "label": "Properties to display",
+          "configProperty": "actionConfiguration.formData.projection.data",
+          "controlType": "DROP_DOWN",
+          "isMultiSelect": true,
+          "placeholderText": "Select properties to display",
+          "subtitle": "Choose the properties returned by the query",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+            "fetchDynamicValues": {
+              "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_OBJECT_PROPERTIES",
+                  "displayType": "DROP_DOWN",
+                  "parameters": {
+                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
           "label": "Object query definition",
           "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
           "evaluationSubstitutionType": "TEMPLATE",
-          "initialValue": { "objectTypeId": "" },
-          "placeholderText": "{\"objectTypeId\": \"PurchaseOrder\"}"
+          "initialValue": {
+            "objectTypeId": "",
+            "projection": [],
+            "filter": { "conditions": [] },
+            "sort": [],
+            "page": { "offset": 0, "limit": 50 }
+          },
+          "placeholderText": "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"],\"filter\":{\"conditions\":[]},\"sort\":[],\"page\":{\"offset\":0,\"limit\":50}}"
         }
       ]
     }

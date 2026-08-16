@@ -80,8 +80,6 @@ import type {
   PropertyUpdates,
 } from "WidgetProvider/types";
 import IconSVG from "../icon.svg";
-import ObjectTableMode from "../component/ObjectTableMode";
-import { normalizeObjectBinding } from "celanworksmith/widgets/objectBinding/normalizeObjectBinding";
 
 const ReactTableComponent = lazy(async () =>
   retryPromise(async () => import("../component")),
@@ -112,9 +110,6 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
   static getDefaults() {
     return {
       responsiveBehavior: ResponsiveBehavior.Fill,
-      dataMode: "OBJECT",
-      objectTypeId: undefined,
-      objectFilter: undefined,
       rows: 28,
       columns: 34,
       animateLoading: true,
@@ -386,49 +381,7 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
     throw new Error("Method not implemented.");
   }
   static getPropertyPaneConfig() {
-    return [
-      {
-        sectionName: "CelanWorksmith Object data",
-        expandedByDefault: true,
-        children: [
-          {
-            propertyName: "dataMode",
-            label: "Data mode",
-            controlType: "DROP_DOWN",
-            options: [
-              { label: "Query", value: "QUERY" },
-              { label: "Object", value: "OBJECT" },
-            ],
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-          },
-          {
-            propertyName: "objectTypeId",
-            label: "Ontology Object / 本体对象",
-            helpText:
-              "Select the ontology object collection that supplies table rows.",
-            controlType: "CELANWORKSMITH_OBJECT_TYPE",
-            isBindProperty: false,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.TEXT },
-            dependencies: ["dataMode"],
-            hidden: (props: TableWidgetProps) => props.dataMode !== "OBJECT",
-          },
-          {
-            propertyName: "objectFilter",
-            label: "Object filter",
-            controlType: "INPUT_TEXT",
-            isBindProperty: true,
-            isTriggerProperty: false,
-            validation: { type: ValidationTypes.OBJECT },
-            dependencies: ["dataMode"],
-            hidden: (props: TableWidgetProps) => props.dataMode !== "OBJECT",
-          },
-        ],
-      },
-      ...tablePropertyPaneConfig,
-    ];
+    return tablePropertyPaneConfig;
   }
 
   static getStylesheetConfig(): Stylesheet {
@@ -1277,31 +1230,6 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
   };
 
   getWidgetView() {
-    const objectBinding = normalizeObjectBinding(
-      TableWidget.type,
-      this.props as unknown as Record<string, unknown>,
-      {},
-    );
-
-    if (objectBinding.mode === "OBJECT") {
-      return (
-        <ObjectTableMode
-          {...(this.props as unknown as Record<string, unknown>)}
-          multiRowSelection={this.props.multiRowSelection}
-          objectFilter={this.props.objectFilter}
-          objectTypeId={this.props.objectTypeId}
-          pageNo={this.props.pageNo}
-          pageSize={this.props.pageSize}
-          selectedRowIndex={this.props.selectedRowIndex}
-          selectedRowIndices={this.props.selectedRowIndices}
-          sortOrder={this.props.sortOrder}
-          updateWidgetMetaProperty={this.props.updateWidgetMetaProperty}
-          widgetId={this.props.widgetId}
-          widgetType={TableWidget.type}
-        />
-      );
-    }
-
     const {
       delimiter,
       filteredTableData = [],

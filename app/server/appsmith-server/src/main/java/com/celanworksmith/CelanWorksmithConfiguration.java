@@ -2,6 +2,7 @@ package com.celanworksmith;
 
 import com.appsmith.server.datasources.base.DatasourceService;
 import com.appsmith.server.datasourcestorages.base.DatasourceStorageService;
+import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.application.CelanworksmithApplicationBindingRepository;
@@ -28,11 +29,19 @@ import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.ontology.project.OntologyProjectYamlImporter;
 import com.celanworksmith.ontology.service.OntologyProjectService;
+import com.celanworksmith.release.ActionServerAdapterConfigurationValidator;
+import com.celanworksmith.release.ApplicationReleaseProviderHealthGate;
+import com.celanworksmith.release.ApplicationReleaseSnapshotBuilder;
+import com.celanworksmith.release.ApplicationReleaseValidationService;
+import com.celanworksmith.release.OntologyReleaseValidator;
+import com.celanworksmith.release.ReleaseDatasourcePinExtractor;
+import com.celanworksmith.release.ReleaseDependencyScanner;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeProperties;
 import com.celanworksmith.runtime.adapter.production.ProductionRuntimeProvider;
 import com.celanworksmith.runtime.mock.MockDataStore;
 import com.celanworksmith.runtime.port.RuntimeProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -88,6 +97,49 @@ public class CelanWorksmithConfiguration {
     }
 
     @Bean
+    public ApplicationReleaseProviderHealthGate applicationReleaseProviderHealthGate(
+            OntologySnapshotService snapshotService, RuntimeProviderCompatibilityValidator compatibilityValidator) {
+        return new ApplicationReleaseProviderHealthGate(snapshotService, compatibilityValidator);
+    }
+
+    @Bean
+    public ApplicationReleaseSnapshotBuilder applicationReleaseSnapshotBuilder(ObjectMapper objectMapper) {
+        return new ApplicationReleaseSnapshotBuilder(objectMapper);
+    }
+
+    @Bean
+    public ReleaseDatasourcePinExtractor releaseDatasourcePinExtractor(
+            NewActionRepository actionRepository, PluginService pluginService) {
+        return new ReleaseDatasourcePinExtractor(actionRepository, pluginService);
+    }
+
+    @Bean
+    public ReleaseDependencyScanner releaseDependencyScanner() {
+        return new ReleaseDependencyScanner();
+    }
+
+    @Bean
+    public OntologyReleaseValidator ontologyReleaseValidator(
+            OntologySnapshotService snapshotService,
+            OntologyRuntimeGateway runtimeGateway,
+            RuntimeProviderCompatibilityValidator compatibilityValidator) {
+        return new OntologyReleaseValidator(snapshotService, runtimeGateway, compatibilityValidator);
+    }
+
+    @Bean
+    public ApplicationReleaseValidationService applicationReleaseValidationService(
+            ReleaseDatasourcePinExtractor pinExtractor,
+            ReleaseDependencyScanner dependencyScanner,
+            OntologyReleaseValidator ontologyValidator) {
+        return new ApplicationReleaseValidationService(pinExtractor, dependencyScanner, ontologyValidator);
+    }
+
+    @Bean
+    public ActionServerAdapterConfigurationValidator actionServerAdapterConfigurationValidator() {
+        return new ActionServerAdapterConfigurationValidator();
+    }
+
+    @Bean
     public LocalYamlOntologyProjectImporter localYamlOntologyProjectImporter(OntologySnapshotService snapshotService) {
         return new LocalYamlOntologyProjectImporter(snapshotService);
     }
@@ -116,9 +168,11 @@ public class CelanWorksmithConfiguration {
     public OntologyDatasourceService ontologyDatasourceService(
             WorkspaceService workspaceService,
             DatasourceService datasourceService,
+            PluginService pluginService,
             List<OntologyProjectImportSource> importers,
             RuntimeProviderCompatibilityValidator compatibilityValidator) {
-        return new OntologyDatasourceService(workspaceService, datasourceService, importers, compatibilityValidator);
+        return new OntologyDatasourceService(
+                workspaceService, datasourceService, pluginService, importers, compatibilityValidator);
     }
 
     @Bean
@@ -126,9 +180,10 @@ public class CelanWorksmithConfiguration {
             DatasourceService datasourceService,
             DatasourceStorageService datasourceStorageService,
             NewActionRepository actionRepository,
-            OntologyMetadataSnapshotRepository snapshotRepository) {
+            OntologyMetadataSnapshotRepository snapshotRepository,
+            PluginService pluginService) {
         return new OntologyDatasourceCompatibilityService(
-                datasourceService, datasourceStorageService, actionRepository, snapshotRepository);
+                datasourceService, datasourceStorageService, actionRepository, snapshotRepository, pluginService);
     }
 
     @Bean

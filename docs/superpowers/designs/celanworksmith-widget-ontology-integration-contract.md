@@ -1,4 +1,29 @@
-# CelanWorksmith Widget-Ontology 集成契约
+# Historical Contract: CelanWorksmith Widget-Ontology 集成契约
+
+> **SUPERSEDED (2026-08-14):** This document describes the former Object-first
+> Widget side path and is retained for historical traceability only. It is not
+> active implementation guidance. The replacement architecture treats the
+> ontology as a standard Appsmith Datasource and routes all queries through
+> native Query, Action, DataTree, and Widget paths. See [the replacement
+> checkpoint](../verification/2026-08-13-ontology-datasource-replacement-checkpoint.md)
+> and [the replacement implementation plan](../plans/2026-08-13-ontology-datasource-plugin-implementation.md).
+
+## Active Replacement Contract
+
+- An ontology project is imported as a workspace Datasource backed by
+  `celanworksmith-ontology-plugin`.
+- A Datasource pins `projectId`, `projectVersion`, `metadataSnapshotId`,
+  `metadataDigest`, and `runtimeProviderId`.
+- Standard Queries produce ordinary `Query.data` results consumed by existing
+  Widgets. Standard Actions remain the only execution and refresh path.
+- Native Query/JS mode remains available for all Datasources. No ontology-only
+  Widget mode or `$objects`, `$functions`, `$actions`, or `$variables` root is
+  part of the active architecture.
+- Action execution crosses the workspace Action Server protocol boundary; the
+  Worksmith plugin does not implement business writes.
+- Metadata-driven query-editor controls and future usability improvements must
+  extend the native Datasource plugin seam rather than create Widget-local
+  state or execution chains.
 
 > 版本：2026-08-11
 > 适用范围：所有与 CelanWorksmith 本体系统交互的 Widget

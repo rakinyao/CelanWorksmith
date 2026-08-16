@@ -11,35 +11,6 @@ import { updateMenuItemsSource } from "./propertyUtils";
 
 export default [
   {
-    sectionName: "Ontology Action",
-    children: [
-      {
-        propertyName: "actionId",
-        label: "Ontology Action",
-        controlType: "INPUT_TEXT",
-        isBindProperty: true,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.TEXT },
-      },
-      {
-        propertyName: "objectData",
-        label: "Action Object",
-        controlType: "INPUT_TEXT",
-        isBindProperty: true,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.OBJECT },
-      },
-      {
-        propertyName: "parameters",
-        label: "Action Parameters",
-        controlType: "INPUT_TEXT",
-        isBindProperty: true,
-        isTriggerProperty: false,
-        validation: { type: ValidationTypes.OBJECT },
-      },
-    ],
-  },
-  {
     sectionName: "Basic",
     children: [
       {

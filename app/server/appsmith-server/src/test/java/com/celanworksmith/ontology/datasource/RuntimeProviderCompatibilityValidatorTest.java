@@ -74,6 +74,35 @@ class RuntimeProviderCompatibilityValidatorTest {
     }
 
     @Test
+    void reportsDeprecatedSnapshotAsWarningWhenProviderIsCompatible() {
+        RuntimeProviderCompatibilityValidator validator =
+                new RuntimeProviderCompatibilityValidator(new RuntimeProviderRegistry(List.of(
+                        provider("demo-mongo-readonly", Map.of("PurchaseOrder", Map.of("amount", "DECIMAL"))))));
+        OntologyMetadataSnapshot snapshot = snapshot();
+        snapshot = new OntologyMetadataSnapshot(
+                snapshot.id(),
+                snapshot.projectId(),
+                snapshot.projectVersion(),
+                snapshot.sourceKind(),
+                snapshot.sourceReleaseId(),
+                snapshot.runtimeProviderId(),
+                snapshot.createdBy(),
+                snapshot.createdAt(),
+                snapshot.metadataDigest(),
+                snapshot.definition(),
+                true);
+
+        StepVerifier.create(validator.validate(snapshot, "demo-mongo-readonly"))
+                .assertNext(result -> {
+                    assertThat(result.compatible()).isTrue();
+                    assertThat(result.errors()).isEmpty();
+                    assertThat(result.warnings())
+                            .containsExactly("Ontology metadata snapshot is deprecated but compatible");
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void makesProviderCapabilitiesDeeplyImmutable() {
         RuntimeProvider.RuntimeMetadataCapabilities capabilities =
                 new RuntimeProvider.RuntimeMetadataCapabilities(Map.of("PurchaseOrder", Map.of("amount", "DECIMAL")));

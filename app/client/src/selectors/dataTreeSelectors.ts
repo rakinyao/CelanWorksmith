@@ -45,22 +45,6 @@ import { getCurrentAppWorkspace } from "ee/selectors/selectedWorkspaceSelectors"
 import type { PageListReduxState } from "reducers/entityReducers/pageListReducer";
 import { getCurrentEnvironmentName } from "ee/selectors/dataTreeCyclicSelectors";
 import { objectKeys } from "@appsmith/utils";
-import { generateCelanworksmithObjectsDataTree } from "entities/DataTree/dataTreeCelanworksmith";
-import type { CelanworksmithObjectsState } from "reducers/celanworksmithObjectsReducer";
-import { generateCelanworksmithExecutionDataTree } from "entities/DataTree/dataTreeCelanworksmithExecution";
-import type { CelanworksmithDataTreeDispatch } from "ee/entities/DataTree/types";
-import type { CelanworksmithFunctionEntity } from "ee/entities/DataTree/types";
-import {
-  buildCelanworksmithVariablesDataTree,
-  type CelanworksmithVariablesDataTreeState,
-} from "entities/DataTree/dataTreeCelanworksmithVariables";
-import type { CelanworksmithObjectQueryState } from "reducers/celanworksmithObjectQueryReducer";
-import { getCelanworksmithVariableDefinitions } from "selectors/celanworksmithVariableSelectors";
-import {
-  getCelanworksmithExecutionState,
-  getCelanworksmithOntologyState,
-} from "selectors/celanworksmithSelectors";
-import { getCelanworksmithCurrentApplicationId } from "selectors/celanworksmithApplicationBindingSelectors";
 
 export const getLoadingEntities = (state: DefaultRootState) =>
   state.evaluations.loadingEntities;
@@ -159,116 +143,9 @@ const getCurrentPageName = createSelector(
       ?.pageName,
 );
 
-export const getCelanworksmithObjectsState = (
-  state: DefaultRootState,
-): CelanworksmithObjectsState =>
-  (state.celanworksmithObjects as CelanworksmithObjectsState | undefined) || {
-    status: "idle",
-    types: {},
-  };
-
-export const getCelanworksmithObjectsDataTree = createSelector(
-  getCelanworksmithObjectsState,
-  generateCelanworksmithObjectsDataTree,
-);
-
-export const getCelanworksmithObjectQueriesState = (
-  state: DefaultRootState,
-): CelanworksmithObjectQueryState =>
-  (state.celanworksmithObjectQueries as
-    | CelanworksmithObjectQueryState
-    | undefined) || { entries: {} };
-
-const getCelanworksmithDataTreeDispatch = (
-  _state: DefaultRootState,
-  dispatch?: unknown,
-): CelanworksmithDataTreeDispatch => {
-  if (typeof dispatch === "function") {
-    return dispatch as CelanworksmithDataTreeDispatch;
-  }
-
-  return ((action) => action) as CelanworksmithDataTreeDispatch;
-};
-
-const selectCelanworksmithOntologyState = (state: DefaultRootState) =>
-  getCelanworksmithOntologyState(state);
-const selectCelanworksmithExecutionState = (state: DefaultRootState) =>
-  getCelanworksmithExecutionState(state);
-
-const getCelanworksmithExecutionStateForVariables = (
-  state: DefaultRootState,
-) => {
-  if (typeof getCelanworksmithExecutionState === "function") {
-    return getCelanworksmithExecutionState(state);
-  }
-
-  return {
-    functions: {},
-    actions: {},
-    requests: {},
-    functionCache: {},
-    inputs: {},
-  };
-};
-
-export const getCelanworksmithExecutionDataTree = createSelector(
-  selectCelanworksmithOntologyState,
-  selectCelanworksmithExecutionState,
-  getCelanworksmithDataTreeDispatch,
-  (ontology, execution, dispatch) =>
-    generateCelanworksmithExecutionDataTree({ ontology, execution }, dispatch),
-);
-
-export const getCelanworksmithVariablesDataTree = createSelector(
-  getCelanworksmithVariableDefinitions,
-  getCelanworksmithObjectsState,
-  getCelanworksmithObjectQueriesState,
-  getCelanworksmithExecutionStateForVariables,
-  getCelanworksmithCurrentApplicationId,
-  (
-    definitions,
-    objects,
-    queries,
-    execution,
-    applicationId,
-  ): ReturnType<typeof buildCelanworksmithVariablesDataTree> =>
-    buildCelanworksmithVariablesDataTree({
-      definitions,
-      objects,
-      queries,
-      execution,
-      applicationId,
-    } satisfies CelanworksmithVariablesDataTreeState),
-);
-
-const getCelanworksmithDataTree = createSelector(
-  getCelanworksmithObjectsDataTree,
-  getCelanworksmithExecutionDataTree,
-  getCelanworksmithVariablesDataTree,
-  (objects, execution, variables) => ({ objects, execution, variables }),
-);
-
-const getCelanworksmithDataTreeWithDispatch = createSelector(
-  getCelanworksmithDataTree,
-  getCelanworksmithDataTreeDispatch,
-  (dataTree, dispatch) => ({ dataTree, dispatch }),
-);
-
-export const buildDataTreeForAutocomplete = (
-  tree: DataTree,
-  celanworksmithObjects: ReturnType<typeof getCelanworksmithObjectsDataTree>,
-  celanworksmithExecution: ReturnType<
-    typeof getCelanworksmithExecutionDataTree
-  >,
-  celanworksmithVariables?: ReturnType<
-    typeof getCelanworksmithVariablesDataTree
-  >,
-): DataTree =>
+export const buildDataTreeForAutocomplete = (tree: DataTree): DataTree =>
   ({
     ..._.omit(tree, objectKeys(DATATREE_INTERNAL_KEYWORDS)),
-    $objects: celanworksmithObjects,
-    ...celanworksmithExecution,
-    ...(celanworksmithVariables ? { $variables: celanworksmithVariables } : {}),
   }) as DataTree;
 
 export const getUnevaluatedDataTree = createSelector(
@@ -283,7 +160,6 @@ export const getUnevaluatedDataTree = createSelector(
   getCurrentApplication,
   getCurrentPageName,
   getCurrentEnvironmentName,
-  getCelanworksmithDataTreeWithDispatch,
   (
     actions,
     jsActions,
@@ -296,10 +172,7 @@ export const getUnevaluatedDataTree = createSelector(
     currentApplication,
     getCurrentPageName,
     currentEnvironmentName,
-    celanworksmithDataTreeWithDispatch,
   ) => {
-    const celanworksmithDataTree = celanworksmithDataTreeWithDispatch.dataTree;
-
     let dataTree: UnEvalTree = {
       ...actions.dataTree,
       ...jsActions.dataTree,
@@ -324,10 +197,6 @@ export const getUnevaluatedDataTree = createSelector(
       currentEnvironmentName,
       ENTITY_TYPE: ENTITY_TYPE.APPSMITH,
     } as AppsmithEntity;
-    dataTree.$objects = celanworksmithDataTree.objects;
-    dataTree = { ...dataTree, ...celanworksmithDataTree.execution };
-    (dataTree as Record<string, unknown>).$variables =
-      celanworksmithDataTree.variables;
     dataTree = { ...dataTree, ...metaWidgets.dataTree };
     configTree = { ...configTree, ...metaWidgets.configTree };
 
@@ -370,44 +239,16 @@ export const getWidgetEvalValues = createSelector(
 // there isn't a response already
 const getDataTreeForAutocompleteSelector = createSelector(
   getDataTree,
-  getCelanworksmithObjectsDataTree,
-  getCelanworksmithExecutionDataTree,
-  getCelanworksmithVariablesDataTree,
-  (...args: [DefaultRootState, string?]) => {
-    void args;
-
-    return undefined;
-  },
-  (
-    tree: DataTree,
-    celanworksmithObjects,
-    celanworksmithExecution,
-    celanworksmithVariables,
-  ) => {
-    return buildDataTreeForAutocomplete(
-      tree,
-      celanworksmithObjects,
-      celanworksmithExecution,
-      celanworksmithVariables,
-    );
-  },
+  (tree: DataTree) => buildDataTreeForAutocomplete(tree),
 );
-
-type CelanworksmithAutocompleteDataTree = DataTree & {
-  $functions: Record<string, CelanworksmithFunctionEntity> & {
-    ENTITY_TYPE: typeof ENTITY_TYPE.CELANWORKSMITH_FUNCTION;
-  };
-};
 
 export const getDataTreeForAutocomplete = (
   state: DefaultRootState,
   dataTreePath?: string,
-): CelanworksmithAutocompleteDataTree => {
+): DataTree => {
   void dataTreePath;
 
-  return getDataTreeForAutocompleteSelector(
-    state,
-  ) as CelanworksmithAutocompleteDataTree;
+  return getDataTreeForAutocompleteSelector(state);
 };
 
 export const getPathEvalErrors = createSelector(

@@ -53,11 +53,12 @@ describe("identifyEntityFromPath", () => {
     {
       path: `/applications/${baseApplicationId}/pages/${basePageId}/edit/ontology`,
       expected: {
-        entity: FocusEntity.ONTOLOGY,
+        entity: FocusEntity.CANVAS,
         id: "",
         appState: EditorState.EDITOR,
         params: {
           baseApplicationId,
+          entity: "ontology",
           basePageId,
         },
       },

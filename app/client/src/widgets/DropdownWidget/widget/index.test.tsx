@@ -102,4 +102,15 @@ describe("<DropdownWidget />", () => {
 
     expect(screen.getByText("No Results Found")).toBeInTheDocument();
   });
+
+  test("consumes native option objects through the existing component", () => {
+    const widget = new DropdownWidget({
+      options: [{ label: "Purchase Order", value: "PO001" }],
+    } as never);
+    const view = widget.getWidgetView();
+
+    expect(view.props.options).toEqual([
+      { label: "Purchase Order", value: "PO001" },
+    ]);
+  });
 });

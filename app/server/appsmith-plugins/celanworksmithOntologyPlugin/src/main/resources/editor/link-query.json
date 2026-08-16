@@ -31,9 +31,21 @@
         {
           "label": "Source object type",
           "configProperty": "actionConfiguration.formData.sourceTypeId.data",
-          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "controlType": "DROP_DOWN",
           "isRequired": true,
-          "placeholderText": "Supplier"
+          "placeholderText": "Select an object type",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "fetchDynamicValues": {
+              "condition": "{{true}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_OBJECT_TYPES",
+                  "displayType": "DROP_DOWN"
+                }
+              }
+            }
+          }
         },
         {
           "label": "Source object ID",
