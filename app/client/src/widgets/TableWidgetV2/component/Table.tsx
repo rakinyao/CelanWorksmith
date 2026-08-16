@@ -135,10 +135,13 @@ export function Table(props: TableProps) {
     [hasServerTotal, props.totalRecordsCount, pageSize, props.data.length],
   );
 
-  const currentPageIndex = useMemo(
-    () => (props.pageNo < pageCount ? props.pageNo : 0),
-    [props.pageNo, pageCount],
-  );
+  const currentPageIndex = useMemo(() => {
+    const pageIndex = Number.isFinite(props.pageNo)
+      ? Math.max(0, Math.floor(props.pageNo) - 1)
+      : 0;
+
+    return pageIndex < pageCount ? pageIndex : 0;
+  }, [props.pageNo, pageCount]);
 
   const {
     getTableBodyProps,
@@ -315,6 +318,7 @@ export function Table(props: TableProps) {
       subPage={subPage}
       totalColumnsWidth={totalColumnsWidth}
       {...props}
+      pageNo={currentPageIndex}
       pageSize={pageSize}
     >
       {showConnectDataOverlay && (

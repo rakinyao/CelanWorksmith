@@ -1075,17 +1075,15 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
           ? this.props.tableData.length
           : 0;
 
-      if (hasServerTotal || !serverSidePaginationEnabled) {
-        const rowCount = hasServerTotal ? totalRecordsCount : clientRowCount;
-        const maxAllowedPageNumber = Math.max(
-          1,
-          Math.ceil(rowCount / normalizedPageSize),
-        );
+      const rowCount = hasServerTotal ? totalRecordsCount : clientRowCount;
+      const maxAllowedPageNumber = Math.max(
+        1,
+        Math.ceil(rowCount / normalizedPageSize),
+      );
 
-        if (pageNo > maxAllowedPageNumber || pageNo < 1) {
-          pushBatchMetaUpdates("pageNo", maxAllowedPageNumber);
-          this.updatePaginationDirectionFlags(PaginationDirection.NEXT_PAGE);
-        }
+      if (pageNo > maxAllowedPageNumber || pageNo < 1) {
+        pushBatchMetaUpdates("pageNo", maxAllowedPageNumber);
+        this.updatePaginationDirectionFlags(PaginationDirection.NEXT_PAGE);
       }
     }
 
@@ -1646,13 +1644,17 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
     pushBatchMetaUpdates("pageNo", 1);
     this.updatePaginationDirectionFlags(PaginationDirection.INITIAL);
 
-    pushBatchMetaUpdates("searchText", searchKey, {
-      triggerPropertyName: "onSearchTextChanged",
-      dynamicString: onSearchTextChanged,
-      event: {
-        type: EventType.ON_SEARCH,
-      },
-    });
+    if (onSearchTextChanged) {
+      pushBatchMetaUpdates("searchText", searchKey, {
+        triggerPropertyName: "onSearchTextChanged",
+        dynamicString: onSearchTextChanged,
+        event: {
+          type: EventType.ON_SEARCH,
+        },
+      });
+    } else {
+      pushBatchMetaUpdates("searchText", searchKey);
+    }
 
     commitBatchMetaUpdates();
   };

@@ -278,11 +278,49 @@ describe("TableWidgetV2 getWidgetView", () => {
     );
   });
 
-  it("clamps a high page number when page size changes", () => {
+  it("updates search state without trigger metadata when no callback is configured", () => {
+    const pushBatchMetaUpdates = jest.fn();
+    const tableWidget = new TableWidgetV2({
+      ...tableWidgetProps,
+      onSearchTextChanged: "",
+      pushBatchMetaUpdates,
+    });
+
+    tableWidget.handleSearchTable("widgets");
+
+    expect(pushBatchMetaUpdates).toHaveBeenCalledWith("searchText", "widgets");
+  });
+
+  it.each([Number.NaN, -1])(
+    "clamps a high native query page when the server total is %p",
+    (totalRecordsCount) => {
+      const pushBatchMetaUpdates = jest.fn();
+      const nextProps = {
+        ...tableWidgetProps,
+        filteredTableData: Array.from({ length: 15 }, (_, index) => ({
+          index,
+        })),
+        pageNo: 9,
+        pageSize: 10,
+        pushBatchMetaUpdates,
+        serverSidePaginationEnabled: true,
+        totalRecordsCount,
+      };
+      const tableWidget = new TableWidgetV2(nextProps);
+
+      tableWidget.componentDidUpdate(nextProps);
+
+      expect(pushBatchMetaUpdates).toHaveBeenCalledWith("pageNo", 2);
+    },
+  );
+
+  it("resets a resized table to a valid page without execution metadata", () => {
     const pushBatchMetaUpdates = jest.fn();
     const nextProps = {
       ...tableWidgetProps,
       filteredTableData: Array.from({ length: 15 }, (_, index) => ({ index })),
+      componentHeight: 600,
+      onPageSizeChange: "",
       pageNo: 9,
       pageSize: 10,
       pushBatchMetaUpdates,
@@ -291,9 +329,14 @@ describe("TableWidgetV2 getWidgetView", () => {
 
     tableWidget.componentDidUpdate({
       ...nextProps,
+      componentHeight: 400,
       pageSize: 2,
     });
 
-    expect(pushBatchMetaUpdates).toHaveBeenCalledWith("pageNo", 2);
+    const pageUpdates = pushBatchMetaUpdates.mock.calls.filter(
+      ([propertyName]) => propertyName === "pageNo",
+    );
+
+    expect(pageUpdates.at(-1)).toEqual(["pageNo", 1]);
   });
 });

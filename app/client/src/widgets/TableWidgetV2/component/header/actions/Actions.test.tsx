@@ -305,8 +305,12 @@ describe("TableWidget Actions Component", () => {
   });
 
   it("converts one-based widget page metadata to a zero-based table page", () => {
-    renderTable({ data: [], pageNo: 1, pageSize: 10 });
+    renderTable({
+      data: Array.from({ length: 30 }, (_, index) => ({ id: index })),
+      pageNo: 2,
+      pageSize: 10,
+    });
 
-    expect(screen.getByDisplayValue("1")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2")).toBeInTheDocument();
   });
 });
