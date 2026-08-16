@@ -1810,13 +1810,17 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
     this.updatePaginationDirectionFlags(paginationDirection);
 
     if (event) {
-      pushBatchMetaUpdates("pageNo", pageNo, {
-        triggerPropertyName: "onPageChange",
-        dynamicString: this.props.onPageChange,
-        event: {
-          type: event,
-        },
-      });
+      if (this.props.onPageChange) {
+        pushBatchMetaUpdates("pageNo", pageNo, {
+          triggerPropertyName: "onPageChange",
+          dynamicString: this.props.onPageChange,
+          event: {
+            type: event,
+          },
+        });
+      } else {
+        pushBatchMetaUpdates("pageNo", pageNo);
+      }
     } else {
       pushBatchMetaUpdates("pageNo", pageNo);
     }
@@ -1862,13 +1866,17 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
 
     this.updatePaginationDirectionFlags(PaginationDirection.NEXT_PAGE);
 
-    pushBatchMetaUpdates("pageNo", pageNo, {
-      triggerPropertyName: "onPageChange",
-      dynamicString: this.props.onPageChange,
-      event: {
-        type: EventType.ON_NEXT_PAGE,
-      },
-    });
+    if (this.props.onPageChange) {
+      pushBatchMetaUpdates("pageNo", pageNo, {
+        triggerPropertyName: "onPageChange",
+        dynamicString: this.props.onPageChange,
+        event: {
+          type: EventType.ON_NEXT_PAGE,
+        },
+      });
+    } else {
+      pushBatchMetaUpdates("pageNo", pageNo);
+    }
 
     if (this.props.onPageChange) {
       this.pushResetSelectedRowIndexUpdates();
@@ -1909,13 +1917,17 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
 
     if (pageNo >= 1) {
       this.updatePaginationDirectionFlags(PaginationDirection.PREVIOUS_PAGE);
-      pushBatchMetaUpdates("pageNo", pageNo, {
-        triggerPropertyName: "onPageChange",
-        dynamicString: this.props.onPageChange,
-        event: {
-          type: EventType.ON_PREV_PAGE,
-        },
-      });
+      if (this.props.onPageChange) {
+        pushBatchMetaUpdates("pageNo", pageNo, {
+          triggerPropertyName: "onPageChange",
+          dynamicString: this.props.onPageChange,
+          event: {
+            type: EventType.ON_PREV_PAGE,
+          },
+        });
+      } else {
+        pushBatchMetaUpdates("pageNo", pageNo);
+      }
 
       if (this.props.onPageChange) {
         this.pushResetSelectedRowIndexUpdates();

@@ -1,3 +1,4 @@
+import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
 import { ResponsiveBehavior } from "layoutSystems/common/utils/constants";
 import TableWidgetV2 from "..";
 import type { TableWidgetProps } from "../../constants";
@@ -338,5 +339,38 @@ describe("TableWidgetV2 getWidgetView", () => {
     );
 
     expect(pageUpdates.at(-1)).toEqual(["pageNo", 1]);
+  });
+
+  it("does not attach execution metadata to unbound pagination events", () => {
+    const pushBatchMetaUpdates = jest.fn();
+    const tableWidget = new TableWidgetV2({
+      ...tableWidgetProps,
+      onPageChange: "",
+      pageNo: 1,
+      pushBatchMetaUpdates,
+    });
+
+    tableWidget.updatePageNumber(2, EventType.ON_NEXT_PAGE);
+    tableWidget.handleNextPageClick();
+
+    const pageUpdates = pushBatchMetaUpdates.mock.calls.filter(
+      ([propertyName]) => propertyName === "pageNo",
+    );
+
+    expect(pageUpdates.length).toBe(2);
+    expect(pageUpdates.every((update) => update.length === 2)).toBe(true);
+
+    const previousPageUpdates = jest.fn();
+    const previousPageWidget = new TableWidgetV2({
+      ...tableWidgetProps,
+      onPageChange: "",
+      pageNo: 2,
+      pushBatchMetaUpdates: previousPageUpdates,
+    });
+
+    previousPageWidget.handlePrevPageClick();
+
+    expect(previousPageUpdates).toHaveBeenCalledWith("pageNo", 1);
+    expect(previousPageUpdates.mock.calls[0]).toHaveLength(2);
   });
 });
