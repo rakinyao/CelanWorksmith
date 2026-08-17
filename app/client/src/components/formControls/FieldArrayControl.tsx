@@ -1,9 +1,16 @@
-import React, { useCallback } from "react";
+import React, { Component, useCallback } from "react";
 import FormControl from "pages/Editor/FormControl";
 import styled from "styled-components";
-import { FieldArray } from "redux-form";
+import { change, FieldArray, getFormValues } from "redux-form";
+import { connect } from "react-redux";
+import type { DefaultRootState } from "react-redux";
+import { get } from "lodash";
 import type { ControlProps } from "./BaseControl";
 import { Button } from "@appsmith/ads";
+import {
+  MATCH_ACTION_CONFIG_PROPERTY,
+  matchExact,
+} from "workers/Evaluation/formEval";
 
 const CenteredIconButton = styled(Button)<{
   alignSelf?: string;
@@ -117,29 +124,101 @@ function NestedComponents(props: any) {
   );
 }
 
-export default function FieldArrayControl(props: FieldArrayControlProps) {
-  const {
-    addMoreButtonLabel = "+ Add Condition (And)",
-    configProperty,
-    customStyles = {},
-    formName,
-    schema,
-  } = props;
+export function shouldResetFieldArray({
+  dependencyCondition,
+  formValues,
+  prevFormValues,
+  resetOnDependencyChange,
+}: DependencyResetArgs): boolean {
+  if (
+    !resetOnDependencyChange ||
+    typeof dependencyCondition !== "string"
+  ) {
+    return false;
+  }
 
-  return (
-    <FieldArray
-      component={NestedComponents}
-      name={configProperty}
-      props={{
-        formName,
-        schema,
-        addMoreButtonLabel,
-        configProperty,
-        customStyles,
-      }}
-      rerenderOnEveryChange={false}
-    />
+  return matchExact(MATCH_ACTION_CONFIG_PROPERTY, dependencyCondition).some(
+    (dependencyPath) =>
+      get(prevFormValues, dependencyPath) !== get(formValues, dependencyPath),
   );
 }
+
+interface DependencyResetArgs {
+  dependencyCondition?: string;
+  formValues: object | undefined;
+  prevFormValues: object | undefined;
+  resetOnDependencyChange?: boolean;
+}
+
+interface ReduxDispatchProps {
+  updateConfigPropertyValue: (
+    formName: string,
+    field: string,
+    value: unknown,
+  ) => void;
+}
+
+type FieldArrayControlComponentProps = FieldArrayControlProps &
+  ReduxDispatchProps & {
+    formValues: object | undefined;
+  };
+
+class FieldArrayControl extends Component<FieldArrayControlComponentProps> {
+  componentDidUpdate(prevProps: FieldArrayControlComponentProps) {
+    if (
+      shouldResetFieldArray({
+        dependencyCondition: this.props.conditionals?.enable,
+        formValues: this.props.formValues,
+        prevFormValues: prevProps.formValues,
+        resetOnDependencyChange: this.props.resetOnDependencyChange,
+      })
+    ) {
+      this.props.updateConfigPropertyValue(
+        this.props.formName,
+        this.props.configProperty,
+        [],
+      );
+    }
+  }
+
+  render() {
+    const {
+      addMoreButtonLabel = "+ Add Condition (And)",
+      configProperty,
+      customStyles = {},
+      formName,
+      schema,
+    } = this.props;
+
+    return (
+      <FieldArray
+        component={NestedComponents}
+        name={configProperty}
+        props={{
+          formName,
+          schema,
+          addMoreButtonLabel,
+          configProperty,
+          customStyles,
+        }}
+        rerenderOnEveryChange={false}
+      />
+    );
+  }
+}
+
+const mapStateToProps = (
+  state: DefaultRootState,
+  ownProps: FieldArrayControlProps,
+) => ({
+  formValues: getFormValues(ownProps.formName)(state),
+});
+
+const mapDispatchToProps = (dispatch: (action: unknown) => void) => ({
+  updateConfigPropertyValue: (formName: string, field: string, value: unknown) =>
+    dispatch(change(formName, field, value)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(FieldArrayControl);
 
 export type FieldArrayControlProps = ControlProps;

@@ -5,8 +5,16 @@ import type { ControlType } from "constants/PropertyControlConstants";
 import FormControl from "pages/Editor/FormControl";
 import FormLabel from "components/editorComponents/FormLabel";
 import styled from "styled-components";
+import { connect } from "react-redux";
+import type { DefaultRootState } from "react-redux";
+import { change, getFormValues } from "redux-form";
+import { get } from "lodash";
 import { getBindingOrConfigPathsForPaginationControl } from "entities/Action/actionProperties";
 import { PaginationSubComponent } from "components/formControls/utils";
+import {
+  MATCH_ACTION_CONFIG_PROPERTY,
+  matchExact,
+} from "workers/Evaluation/formEval";
 
 export const StyledFormLabel = styled(FormLabel)`
   margin-top: 5px;
@@ -64,7 +72,7 @@ export function Pagination(props: {
   customStyles?: any;
   configProperty: string;
   formName: string;
-  initialValue?: Record<string, string>;
+  initialValue?: PaginationInitialValue;
 }) {
   const {
     configProperty,
@@ -133,7 +141,87 @@ export function Pagination(props: {
   );
 }
 
-class PaginationControl extends BaseControl<PaginationControlProps> {
+export interface PaginationInitialValue {
+  offset: number;
+  limit: number;
+}
+
+interface PaginationDependencyResetArgs {
+  dependencyCondition?: string;
+  formValues: object | undefined;
+  prevFormValues: object | undefined;
+  resetOnDependencyChange?: boolean;
+}
+
+export function shouldResetPagination({
+  dependencyCondition,
+  formValues,
+  prevFormValues,
+  resetOnDependencyChange,
+}: PaginationDependencyResetArgs): boolean {
+  if (
+    !resetOnDependencyChange ||
+    typeof dependencyCondition !== "string"
+  ) {
+    return false;
+  }
+
+  return matchExact(MATCH_ACTION_CONFIG_PROPERTY, dependencyCondition).some(
+    (dependencyPath) =>
+      get(prevFormValues, dependencyPath) !== get(formValues, dependencyPath),
+  );
+}
+
+export function getPaginationResetValue(
+  initialValue?: PaginationInitialValue,
+): PaginationInitialValue | undefined {
+  if (
+    !initialValue ||
+    typeof initialValue.offset !== "number" ||
+    typeof initialValue.limit !== "number"
+  ) {
+    return undefined;
+  }
+
+  return { offset: initialValue.offset, limit: initialValue.limit };
+}
+
+interface ReduxDispatchProps {
+  updateConfigPropertyValue: (
+    formName: string,
+    field: string,
+    value: unknown,
+  ) => void;
+}
+
+type PaginationControlComponentProps = PaginationControlProps &
+  ReduxDispatchProps & {
+    formValues: object | undefined;
+  };
+
+class PaginationControl extends BaseControl<PaginationControlComponentProps> {
+  componentDidUpdate(prevProps: PaginationControlComponentProps) {
+    const resetValue = getPaginationResetValue(
+      this.props.initialValue as PaginationInitialValue | undefined,
+    );
+
+    if (
+      resetValue &&
+      shouldResetPagination({
+        dependencyCondition: this.props.conditionals?.enable,
+        formValues: this.props.formValues,
+        prevFormValues: prevProps.formValues,
+        resetOnDependencyChange: this.props.resetOnDependencyChange,
+      })
+    ) {
+      this.props.updateConfigPropertyValue(
+        this.props.formName,
+        this.props.configProperty,
+        resetValue,
+      );
+    }
+  }
+
   render() {
     const {
       configProperty, // JSON path for the pagination data
@@ -141,6 +229,7 @@ class PaginationControl extends BaseControl<PaginationControlProps> {
       formName, // Name of the form, used by redux-form lib to store the data in redux store
       isValid,
       label,
+      initialValue,
       placeholderText,
       tooltipText,
       validationMessage,
@@ -155,6 +244,7 @@ class PaginationControl extends BaseControl<PaginationControlProps> {
         isValid={isValid}
         label={label}
         name={configProperty}
+        initialValue={initialValue as PaginationInitialValue | undefined}
         placeholder={placeholderText}
         tooltip={tooltipText}
         validationMessage={validationMessage}
@@ -173,4 +263,16 @@ export interface PaginationControlProps extends ControlProps {
   disabled?: boolean;
 }
 
-export default PaginationControl;
+const mapStateToProps = (
+  state: DefaultRootState,
+  ownProps: PaginationControlProps,
+) => ({
+  formValues: getFormValues(ownProps.formName)(state),
+});
+
+const mapDispatchToProps = (dispatch: (action: unknown) => void) => ({
+  updateConfigPropertyValue: (formName: string, field: string, value: unknown) =>
+    dispatch(change(formName, field, value)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(PaginationControl);

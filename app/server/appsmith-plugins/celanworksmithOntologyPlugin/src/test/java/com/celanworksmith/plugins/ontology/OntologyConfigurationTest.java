@@ -227,7 +227,9 @@ class OntologyConfigurationTest {
             assertEquals(
                     "{{!!actionConfiguration.formData.objectTypeId.data}}",
                     control.at("/conditionals/enable").asText());
+            assertTrue(control.path("resetOnDependencyChange").asBoolean());
         }
+        assertFalse(definition.has("resetOnDependencyChange"));
         assertFalse(projection.has("initialValue"));
         assertFalse(sort.has("initialValue"));
         assertEquals("propertyId", sort.at("/schema/0/key").asText());

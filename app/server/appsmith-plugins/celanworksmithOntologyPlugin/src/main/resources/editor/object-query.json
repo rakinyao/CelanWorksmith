@@ -42,6 +42,7 @@
           "label": "Properties",
           "configProperty": "actionConfiguration.formData.projection.data",
           "controlType": "PROJECTION",
+          "resetOnDependencyChange": true,
           "placeholderText": "All visible properties",
           "fetchOptionsConditionally": true,
           "conditionals": {
@@ -65,6 +66,7 @@
           "label": "Filters",
           "configProperty": "actionConfiguration.formData.filter.data.conditions",
           "controlType": "ARRAY_FIELD",
+          "resetOnDependencyChange": true,
           "addMoreButtonLabel": "Add filter",
           "alternateViewTypes": ["json"],
           "conditionals": {
@@ -130,6 +132,7 @@
           "label": "Sort",
           "configProperty": "actionConfiguration.formData.sort.data",
           "controlType": "ARRAY_FIELD",
+          "resetOnDependencyChange": true,
           "addMoreButtonLabel": "Add sort",
           "alternateViewTypes": ["json"],
           "conditionals": {
@@ -172,6 +175,7 @@
           "label": "Pagination",
           "configProperty": "actionConfiguration.formData.page.data",
           "controlType": "PAGINATION",
+          "resetOnDependencyChange": true,
           "initialValue": { "offset": 0, "limit": 50 },
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
