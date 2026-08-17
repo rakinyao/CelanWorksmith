@@ -163,32 +163,55 @@ interface ReduxDispatchProps {
 
 type Props = DropDownControlProps & ReduxDispatchProps;
 
+export function shouldResetDropdownValue({
+  dependencyCondition,
+  fetchOptionsConditionally,
+  formValues,
+  isMultiSelect,
+  prevFormValues,
+  resetOnDependencyChange,
+}: {
+  dependencyCondition?: string;
+  fetchOptionsConditionally?: boolean;
+  formValues: Partial<Action>;
+  isMultiSelect?: boolean;
+  prevFormValues: Partial<Action>;
+  resetOnDependencyChange?: boolean;
+}): boolean {
+  const shouldReset =
+    resetOnDependencyChange || (fetchOptionsConditionally && isMultiSelect);
+
+  if (!shouldReset || !dependencyCondition) return false;
+
+  const dependencies = matchExact(
+    MATCH_ACTION_CONFIG_PROPERTY,
+    dependencyCondition,
+  );
+
+  return dependencies.some(
+    (dependencyPath) =>
+      get(prevFormValues, dependencyPath) !== get(formValues, dependencyPath),
+  );
+}
+
 class DropDownControl extends BaseControl<Props> {
   componentDidUpdate(prevProps: Props) {
-    // If dependencies changed in multi-select, reset values
-    if (this.props.fetchOptionsConditionally && this.props.isMultiSelect) {
-      const dependencies = matchExact(
-        MATCH_ACTION_CONFIG_PROPERTY,
+    const shouldReset = shouldResetDropdownValue({
+      dependencyCondition:
         this.props.conditionals?.fetchDynamicValues?.condition,
+      fetchOptionsConditionally: this.props.fetchOptionsConditionally,
+      formValues: this.props.formValues,
+      isMultiSelect: this.props.isMultiSelect,
+      prevFormValues: prevProps.formValues,
+      resetOnDependencyChange: this.props.resetOnDependencyChange,
+    });
+
+    if (shouldReset) {
+      this.props.updateConfigPropertyValue(
+        this.props.formName,
+        this.props.configProperty,
+        this.props.isMultiSelect ? [] : "",
       );
-      let hasDependenciesChanged = false;
-
-      if (dependencies?.length) {
-        dependencies.forEach((depPath) => {
-          const prevValue = get(prevProps.formValues, depPath);
-          const currValue = get(this.props.formValues, depPath);
-
-          if (prevValue !== currValue) hasDependenciesChanged = true;
-        });
-      }
-
-      if (hasDependenciesChanged) {
-        this.props.updateConfigPropertyValue(
-          this.props.formName,
-          this.props.configProperty,
-          [],
-        );
-      }
     }
 
     // Clear entity type if the command changed

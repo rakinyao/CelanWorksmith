@@ -1,6 +1,8 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "test/testUtils";
-import DropDownControl from "../DropDownControl";
+import DropDownControl, {
+  shouldResetDropdownValue,
+} from "../DropDownControl";
 import { reduxForm } from "redux-form";
 import "@testing-library/jest-dom";
 import { Provider } from "react-redux";
@@ -222,6 +224,61 @@ describe("DropDownControl", () => {
     );
 
     expect(screen.getByText("Select Columns")).toBeInTheDocument();
+  });
+});
+
+describe("shouldResetDropdownValue", () => {
+  const dependencyCondition = "actionConfiguration.formData.entityType.data";
+  const previousFormValues = {
+    actionConfiguration: { formData: { entityType: { data: "old" } } },
+  };
+  const currentFormValues = {
+    actionConfiguration: { formData: { entityType: { data: "new" } } },
+  };
+
+  it("resets when enabled and a dependency changes", () => {
+    expect(
+      shouldResetDropdownValue({
+        dependencyCondition,
+        formValues: currentFormValues,
+        prevFormValues: previousFormValues,
+        resetOnDependencyChange: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not reset when enabled but the dependency is unchanged", () => {
+    expect(
+      shouldResetDropdownValue({
+        dependencyCondition,
+        formValues: previousFormValues,
+        prevFormValues: previousFormValues,
+        resetOnDependencyChange: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("does not add a reset when disabled and a dependency changes", () => {
+    expect(
+      shouldResetDropdownValue({
+        dependencyCondition,
+        formValues: currentFormValues,
+        prevFormValues: previousFormValues,
+        resetOnDependencyChange: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("preserves the existing multi-select dependency reset", () => {
+    expect(
+      shouldResetDropdownValue({
+        dependencyCondition,
+        fetchOptionsConditionally: true,
+        formValues: currentFormValues,
+        isMultiSelect: true,
+        prevFormValues: previousFormValues,
+      }),
+    ).toBe(true);
   });
 });
 

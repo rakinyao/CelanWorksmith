@@ -79,6 +79,7 @@ export interface ControlData {
   info?: string; //helper text
   isRequired?: boolean;
   conditionals?: ConditonalObject; // Object that contains the conditionals config
+  resetOnDependencyChange?: boolean;
   hidden?: HiddenType;
   placeholderText?: string | Record<string, string>;
   // TODO: Fix this the next time the file is edited
