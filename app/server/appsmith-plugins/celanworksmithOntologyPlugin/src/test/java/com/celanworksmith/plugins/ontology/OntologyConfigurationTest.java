@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -191,7 +192,7 @@ class OntologyConfigurationTest {
         JsonNode queryMode = findControl(children, "actionConfiguration.formData.queryMode.data");
         JsonNode objectType = findControl(children, "actionConfiguration.formData.objectTypeId.data");
         JsonNode projection = findControl(children, "actionConfiguration.formData.projection.data");
-        JsonNode filter = findControl(children, "actionConfiguration.formData.filter.data");
+        JsonNode filter = findControl(children, "actionConfiguration.formData.filter.data.conditions");
         JsonNode sort = findControl(children, "actionConfiguration.formData.sort.data");
         JsonNode page = findControl(children, "actionConfiguration.formData.page.data");
         JsonNode definition = findControl(children, "actionConfiguration.formData.definition.data");
@@ -209,17 +210,28 @@ class OntologyConfigurationTest {
 
         assertEquals("PROJECTION", projection.path("controlType").asText());
         assertEquals("ARRAY_FIELD", filter.path("controlType").asText());
-        assertEquals("SORTING", sort.path("controlType").asText());
+        assertEquals("ARRAY_FIELD", sort.path("controlType").asText());
         assertEquals("PAGINATION", page.path("controlType").asText());
         assertEquals("QUERY_DYNAMIC_INPUT_TEXT", definition.path("controlType").asText());
         assertEquals(
                 "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}",
                 definition.at("/conditionals/show").asText());
+        for (JsonNode control : List.of(objectType, projection, filter, sort, page)) {
+            assertEquals(
+                    "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+                    control.at("/conditionals/show").asText());
+        }
         for (JsonNode control : List.of(projection, filter, sort, page)) {
             assertEquals(
                     "{{!!actionConfiguration.formData.objectTypeId.data}}",
                     control.at("/conditionals/enable").asText());
         }
+        assertFalse(projection.has("initialValue"));
+        assertFalse(sort.has("initialValue"));
+        assertEquals("propertyId", sort.at("/schema/0/key").asText());
+        assertEquals("direction", sort.at("/schema/1/key").asText());
+        assertEquals("ASC", sort.at("/schema/1/options/0/value").asText());
+        assertEquals("DESC", sort.at("/schema/1/options/1/value").asText());
         assertEquals(
                 "ONTOLOGY_OBJECT_PROPERTIES",
                 projection
@@ -231,7 +243,7 @@ class OntologyConfigurationTest {
                         .asText());
         assertEquals(
                 "ONTOLOGY_OBJECT_PROPERTIES",
-                sort.at("/conditionals/fetchDynamicValues/config/params/requestType")
+                sort.at("/schema/0/conditionals/fetchDynamicValues/config/params/requestType")
                         .asText());
     }
 

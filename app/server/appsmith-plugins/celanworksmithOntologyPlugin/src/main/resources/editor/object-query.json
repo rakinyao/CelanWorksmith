@@ -27,6 +27,7 @@
           "placeholderText": "Select an object type",
           "fetchOptionsConditionally": true,
           "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "fetchDynamicValues": {
               "condition": "{{true}}",
               "config": {
@@ -42,10 +43,10 @@
           "label": "Properties",
           "configProperty": "actionConfiguration.formData.projection.data",
           "controlType": "PROJECTION",
-          "initialValue": [],
           "placeholderText": "All visible properties",
           "fetchOptionsConditionally": true,
           "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}",
             "fetchDynamicValues": {
               "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
@@ -63,12 +64,12 @@
         },
         {
           "label": "Filters",
-          "configProperty": "actionConfiguration.formData.filter.data",
+          "configProperty": "actionConfiguration.formData.filter.data.conditions",
           "controlType": "ARRAY_FIELD",
           "addMoreButtonLabel": "Add filter",
-          "initialValue": { "conditions": [] },
           "alternateViewTypes": ["json"],
           "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
           },
           "schema": [
@@ -118,23 +119,44 @@
         {
           "label": "Sort",
           "configProperty": "actionConfiguration.formData.sort.data",
-          "controlType": "SORTING",
+          "controlType": "ARRAY_FIELD",
+          "addMoreButtonLabel": "Add sort",
           "alternateViewTypes": ["json"],
           "conditionals": {
-            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}",
-            "fetchDynamicValues": {
-              "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
-              "config": {
-                "params": {
-                  "requestType": "ONTOLOGY_OBJECT_PROPERTIES",
-                  "displayType": "DROP_DOWN",
-                  "parameters": {
-                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
+          },
+          "schema": [
+            {
+              "label": "Property",
+              "key": "propertyId",
+              "controlType": "DROP_DOWN",
+              "fetchOptionsConditionally": true,
+              "conditionals": {
+                "fetchDynamicValues": {
+                  "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+                  "config": {
+                    "params": {
+                      "requestType": "ONTOLOGY_OBJECT_PROPERTIES",
+                      "displayType": "DROP_DOWN",
+                      "parameters": {
+                        "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                      }
+                    }
                   }
                 }
               }
+            },
+            {
+              "label": "Direction",
+              "key": "direction",
+              "controlType": "DROP_DOWN",
+              "options": [
+                { "label": "Ascending", "value": "ASC" },
+                { "label": "Descending", "value": "DESC" }
+              ]
             }
-          }
+          ]
         },
         {
           "label": "Pagination",
@@ -142,6 +164,7 @@
           "controlType": "PAGINATION",
           "initialValue": { "offset": 0, "limit": 50 },
           "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
           }
         },
