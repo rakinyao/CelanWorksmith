@@ -213,6 +213,8 @@ class OntologyConfigurationTest {
         assertEquals("ARRAY_FIELD", sort.path("controlType").asText());
         assertEquals("PAGINATION", page.path("controlType").asText());
         assertEquals("QUERY_DYNAMIC_INPUT_TEXT", definition.path("controlType").asText());
+        assertFalse(objectType.path("isRequired").asBoolean());
+        assertFalse(definition.has("initialValue"));
         assertEquals(
                 "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}",
                 definition.at("/conditionals/show").asText());
