@@ -243,9 +243,9 @@ class OntologyObjectQueryExecutorTest {
 
         assertEquals(
                 List.of(
-                        metadata("id", "id", "string", false, false, false),
-                        metadata("supplierId", "supplierId", "string", false, false, false),
-                        metadata("delayDays", "delayDays", "integer", false, false, false)),
+                        propertyMetadata("id", "id", "string", false, false, false),
+                        propertyMetadata("supplierId", "supplierId", "string", false, false, false),
+                        propertyMetadata("delayDays", "delayDays", "integer", false, false, false)),
                 result.getTrigger());
     }
 
@@ -288,6 +288,17 @@ class OntologyObjectQueryExecutorTest {
         metadata.put("required", required);
         metadata.put("readOnly", readOnly);
         metadata.put("derived", derived);
+        return metadata;
+    }
+
+    private Map<String, Object> propertyMetadata(
+            String label, String value, String dataType, boolean required, boolean readOnly, boolean derived) {
+        Map<String, Object> metadata = metadata(label, value, dataType, required, readOnly, derived);
+        metadata.put(
+                "operators",
+                OntologyQueryOperatorCatalog.operatorsFor(dataType).stream()
+                        .map(operator -> Map.of("value", operator.value(), "label", operator.label()))
+                        .toList());
         return metadata;
     }
 

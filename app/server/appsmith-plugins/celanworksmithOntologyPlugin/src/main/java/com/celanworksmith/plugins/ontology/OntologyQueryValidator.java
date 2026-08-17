@@ -13,12 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 final class OntologyQueryValidator {
-    private static final Set<String> STRING_OPERATORS = Set.of("equals", "contains", "startsWith", "isEmpty");
-    private static final Set<String> COMPARISON_OPERATORS = Set.of("equals", "gt", "gte", "lt", "lte");
-    private static final Set<String> BOOLEAN_OPERATORS = Set.of("equals", "isEmpty");
     private static final int DEFAULT_OFFSET = 0;
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 1_000;
@@ -180,7 +176,8 @@ final class OntologyQueryValidator {
             throw new IllegalArgumentException("Unknown ontology property in filter");
         }
         String operator = condition.path("operator").asText();
-        if (!operatorsFor(property.dataType()).contains(operator)) {
+        if (OntologyQueryOperatorCatalog.operatorsFor(property.dataType()).stream()
+                .noneMatch(candidate -> candidate.value().equals(operator))) {
             throw new IllegalArgumentException("Invalid ontology filter operator for property: " + property.id());
         }
         if (!"isEmpty".equals(operator)) {
@@ -254,14 +251,6 @@ final class OntologyQueryValidator {
             throw new IllegalArgumentException("Ontology definition requires stable ID: " + field);
         }
         return identifier;
-    }
-
-    private Set<String> operatorsFor(String dataType) {
-        return switch (dataType) {
-            case "integer", "number", "decimal", "date", "datetime" -> COMPARISON_OPERATORS;
-            case "boolean" -> BOOLEAN_OPERATORS;
-            default -> STRING_OPERATORS;
-        };
     }
 
     private boolean matchesType(JsonNode value, String dataType) {

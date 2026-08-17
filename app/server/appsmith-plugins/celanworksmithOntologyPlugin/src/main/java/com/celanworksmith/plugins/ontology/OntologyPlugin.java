@@ -219,16 +219,26 @@ public class OntologyPlugin extends BasePlugin {
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ontology object type: " + value));
             return objectType.properties().stream()
                     .filter(property -> !property.hidden())
-                    .map(property -> metadataEntry(
-                            property.id(),
-                            property.displayName(),
-                            property.dataType(),
-                            property.required(),
-                            property.readOnly(),
-                            property.derived(),
-                            property.enumValues(),
-                            property.referenceTypeId()))
+                    .map(property -> propertyMetadataEntry(property))
                     .toList();
+        }
+
+        private Map<String, Object> propertyMetadataEntry(OntologyRuntimeGateway.PropertyMetadata property) {
+            Map<String, Object> metadata = metadataEntry(
+                    property.id(),
+                    property.displayName(),
+                    property.dataType(),
+                    property.required(),
+                    property.readOnly(),
+                    property.derived(),
+                    property.enumValues(),
+                    property.referenceTypeId());
+            metadata.put(
+                    "operators",
+                    OntologyQueryOperatorCatalog.operatorsFor(property.dataType()).stream()
+                            .map(operator -> Map.of("value", operator.value(), "label", operator.label()))
+                            .toList());
+            return metadata;
         }
 
         private TriggerResultDTO dropdownResult(List<Map<String, Object>> metadata) {
