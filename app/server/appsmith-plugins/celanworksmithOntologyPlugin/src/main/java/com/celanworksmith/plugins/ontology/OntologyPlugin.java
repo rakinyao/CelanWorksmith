@@ -134,17 +134,27 @@ public class OntologyPlugin extends BasePlugin {
                 OntologyDatasourceConfiguration datasourceConfiguration, Snapshot snapshot) {
             validateSnapshotPin(datasourceConfiguration, snapshot);
             return new DatasourceStructure(snapshot.objectTypes().stream()
-                    .map(objectType -> new DatasourceStructure.Table(
-                            DatasourceStructure.TableType.TABLE,
-                            null,
-                            objectType.id(),
-                            objectType.properties().stream()
-                                    .filter(property -> !property.hidden())
-                                    .map(property -> new DatasourceStructure.Column(
-                                            property.id(), property.dataType(), null, false))
-                                    .toList(),
-                            java.util.List.of(),
-                            java.util.List.of()))
+                    .map(objectType -> {
+                        List<OntologyRuntimeGateway.PropertyMetadata> visibleProperties =
+                                objectType.properties().stream()
+                                        .filter(property -> !property.hidden())
+                                        .toList();
+                        List<DatasourceStructure.Key> keys =
+                                visibleProperties.stream().anyMatch(property -> "id".equals(property.id()))
+                                        ? List.of(new DatasourceStructure.PrimaryKey(
+                                                objectType.id() + "_primary_key", List.of("id")))
+                                        : List.of();
+                        return new DatasourceStructure.Table(
+                                DatasourceStructure.TableType.TABLE,
+                                null,
+                                objectType.id(),
+                                visibleProperties.stream()
+                                        .map(property -> new DatasourceStructure.Column(
+                                                property.id(), property.dataType(), null, false))
+                                        .toList(),
+                                keys,
+                                java.util.List.of());
+                    })
                     .toList());
         }
 

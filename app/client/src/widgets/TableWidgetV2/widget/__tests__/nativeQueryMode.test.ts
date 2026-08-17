@@ -42,4 +42,30 @@ describe("TableWidgetV2 native Query bindings", () => {
       totalRecordsCount: "{{ GetOrdersTotal.data }}",
     });
   });
+
+  it("keeps ontology binding on the native Table contract", () => {
+    const updates =
+      TableWidgetV2.getMethods().getPropertyUpdatesForQueryBinding(
+        {
+          select: {
+            data: "{{ PurchaseOrders.data }}",
+            run: "{{ PurchaseOrders.run() }}",
+          },
+        },
+        widget,
+        {
+          primaryColumn: "id",
+          searchableColumn: "status",
+        },
+      );
+
+    expect(updates.modify).toMatchObject({
+      tableData: "{{ PurchaseOrders.data }}",
+      onPageChange: "{{ PurchaseOrders.run() }}",
+      serverSidePaginationEnabled: true,
+    });
+    expect(updates.modify).not.toHaveProperty("$objects");
+    expect(updates.modify).not.toHaveProperty("objectType");
+    expect(updates.modify).not.toHaveProperty("objectProperties");
+  });
 });

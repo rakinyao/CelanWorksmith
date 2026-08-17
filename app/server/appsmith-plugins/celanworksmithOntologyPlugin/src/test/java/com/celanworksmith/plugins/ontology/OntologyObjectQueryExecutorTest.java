@@ -196,7 +196,30 @@ class OntologyObjectQueryExecutorTest {
                 objectType.getColumns().stream()
                         .map(DatasourceStructure.Column::getType)
                         .toList());
+        DatasourceStructure.PrimaryKey primaryKey = assertInstanceOf(
+                DatasourceStructure.PrimaryKey.class, objectType.getKeys().getFirst());
+        assertEquals(List.of("id"), primaryKey.getColumnNames());
+        assertEquals("primary key", primaryKey.getType());
         assertEquals(1, gateway.snapshotRequests.size());
+    }
+
+    @Test
+    void structuredObjectQueryReturnsStandardArrayWithoutObjectWidgetEnvelope() {
+        ActionExecutionResult result = executeStructured(
+                gateway(),
+                Map.of(
+                        "queryMode",
+                        "BUILDER",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "projection",
+                        List.of("id", "delayDays"),
+                        "page",
+                        Map.of("offset", 10, "limit", 20)));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertInstanceOf(List.class, result.getBody());
+        assertFalse(result.getBody() instanceof Map<?, ?> body && body.containsKey("$objects"));
     }
 
     @Test

@@ -24,6 +24,7 @@ export enum PluginPackageName {
   SNOWFLAKE = "snowflake-plugin",
   APPSMITH_AI = "appsmithai-plugin",
   APPSMITH_AGENT = "appsmith-agent-plugin",
+  ONTOLOGY = "celanworksmith-ontology-plugin",
   WORKFLOW = "workflow-plugin",
 }
 
