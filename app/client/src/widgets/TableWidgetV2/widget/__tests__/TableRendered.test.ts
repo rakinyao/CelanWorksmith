@@ -252,6 +252,20 @@ describe("TableWidgetV2 getWidgetView", () => {
     expect(updateColumnProperties).toHaveBeenCalledTimes(1);
   });
 
+  it("uses client pagination when server pagination has no page callback", () => {
+    const tableWidget = new TableWidgetV2({
+      ...tableWidgetProps,
+      onPageChange: "",
+      serverSidePaginationEnabled: true,
+    });
+
+    const widgetView = tableWidget.getWidgetView();
+
+    expect(widgetView.props.children.props.serverSidePaginationEnabled).toBe(
+      false,
+    );
+  });
+
   it("resets search to page one and invokes only its configured callback", () => {
     const pushBatchMetaUpdates = jest.fn();
     const tableWidget = new TableWidgetV2({

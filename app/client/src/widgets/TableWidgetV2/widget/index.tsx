@@ -165,6 +165,11 @@ const getMemoisedAddNewRow = (): addNewRowToTable =>
     return tableData;
   });
 
+const hasServerSidePagination = (
+  serverSidePaginationEnabled?: boolean,
+  onPageChange?: string,
+) => Boolean(serverSidePaginationEnabled && onPageChange);
+
 class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
   inlineEditTimer: number | null = null;
   memoisedAddNewRow: addNewRowToTable;
@@ -961,6 +966,14 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       serverSidePaginationEnabled,
       totalRecordsCount,
     } = this.props;
+    const isServerSidePaginationEnabled = hasServerSidePagination(
+      serverSidePaginationEnabled,
+      this.props.onPageChange,
+    );
+    const wasServerSidePaginationEnabled = hasServerSidePagination(
+      prevProps.serverSidePaginationEnabled,
+      prevProps.onPageChange,
+    );
 
     // Bail out if tableData is a string. This signifies an error in evaluations
     if (isString(this.props.tableData)) {
@@ -1057,7 +1070,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
       this.updatePaginationDirectionFlags(PaginationDirection.INITIAL);
     }
 
-    if (serverSidePaginationEnabled !== prevProps.serverSidePaginationEnabled) {
+    if (isServerSidePaginationEnabled !== wasServerSidePaginationEnabled) {
       //reset pageNo when serverSidePaginationEnabled is toggled
       pushBatchMetaUpdates("pageNo", 1);
       this.updatePaginationDirectionFlags(PaginationDirection.INITIAL);
@@ -1066,7 +1079,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
         ? Math.max(1, Math.floor(pageSize))
         : 1;
       const hasServerTotal =
-        serverSidePaginationEnabled &&
+        isServerSidePaginationEnabled &&
         Number.isFinite(totalRecordsCount) &&
         totalRecordsCount >= 0;
       const clientRowCount = Array.isArray(this.props.filteredTableData)
@@ -1328,6 +1341,10 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
 
     const { componentHeight, componentWidth } =
       this.getPaddingAdjustedDimensions();
+    const isServerSidePaginationEnabled = hasServerSidePagination(
+      this.props.serverSidePaginationEnabled,
+      this.props.onPageChange,
+    );
     const finalTableData = this.memoisedAddNewRow(
       transformedData,
       this.props.isAddRowInProgress,
@@ -1404,7 +1421,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
               : this.props.selectedRowIndex
           }
           selectedRowIndices={this.getSelectedRowIndices()}
-          serverSidePaginationEnabled={!!this.props.serverSidePaginationEnabled}
+          serverSidePaginationEnabled={isServerSidePaginationEnabled}
           showConnectDataOverlay={
             primaryColumns &&
             !Object.keys(primaryColumns).length &&
@@ -2994,7 +3011,12 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
     pushBatchMetaUpdates("newRow", defaultNewRow);
 
     // New row gets added at the top of page 1 when client side pagination enabled
-    if (!this.props.serverSidePaginationEnabled) {
+    if (
+      !hasServerSidePagination(
+        this.props.serverSidePaginationEnabled,
+        this.props.onPageChange,
+      )
+    ) {
       this.updatePaginationDirectionFlags(PaginationDirection.INITIAL);
     }
 
