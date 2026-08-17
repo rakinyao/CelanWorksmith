@@ -49,6 +49,12 @@ export interface ControlBuilder<T extends ControlProps> {
   buildPropertyControl(controlProps: T): JSX.Element;
 }
 
+export interface DependentDropdownConfig {
+  sourceField: string;
+  optionsPath: string;
+  clearFields?: string[];
+}
+
 export interface ControlProps extends ControlData, ControlFunctions {
   key?: string;
   extraData?: ControlData[];
@@ -110,6 +116,7 @@ export interface ControlData {
   validator?: (value: string) => { isValid: boolean; message: string };
   isSecretExistsPath?: string;
   addMoreButtonLabel?: string;
+  dependentDropdown?: DependentDropdownConfig;
   datasourceId?: string;
   workspaceId?: string;
   actionId?: string;

@@ -1,6 +1,9 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "test/testUtils";
 import DropDownControl, {
+  getDependentDropdownOptions,
+  getDependentFieldPaths,
+  getInvalidDependentDropdownFields,
   shouldResetDropdownValue,
 } from "../DropDownControl";
 import { reduxForm } from "redux-form";
@@ -279,6 +282,142 @@ describe("shouldResetDropdownValue", () => {
         prevFormValues: previousFormValues,
       }),
     ).toBe(true);
+  });
+});
+
+describe("dependent dropdown options", () => {
+  const propertyOptions = [
+    {
+      label: "Order total",
+      value: "total",
+      operators: [
+        { label: "Equals", value: "equals" },
+        { label: "Greater than", value: "gt" },
+        { label: "Less than", value: "lt" },
+      ],
+    },
+    {
+      label: "Order status",
+      value: "status",
+      operators: [
+        { label: "Equals", value: "equals" },
+        { label: "Contains", value: "contains" },
+        { label: "Starts with", value: "startsWith" },
+        { label: "Is empty", value: "isEmpty" },
+      ],
+    },
+  ];
+  const dependentDropdown = {
+    sourceField: "propertyId",
+    optionsPath: "operators",
+    clearFields: ["value"],
+  };
+  const operatorPath =
+    "actionConfiguration.formData.filter.data.conditions[0].operator";
+
+  it("exposes only numeric operators for the selected property", () => {
+    expect(
+      getDependentDropdownOptions(
+        propertyOptions,
+        operatorPath,
+        {
+          actionConfiguration: {
+            formData: {
+              filter: { data: { conditions: [{ propertyId: "total" }] } },
+            },
+          },
+        },
+        dependentDropdown,
+      ),
+    ).toEqual(propertyOptions[0].operators);
+  });
+
+  it("exposes only string operators for the selected property", () => {
+    expect(
+      getDependentDropdownOptions(
+        propertyOptions,
+        operatorPath,
+        {
+          actionConfiguration: {
+            formData: {
+              filter: { data: { conditions: [{ propertyId: "status" }] } },
+            },
+          },
+        },
+        dependentDropdown,
+      ),
+    ).toEqual(propertyOptions[1].operators);
+  });
+
+  it("clears operator and value when the selected property changes", () => {
+    const previousFormValues = {
+      actionConfiguration: {
+        formData: {
+          filter: {
+            data: {
+              conditions: [
+                { propertyId: "status", operator: "contains", value: "paid" },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const formValues = {
+      actionConfiguration: {
+        formData: {
+          filter: {
+            data: {
+              conditions: [
+                { propertyId: "total", operator: "contains", value: "paid" },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    expect(
+      getInvalidDependentDropdownFields(
+        operatorPath,
+        previousFormValues,
+        formValues,
+        dependentDropdown,
+        true,
+      ),
+    ).toEqual([
+      operatorPath,
+      "actionConfiguration.formData.filter.data.conditions[0].value",
+    ]);
+  });
+
+  it("keeps generic options and values unchanged without configuration", () => {
+    const genericOptions = [
+      { label: "Ascending", value: "ASC" },
+      { label: "Descending", value: "DESC" },
+    ];
+    const formValues = { actionConfiguration: { sort: "ASC" } };
+
+    expect(
+      getDependentDropdownOptions(
+        genericOptions,
+        "actionConfiguration.sort",
+        formValues,
+      ),
+    ).toBe(genericOptions);
+    expect(
+      getInvalidDependentDropdownFields(
+        "actionConfiguration.sort",
+        formValues,
+        formValues,
+      ),
+    ).toEqual([]);
+  });
+
+  it("builds sibling paths from nested array control paths", () => {
+    expect(getDependentFieldPaths(operatorPath, ["value"])).toEqual([
+      "actionConfiguration.formData.filter.data.conditions[0].value",
+    ]);
   });
 });
 

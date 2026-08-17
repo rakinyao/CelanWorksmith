@@ -250,6 +250,32 @@ class OntologyConfigurationTest {
     }
 
     @Test
+    void filterOperatorUsesPropertyMetadataAndResetsDependentValues() throws IOException {
+        JsonNode editor = readEditorResource("object-query.json");
+        JsonNode filter =
+                findControl(editor.at("/children/0/children"), "actionConfiguration.formData.filter.data.conditions");
+        JsonNode property = filter.at("/schema/0");
+        JsonNode operator = filter.at("/schema/1");
+
+        assertEquals("propertyId", property.path("key").asText());
+        assertEquals("operator", operator.path("key").asText());
+        assertFalse(operator.has("options"));
+        assertTrue(operator.path("fetchOptionsConditionally").asBoolean());
+        assertTrue(operator.path("resetOnDependencyChange").asBoolean());
+        assertEquals("propertyId", operator.at("/dependentDropdown/sourceField").asText());
+        assertEquals("operators", operator.at("/dependentDropdown/optionsPath").asText());
+        assertEquals(1, operator.at("/dependentDropdown/clearFields").size());
+        assertEquals("value", operator.at("/dependentDropdown/clearFields/0").asText());
+        assertEquals(
+                "ONTOLOGY_OBJECT_PROPERTIES",
+                operator.at("/conditionals/fetchDynamicValues/config/params/requestType")
+                        .asText());
+        assertEquals(
+                "{{!!actionConfiguration.formData.objectTypeId.data}}",
+                operator.at("/conditionals/fetchDynamicValues/condition").asText());
+    }
+
+    @Test
     void nativeProjectionOverridesJsonProjectionWithStablePropertyIds() {
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(Map.of(

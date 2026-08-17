@@ -96,16 +96,27 @@
               "label": "Operator",
               "key": "operator",
               "controlType": "DROP_DOWN",
-              "options": [
-                { "label": "Equals", "value": "equals" },
-                { "label": "Contains", "value": "contains" },
-                { "label": "Starts with", "value": "startsWith" },
-                { "label": "Is empty", "value": "isEmpty" },
-                { "label": "Greater than", "value": "gt" },
-                { "label": "Greater than or equal to", "value": "gte" },
-                { "label": "Less than", "value": "lt" },
-                { "label": "Less than or equal to", "value": "lte" }
-              ]
+              "fetchOptionsConditionally": true,
+              "resetOnDependencyChange": true,
+              "dependentDropdown": {
+                "sourceField": "propertyId",
+                "optionsPath": "operators",
+                "clearFields": ["value"]
+              },
+              "conditionals": {
+                "fetchDynamicValues": {
+                  "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+                  "config": {
+                    "params": {
+                      "requestType": "ONTOLOGY_OBJECT_PROPERTIES",
+                      "displayType": "DROP_DOWN",
+                      "parameters": {
+                        "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                      }
+                    }
+                  }
+                }
+              }
             },
             {
               "label": "Value",

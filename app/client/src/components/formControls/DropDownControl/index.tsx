@@ -10,7 +10,7 @@ import {
 } from "redux-form";
 import { connect } from "react-redux";
 import type { DefaultRootState } from "react-redux";
-import type { ControlProps } from "../BaseControl";
+import type { ControlProps, DependentDropdownConfig } from "../BaseControl";
 import BaseControl from "../BaseControl";
 import type { ControlType } from "constants/PropertyControlConstants";
 import {
@@ -119,6 +119,7 @@ const memoizedBuildGroupedOptions = memoizeOne(buildGroupedOptions);
 
 export interface DropDownControlProps extends ControlProps {
   options: SelectOptionProps[];
+  dependentDropdown?: DependentDropdownConfig;
   optionGroupConfig?: Record<string, DropDownGroupedOptions>;
   optionWidth?: string;
   maxTagCount?: number;
@@ -163,6 +164,61 @@ interface ReduxDispatchProps {
 
 type Props = DropDownControlProps & ReduxDispatchProps;
 
+export function getDependentFieldPaths(
+  configProperty: string,
+  dependentFields: string[],
+): string[] {
+  const parentPath = configProperty.slice(0, configProperty.lastIndexOf("."));
+
+  return dependentFields.map((field) =>
+    parentPath ? `${parentPath}.${field}` : field,
+  );
+}
+
+export function getDependentDropdownOptions(
+  options: SelectOptionProps[],
+  configProperty: string,
+  formValues: object | undefined,
+  dependentDropdown?: DependentDropdownConfig,
+): SelectOptionProps[] {
+  if (!dependentDropdown) return options;
+
+  const sourcePath = getDependentFieldPaths(configProperty, [
+    dependentDropdown.sourceField,
+  ])[0];
+  const sourceValue = get(formValues, sourcePath);
+  const sourceOption = options.find((option) => option.value === sourceValue);
+  const dependentOptions = get(sourceOption, dependentDropdown.optionsPath);
+
+  return Array.isArray(dependentOptions) ? dependentOptions : [];
+}
+
+export function getInvalidDependentDropdownFields(
+  configProperty: string,
+  previousFormValues: object,
+  formValues: object,
+  dependentDropdown?: DependentDropdownConfig,
+  resetOnDependencyChange?: boolean,
+): string[] {
+  if (!dependentDropdown || !resetOnDependencyChange) return [];
+
+  const sourcePath = getDependentFieldPaths(configProperty, [
+    dependentDropdown.sourceField,
+  ])[0];
+
+  if (get(previousFormValues, sourcePath) === get(formValues, sourcePath)) {
+    return [];
+  }
+
+  return [
+    configProperty,
+    ...getDependentFieldPaths(
+      configProperty,
+      dependentDropdown.clearFields || [],
+    ),
+  ];
+}
+
 export function shouldResetDropdownValue({
   dependencyCondition,
   fetchOptionsConditionally,
@@ -196,6 +252,16 @@ export function shouldResetDropdownValue({
 
 class DropDownControl extends BaseControl<Props> {
   componentDidUpdate(prevProps: Props) {
+    getInvalidDependentDropdownFields(
+      this.props.configProperty,
+      prevProps.formValues,
+      this.props.formValues,
+      this.props.dependentDropdown,
+      this.props.resetOnDependencyChange,
+    ).forEach((field) => {
+      this.props.updateConfigPropertyValue(this.props.formName, field, "");
+    });
+
     const shouldReset = shouldResetDropdownValue({
       dependencyCondition:
         this.props.conditionals?.fetchDynamicValues?.condition,
@@ -293,6 +359,12 @@ function renderDropdown(
     options = [],
     setFirstOptionAsDefault,
   } = props;
+  const availableOptions = getDependentDropdownOptions(
+    options,
+    props.configProperty,
+    props.formValues,
+    props.dependentDropdown,
+  );
   // Safeguard the selectedValue (since it might be empty, null, or a string/string[])
   let selectedValue = input?.value;
 
@@ -306,8 +378,8 @@ function renderDropdown(
         : "";
 
       // If user wants the first option as default
-      if (setFirstOptionAsDefault && options.length > 0) {
-        selectedValue = options[0].value as string;
+      if (setFirstOptionAsDefault && availableOptions.length > 0) {
+        selectedValue = availableOptions[0].value as string;
         input?.onChange(selectedValue);
       }
     }
@@ -336,7 +408,7 @@ function renderDropdown(
 
   // Use memoized grouping
   const groupedOptions = memoizedBuildGroupedOptions(
-    options,
+    availableOptions,
     optionGroupConfig,
   );
 
@@ -344,7 +416,7 @@ function renderDropdown(
   // If appendGroupIdentifierToValue is true, we need to check if the selected value includes the group identifier
   // Eg: if the selected value is "group1:1", we need to find the option with value "1"
   // If appendGroupIdentifierToValue is false, we just need to find the option with value "1"
-  const selectedOptions = options.filter((opt) => {
+  const selectedOptions = availableOptions.filter((opt) => {
     const checkGroupIdentifier =
       appendGroupIdentifierToValue && optionGroupConfig;
     const valueToCompare = checkGroupIdentifier
@@ -385,14 +457,14 @@ function renderDropdown(
   if (
     !isMultiSelect &&
     props.isRequired &&
-    options.some((opt) => "disabled" in opt)
+    availableOptions.some((opt) => "disabled" in opt)
   ) {
-    const isCurrentOptionDisabled = options.some(
+    const isCurrentOptionDisabled = availableOptions.some(
       (opt) => opt.value === selectedValue && opt.disabled,
     );
 
     if (isCurrentOptionDisabled) {
-      const firstEnabled = options.find((opt) => !opt.disabled);
+      const firstEnabled = availableOptions.find((opt) => !opt.disabled);
 
       if (firstEnabled) {
         input?.onChange(firstEnabled.value);
@@ -416,7 +488,7 @@ function renderDropdown(
     let valueToStore = optionValueToSelect;
 
     if (shouldAppendGroup) {
-      const selectedOption = options.find(
+      const selectedOption = availableOptions.find(
         (opt) => opt.value === optionValueToSelect,
       );
 
@@ -520,7 +592,7 @@ function renderDropdown(
         <NoSearchCommandFound
           configProperty={props.configProperty}
           onSelectOptions={onSelectOptions}
-          options={options}
+          options={availableOptions}
           pluginId={get(props.formValues, "pluginId")}
         />
       }
@@ -542,7 +614,7 @@ function renderDropdown(
               {children.map(renderOptionWithIcon)}
             </OptGroup>
           ))
-        : options.map(renderOptionWithIcon)}
+        : availableOptions.map(renderOptionWithIcon)}
     </Select>
   );
 }
