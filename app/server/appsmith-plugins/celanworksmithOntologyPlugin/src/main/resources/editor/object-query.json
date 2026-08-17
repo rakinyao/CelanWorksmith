@@ -10,7 +10,17 @@
       "identifier": "ONTOLOGY_OBJECT_QUERY_ZONE",
       "children": [
         {
-          "label": "Object type",
+          "label": "Query mode",
+          "configProperty": "actionConfiguration.formData.queryMode.data",
+          "controlType": "DROP_DOWN",
+          "initialValue": "BUILDER",
+          "options": [
+            { "label": "Builder", "value": "BUILDER" },
+            { "label": "Advanced JSON", "value": "ADVANCED" }
+          ]
+        },
+        {
+          "label": "Object Type",
           "configProperty": "actionConfiguration.formData.objectTypeId.data",
           "controlType": "DROP_DOWN",
           "isRequired": true,
@@ -29,12 +39,11 @@
           }
         },
         {
-          "label": "Properties to display",
+          "label": "Properties",
           "configProperty": "actionConfiguration.formData.projection.data",
-          "controlType": "DROP_DOWN",
-          "isMultiSelect": true,
-          "placeholderText": "Select properties to display",
-          "subtitle": "Choose the properties returned by the query",
+          "controlType": "PROJECTION",
+          "initialValue": [],
+          "placeholderText": "All visible properties",
           "fetchOptionsConditionally": true,
           "conditionals": {
             "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}",
@@ -53,11 +62,98 @@
           }
         },
         {
-          "label": "Object query definition",
+          "label": "Filters",
+          "configProperty": "actionConfiguration.formData.filter.data",
+          "controlType": "ARRAY_FIELD",
+          "addMoreButtonLabel": "Add filter",
+          "initialValue": { "conditions": [] },
+          "alternateViewTypes": ["json"],
+          "conditionals": {
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
+          },
+          "schema": [
+            {
+              "label": "Property",
+              "key": "propertyId",
+              "controlType": "DROP_DOWN",
+              "fetchOptionsConditionally": true,
+              "conditionals": {
+                "fetchDynamicValues": {
+                  "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+                  "config": {
+                    "params": {
+                      "requestType": "ONTOLOGY_OBJECT_PROPERTIES",
+                      "displayType": "DROP_DOWN",
+                      "parameters": {
+                        "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "label": "Operator",
+              "key": "operator",
+              "controlType": "DROP_DOWN",
+              "options": [
+                { "label": "Equals", "value": "equals" },
+                { "label": "Contains", "value": "contains" },
+                { "label": "Starts with", "value": "startsWith" },
+                { "label": "Is empty", "value": "isEmpty" },
+                { "label": "Greater than", "value": "gt" },
+                { "label": "Greater than or equal to", "value": "gte" },
+                { "label": "Less than", "value": "lt" },
+                { "label": "Less than or equal to", "value": "lte" }
+              ]
+            },
+            {
+              "label": "Value",
+              "key": "value",
+              "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+              "placeholderText": "Enter a value or expression"
+            }
+          ]
+        },
+        {
+          "label": "Sort",
+          "configProperty": "actionConfiguration.formData.sort.data",
+          "controlType": "SORTING",
+          "alternateViewTypes": ["json"],
+          "conditionals": {
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+            "fetchDynamicValues": {
+              "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_OBJECT_PROPERTIES",
+                  "displayType": "DROP_DOWN",
+                  "parameters": {
+                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "Pagination",
+          "configProperty": "actionConfiguration.formData.page.data",
+          "controlType": "PAGINATION",
+          "initialValue": { "offset": 0, "limit": 50 },
+          "conditionals": {
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
+          }
+        },
+        {
+          "label": "Advanced JSON definition",
           "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
           "evaluationSubstitutionType": "TEMPLATE",
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}"
+          },
           "initialValue": {
             "objectTypeId": "",
             "projection": [],

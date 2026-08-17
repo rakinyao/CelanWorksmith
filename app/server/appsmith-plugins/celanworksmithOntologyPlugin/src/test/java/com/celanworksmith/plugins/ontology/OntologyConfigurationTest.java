@@ -185,29 +185,53 @@ class OntologyConfigurationTest {
     }
 
     @Test
-    void objectQueryEditorExposesProjectionPropertiesForSelectedObjectType() throws IOException {
+    void objectQueryEditorExposesStructuredBuilderControls() throws IOException {
         JsonNode editor = readEditorResource("object-query.json");
-        JsonNode projection =
-                findControl(editor.at("/children/0/children"), "actionConfiguration.formData.projection.data");
+        JsonNode children = editor.at("/children/0/children");
+        JsonNode queryMode = findControl(children, "actionConfiguration.formData.queryMode.data");
+        JsonNode objectType = findControl(children, "actionConfiguration.formData.objectTypeId.data");
+        JsonNode projection = findControl(children, "actionConfiguration.formData.projection.data");
+        JsonNode filter = findControl(children, "actionConfiguration.formData.filter.data");
+        JsonNode sort = findControl(children, "actionConfiguration.formData.sort.data");
+        JsonNode page = findControl(children, "actionConfiguration.formData.page.data");
+        JsonNode definition = findControl(children, "actionConfiguration.formData.definition.data");
 
-        assertEquals("DROP_DOWN", projection.path("controlType").asText());
-        assertTrue(projection.path("isMultiSelect").asBoolean());
-        assertTrue(projection.path("fetchOptionsConditionally").asBoolean());
+        assertEquals("DROP_DOWN", queryMode.path("controlType").asText());
+        assertEquals("BUILDER", queryMode.at("/initialValue").asText());
+        assertEquals("BUILDER", queryMode.at("/options/0/value").asText());
+        assertEquals("ADVANCED", queryMode.at("/options/1/value").asText());
+        assertEquals("DROP_DOWN", objectType.path("controlType").asText());
         assertEquals(
-                "{{!!actionConfiguration.formData.objectTypeId.data}}",
-                projection.at("/conditionals/enable").asText());
+                "ONTOLOGY_OBJECT_TYPES",
+                objectType
+                        .at("/conditionals/fetchDynamicValues/config/params/requestType")
+                        .asText());
+
+        assertEquals("PROJECTION", projection.path("controlType").asText());
+        assertEquals("ARRAY_FIELD", filter.path("controlType").asText());
+        assertEquals("SORTING", sort.path("controlType").asText());
+        assertEquals("PAGINATION", page.path("controlType").asText());
+        assertEquals("QUERY_DYNAMIC_INPUT_TEXT", definition.path("controlType").asText());
         assertEquals(
-                "{{!!actionConfiguration.formData.objectTypeId.data}}",
-                projection.at("/conditionals/fetchDynamicValues/condition").asText());
+                "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}",
+                definition.at("/conditionals/show").asText());
+        for (JsonNode control : List.of(projection, filter, sort, page)) {
+            assertEquals(
+                    "{{!!actionConfiguration.formData.objectTypeId.data}}",
+                    control.at("/conditionals/enable").asText());
+        }
         assertEquals(
                 "ONTOLOGY_OBJECT_PROPERTIES",
                 projection
                         .at("/conditionals/fetchDynamicValues/config/params/requestType")
                         .asText());
         assertEquals(
-                "{{actionConfiguration.formData.objectTypeId.data}}",
-                projection
-                        .at("/conditionals/fetchDynamicValues/config/params/parameters/objectTypeId")
+                "ONTOLOGY_OBJECT_PROPERTIES",
+                filter.at("/schema/0/conditionals/fetchDynamicValues/config/params/requestType")
+                        .asText());
+        assertEquals(
+                "ONTOLOGY_OBJECT_PROPERTIES",
+                sort.at("/conditionals/fetchDynamicValues/config/params/requestType")
                         .asText());
     }
 
