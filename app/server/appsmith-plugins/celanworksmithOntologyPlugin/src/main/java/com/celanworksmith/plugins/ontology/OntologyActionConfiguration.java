@@ -56,15 +56,38 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             throw new IllegalArgumentException("Unsupported ontology operation: " + operationName, exception);
         }
 
-        Object definitionValue = parseDefinition(formData.get("definition"));
-        if (!(definitionValue instanceof Map<?, ?> rawDefinition)) {
+        Object queryModeValue = formData.get("queryMode");
+        boolean builderMode = false;
+        boolean advancedMode = false;
+        if (queryModeValue != null) {
+            if (!(queryModeValue instanceof String queryMode)) {
+                throw new IllegalArgumentException("Ontology query mode must be BUILDER or ADVANCED");
+            }
+            builderMode = "BUILDER".equals(queryMode);
+            advancedMode = "ADVANCED".equals(queryMode);
+            if (!builderMode && !advancedMode) {
+                throw new IllegalArgumentException("Unsupported ontology query mode: " + queryMode);
+            }
+        }
+
+        Object rawDefinitionValue = formData.get("definition");
+        Object definitionValue = builderMode
+                        && (rawDefinitionValue == null
+                                || rawDefinitionValue instanceof String definitionText && definitionText.isBlank())
+                ? Map.of()
+                : parseDefinition(rawDefinitionValue);
+        if (!(definitionValue instanceof Map<?, ?> rawDefinitionMap)) {
             throw new IllegalArgumentException("Ontology operation definition is required");
         }
 
         Map<String, Object> definition = new java.util.LinkedHashMap<>();
-        rawDefinition.forEach((key, value) -> definition.put(String.valueOf(key), value));
-        mergeSelectorFields(formData, definition);
-        mergeProjection(formData, definition);
+        rawDefinitionMap.forEach((key, value) -> definition.put(String.valueOf(key), value));
+        if (builderMode) {
+            mergeBuilderFields(formData, definition);
+        } else if (!advancedMode) {
+            mergeSelectorFields(formData, definition);
+            mergeProjection(formData, definition);
+        }
         for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
             if (definition.containsKey(protectedKey)) {
                 throw new IllegalArgumentException("Action configuration cannot override: " + protectedKey);
@@ -125,6 +148,30 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             projection.add((String) propertyId);
         }
         definition.put("projection", List.copyOf(projection));
+    }
+
+    private static void mergeBuilderFields(Map<String, Object> formData, Map<String, Object> definition) {
+        mergeSelectorFields(formData, definition);
+        mergeProjection(formData, definition);
+        copyStructuredField(formData, definition, "filter", Map.class, "Ontology filter selector must be an object");
+        copyStructuredField(formData, definition, "sort", List.class, "Ontology sort selector must be a list");
+        copyStructuredField(formData, definition, "page", Map.class, "Ontology page selector must be an object");
+    }
+
+    private static void copyStructuredField(
+            Map<String, Object> formData,
+            Map<String, Object> definition,
+            String field,
+            Class<?> expectedType,
+            String errorMessage) {
+        Object value = formData.get(field);
+        if (value == null) {
+            return;
+        }
+        if (!expectedType.isInstance(value)) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        definition.put(field, value);
     }
 
     private static void validateRequiredIdentifier(Operation operation, Map<String, Object> definition) {

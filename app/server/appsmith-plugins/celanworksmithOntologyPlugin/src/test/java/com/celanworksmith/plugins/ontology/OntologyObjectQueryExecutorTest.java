@@ -95,6 +95,29 @@ class OntologyObjectQueryExecutorTest {
     }
 
     @Test
+    void executesStructuredBuilderFormData() {
+        RecordingGateway gateway = gateway();
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "projection", List.of("id", "delayDays"),
+                        "filter",
+                                Map.of(
+                                        "conditions",
+                                        List.of(Map.of("propertyId", "delayDays", "operator", "gt", "value", 4))),
+                        "sort", List.of(Map.of("propertyId", "delayDays", "direction", "DESC")),
+                        "page", Map.of("offset", 20, "limit", 10)));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(List.of("id", "delayDays"), gateway.query.projection());
+        assertEquals("delayDays", gateway.query.sortBy());
+        assertEquals(20, gateway.query.offset());
+        assertEquals(10, gateway.query.limit());
+    }
+
+    @Test
     void rejectsUnknownObjectBeforeProviderCall() {
         RecordingGateway gateway = gateway();
 
@@ -230,6 +253,16 @@ class OntologyObjectQueryExecutorTest {
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(Map.of("operation", "OBJECT_QUERY", "definition", definition));
+        return executor.execute(datasource(), null, action).block();
+    }
+
+    private ActionExecutionResult executeStructured(RecordingGateway gateway, Map<String, Object> formData) {
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+        ActionConfiguration action = new ActionConfiguration();
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("operation", "OBJECT_QUERY");
+        values.putAll(formData);
+        action.setFormData(values);
         return executor.execute(datasource(), null, action).block();
     }
 
