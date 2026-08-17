@@ -28,15 +28,88 @@ class OntologyActionConfigurationTest {
     @Test
     void advancedDefinitionIgnoresStaleBuilderFields() {
         ActionConfiguration action = action(Map.of(
-                "operation", "OBJECT_QUERY",
-                "queryMode", "ADVANCED",
-                "objectTypeId", "StaleObject",
-                "projection", List.of("staleProperty"),
-                "definition", "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"]}"));
+                "operation",
+                "OBJECT_QUERY",
+                "queryMode",
+                "ADVANCED",
+                "objectTypeId",
+                "StaleObject",
+                "projection",
+                List.of("staleProperty"),
+                "filter",
+                Map.of("stale", true),
+                "sort",
+                List.of(Map.of("propertyId", "staleProperty", "direction", "ASC")),
+                "page",
+                Map.of("offset", 99, "limit", 1),
+                "definition",
+                "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"]}"));
 
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
 
         assertEquals(Map.of("objectTypeId", "PurchaseOrder", "projection", List.of("id")), configuration.definition());
+    }
+
+    @Test
+    void functionQueryKeepsLegacySelectorBehaviorWhenQueryModeIsPresent() {
+        OntologyActionConfiguration configuration = configuration(
+                "FUNCTION_QUERY",
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "functionId", "selectedFunction",
+                        "filter", Map.of("stale", true),
+                        "sort", List.of(Map.of("stale", true)),
+                        "page", Map.of("offset", 99),
+                        "definition", Map.of("functionId", "definitionFunction")));
+
+        assertEquals("selectedFunction", configuration.definition().get("functionId"));
+        assertFalse(configuration.definition().containsKey("filter"));
+        assertFalse(configuration.definition().containsKey("sort"));
+        assertFalse(configuration.definition().containsKey("page"));
+    }
+
+    @Test
+    void actionQueryKeepsLegacySelectorBehaviorWhenQueryModeIsPresent() {
+        OntologyActionConfiguration configuration = configuration(
+                "ACTION_QUERY",
+                Map.of(
+                        "queryMode",
+                        "ADVANCED",
+                        "actionId",
+                        "selectedAction",
+                        "projection",
+                        List.of("staleProperty"),
+                        "definition",
+                        Map.of("actionId", "definitionAction")));
+
+        assertEquals("selectedAction", configuration.definition().get("actionId"));
+        assertEquals(List.of("staleProperty"), configuration.definition().get("projection"));
+    }
+
+    @Test
+    void linkQueryKeepsLegacySelectorBehaviorWhenQueryModeIsPresent() {
+        OntologyActionConfiguration configuration = configuration(
+                "LINK_QUERY",
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "linkId", "selectedLink",
+                        "sourceTypeId", "PurchaseOrder",
+                        "sourceId", "po-1",
+                        "definition", Map.of("linkId", "definitionLink")));
+
+        assertEquals("selectedLink", configuration.definition().get("linkId"));
+        assertEquals("PurchaseOrder", configuration.definition().get("sourceTypeId"));
+        assertEquals("po-1", configuration.definition().get("sourceId"));
+    }
+
+    @Test
+    void advancedDefinitionCannotOverrideProtectedContext() {
+        ActionConfiguration action = action(Map.of(
+                "operation", "OBJECT_QUERY",
+                "queryMode", "ADVANCED",
+                "definition", Map.of("objectTypeId", "PurchaseOrder", "projectId", "forged")));
+
+        assertThrows(IllegalArgumentException.class, () -> OntologyActionConfiguration.from(action));
     }
 
     @Test
@@ -93,6 +166,46 @@ class OntologyActionConfigurationTest {
                 assertThrows(IllegalArgumentException.class, () -> OntologyActionConfiguration.from(action));
 
         assertFalse(exception.getMessage().isBlank());
+    }
+
+    @Test
+    void malformedStructuredProjectionIsRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "OBJECT_QUERY",
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "projection", "id"))));
+    }
+
+    @Test
+    void malformedStructuredSortIsRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "OBJECT_QUERY",
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "sort", Map.of("propertyId", "delayDays")))));
+    }
+
+    @Test
+    void malformedStructuredPageIsRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "OBJECT_QUERY",
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "page", List.of(10, 20)))));
+    }
+
+    private OntologyActionConfiguration configuration(String operation, Map<String, Object> formData) {
+        Map<String, Object> values = new java.util.LinkedHashMap<>();
+        values.put("operation", operation);
+        values.putAll(formData);
+        return OntologyActionConfiguration.from(action(values));
     }
 
     private ActionConfiguration action(Map<String, Object> formData) {

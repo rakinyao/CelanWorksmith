@@ -56,17 +56,19 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             throw new IllegalArgumentException("Unsupported ontology operation: " + operationName, exception);
         }
 
-        Object queryModeValue = formData.get("queryMode");
         boolean builderMode = false;
         boolean advancedMode = false;
-        if (queryModeValue != null) {
-            if (!(queryModeValue instanceof String queryMode)) {
-                throw new IllegalArgumentException("Ontology query mode must be BUILDER or ADVANCED");
-            }
-            builderMode = "BUILDER".equals(queryMode);
-            advancedMode = "ADVANCED".equals(queryMode);
-            if (!builderMode && !advancedMode) {
-                throw new IllegalArgumentException("Unsupported ontology query mode: " + queryMode);
+        if (operation == Operation.OBJECT_QUERY) {
+            Object queryModeValue = formData.get("queryMode");
+            if (queryModeValue != null) {
+                if (!(queryModeValue instanceof String queryMode)) {
+                    throw new IllegalArgumentException("Ontology query mode must be BUILDER or ADVANCED");
+                }
+                builderMode = "BUILDER".equals(queryMode);
+                advancedMode = "ADVANCED".equals(queryMode);
+                if (!builderMode && !advancedMode) {
+                    throw new IllegalArgumentException("Unsupported ontology query mode: " + queryMode);
+                }
             }
         }
 
@@ -84,7 +86,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         rawDefinitionMap.forEach((key, value) -> definition.put(String.valueOf(key), value));
         if (builderMode) {
             mergeBuilderFields(formData, definition);
-        } else if (!advancedMode) {
+        } else if (operation != Operation.OBJECT_QUERY || !advancedMode) {
             mergeSelectorFields(formData, definition);
             mergeProjection(formData, definition);
         }
