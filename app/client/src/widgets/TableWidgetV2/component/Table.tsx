@@ -137,7 +137,7 @@ export function Table(props: TableProps) {
 
   const currentPageIndex = useMemo(() => {
     const pageIndex = Number.isFinite(props.pageNo)
-      ? Math.max(0, Math.floor(props.pageNo) - 1)
+      ? Math.max(0, Math.floor(props.pageNo))
       : 0;
 
     return pageIndex < pageCount ? pageIndex : 0;

@@ -304,10 +304,10 @@ describe("TableWidget Actions Component", () => {
     expect(screen.getByText("of 1")).toBeInTheDocument();
   });
 
-  it("converts one-based widget page metadata to a zero-based table page", () => {
+  it("renders the zero-based table page metadata", () => {
     renderTable({
       data: Array.from({ length: 30 }, (_, index) => ({ id: index })),
-      pageNo: 2,
+      pageNo: 1,
       pageSize: 10,
     });
 
