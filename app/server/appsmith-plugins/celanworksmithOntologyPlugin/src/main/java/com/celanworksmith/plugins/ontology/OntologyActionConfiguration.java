@@ -72,12 +72,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             }
         }
 
-        Object rawDefinitionValue = formData.get("definition");
-        Object definitionValue = builderMode
-                        && (rawDefinitionValue == null
-                                || rawDefinitionValue instanceof String definitionText && definitionText.isBlank())
-                ? Map.of()
-                : parseDefinition(rawDefinitionValue);
+        Object definitionValue = builderMode ? Map.of() : parseDefinition(formData.get("definition"));
         if (!(definitionValue instanceof Map<?, ?> rawDefinitionMap)) {
             throw new IllegalArgumentException("Ontology operation definition is required");
         }

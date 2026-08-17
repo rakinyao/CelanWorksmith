@@ -9,6 +9,7 @@ import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.PropertyMet
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -157,17 +158,18 @@ final class OntologyQueryValidator {
         if (!filter.isObject() || !filter.path("conditions").isArray()) {
             throw new IllegalArgumentException("Ontology filter must contain a conditions array");
         }
+        List<JsonNode> conditions = new java.util.ArrayList<>();
         for (JsonNode condition : filter.path("conditions")) {
-            validateCondition(condition, properties);
+            conditions.add(normalizeCondition(condition, properties));
         }
         Map<String, Object> normalized = new LinkedHashMap<>();
         normalized.put("typeId", objectTypeId);
         normalized.put("version", 1);
-        normalized.put("conditions", filter.path("conditions"));
+        normalized.put("conditions", conditions);
         return objectMapper.valueToTree(normalized);
     }
 
-    private void validateCondition(JsonNode condition, Map<String, PropertyMetadata> properties) {
+    private JsonNode normalizeCondition(JsonNode condition, Map<String, PropertyMetadata> properties) {
         if (!condition.isObject()) {
             throw new IllegalArgumentException("Ontology filter conditions must be objects");
         }
@@ -181,11 +183,15 @@ final class OntologyQueryValidator {
             throw new IllegalArgumentException("Invalid ontology filter operator for property: " + property.id());
         }
         if (!"isEmpty".equals(operator)) {
-            JsonNode filterValue = condition.get("value");
+            JsonNode filterValue = normalizeValue(condition.get("value"), property.dataType());
             if (filterValue == null || !matchesType(filterValue, property.dataType())) {
                 throw new IllegalArgumentException("Invalid ontology filter value for property: " + property.id());
             }
+            ObjectNode normalizedCondition = condition.deepCopy();
+            normalizedCondition.set("value", filterValue);
+            return normalizedCondition;
         }
+        return condition;
     }
 
     private Sort sort(Map<String, Object> definition, Map<String, PropertyMetadata> properties) {
@@ -225,17 +231,19 @@ final class OntologyQueryValidator {
     }
 
     private int nonNegativeInteger(Object value, String field) {
-        if (!(value instanceof Integer integer) || integer < 0) {
+        JsonNode normalized = normalizeValue(objectMapper.valueToTree(value), "integer");
+        if (!normalized.isIntegralNumber() || !normalized.canConvertToInt() || normalized.intValue() < 0) {
             throw new IllegalArgumentException("Ontology page " + field + " must be a non-negative integer");
         }
-        return integer;
+        return normalized.intValue();
     }
 
     private int positiveInteger(Object value, String field) {
-        if (!(value instanceof Integer integer) || integer <= 0) {
+        JsonNode normalized = normalizeValue(objectMapper.valueToTree(value), "integer");
+        if (!normalized.isIntegralNumber() || !normalized.canConvertToInt() || normalized.intValue() <= 0) {
             throw new IllegalArgumentException("Ontology page " + field + " must be a positive integer");
         }
-        return integer;
+        return normalized.intValue();
     }
 
     private String stablePropertyId(Object value, Map<String, PropertyMetadata> properties) {
@@ -261,6 +269,27 @@ final class OntologyQueryValidator {
             case "date", "datetime", "string" -> value.isTextual();
             default -> value.isTextual() || value.isNumber() || value.isBoolean();
         };
+    }
+
+    private JsonNode normalizeValue(JsonNode value, String dataType) {
+        if (value == null || !value.isTextual()) {
+            return value;
+        }
+
+        String literal = value.textValue();
+        try {
+            return switch (dataType) {
+                case "integer" -> objectMapper.getNodeFactory().numberNode(new java.math.BigInteger(literal));
+                case "number", "decimal" -> objectMapper.getNodeFactory().numberNode(new java.math.BigDecimal(literal));
+                case "boolean" ->
+                    "true".equals(literal) || "false".equals(literal)
+                            ? objectMapper.getNodeFactory().booleanNode(Boolean.parseBoolean(literal))
+                            : value;
+                default -> value;
+            };
+        } catch (NumberFormatException exception) {
+            return value;
+        }
     }
 
     private static boolean isBlank(String value) {

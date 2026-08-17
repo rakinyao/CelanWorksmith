@@ -51,6 +51,64 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void builderDefinitionIgnoresRetainedAdvancedDefinition() {
+        ActionConfiguration action = action(Map.of(
+                "operation",
+                "OBJECT_QUERY",
+                "queryMode",
+                "BUILDER",
+                "objectTypeId",
+                "PurchaseOrder",
+                "projection",
+                List.of("id"),
+                "definition",
+                Map.of(
+                        "objectTypeId",
+                        "StaleObject",
+                        "projection",
+                        List.of("staleProperty"),
+                        "filter",
+                        Map.of(
+                                "conditions",
+                                List.of(Map.of("propertyId", "staleProperty", "operator", "eq", "value", "stale"))),
+                        "page",
+                        Map.of("offset", 99, "limit", 1))));
+
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
+
+        assertEquals(Map.of("objectTypeId", "PurchaseOrder", "projection", List.of("id")), configuration.definition());
+    }
+
+    @Test
+    void advancedDefinitionDoesNotRequireBuilderObjectType() {
+        OntologyActionConfiguration configuration = configuration(
+                "OBJECT_QUERY",
+                Map.of(
+                        "queryMode",
+                        "ADVANCED",
+                        "definition",
+                        "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"]}"));
+
+        assertEquals(Map.of("objectTypeId", "PurchaseOrder", "projection", List.of("id")), configuration.definition());
+    }
+
+    @Test
+    void builderDefinitionRequiresObjectType() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class, () -> configuration("OBJECT_QUERY", Map.of("queryMode", "BUILDER")));
+
+        assertEquals("Ontology operation definition requires: objectTypeId", exception.getMessage());
+    }
+
+    @Test
+    void advancedDefinitionRequiresRawDefinition() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class, () -> configuration("OBJECT_QUERY", Map.of("queryMode", "ADVANCED")));
+
+        assertEquals("Ontology operation definition is required", exception.getMessage());
+    }
+
+    @Test
     void functionQueryKeepsLegacySelectorBehaviorWhenQueryModeIsPresent() {
         OntologyActionConfiguration configuration = configuration(
                 "FUNCTION_QUERY",

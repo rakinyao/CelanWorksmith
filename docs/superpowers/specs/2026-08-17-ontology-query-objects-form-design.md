@@ -1,6 +1,6 @@
 # Ontology Query Objects Structured Form Design
 
-**Status:** Approved direction, pending written-spec review  
+**Status:** Approved direction, pending written-spec review
 **Date:** 2026-08-17
 
 ## Goal

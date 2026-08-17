@@ -118,6 +118,73 @@ class OntologyObjectQueryExecutorTest {
     }
 
     @Test
+    void builderExecutionIgnoresRetainedAdvancedDefinition() {
+        RecordingGateway gateway = gateway();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode",
+                        "BUILDER",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "projection",
+                        List.of("id"),
+                        "definition",
+                        Map.of(
+                                "objectTypeId",
+                                "PurchaseOrder",
+                                "filter",
+                                Map.of(
+                                        "conditions",
+                                        List.of(Map.of(
+                                                "propertyId",
+                                                "unknownProperty",
+                                                "operator",
+                                                "eq",
+                                                "value",
+                                                "stale"))))));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(List.of("id"), gateway.query.projection());
+        assertEquals(null, gateway.query.filter());
+    }
+
+    @Test
+    void normalizesStructuredLiteralFilterAndPageValues() {
+        RecordingGateway gateway = gatewayWithBooleanProperty();
+        Map<String, Object> definition = Map.of(
+                "objectTypeId",
+                "PurchaseOrder",
+                "filter",
+                Map.of(
+                        "conditions",
+                        List.of(
+                                Map.of("propertyId", "delayDays", "operator", "gt", "value", "0"),
+                                Map.of("propertyId", "isExpedited", "operator", "equals", "value", "true"))),
+                "page",
+                Map.of("offset", "0", "limit", "2"));
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode",
+                        "BUILDER",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "filter",
+                        definition.get("filter"),
+                        "page",
+                        definition.get("page")));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.query.filter().at("/conditions/0/value").asInt());
+        assertTrue(gateway.query.filter().at("/conditions/1/value").asBoolean());
+        assertEquals(0, gateway.query.offset());
+        assertEquals(2, gateway.query.limit());
+    }
+
+    @Test
     void rejectsUnknownObjectBeforeProviderCall() {
         RecordingGateway gateway = gateway();
 
@@ -359,6 +426,18 @@ class OntologyObjectQueryExecutorTest {
                                 new PropertyMetadata("internalNote", "string", true))))));
     }
 
+    private RecordingGateway gatewayWithBooleanProperty() {
+        return new RecordingGateway(new Snapshot(
+                SNAPSHOT_ID,
+                DIGEST,
+                List.of(new ObjectTypeMetadata(
+                        "PurchaseOrder",
+                        List.of(
+                                new PropertyMetadata("id", "string", false),
+                                new PropertyMetadata("delayDays", "integer", false),
+                                new PropertyMetadata("isExpedited", "boolean", false))))));
+    }
+
     private record SnapshotRequest(String snapshotId, String digest) {}
 
     private static final class RecordingGateway implements OntologyRuntimeGateway {
@@ -395,7 +474,16 @@ class OntologyObjectQueryExecutorTest {
             List<Map<String, Object>> items = emptyResult
                     ? List.of()
                     : List.of(Map.of(
-                            "id", "po-1", "supplierId", "supplier-7", "delayDays", 5, "internalNote", "private"));
+                            "id",
+                            "po-1",
+                            "supplierId",
+                            "supplier-7",
+                            "delayDays",
+                            5,
+                            "isExpedited",
+                            true,
+                            "internalNote",
+                            "private"));
             return Mono.just(new ObjectQueryResult(items, query.offset(), query.limit(), 21));
         }
     }
