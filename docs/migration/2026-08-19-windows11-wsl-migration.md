@@ -190,6 +190,38 @@ MongoDB `27017`, and Redis `6379`. If using the repository HTTPS proxy instead,
 follow `contributions/ClientSetup.md` for mkcert and `dev.appsmith.com` hosts
 configuration.
 
+## Verified Target Setup
+
+The migrated development machine is `10.10.101.210`. The current verified
+entry point is:
+
+```text
+http://10.10.101.210/
+```
+
+On this WSL2 host, the running processes are managed by systemd user units
+`cw-backend`, `cw-rts`, and `cw-frontend`. Nginx runs as `cw-nginx` and proxies
+the same-origin frontend/API entry point on port `80` to frontend `3000`,
+backend `8081`, and RTS `8091`. MongoDB and Redis use Docker containers named
+`appsmith-mongodb` and `appsmith-redis`, with restart policy `unless-stopped`.
+
+The Windows host forwards `10.10.101.210:80` to the current WSL address on
+port `80`, and has an inbound firewall rule named
+`CelanWorksmith-HTTP`. WSL addresses can change after a WSL restart; if the
+LAN entry point stops responding, refresh the port-forward target with the
+current output of `wsl.exe hostname -I`.
+
+Verify the migrated stack with:
+
+```bash
+MIGRATION_REQUIRE_SERVICES=1 ./scripts/migration/check-wsl-prerequisites.sh
+curl -fsS http://127.0.0.1:8081/api/v1/health
+curl -fsS http://10.10.101.210/api/v1/health
+```
+
+The migration deliberately does not restore old Appsmith accounts or Apps;
+create a fresh test account and App through the UI on this machine.
+
 ## Validation Gate
 
 Run the non-browser migration check:
