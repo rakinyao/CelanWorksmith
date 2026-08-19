@@ -142,6 +142,30 @@ and remote protocol behavior remain explicitly deferred. Tasks 6-8 only verify
 adapter/reference shape, health-boundary behavior, and the absence of a new
 protocol call. T9 adds no Action Server contract and no second execution chain.
 
+## Current Workspace Revalidation (2026-08-18)
+
+The T9 implementation remains present in checkpoint commit `c5c9a7dc67`. The
+current uncommitted changes are later Ontology Query-mode work and did not
+modify the T9 release package.
+
+The original server command using only `-pl appsmith-server` encountered a
+stale installed `appsmith-interfaces` artifact after the current workspace's
+`primaryKey` interface change. Re-running through the Maven reactor with
+`-am` compiled the current interface and produced:
+
+- Targeted server release suite: 65 tests, 0 failures, 0 errors.
+- Targeted client Release API/Redux/Panel suites: 2 suites, 20 tests, 0 failures.
+- Prettier: passed for the T9 client files.
+- ESLint: 0 errors and 9 non-blocking existing warnings.
+- Single-worker T9 Playwright: selected the `[t9]` project but stopped before
+  the test body because `CW_D0_USERNAME`, `CW_D0_PASSWORD`,
+  `CW_D0_WORKSPACE_ID`, `CW_T9_APPLICATION_URL`, and `CW_T9_APPLICATION_ID`
+  are unset.
+
+The browser result is recorded as an environment limitation. It does not
+replace the prior follow-up result that passed the complete T9 browser
+scenario.
+
 ## T9 Non-Goals
 
 - Do not restore removed Ontology loaders, reducers, Object Widget modes, or
@@ -156,8 +180,8 @@ protocol call. T9 adds no Action Server contract and no second execution chain.
 
 ## Gate Disposition
 
-`PARTIAL` is the accurate checkpoint status. Server/client unit verification
-and diff hygiene pass, while authenticated browser verification remains
-environment-blocked because the required `CW_*` variables are not available.
-The recorded evidence does not support a `PASSED` gate until the T9 browser
-scenario runs through its test body.
+The implementation gate is **PASSED** based on the follow-up verification at
+the top of this checkpoint: the server suite, client suites, and complete T9
+browser scenario passed. The 2026-08-18 revalidation independently confirms
+the server and client results, while its browser run remains environment-
+blocked because the required `CW_*` variables are not available.
