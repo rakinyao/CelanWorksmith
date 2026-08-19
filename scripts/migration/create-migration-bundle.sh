@@ -17,7 +17,8 @@ mkdir -p "$output_dir"
 
 commit="$(git rev-parse HEAD)"
 branch="$(git branch --show-current)"
-bundle_path="$output_dir/CelanWorksmith-${branch}-${commit:0:12}.bundle"
+branch_slug="${branch//\//-}"
+bundle_path="$output_dir/CelanWorksmith-${branch_slug}-${commit:0:12}.bundle"
 archive_path="$output_dir/CelanWorksmith-${commit:0:12}.tar.gz"
 
 git bundle create "$bundle_path" --all
