@@ -56,9 +56,9 @@ the migration files are committed:
 ```bash
 git add -A
 git commit -m "chore: prepare Windows WSL development migration"
-git tag -a migration-checkpoint-2026-08-19 -m "Windows WSL development migration checkpoint"
+git tag -a migration-checkpoint-2026-08-19-r1 -m "Windows WSL development migration checkpoint"
 git push origin feat/ontology-datasource-plugin
-git push origin migration-checkpoint-2026-08-19
+git push origin migration-checkpoint-2026-08-19-r1
 ```
 
 Create an optional offline bundle. It fails if the working tree is dirty:

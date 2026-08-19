@@ -19,6 +19,7 @@ mkdir -p "$git_root"
 if [[ ! -f app/server/.env ]]; then
   cp app/server/envs/dev.env.example app/server/.env
   sed -i "s|^APPSMITH_GIT_ROOT=.*|APPSMITH_GIT_ROOT=${git_root}|" app/server/.env
+  printf '\nPORT=8081\n' >> app/server/.env
   printf 'Created app/server/.env with fresh development-only settings\n'
 else
   printf 'Kept existing app/server/.env; review it manually for this machine\n'
