@@ -13,8 +13,10 @@ fi
 
 container_name="${MIGRATION_MONGO_CONTAINER:-appsmith-mongodb}"
 if docker ps --format '{{.Names}}' | grep -qx "$container_name"; then
-  docker cp scripts/celanworksmith/seed-runtime-mongodb.js "$container_name:/tmp/seed-runtime-mongodb.js"
-  docker exec "$container_name" mongosh "mongodb://127.0.0.1:27017" /tmp/seed-runtime-mongodb.js
+  container_seed_root="/tmp/celanworksmith-seed"
+  docker exec "$container_name" mkdir -p "$container_seed_root/scripts"
+  docker cp scripts/celanworksmith "$container_name:$container_seed_root/scripts/celanworksmith"
+  docker exec "$container_name" bash -lc "cd '$container_seed_root' && mongosh 'mongodb://127.0.0.1:27017' scripts/celanworksmith/seed-runtime-mongodb.js"
   exit 0
 fi
 
