@@ -2,6 +2,8 @@ package com.celanworksmith.runtime;
 
 import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.application.CelanworksmithApplicationBindingResolver;
+import com.celanworksmith.ontology.dto.ObjectTypeDTO;
+import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeObjectDocument;
@@ -16,6 +18,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +39,28 @@ class MongoRuntimeDataProviderTest {
         template = mock(ReactiveMongoTemplate.class);
         resolver = mock(CelanworksmithApplicationBindingResolver.class);
         provider = new MongoRuntimeDataProvider(template, resolver);
+    }
+
+    @Test
+    void exposesAllDemoObjectPropertiesForProviderCompatibilityChecks() {
+        assertThat(provider.metadataCapabilities().block().objectProperties())
+                .containsEntry(
+                        "Supplier",
+                        Map.of(
+                                "name", "STRING",
+                                "contactName", "STRING",
+                                "riskLevel", "ENUM",
+                                "averageRating", "DECIMAL"))
+                .containsEntry(
+                        "PurchaseOrder",
+                        Map.of(
+                                "supplierId", "REFERENCE",
+                                "status", "ENUM",
+                                "orderDate", "DATETIME",
+                                "expectedDeliveryDate", "DATETIME",
+                                "actualDeliveryDate", "DATETIME",
+                                "amount", "DECIMAL",
+                                "delayDays", "INTEGER"));
     }
 
     @Test
@@ -286,6 +311,47 @@ class MongoRuntimeDataProviderTest {
         verify(template).find(queryCaptor.capture(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
         assertThat(queryCaptor.getValue().getQueryObject().toString())
                 .contains("$or", "_id", "properties.status", "\\Qdelayed\\E");
+    }
+
+    @Test
+    void filtersDeclaredPrimaryKeyAgainstMongoDocumentIdWhenItIsNotAProperty() {
+        when(template.find(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Flux.empty());
+        when(template.count(any(), eq("purchase_orders"))).thenReturn(Mono.just(0L));
+        var filter = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        filter.put("typeId", "PurchaseOrder").put("version", 1);
+        filter.putArray("conditions")
+                .addObject()
+                .put("propertyId", "id")
+                .put("operator", "contains")
+                .put("value", "PO");
+
+        StepVerifier.create(provider.queryObjects(
+                        primaryKeyOnlyDefinition(),
+                        "PurchaseOrder",
+                        new com.celanworksmith.runtime.dto.ObjectSetQuery(filter, "id", "asc", 0, 10)))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+        verify(template).find(queryCaptor.capture(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
+        assertThat(queryCaptor.getValue().getQueryObject().toString()).contains("_id", "\\QPO\\E");
+    }
+
+    private OntologyProjectDefinition primaryKeyOnlyDefinition() {
+        return new OntologyProjectDefinition(
+                "celanworksmith-demo",
+                "1.0.0",
+                1,
+                List.of(new ObjectTypeDTO(
+                        "PurchaseOrder",
+                        "Purchase Order",
+                        "purchase_orders",
+                        "id",
+                        List.of(new PropertyDTO("delayDays", "Delay Days", "integer", false, false, false)))),
+                List.of(),
+                List.of(),
+                List.of());
     }
 
     private MongoRuntimeObjectDocument document(String id, String status, int delayDays) {

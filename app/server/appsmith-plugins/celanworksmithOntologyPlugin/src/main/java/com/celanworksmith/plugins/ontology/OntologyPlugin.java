@@ -19,6 +19,8 @@ import com.celanworksmith.ontology.datasource.WorkspaceActionServerConfiguration
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.pf4j.Extension;
 import org.pf4j.PluginWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
@@ -36,6 +38,7 @@ public class OntologyPlugin extends BasePlugin {
 
     @Extension
     public static class OntologyPluginExecutor implements PluginExecutor<OntologyDatasourceConfiguration> {
+        private static final Logger LOGGER = LoggerFactory.getLogger(OntologyPluginExecutor.class);
         private final OntologyRuntimeGateway runtimeGateway;
         private final WorkspaceActionServerConfigurationResolver actionServerResolver;
         private final OntologyQueryValidator queryValidator;
@@ -139,19 +142,40 @@ public class OntologyPlugin extends BasePlugin {
                                 objectType.properties().stream()
                                         .filter(property -> !property.hidden())
                                         .toList();
-                        List<DatasourceStructure.Key> keys =
-                                visibleProperties.stream().anyMatch(property -> "id".equals(property.id()))
-                                        ? List.of(new DatasourceStructure.PrimaryKey(
-                                                objectType.id() + "_primary_key", List.of("id")))
-                                        : List.of();
+                        String primaryKey = objectType.primaryKey();
+                        if (primaryKey == null || primaryKey.isBlank()) {
+                            primaryKey = visibleProperties.stream()
+                                    .map(OntologyRuntimeGateway.PropertyMetadata::id)
+                                    .filter("id"::equals)
+                                    .findFirst()
+                                    .orElse(null);
+                        }
+                        String resolvedPrimaryKey = primaryKey;
+                        List<DatasourceStructure.Key> keys = resolvedPrimaryKey == null
+                                ? List.of()
+                                : List.of(new DatasourceStructure.PrimaryKey(
+                                        objectType.id() + "_primary_key", List.of(resolvedPrimaryKey)));
+                        List<DatasourceStructure.Column> columns = new java.util.ArrayList<>();
+                        if (resolvedPrimaryKey != null
+                                && visibleProperties.stream()
+                                        .noneMatch(property -> resolvedPrimaryKey.equals(property.id()))) {
+                            String primaryKeyType = objectType.properties().stream()
+                                    .filter(property -> resolvedPrimaryKey.equals(property.id()))
+                                    .map(OntologyRuntimeGateway.PropertyMetadata::dataType)
+                                    .findFirst()
+                                    .orElse("string");
+                            columns.add(
+                                    new DatasourceStructure.Column(resolvedPrimaryKey, primaryKeyType, null, false));
+                        }
+                        columns.addAll(visibleProperties.stream()
+                                .map(property ->
+                                        new DatasourceStructure.Column(property.id(), property.dataType(), null, false))
+                                .toList());
                         return new DatasourceStructure.Table(
                                 DatasourceStructure.TableType.TABLE,
                                 null,
                                 objectType.id(),
-                                visibleProperties.stream()
-                                        .map(property -> new DatasourceStructure.Column(
-                                                property.id(), property.dataType(), null, false))
-                                        .toList(),
+                                columns,
                                 keys,
                                 java.util.List.of());
                     })
@@ -227,10 +251,32 @@ public class OntologyPlugin extends BasePlugin {
                     .filter(candidate -> value.equals(candidate.id()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ontology object type: " + value));
-            return objectType.properties().stream()
-                    .filter(property -> !property.hidden())
+            return visiblePropertiesWithPrimaryKey(objectType).stream()
                     .map(property -> propertyMetadataEntry(property))
                     .toList();
+        }
+
+        private List<OntologyRuntimeGateway.PropertyMetadata> visiblePropertiesWithPrimaryKey(
+                OntologyRuntimeGateway.ObjectTypeMetadata objectType) {
+            List<OntologyRuntimeGateway.PropertyMetadata> properties = new java.util.ArrayList<>();
+            String primaryKey = objectType.primaryKey();
+            if (primaryKey != null
+                    && !primaryKey.isBlank()
+                    && objectType.properties().stream()
+                            .noneMatch(property -> primaryKey.equals(property.id()) && !property.hidden())) {
+                String primaryKeyType = objectType.properties().stream()
+                        .filter(property -> primaryKey.equals(property.id()))
+                        .map(OntologyRuntimeGateway.PropertyMetadata::dataType)
+                        .filter(type -> type != null && !type.isBlank())
+                        .findFirst()
+                        .orElse("string");
+                properties.add(new OntologyRuntimeGateway.PropertyMetadata(
+                        primaryKey, primaryKey, primaryKeyType, false, false, true, false, List.of(), null));
+            }
+            properties.addAll(objectType.properties().stream()
+                    .filter(property -> !property.hidden())
+                    .toList());
+            return properties;
         }
 
         private Map<String, Object> propertyMetadataEntry(OntologyRuntimeGateway.PropertyMetadata property) {
@@ -309,15 +355,19 @@ public class OntologyPlugin extends BasePlugin {
             String objectTypeId = (String) configuration.definition().get("objectTypeId");
             return runtimeGateway
                     .queryObjects(datasourceConfiguration.runtimeProviderId(), snapshot, objectTypeId, query)
-                    .map(result -> successResult(result, query));
+                    .map(result -> successResult(result, query, configuration.resultMode()));
         }
 
         private ActionExecutionResult successResult(
-                ObjectQueryResult result, OntologyRuntimeGateway.ObjectQuery query) {
+                ObjectQueryResult result, OntologyRuntimeGateway.ObjectQuery query, String resultMode) {
             ActionExecutionResult executionResult = new ActionExecutionResult();
-            executionResult.setBody(result.items().stream()
-                    .map(item -> projectedItem(item, query.projection()))
-                    .toList());
+            if ("TOTAL".equals(resultMode)) {
+                executionResult.setBody(Map.of("n", result.total()));
+            } else {
+                executionResult.setBody(result.items().stream()
+                        .map(item -> projectedItem(item, query.projection()))
+                        .toList());
+            }
             executionResult.setIsExecutionSuccess(true);
             return executionResult;
         }
@@ -415,12 +465,15 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         private Map<String, Object> projectedItem(Map<String, Object> item, java.util.List<String> projection) {
-            return projection.stream()
-                    .collect(java.util.stream.Collectors.toMap(
-                            propertyId -> propertyId, item::get, (left, right) -> left, java.util.LinkedHashMap::new));
+            Map<String, Object> projected = new java.util.LinkedHashMap<>();
+            for (String propertyId : projection) {
+                projected.put(propertyId, item.get(propertyId));
+            }
+            return projected;
         }
 
         private Mono<ActionExecutionResult> failedResult(Throwable error) {
+            LOGGER.error("Ontology action execution failed", error);
             ActionExecutionResult executionResult = new ActionExecutionResult();
             executionResult.setIsExecutionSuccess(false);
             String readableError = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();

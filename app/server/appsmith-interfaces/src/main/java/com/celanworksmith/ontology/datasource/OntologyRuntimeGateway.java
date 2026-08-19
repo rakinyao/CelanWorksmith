@@ -33,13 +33,17 @@ public interface OntologyRuntimeGateway {
         }
     }
 
-    record ObjectTypeMetadata(String id, String displayName, List<PropertyMetadata> properties) {
+    record ObjectTypeMetadata(String id, String displayName, String primaryKey, List<PropertyMetadata> properties) {
         public ObjectTypeMetadata {
             properties = immutableList(properties);
         }
 
+        public ObjectTypeMetadata(String id, String displayName, List<PropertyMetadata> properties) {
+            this(id, displayName, null, properties);
+        }
+
         public ObjectTypeMetadata(String id, List<PropertyMetadata> properties) {
-            this(id, id, properties);
+            this(id, id, null, properties);
         }
     }
 

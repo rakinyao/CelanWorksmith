@@ -103,6 +103,27 @@ class OntologyProjectImportTest {
                             .containsExactlyInAnyOrder(
                                     org.assertj.core.groups.Tuple.tuple("PurchaseOrder", "purchase_orders"),
                                     org.assertj.core.groups.Tuple.tuple("Supplier", "suppliers"));
+                    assertThat(snapshot.definition().objectTypes().stream()
+                                    .filter(objectType -> objectType.id().equals("Supplier"))
+                                    .findFirst()
+                                    .orElseThrow()
+                                    .properties())
+                            .extracting(PropertyDTO::id)
+                            .containsExactly("name", "contactName", "riskLevel", "averageRating");
+                    assertThat(snapshot.definition().objectTypes().stream()
+                                    .filter(objectType -> objectType.id().equals("PurchaseOrder"))
+                                    .findFirst()
+                                    .orElseThrow()
+                                    .properties())
+                            .extracting(PropertyDTO::id)
+                            .containsExactly(
+                                    "supplierId",
+                                    "status",
+                                    "orderDate",
+                                    "expectedDeliveryDate",
+                                    "actualDeliveryDate",
+                                    "amount",
+                                    "delayDays");
                 })
                 .verifyComplete();
     }

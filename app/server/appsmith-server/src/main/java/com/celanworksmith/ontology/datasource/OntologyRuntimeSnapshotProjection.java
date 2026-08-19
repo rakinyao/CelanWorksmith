@@ -45,6 +45,7 @@ public final class OntologyRuntimeSnapshotProjection {
         return new OntologyRuntimeGateway.ObjectTypeMetadata(
                 objectType.id(),
                 objectType.displayName(),
+                objectType.primaryKey(),
                 objectType.properties().stream()
                         .map(OntologyRuntimeSnapshotProjection::propertyMetadata)
                         .toList());

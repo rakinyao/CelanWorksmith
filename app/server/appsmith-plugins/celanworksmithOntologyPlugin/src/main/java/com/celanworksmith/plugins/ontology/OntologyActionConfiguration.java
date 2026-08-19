@@ -24,6 +24,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             "datasourceId",
             "idempotencyKey",
             "context");
+    private static final Set<String> OBJECT_QUERY_RESULT_MODES = Set.of("ROWS", "TOTAL");
 
     public enum Operation {
         OBJECT_QUERY,
@@ -85,6 +86,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             mergeSelectorFields(formData, definition);
             mergeProjection(formData, definition);
         }
+        validateObjectQueryResultMode(operation, definition);
         for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
             if (definition.containsKey(protectedKey)) {
                 throw new IllegalArgumentException("Action configuration cannot override: " + protectedKey);
@@ -95,9 +97,14 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
     }
 
     private static Map<String, Object> unwrapUqiValues(Map<String, Object> values) {
-        return values.entrySet().stream()
-                .collect(java.util.stream.Collectors.toUnmodifiableMap(
-                        Map.Entry::getKey, entry -> unwrapUqiValue(entry.getValue())));
+        Map<String, Object> unwrapped = new java.util.LinkedHashMap<>();
+        values.forEach((key, value) -> {
+            Object unwrappedValue = unwrapUqiValue(value);
+            if (unwrappedValue != null) {
+                unwrapped.put(key, unwrappedValue);
+            }
+        });
+        return Map.copyOf(unwrapped);
     }
 
     private static Object unwrapUqiValue(Object value) {
@@ -150,9 +157,48 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
     private static void mergeBuilderFields(Map<String, Object> formData, Map<String, Object> definition) {
         mergeSelectorFields(formData, definition);
         mergeProjection(formData, definition);
-        copyStructuredField(formData, definition, "filter", Map.class, "Ontology filter selector must be an object");
+        copyOptionalFilterField(formData, definition);
         copyStructuredField(formData, definition, "sort", List.class, "Ontology sort selector must be a list");
         copyStructuredField(formData, definition, "page", Map.class, "Ontology page selector must be an object");
+        copyResultMode(formData, definition);
+    }
+
+    private static void copyResultMode(Map<String, Object> formData, Map<String, Object> definition) {
+        Object value = formData.get("resultMode");
+        if (value == null) {
+            return;
+        }
+        if (!(value instanceof String resultMode) || !OBJECT_QUERY_RESULT_MODES.contains(resultMode)) {
+            throw new IllegalArgumentException("Ontology object query result mode must be ROWS or TOTAL");
+        }
+        definition.put("resultMode", resultMode);
+    }
+
+    private static void validateObjectQueryResultMode(Operation operation, Map<String, Object> definition) {
+        if (operation != Operation.OBJECT_QUERY || !definition.containsKey("resultMode")) {
+            return;
+        }
+        Object resultMode = definition.get("resultMode");
+        if (!(resultMode instanceof String value) || !OBJECT_QUERY_RESULT_MODES.contains(value)) {
+            throw new IllegalArgumentException("Ontology object query result mode must be ROWS or TOTAL");
+        }
+    }
+
+    String resultMode() {
+        return (String) definition.getOrDefault("resultMode", "ROWS");
+    }
+
+    private static void copyOptionalFilterField(Map<String, Object> formData, Map<String, Object> definition) {
+        Object value = formData.get("filter");
+        if (value == null
+                || (value instanceof List<?> emptyList && emptyList.isEmpty())
+                || (value instanceof Map<?, ?> emptyMap && emptyMap.isEmpty())) {
+            return;
+        }
+        if (!(value instanceof Map<?, ?>)) {
+            throw new IllegalArgumentException("Ontology filter selector must be an object");
+        }
+        definition.put("filter", value);
     }
 
     private static void copyStructuredField(

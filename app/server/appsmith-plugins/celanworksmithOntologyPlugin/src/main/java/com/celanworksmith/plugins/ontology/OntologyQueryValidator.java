@@ -129,6 +129,19 @@ final class OntologyQueryValidator {
                 throw new IllegalArgumentException("Ontology snapshot has invalid property metadata");
             }
         }
+        String primaryKey = objectType.primaryKey();
+        if (!isBlank(primaryKey) && !properties.containsKey(primaryKey)) {
+            String primaryKeyType = objectType.properties().stream()
+                    .filter(property -> property != null && primaryKey.equals(property.id()))
+                    .map(PropertyMetadata::dataType)
+                    .filter(type -> !isBlank(type))
+                    .findFirst()
+                    .orElse("string");
+            properties.put(
+                    primaryKey,
+                    new PropertyMetadata(
+                            primaryKey, primaryKey, primaryKeyType, false, false, true, false, List.of(), null));
+        }
         return java.util.Collections.unmodifiableMap(properties);
     }
 
@@ -154,12 +167,31 @@ final class OntologyQueryValidator {
         if (value == null) {
             return null;
         }
-        JsonNode filter = objectMapper.valueToTree(value);
-        if (!filter.isObject() || !filter.path("conditions").isArray()) {
+        if (value instanceof List<?> rawFilter) {
+            if (rawFilter.isEmpty()) {
+                return null;
+            }
             throw new IllegalArgumentException("Ontology filter must contain a conditions array");
         }
+        JsonNode filter = objectMapper.valueToTree(value);
+        if (!filter.isObject()) {
+            throw new IllegalArgumentException("Ontology filter must contain a conditions array");
+        }
+        JsonNode conditionValues = filter.get("conditions");
+        if (conditionValues == null) {
+            if (filter.isEmpty()) {
+                return null;
+            }
+            throw new IllegalArgumentException("Ontology filter must contain a conditions array");
+        }
+        if (!conditionValues.isArray()) {
+            throw new IllegalArgumentException("Ontology filter must contain a conditions array");
+        }
+        if (conditionValues.isEmpty()) {
+            return null;
+        }
         List<JsonNode> conditions = new java.util.ArrayList<>();
-        for (JsonNode condition : filter.path("conditions")) {
+        for (JsonNode condition : conditionValues) {
             conditions.add(normalizeCondition(condition, properties));
         }
         Map<String, Object> normalized = new LinkedHashMap<>();
@@ -199,9 +231,13 @@ final class OntologyQueryValidator {
         if (value == null) {
             return new Sort(null, "asc");
         }
-        if (!(value instanceof List<?> rawSort)
-                || rawSort.size() != 1
-                || !(rawSort.getFirst() instanceof Map<?, ?> entry)) {
+        if (!(value instanceof List<?> rawSort)) {
+            throw new IllegalArgumentException("Ontology sort must contain exactly one property and direction");
+        }
+        if (rawSort.isEmpty()) {
+            return new Sort(null, "asc");
+        }
+        if (rawSort.size() != 1 || !(rawSort.getFirst() instanceof Map<?, ?> entry)) {
             throw new IllegalArgumentException("Ontology sort must contain exactly one property and direction");
         }
         Object propertyId = entry.get("propertyId");
@@ -222,8 +258,8 @@ final class OntologyQueryValidator {
         if (!(value instanceof Map<?, ?> page)) {
             throw new IllegalArgumentException("Ontology page must contain integer offset and limit");
         }
-        int offset = nonNegativeInteger(page.get("offset"), "offset");
-        int limit = positiveInteger(page.get("limit"), "limit");
+        int offset = page.get("offset") == null ? DEFAULT_OFFSET : nonNegativeInteger(page.get("offset"), "offset");
+        int limit = page.get("limit") == null ? DEFAULT_LIMIT : positiveInteger(page.get("limit"), "limit");
         if (limit > MAX_LIMIT) {
             throw new IllegalArgumentException("Ontology page limit must not exceed " + MAX_LIMIT);
         }

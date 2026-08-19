@@ -33,6 +33,10 @@ import type { Datasource, DatasourceStructure } from "entities/Datasource";
 import { getCurrentEditingEnvironmentId } from "ee/selectors/environmentSelectors";
 import { selectFeatureFlags } from "ee/selectors/featureFlagsSelectors";
 import { getCurrentWorkspaceId } from "ee/selectors/selectedWorkspaceSelectors";
+import {
+  ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY,
+  OntologyQueryModeSynchronizer,
+} from "PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer";
 
 let isFormControlsLoadedOnce = false;
 
@@ -248,47 +252,52 @@ function FormControl(props: FormControlProps) {
   };
 
   return !hidden ? (
-    <FormConfig
-      changesViewType={
-        !!(viewTypes.length > 0 && viewTypes.includes(ViewTypes.JSON))
-      }
-      config={props.config}
-      configErrors={configErrors}
-      formName={props.formName}
-      multipleConfig={props?.multipleConfig}
-    >
-      <div
-        className={`t--form-control-${props.config.controlType}`}
-        data-location-id={btoa(props.config.configProperty)}
+    <>
+      {props.config.configProperty === ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY && (
+        <OntologyQueryModeSynchronizer formName={props.formName} enabled />
+      )}
+      <FormConfig
+        changesViewType={
+          !!(viewTypes.length > 0 && viewTypes.includes(ViewTypes.JSON))
+        }
+        config={props.config}
+        configErrors={configErrors}
+        formName={props.formName}
+        multipleConfig={props?.multipleConfig}
       >
-        {showTemplate &&
-        !convertFormToRaw &&
-        !SQL_DATASOURCES.includes(pluginName) ? (
-          <TemplateMenu
-            createTemplate={(templateString: string) =>
-              createTemplate(
-                templateString,
-                props?.formName,
-                props?.config?.configProperty,
-              )
-            }
-            pluginId={(formValues as Action)?.datasource?.pluginId || ""}
-          />
-        ) : viewTypes.length > 0 && viewTypes.includes(ViewTypes.JSON) ? (
-          <ToggleComponentToJson
-            componentControlType={props.config.controlType}
-            configProperty={props.config.configProperty}
-            customStyles={props?.config?.customStyles}
-            disabled={props.config.disabled}
-            formName={props.formName}
-            renderCompFunction={FormControlRenderMethod}
-            viewType={viewType}
-          />
-        ) : (
-          FormControlRenderMethod()
-        )}
-      </div>
-    </FormConfig>
+        <div
+          className={`t--form-control-${props.config.controlType}`}
+          data-location-id={btoa(props.config.configProperty)}
+        >
+          {showTemplate &&
+          !convertFormToRaw &&
+          !SQL_DATASOURCES.includes(pluginName) ? (
+            <TemplateMenu
+              createTemplate={(templateString: string) =>
+                createTemplate(
+                  templateString,
+                  props?.formName,
+                  props?.config?.configProperty,
+                )
+              }
+              pluginId={(formValues as Action)?.datasource?.pluginId || ""}
+            />
+          ) : viewTypes.length > 0 && viewTypes.includes(ViewTypes.JSON) ? (
+            <ToggleComponentToJson
+              componentControlType={props.config.controlType}
+              configProperty={props.config.configProperty}
+              customStyles={props?.config?.customStyles}
+              disabled={props.config.disabled}
+              formName={props.formName}
+              renderCompFunction={FormControlRenderMethod}
+              viewType={viewType}
+            />
+          ) : (
+            FormControlRenderMethod()
+          )}
+        </div>
+      </FormConfig>
+    </>
   ) : null;
 }
 

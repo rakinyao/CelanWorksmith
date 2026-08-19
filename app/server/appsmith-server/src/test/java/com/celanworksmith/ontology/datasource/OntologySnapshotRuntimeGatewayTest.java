@@ -51,6 +51,7 @@ class OntologySnapshotRuntimeGatewayTest {
                     assertThat(gatewaySnapshot.digest()).isEqualTo(snapshot.metadataDigest());
                     assertThat(gatewaySnapshot.objectTypes()).singleElement().satisfies(type -> {
                         assertThat(type.id()).isEqualTo("PurchaseOrder");
+                        assertThat(type.primaryKey()).isEqualTo("id");
                         assertThat(type.properties())
                                 .extracting(OntologyRuntimeGateway.PropertyMetadata::id)
                                 .containsExactly("id", "amount");

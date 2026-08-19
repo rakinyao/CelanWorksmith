@@ -213,12 +213,17 @@ class OntologyConfigurationTest {
         assertEquals("ARRAY_FIELD", sort.path("controlType").asText());
         assertEquals("PAGINATION", page.path("controlType").asText());
         assertEquals("QUERY_DYNAMIC_INPUT_TEXT", definition.path("controlType").asText());
+        assertFalse(filter.has("alternateViewTypes"));
+        assertFalse(sort.has("alternateViewTypes"));
         assertTrue(objectType.path("isRequired").asBoolean());
         assertTrue(definition.path("isRequired").asBoolean());
         assertFalse(definition.has("initialValue"));
         assertEquals(
                 "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}",
                 definition.at("/conditionals/show").asText());
+        assertEquals(
+                "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
+                definition.path("disabled").asText());
         for (JsonNode control : List.of(objectType, projection, filter, sort, page)) {
             assertEquals(
                     "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
@@ -262,6 +267,8 @@ class OntologyConfigurationTest {
 
         assertEquals("propertyId", property.path("key").asText());
         assertEquals("operator", operator.path("key").asText());
+        assertEquals("ONTOLOGY_FILTER_PROPERTY", property.path("identifier").asText());
+        assertEquals("ONTOLOGY_FILTER_OPERATOR", operator.path("identifier").asText());
         assertFalse(operator.has("options"));
         assertTrue(operator.path("fetchOptionsConditionally").asBoolean());
         assertTrue(operator.path("resetOnDependencyChange").asBoolean());
@@ -276,6 +283,9 @@ class OntologyConfigurationTest {
         assertEquals(
                 "{{!!actionConfiguration.formData.objectTypeId.data}}",
                 operator.at("/conditionals/fetchDynamicValues/condition").asText());
+
+        JsonNode sort = findControl(editor.at("/children/0/children"), "actionConfiguration.formData.sort.data");
+        assertEquals("ONTOLOGY_SORT_PROPERTY", sort.at("/schema/0/identifier").asText());
     }
 
     @Test

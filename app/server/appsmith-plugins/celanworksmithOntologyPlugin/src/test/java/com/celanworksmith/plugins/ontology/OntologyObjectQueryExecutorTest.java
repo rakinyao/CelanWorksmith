@@ -70,6 +70,25 @@ class OntologyObjectQueryExecutorTest {
     }
 
     @Test
+    void preservesNullValuesInProjectedProperties() {
+        RecordingGateway gateway = gateway();
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", "po-1");
+        item.put("supplierId", "supplier-7");
+        item.put("delayDays", null);
+        gateway.customItems = List.of(item);
+
+        ActionExecutionResult result =
+                execute(gateway, Map.of("objectTypeId", "PurchaseOrder", "projection", List.of("id", "delayDays")));
+
+        assertTrue(result.getIsExecutionSuccess(), result.getReadableError());
+        Map<String, Object> expected = new LinkedHashMap<>();
+        expected.put("id", "po-1");
+        expected.put("delayDays", null);
+        assertEquals(List.of(expected), rows(result));
+    }
+
+    @Test
     void forwardsTypedFilterSortAndPageToTheResolvedProvider() {
         RecordingGateway gateway = gateway();
         Map<String, Object> definition = Map.of(
@@ -115,6 +134,128 @@ class OntologyObjectQueryExecutorTest {
         assertEquals("delayDays", gateway.query.sortBy());
         assertEquals(20, gateway.query.offset());
         assertEquals(10, gateway.query.limit());
+    }
+
+    @Test
+    void builderAndAdvancedConfigurationsProduceEquivalentRuntimeQueries() {
+        Map<String, Object> filter =
+                Map.of("conditions", List.of(Map.of("propertyId", "delayDays", "operator", "gt", "value", 4)));
+        Map<String, Object> sort = Map.of("propertyId", "delayDays", "direction", "DESC");
+        Map<String, Object> page = Map.of("offset", 20, "limit", 10);
+        Map<String, Object> builderFormData = new LinkedHashMap<>();
+        builderFormData.put("queryMode", "BUILDER");
+        builderFormData.put("objectTypeId", "PurchaseOrder");
+        builderFormData.put("projection", List.of("id", "delayDays"));
+        builderFormData.put("filter", filter);
+        builderFormData.put("sort", List.of(sort));
+        builderFormData.put("page", page);
+
+        RecordingGateway builderGateway = gateway();
+        ActionExecutionResult builderResult = executeStructured(builderGateway, builderFormData);
+
+        RecordingGateway advancedGateway = gateway();
+        ActionExecutionResult advancedResult = executeStructured(
+                advancedGateway,
+                Map.of(
+                        "queryMode",
+                        "ADVANCED",
+                        "definition",
+                        "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\",\"delayDays\"],"
+                                + "\"filter\":{\"conditions\":[{\"propertyId\":\"delayDays\","
+                                + "\"operator\":\"gt\",\"value\":4}]},\"sort\":[{\"propertyId\":"
+                                + "\"delayDays\",\"direction\":\"DESC\"}],\"page\":{\"offset\":20,"
+                                + "\"limit\":10}}"));
+
+        assertTrue(builderResult.getIsExecutionSuccess(), builderResult.getReadableError());
+        assertTrue(advancedResult.getIsExecutionSuccess(), advancedResult.getReadableError());
+        assertEquals(builderGateway.query, advancedGateway.query);
+    }
+
+    @Test
+    void advancedExecutionIgnoresStaleBuilderFields() {
+        RecordingGateway gateway = gateway();
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode",
+                        "ADVANCED",
+                        "objectTypeId",
+                        "StaleObject",
+                        "projection",
+                        List.of("unknownProperty"),
+                        "page",
+                        Map.of("offset", 99, "limit", 1),
+                        "definition",
+                        "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"],"
+                                + "\"page\":{\"offset\":0,\"limit\":10}}"));
+
+        assertTrue(result.getIsExecutionSuccess(), result.getReadableError());
+        assertEquals(List.of("id"), gateway.query.projection());
+        assertEquals(0, gateway.query.offset());
+        assertEquals(10, gateway.query.limit());
+    }
+
+    @Test
+    void returnsNativeCountObjectForTotalRecordQueries() {
+        RecordingGateway gateway = gateway();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "resultMode", "TOTAL",
+                        "page", Map.of("offset", 0, "limit", 1)));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(Map.of("n", 21L), result.getBody());
+        assertEquals(1, gateway.queryCalls);
+    }
+
+    @Test
+    void treatsEmptyStructuredSortAsNoSort() {
+        RecordingGateway gateway = gateway();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "sort", List.of()));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(null, gateway.query.sortBy());
+        assertEquals("asc", gateway.query.sortDirection());
+    }
+
+    @Test
+    void treatsEmptyStructuredFilterAsNoFilter() {
+        RecordingGateway gateway = gateway();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "filter", List.of()));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(null, gateway.query.filter());
+    }
+
+    @Test
+    void treatsEmptyFilterConditionsAsNoFilter() {
+        RecordingGateway gateway = gateway();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "filter", Map.of("conditions", List.of())));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(null, gateway.query.filter());
     }
 
     @Test
@@ -220,6 +361,35 @@ class OntologyObjectQueryExecutorTest {
     }
 
     @Test
+    void acceptsDeclaredPrimaryKeyInProjectionWhenItIsNotAnOntologyProperty() {
+        RecordingGateway gateway = gatewayWithDeclaredPrimaryKeyOnly();
+
+        ActionExecutionResult result =
+                execute(gateway, Map.of("objectTypeId", "PurchaseOrder", "projection", List.of("id", "delayDays")));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(List.of("id", "delayDays"), gateway.query.projection());
+    }
+
+    @Test
+    void acceptsDeclaredPrimaryKeyInFilterWhenItIsNotAnOntologyProperty() {
+        RecordingGateway gateway = gatewayWithDeclaredPrimaryKeyOnly();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                Map.of(
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "filter",
+                        Map.of(
+                                "conditions",
+                                List.of(Map.of("propertyId", "id", "operator", "contains", "value", "po-")))));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals("id", gateway.query.filter().at("/conditions/0/propertyId").asText());
+    }
+
+    @Test
     void mapsProviderErrorsToAStandardFailedResult() {
         RecordingGateway gateway = gateway();
         gateway.queryFailure = new IllegalStateException("Provider unavailable");
@@ -271,6 +441,33 @@ class OntologyObjectQueryExecutorTest {
     }
 
     @Test
+    void exposesDeclaredPrimaryKeyEvenWhenItIsNotNamedIdOrListedAsAProperty() {
+        RecordingGateway gateway = new RecordingGateway(new Snapshot(
+                SNAPSHOT_ID,
+                DIGEST,
+                List.of(new ObjectTypeMetadata(
+                        "Supplier",
+                        "Supplier",
+                        "supplierCode",
+                        List.of(new PropertyMetadata("name", "string", false))))));
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        DatasourceStructure.Table table = executor.getStructure(datasource(), datasourceConfiguration())
+                .block()
+                .getTables()
+                .getFirst();
+
+        DatasourceStructure.PrimaryKey primaryKey = assertInstanceOf(
+                DatasourceStructure.PrimaryKey.class, table.getKeys().getFirst());
+        assertEquals(List.of("supplierCode"), primaryKey.getColumnNames());
+        assertEquals(
+                List.of("supplierCode", "name"),
+                table.getColumns().stream()
+                        .map(DatasourceStructure.Column::getName)
+                        .toList());
+    }
+
+    @Test
     void structuredObjectQueryReturnsStandardArrayWithoutObjectWidgetEnvelope() {
         ActionExecutionResult result = executeStructured(
                 gateway(),
@@ -287,6 +484,25 @@ class OntologyObjectQueryExecutorTest {
         assertTrue(result.getIsExecutionSuccess());
         assertInstanceOf(List.class, result.getBody());
         assertFalse(result.getBody() instanceof Map<?, ?> body && body.containsKey("$objects"));
+    }
+
+    @Test
+    void usesDefaultPageWhenWidgetPagingBindingsHaveNoValueYet() {
+        Map<String, Object> page = new LinkedHashMap<>();
+        page.put("offset", null);
+        page.put("limit", null);
+
+        RecordingGateway gateway = gateway();
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "page", page));
+
+        assertTrue(result.getIsExecutionSuccess(), result.getReadableError());
+        assertEquals(0, gateway.query.offset());
+        assertEquals(50, gateway.query.limit());
     }
 
     @Test
@@ -335,6 +551,25 @@ class OntologyObjectQueryExecutorTest {
                 List.of(
                         propertyMetadata("id", "id", "string", false, false, false),
                         propertyMetadata("supplierId", "supplierId", "string", false, false, false),
+                        propertyMetadata("delayDays", "delayDays", "integer", false, false, false)),
+                result.getTrigger());
+    }
+
+    @Test
+    void exposesDeclaredPrimaryKeyInObjectPropertyMetadataWhenItIsNotAPropertyDefinition() {
+        RecordingGateway gateway = gatewayWithDeclaredPrimaryKeyOnly();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO result = executor.trigger(
+                        datasource(),
+                        datasourceConfiguration(),
+                        new TriggerRequestDTO(
+                                "ONTOLOGY_OBJECT_PROPERTIES", Map.of("objectTypeId", "PurchaseOrder"), null))
+                .block();
+
+        assertEquals(
+                List.of(
+                        propertyMetadata("id", "id", "string", false, true, false),
                         propertyMetadata("delayDays", "delayDays", "integer", false, false, false)),
                 result.getTrigger());
     }
@@ -438,6 +673,17 @@ class OntologyObjectQueryExecutorTest {
                                 new PropertyMetadata("isExpedited", "boolean", false))))));
     }
 
+    private RecordingGateway gatewayWithDeclaredPrimaryKeyOnly() {
+        return new RecordingGateway(new Snapshot(
+                SNAPSHOT_ID,
+                DIGEST,
+                List.of(new ObjectTypeMetadata(
+                        "PurchaseOrder",
+                        "PurchaseOrder",
+                        "id",
+                        List.of(new PropertyMetadata("delayDays", "integer", false))))));
+    }
+
     private record SnapshotRequest(String snapshotId, String digest) {}
 
     private static final class RecordingGateway implements OntologyRuntimeGateway {
@@ -450,6 +696,7 @@ class OntologyObjectQueryExecutorTest {
         private ObjectQuery query;
         private RuntimeException queryFailure;
         private boolean emptyResult;
+        private List<Map<String, Object>> customItems;
 
         private RecordingGateway(Snapshot snapshot) {
             this.snapshot = snapshot;
@@ -471,19 +718,21 @@ class OntologyObjectQueryExecutorTest {
             if (queryFailure != null) {
                 return Mono.error(queryFailure);
             }
-            List<Map<String, Object>> items = emptyResult
-                    ? List.of()
-                    : List.of(Map.of(
-                            "id",
-                            "po-1",
-                            "supplierId",
-                            "supplier-7",
-                            "delayDays",
-                            5,
-                            "isExpedited",
-                            true,
-                            "internalNote",
-                            "private"));
+            List<Map<String, Object>> items = customItems != null
+                    ? customItems
+                    : emptyResult
+                            ? List.of()
+                            : List.of(Map.of(
+                                    "id",
+                                    "po-1",
+                                    "supplierId",
+                                    "supplier-7",
+                                    "delayDays",
+                                    5,
+                                    "isExpedited",
+                                    true,
+                                    "internalNote",
+                                    "private"));
             return Mono.just(new ObjectQueryResult(items, query.offset(), query.limit(), 21));
         }
     }

@@ -69,7 +69,6 @@
           "controlType": "ARRAY_FIELD",
           "resetOnDependencyChange": true,
           "addMoreButtonLabel": "Add filter",
-          "alternateViewTypes": ["json"],
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
@@ -78,6 +77,7 @@
             {
               "label": "Property",
               "key": "propertyId",
+              "identifier": "ONTOLOGY_FILTER_PROPERTY",
               "controlType": "DROP_DOWN",
               "fetchOptionsConditionally": true,
               "conditionals": {
@@ -98,6 +98,7 @@
             {
               "label": "Operator",
               "key": "operator",
+              "identifier": "ONTOLOGY_FILTER_OPERATOR",
               "controlType": "DROP_DOWN",
               "fetchOptionsConditionally": true,
               "resetOnDependencyChange": true,
@@ -135,7 +136,6 @@
           "controlType": "ARRAY_FIELD",
           "resetOnDependencyChange": true,
           "addMoreButtonLabel": "Add sort",
-          "alternateViewTypes": ["json"],
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
@@ -144,6 +144,7 @@
             {
               "label": "Property",
               "key": "propertyId",
+              "identifier": "ONTOLOGY_SORT_PROPERTY",
               "controlType": "DROP_DOWN",
               "fetchOptionsConditionally": true,
               "conditionals": {
@@ -188,6 +189,7 @@
           "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
+          "disabled": "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
           "isRequired": true,
           "evaluationSubstitutionType": "TEMPLATE",
           "conditionals": {

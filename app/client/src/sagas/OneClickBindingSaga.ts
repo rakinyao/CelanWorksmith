@@ -49,6 +49,10 @@ import { ENTITY_TYPE } from "ee/entities/AppsmithConsole/utils";
 import { fetchActions, runAction } from "actions/pluginActionActions";
 import { toast } from "@appsmith/ads";
 import WidgetFactory from "WidgetProvider/factory";
+import {
+  oneClickBindingFailureMessage,
+  oneClickBindingSuccessMessage,
+} from "./OneClickBindingMessages";
 
 export function* createActionsForOneClickBindingSaga(
   payload: Partial<Action> & { eventData: unknown; pluginId: string },
@@ -115,6 +119,7 @@ function* BindWidgetToDatasource(
   const applicationId: string = yield select(getCurrentApplicationId);
 
   const newActions: string[] = [];
+  let bindingError: string | undefined;
 
   try {
     const defaultValues: object | undefined = yield call(
@@ -376,27 +381,32 @@ function* BindWidgetToDatasource(
       formType: otherFields?.formType,
     });
   } catch (e: unknown) {
+    bindingError = e instanceof Error ? e.message : "Failed to bind widget";
     yield put({
       type: ReduxActionTypes.BIND_WIDGET_TO_DATASOURCE_ERROR,
       payload: {
         show: true,
         error: {
-          message: e instanceof Error ? e.message : "Failed to Bind to widget",
+          message: bindingError,
         },
       },
     });
   }
 
-  toast.show(
-    `Successfully created action${
-      newActions.length > 1 ? "s" : ""
-    }: ${newActions.join(", ")}`,
-    {
+  if (bindingError) {
+    toast.show(oneClickBindingFailureMessage(bindingError), {
       hideProgressBar: true,
-      kind: "success",
-      autoClose: 3000,
-    },
-  );
+      kind: "error",
+      autoClose: 5000,
+    });
+    return;
+  }
+
+  toast.show(oneClickBindingSuccessMessage(newActions), {
+    hideProgressBar: true,
+    kind: "success",
+    autoClose: 3000,
+  });
 }
 
 export default function* oneClickBindingSaga() {

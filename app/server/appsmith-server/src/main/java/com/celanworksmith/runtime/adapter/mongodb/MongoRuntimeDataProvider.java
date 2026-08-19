@@ -81,10 +81,17 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
                 Map.of(
                         "supplierId", "REFERENCE",
                         "status", "ENUM",
+                        "orderDate", "DATETIME",
+                        "expectedDeliveryDate", "DATETIME",
+                        "actualDeliveryDate", "DATETIME",
                         "amount", "DECIMAL",
                         "delayDays", "INTEGER"),
                 "Supplier",
-                Map.of("name", "STRING"))));
+                Map.of(
+                        "name", "STRING",
+                        "contactName", "STRING",
+                        "riskLevel", "ENUM",
+                        "averageRating", "DECIMAL"))));
     }
 
     @Override
@@ -239,7 +246,8 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         Query mongoQuery = buildCountQuery(type, query);
         mongoQuery.skip(query.offset()).limit(query.limit());
         String sortBy = query.sortBy();
-        String field = sortBy == null || sortBy.isBlank() || "id".equals(sortBy) ? "_id" : "properties." + sortBy;
+        String field =
+                sortBy == null || sortBy.isBlank() || type.primaryKey().equals(sortBy) ? "_id" : "properties." + sortBy;
         mongoQuery.with(Sort.by(
                 "desc".equalsIgnoreCase(query.sortDirection()) ? Sort.Direction.DESC : Sort.Direction.ASC, field));
         return mongoQuery;
@@ -284,7 +292,7 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
 
     private Criteria simpleCondition(ObjectTypeDTO type, String property, JsonNode value) {
         requireProperty(type, property, "filter");
-        Criteria criteria = Criteria.where("properties." + property);
+        Criteria criteria = Criteria.where(mongoField(type, property));
         if (!value.isObject()) return criteria.is(value(value));
         value.fields().forEachRemaining(entry -> applyOperator(criteria, entry.getKey(), entry.getValue()));
         return criteria;
@@ -292,12 +300,13 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
 
     private Criteria condition(ObjectTypeDTO type, String property, String operator, JsonNode value) {
         requireProperty(type, property, "filter");
-        Criteria criteria = Criteria.where("properties." + property);
+        String field = mongoField(type, property);
+        Criteria criteria = Criteria.where(field);
         if ("isEmpty".equals(operator)) {
             return new Criteria()
                     .orOperator(
-                            Criteria.where("properties." + property).is(null),
-                            Criteria.where("properties." + property).is(""));
+                            Criteria.where(field).is(null),
+                            Criteria.where(field).is(""));
         }
         if (value == null)
             throw new CelanWorksmithException(
@@ -367,17 +376,23 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         if (!"asc".equalsIgnoreCase(query.sortDirection()) && !"desc".equalsIgnoreCase(query.sortDirection()))
             throw new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "sortDirection must be asc or desc");
-        if (query.sortBy() != null && !query.sortBy().isBlank() && !"id".equals(query.sortBy()))
-            requireProperty(type, query.sortBy(), "sort");
+        if (query.sortBy() != null
+                && !query.sortBy().isBlank()
+                && !type.primaryKey().equals(query.sortBy())) requireProperty(type, query.sortBy(), "sort");
     }
 
     private void requireProperty(ObjectTypeDTO type, String property, String kind) {
-        if (type.properties().stream().map(PropertyDTO::id).noneMatch(property::equals))
+        if (!type.primaryKey().equals(property)
+                && type.properties().stream().map(PropertyDTO::id).noneMatch(property::equals))
             throw new CelanWorksmithException(
                     "sort".equals(kind)
                             ? CelanWorksmithErrorCode.INVALID_ARGUMENT
                             : CelanWorksmithErrorCode.FILTER_INVALID,
                     "Unknown " + kind + " property: " + type.id() + "." + property);
+    }
+
+    private String mongoField(ObjectTypeDTO type, String property) {
+        return type.primaryKey().equals(property) ? "_id" : "properties." + property;
     }
 
     private Mono<ObjectTypeDTO> resolveType(String applicationId, String typeId) {

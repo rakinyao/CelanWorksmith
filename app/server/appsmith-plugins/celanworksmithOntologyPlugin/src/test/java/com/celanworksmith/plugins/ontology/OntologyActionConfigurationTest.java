@@ -26,6 +26,22 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void ignoresNullOptionalFieldsRetainedByNativeQueryEditor() {
+        Map<String, Object> formData = new java.util.LinkedHashMap<>();
+        formData.put("operation", "OBJECT_QUERY");
+        formData.put("queryMode", "BUILDER");
+        formData.put("objectTypeId", "PurchaseOrder");
+        formData.put("projection", null);
+        formData.put("filter", null);
+        formData.put("sort", null);
+        formData.put("page", null);
+
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(formData));
+
+        assertEquals(Map.of("objectTypeId", "PurchaseOrder"), configuration.definition());
+    }
+
+    @Test
     void advancedDefinitionIgnoresStaleBuilderFields() {
         ActionConfiguration action = action(Map.of(
                 "operation",
@@ -77,6 +93,57 @@ class OntologyActionConfigurationTest {
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
 
         assertEquals(Map.of("objectTypeId", "PurchaseOrder", "projection", List.of("id")), configuration.definition());
+    }
+
+    @Test
+    void uqiWrappedBuilderFieldsProduceTheSameDefinitionAsAdvancedJson() {
+        Map<String, Object> filter =
+                Map.of("conditions", List.of(Map.of("propertyId", "delayDays", "operator", "gt", "value", 4)));
+        Map<String, Object> sort = Map.of("propertyId", "delayDays", "direction", "DESC");
+        Map<String, Object> page = Map.of("offset", 20, "limit", 10);
+        Map<String, Object> builder = new java.util.LinkedHashMap<>();
+        builder.put("operation", uqi("OBJECT_QUERY"));
+        builder.put("queryMode", uqi("BUILDER"));
+        builder.put("objectTypeId", uqi("PurchaseOrder"));
+        builder.put("projection", uqi(List.of("id", "delayDays")));
+        builder.put("filter", uqi(filter));
+        builder.put("sort", uqi(List.of(sort)));
+        builder.put("page", uqi(page));
+
+        OntologyActionConfiguration builderConfiguration = OntologyActionConfiguration.from(action(builder));
+        OntologyActionConfiguration advancedConfiguration = configuration(
+                "OBJECT_QUERY",
+                Map.of(
+                        "queryMode",
+                        "ADVANCED",
+                        "definition",
+                        "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\",\"delayDays\"],"
+                                + "\"filter\":{\"conditions\":[{\"propertyId\":\"delayDays\","
+                                + "\"operator\":\"gt\",\"value\":4}]},\"sort\":[{\"propertyId\":"
+                                + "\"delayDays\",\"direction\":\"DESC\"}],\"page\":{\"offset\":20,"
+                                + "\"limit\":10}}"));
+
+        assertEquals(advancedConfiguration.definition(), builderConfiguration.definition());
+    }
+
+    @Test
+    void advancedDefinitionPreservesDynamicPageBindings() {
+        OntologyActionConfiguration configuration = configuration(
+                "OBJECT_QUERY",
+                Map.of(
+                        "queryMode",
+                        "ADVANCED",
+                        "definition",
+                        "{\"objectTypeId\":\"PurchaseOrder\",\"page\":{"
+                                + "\"offset\":\"{{Table1.pageNo}}\",\"limit\":\"{{Table1.pageSize}}\"}}"));
+
+        assertEquals(
+                Map.of(
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "page",
+                        Map.of("offset", "{{Table1.pageNo}}", "limit", "{{Table1.pageSize}}")),
+                configuration.definition());
     }
 
     @Test
@@ -213,6 +280,32 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void structuredTotalResultModeIsCopiedForGeneratedCountQueries() {
+        OntologyActionConfiguration configuration = configuration(
+                "OBJECT_QUERY",
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "resultMode", "TOTAL"));
+
+        assertEquals("TOTAL", configuration.definition().get("resultMode"));
+    }
+
+    @Test
+    void rejectsUnsupportedObjectQueryResultMode() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> configuration(
+                        "OBJECT_QUERY",
+                        Map.of(
+                                "queryMode", "BUILDER",
+                                "objectTypeId", "PurchaseOrder",
+                                "resultMode", "UNKNOWN")));
+
+        assertEquals("Ontology object query result mode must be ROWS or TOTAL", exception.getMessage());
+    }
+
+    @Test
     void malformedStructuredFilterIsRejected() {
         ActionConfiguration action = action(Map.of(
                 "operation", "OBJECT_QUERY",
@@ -270,5 +363,9 @@ class OntologyActionConfigurationTest {
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(formData);
         return action;
+    }
+
+    private Map<String, Object> uqi(Object value) {
+        return Map.of("data", value);
     }
 }
