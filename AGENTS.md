@@ -28,4 +28,3 @@ Skills are process guidance; task scope determines which parts are required.
 - Keep user-facing application text in English and route new UI copy through i18n.
 - Record a short verification note only when the change affects a checkpoint, migration, architecture contract, or manual test procedure.
 - Preserve the native Appsmith datasource/query/action pipeline; do not introduce parallel ontology state or execution paths.
-
