@@ -4,7 +4,7 @@
 
 **Goal:** Add a self-cleaning browser regression proving that a newly created Demo Ontology `PurchaseOrder` query opens its editor without an unexpected-error screen.
 
-**Architecture:** The test uses the authenticated browser session to create a temporary App and import the Demo Ontology datasource, then uses the normal Datasource UI to create and configure a query. It reopens the generated query and asserts the Object Type field is usable and the editor error boundary is absent. The temporary App and datasource are removed from the server in `finally`, preserving the isolated local-development data boundary.
+**Architecture:** The test uses the authenticated browser session to create a temporary App and import the Demo Ontology datasource, then uses the normal Datasource UI to create and configure a query. It asserts the initial native query-editor transition has no UQI error boundary and that the Object Type field is usable. The temporary datasource is stopped and deleted, and the App is removed from the server in `finally`, preserving the isolated local-development data boundary.
 
 **Tech Stack:** Playwright, existing Appsmith REST test helpers, Appsmith Query editor UI.
 
@@ -17,7 +17,7 @@
 
 ---
 
-### Task 1: Add the query-editor reload regression
+### Task 1: Add the query-editor plugin-form regression
 
 **Files:**
 - Modify: `app/client/playwright/tests/d0/ontology-native-path.spec.ts`

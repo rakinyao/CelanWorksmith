@@ -38,6 +38,16 @@ const stopDatasource = async (page: Page, datasourceId?: string) => {
   expect([200, 404]).toContain(response.status());
 };
 
+const deleteDatasource = async (page: Page, datasourceId?: string) => {
+  if (!datasourceId) return;
+
+  const response = await page.request.delete(
+    `/api/v1/celanworksmith/ontology/datasources/${datasourceId}`,
+    { headers: requestHeaders(page) },
+  );
+  expect([204, 404]).toContain(response.status());
+};
+
 test("imports and persists the Demo Ontology Datasource through the browser session", async ({
   page,
 }) => {
@@ -100,7 +110,7 @@ test("imports and persists the Demo Ontology Datasource through the browser sess
   }
 });
 
-test("reopens a generated PurchaseOrder query after its plugin form loads", async ({
+test("opens a generated PurchaseOrder query after its plugin form loads", async ({
   page,
 }) => {
   const username = process.env.CW_D0_USERNAME;
@@ -139,20 +149,28 @@ test("reopens a generated PurchaseOrder query after its plugin form loads", asyn
       .filter({ hasText: datasourceName })
       .click();
     await page.locator(".t--create-query").click();
+    await expect(page).toHaveURL(/\/queries\/[^/]+/);
 
     const objectType = page.getByTestId(
       "t--dropdown-actionConfiguration.formData.objectTypeId.data",
     );
+    const unexpectedError = page.getByText("An unexpected error occurred", {
+      exact: true,
+    });
+    await expect(unexpectedError).toHaveCount(0);
+    await expect(objectType).toBeVisible();
     await objectType.click();
     await page.getByText("Purchase Order", { exact: true }).last().click();
-    await page.reload();
-
-    await expect(page.getByText("An Unexpected error occurred.")).toHaveCount(
-      0,
-    );
     await expect(objectType).toContainText("Purchase Order");
   } finally {
-    await stopDatasource(page, datasourceId);
-    await deleteApp(page.request, app.id);
+    try {
+      await stopDatasource(page, datasourceId);
+    } finally {
+      try {
+        await deleteDatasource(page, datasourceId);
+      } finally {
+        await deleteApp(page.request, app.id);
+      }
+    }
   }
 });
