@@ -41,11 +41,11 @@ import type { EvalError } from "utils/DynamicBindingUtils";
 
 // function to extract all objects that have dynamic values
 export const extractFetchDynamicValueFormConfigs = (
-  evalOutput: FormEvalOutput,
+  evalOutput?: FormEvalOutput,
 ) => {
   let output: Record<string, ConditionalOutput> = {};
 
-  Object.entries(evalOutput).forEach(([key, value]) => {
+  Object.entries(evalOutput ?? {}).forEach(([key, value]) => {
     if ("fetchDynamicValues" in value && !!value.fetchDynamicValues) {
       output = { ...output, [key]: value };
     }

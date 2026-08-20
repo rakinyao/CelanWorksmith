@@ -97,6 +97,10 @@ describe("Fetch dynamic values", () => {
     expect(extractFetchDynamicValueFormConfigs(testInput)).toEqual(testOutput);
   });
 
+  it("returns no dynamic trigger configs for a missing form evaluation output", () => {
+    expect(extractFetchDynamicValueFormConfigs(undefined)).toEqual({});
+  });
+
   it("extract config of values that are allowed to fetch from url", () => {
     const testOutput = {
       identifier1: {
