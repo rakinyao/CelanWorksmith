@@ -68,6 +68,7 @@ import {
 import { getUIComponent } from "pages/Editor/QueryEditor/helpers";
 import { FormDataPaths } from "workers/Evaluation/formEval";
 import { fetchDynamicValuesSaga } from "./FormEvaluationSaga";
+import { checkAndGetPluginFormConfigsSaga } from "./PluginSagas";
 import type { FormEvalOutput } from "reducers/evaluationReducers/formEvaluationReducer";
 import { validateResponse } from "./ErrorSagas";
 import { getIsGeneratePageInitiator } from "utils/GenerateCrudUtil";
@@ -94,7 +95,9 @@ import { openGeneratePageModalWithSelectedDS } from "../utils/GeneratePageUtils"
 import { objectKeys } from "@appsmith/utils";
 
 // Called whenever the query being edited is changed via the URL or query pane
-function* changeQuerySaga(actionPayload: ReduxAction<ChangeQueryPayload>) {
+export function* changeQuerySaga(
+  actionPayload: ReduxAction<ChangeQueryPayload>,
+) {
   const {
     applicationId,
     basePageId,
@@ -135,6 +138,9 @@ function* changeQuerySaga(actionPayload: ReduxAction<ChangeQueryPayload>) {
 
   // fetching pluginId and the consequent configs from the action
   const pluginId = action.pluginId;
+
+  yield call(checkAndGetPluginFormConfigsSaga, pluginId);
+
   // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentEditorConfig: any[] = yield select(getEditorConfig, pluginId);
