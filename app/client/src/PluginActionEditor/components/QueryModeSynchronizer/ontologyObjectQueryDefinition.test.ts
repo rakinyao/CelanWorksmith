@@ -56,7 +56,7 @@ describe("ontology object query definition", () => {
         },
       }),
     ).toBe(
-      '{"objectTypeId":"PurchaseOrder","projection":["id","delayDays"],"filter":{"conditions":[{"propertyId":"supplierId","operator":"contains","value":"{{Table1.searchText}}"}]},"sort":[{"propertyId":"delayDays","direction":"DESC"}],"page":{"offset":"{{Table1.pageOffset}}","limit":"{{Table1.pageSize}}"}}',
+      '{"objectTypeId":"PurchaseOrder","projection":["id","delayDays"],"filter":{"conditions":[{"propertyId":"supplierId","operator":"contains","value":"{{Table1.searchText}}"}]},"sort":[{"propertyId":"delayDays","direction":"DESC"}],"page":{"mode":"LIMITED","offset":"{{Table1.pageOffset}}","limit":"{{Table1.pageSize}}"}}',
     );
   });
 
@@ -68,7 +68,27 @@ describe("ontology object query definition", () => {
         filter: { data: { conditions: [] } },
         sort: { data: [] },
       }),
-    ).toBe('{"objectTypeId":"Supplier"}');
+    ).toBe(
+      '{"objectTypeId":"Supplier","page":{"mode":"LIMITED","offset":0,"limit":100}}',
+    );
+  });
+
+  it("serializes and hydrates Full pagination without numeric fields", () => {
+    expect(
+      serializeBuilderForm({
+        objectTypeId: { data: "PurchaseOrder" },
+        page: { data: { mode: "FULL" } },
+      }),
+    ).toContain('"page":{"mode":"FULL"}');
+
+    expect(
+      hydrateBuilderForm({
+        objectTypeId: "PurchaseOrder",
+        page: { mode: "FULL" },
+      }),
+    ).toMatchObject({
+      "actionConfiguration.formData.page.data": { mode: "FULL" },
+    });
   });
 
   it("normalizes optional empty values without evaluating bindings", () => {
@@ -82,7 +102,11 @@ describe("ontology object query definition", () => {
 
     expect(normalizeDefinition(definition)).toEqual({
       objectTypeId: "PurchaseOrder",
-      page: { offset: "{{Table1.pageOffset}}", limit: "{{Table1.pageSize}}" },
+      page: {
+        mode: "LIMITED",
+        offset: "{{Table1.pageOffset}}",
+        limit: "{{Table1.pageSize}}",
+      },
     });
   });
 
@@ -96,7 +120,11 @@ describe("ontology object query definition", () => {
       filter: {
         conditions: [{ propertyId: "delayDays", operator: "gt", value: 0 }],
       },
-      page: { offset: "{{Table1.pageOffset}}", limit: 50 },
+      page: {
+        mode: "LIMITED",
+        offset: "{{Table1.pageOffset}}",
+        limit: 50,
+      },
     });
   });
 
@@ -118,6 +146,7 @@ describe("ontology object query definition", () => {
       valid: true,
       definition: {
         objectTypeId: "PurchaseOrder",
+        page: { mode: "LIMITED", offset: 0, limit: 100 },
         sort: [
           {
             propertyId: '{{Table1.sortColumn || "delayDays"}}',
@@ -135,7 +164,7 @@ describe("ontology object query definition", () => {
     });
 
     expect(definition).toBe(
-      '{"objectTypeId":"PurchaseOrder","resultMode":"TOTAL"}',
+      '{"objectTypeId":"PurchaseOrder","resultMode":"TOTAL","page":{"mode":"LIMITED","offset":0,"limit":100}}',
     );
     expect(hydrateBuilderForm(JSON.parse(definition))).toMatchObject({
       "actionConfiguration.formData.resultMode.data": "TOTAL",
@@ -177,6 +206,7 @@ describe("ontology object query definition", () => {
         { propertyId: "delayDays", direction: "DESC" },
       ],
       "actionConfiguration.formData.page.data": {
+        mode: "LIMITED",
         offset: "{{Table1.pageOffset}}",
         limit: "{{Table1.pageSize}}",
       },
@@ -219,7 +249,11 @@ describe("ontology object query definition", () => {
         conditions: [{ propertyId: "delayDays", operator: "gt", value: 0 }],
       },
       sort: [{ propertyId: "delayDays", direction: "DESC" }],
-      page: { offset: "{{Table1.pageOffset}}", limit: 50 },
+      page: {
+        mode: "LIMITED",
+        offset: "{{Table1.pageOffset}}",
+        limit: 50,
+      },
     };
 
     expect(validateDefinition(definition, metadata)).toEqual({

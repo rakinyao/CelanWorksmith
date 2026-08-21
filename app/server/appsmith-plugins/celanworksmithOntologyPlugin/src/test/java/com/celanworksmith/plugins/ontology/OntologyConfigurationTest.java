@@ -194,6 +194,7 @@ class OntologyConfigurationTest {
         JsonNode projection = findControl(children, "actionConfiguration.formData.projection.data");
         JsonNode filter = findControl(children, "actionConfiguration.formData.filter.data.conditions");
         JsonNode sort = findControl(children, "actionConfiguration.formData.sort.data");
+        JsonNode pageMode = findControl(children, "actionConfiguration.formData.page.data.mode");
         JsonNode page = findControl(children, "actionConfiguration.formData.page.data");
         JsonNode definition = findControl(children, "actionConfiguration.formData.definition.data");
 
@@ -211,7 +212,16 @@ class OntologyConfigurationTest {
         assertEquals("PROJECTION", projection.path("controlType").asText());
         assertEquals("ARRAY_FIELD", filter.path("controlType").asText());
         assertEquals("ARRAY_FIELD", sort.path("controlType").asText());
+        assertEquals("DROP_DOWN", pageMode.path("controlType").asText());
+        assertEquals("Result mode", pageMode.path("label").asText());
+        assertEquals("LIMITED", pageMode.at("/initialValue").asText());
+        assertEquals("LIMITED", pageMode.at("/options/0/value").asText());
+        assertEquals("FULL", pageMode.at("/options/1/value").asText());
+        assertTrue(pageMode.path("info").asText().contains("memory"));
         assertEquals("PAGINATION", page.path("controlType").asText());
+        assertEquals("LIMITED", page.at("/initialValue/mode").asText());
+        assertEquals(0, page.at("/initialValue/offset").asInt());
+        assertEquals(100, page.at("/initialValue/limit").asInt());
         assertEquals("QUERY_DYNAMIC_INPUT_TEXT", definition.path("controlType").asText());
         assertFalse(filter.has("alternateViewTypes"));
         assertFalse(sort.has("alternateViewTypes"));
@@ -229,7 +239,7 @@ class OntologyConfigurationTest {
                 definition.at("/hidden/path").asText());
         assertEquals("EQUALS", definition.at("/hidden/comparison").asText());
         assertEquals("BUILDER", definition.at("/hidden/value").asText());
-        for (JsonNode control : List.of(objectType, projection, filter, sort, page)) {
+        for (JsonNode control : List.of(objectType, projection, filter, sort, pageMode)) {
             assertEquals(
                     "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
                     control.at("/conditionals/show").asText());
@@ -240,6 +250,9 @@ class OntologyConfigurationTest {
                     control.at("/conditionals/enable").asText());
             assertTrue(control.path("resetOnDependencyChange").asBoolean());
         }
+        assertEquals(
+                "{{actionConfiguration.formData.queryMode.data === 'BUILDER' && actionConfiguration.formData.page.data.mode === 'LIMITED'}}",
+                page.at("/conditionals/show").asText());
         assertFalse(definition.has("resetOnDependencyChange"));
         assertFalse(projection.has("initialValue"));
         assertFalse(sort.has("initialValue"));

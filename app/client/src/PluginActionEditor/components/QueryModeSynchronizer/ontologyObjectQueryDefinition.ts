@@ -13,10 +13,15 @@ export type OntologyObjectQueryDefinition = {
     propertyId: string;
     direction: string;
   }>;
-  page?: {
-    offset: unknown;
-    limit: unknown;
-  };
+  page?:
+    | {
+        mode?: "LIMITED";
+        offset: unknown;
+        limit: unknown;
+      }
+    | {
+        mode: "FULL";
+      };
 };
 
 export type OntologyQueryMetadata = {
@@ -89,6 +94,13 @@ function isValidPageValue(value: unknown, isLimit: boolean): boolean {
       value >= 0 &&
       (!isLimit || value > 0)) ||
     isBinding(value)
+  );
+}
+
+function isValidLimitedPageValue(value: unknown, isLimit: boolean): boolean {
+  return (
+    isValidPageValue(value, isLimit) &&
+    (isBinding(value) || !isLimit || (value as number) <= 1000)
   );
 }
 
@@ -269,9 +281,18 @@ function validatePage(
   if (!isRecord(definition.page)) {
     return invalid("Pagination must contain offset and limit");
   }
+  if (definition.page.mode === "FULL") {
+    const fullPageFieldError = findUnsupportedField(
+      definition.page,
+      ["mode"],
+      "Full pagination",
+    );
+
+    return fullPageFieldError ? invalid(fullPageFieldError) : undefined;
+  }
   const pageFieldError = findUnsupportedField(
     definition.page,
-    ["offset", "limit"],
+    ["mode", "offset", "limit"],
     "pagination",
   );
   if (pageFieldError) {
@@ -281,11 +302,16 @@ function validatePage(
     return invalid("Pagination must contain both offset and limit");
   }
   if (
-    !isValidPageValue(definition.page.offset, false) ||
-    !isValidPageValue(definition.page.limit, true)
+    definition.page.mode !== undefined && definition.page.mode !== "LIMITED"
+  ) {
+    return invalid("Pagination mode must be LIMITED or FULL");
+  }
+  if (
+    !isValidLimitedPageValue(definition.page.offset, false) ||
+    !isValidLimitedPageValue(definition.page.limit, true)
   ) {
     return invalid(
-      "Pagination offset must be a non-negative integer and limit must be a positive integer or bindings",
+      "Pagination offset must be a non-negative integer and limit must be an integer from 1 to 1000 or bindings",
     );
   }
 
@@ -402,22 +428,34 @@ function validateDefinitionShape(definition: unknown): string | undefined {
     if (!isRecord(page)) {
       return "Pagination must contain offset and limit";
     }
+    if (page.mode === "FULL") {
+      const fullPageFieldError = findUnsupportedField(
+        page,
+        ["mode"],
+        "Full pagination",
+      );
+
+      return fullPageFieldError;
+    }
     const pageFieldError = findUnsupportedField(
       page,
-      ["offset", "limit"],
+      ["mode", "offset", "limit"],
       "pagination",
     );
     if (pageFieldError) {
       return pageFieldError;
     }
+    if (page.mode !== undefined && page.mode !== "LIMITED") {
+      return "Pagination mode must be LIMITED or FULL";
+    }
     if (!hasOwn(page, "offset") || !hasOwn(page, "limit")) {
       return "Pagination must contain both offset and limit";
     }
     if (
-      !isValidPageValue(page.offset, false) ||
-      !isValidPageValue(page.limit, true)
+      !isValidLimitedPageValue(page.offset, false) ||
+      !isValidLimitedPageValue(page.limit, true)
     ) {
-      return "Pagination offset must be a non-negative integer and limit must be a positive integer or bindings";
+      return "Pagination offset must be a non-negative integer and limit must be an integer from 1 to 1000 or bindings";
     }
   }
 
@@ -503,15 +541,20 @@ export function normalizeDefinition(
     }));
   }
 
-  if (
+  if (definition.page?.mode === "FULL") {
+    normalized.page = { mode: "FULL" };
+  } else if (
     definition.page &&
     hasValue(definition.page.offset) &&
     hasValue(definition.page.limit)
   ) {
     normalized.page = {
+      mode: "LIMITED",
       offset: definition.page.offset,
       limit: definition.page.limit,
     };
+  } else {
+    normalized.page = { mode: "LIMITED", offset: 0, limit: 100 };
   }
 
   return normalized;
@@ -556,8 +599,9 @@ export function hydrateBuilderForm(
       normalized.filter?.conditions ?? [],
     "actionConfiguration.formData.sort.data": normalized.sort ?? [],
     "actionConfiguration.formData.page.data": normalized.page ?? {
+      mode: "LIMITED",
       offset: 0,
-      limit: 50,
+      limit: 100,
     },
   };
 }

@@ -174,13 +174,28 @@
           ]
         },
         {
+          "label": "Result mode",
+          "configProperty": "actionConfiguration.formData.page.data.mode",
+          "controlType": "DROP_DOWN",
+          "initialValue": "LIMITED",
+          "info": "Full mode loads all matching records into the browser and may take significant time or memory.",
+          "options": [
+            { "label": "Limited", "value": "LIMITED" },
+            { "label": "Full", "value": "FULL" }
+          ],
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
+          }
+        },
+        {
           "label": "Pagination",
           "configProperty": "actionConfiguration.formData.page.data",
           "controlType": "PAGINATION",
           "resetOnDependencyChange": true,
-          "initialValue": { "offset": 0, "limit": 50 },
+          "initialValue": { "mode": "LIMITED", "offset": 0, "limit": 100 },
           "conditionals": {
-            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER' && actionConfiguration.formData.page.data.mode === 'LIMITED'}}",
             "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}"
           }
         },
@@ -200,7 +215,7 @@
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}"
           },
-          "placeholderText": "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"],\"filter\":{\"conditions\":[]},\"sort\":[],\"page\":{\"offset\":0,\"limit\":50}}"
+          "placeholderText": "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"],\"filter\":{\"conditions\":[]},\"sort\":[],\"page\":{\"mode\":\"LIMITED\",\"offset\":0,\"limit\":100}}"
         }
       ]
     }
