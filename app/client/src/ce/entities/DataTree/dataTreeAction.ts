@@ -10,6 +10,7 @@ import type {
   ActionEntityConfig,
 } from "ee/entities/DataTree/types";
 import { EvaluationSubstitutionType } from "constants/EvaluationConstants";
+import { get } from "lodash";
 
 export const generateDataTreeAction = (
   action: ActionData,
@@ -29,10 +30,22 @@ export const generateDataTreeAction = (
     action.config.dynamicBindingPathList &&
     action.config.dynamicBindingPathList.length
   ) {
-    dynamicBindingPathList = action.config.dynamicBindingPathList.map((d) => ({
-      ...d,
-      key: d.key === "datasourceUrl" ? d.key : `config.${d.key}`,
-    }));
+    const queryMode = get(
+      action.config,
+      "actionConfiguration.formData.queryMode.data",
+    );
+
+    dynamicBindingPathList = action.config.dynamicBindingPathList
+      // Builder evaluates page, filter, and sort controls directly. Definition
+      // is only its synchronized Advanced JSON mirror.
+      .filter(
+        ({ key }) =>
+          queryMode !== "BUILDER" || key !== "formData.definition.data",
+      )
+      .map((d) => ({
+        ...d,
+        key: d.key === "datasourceUrl" ? d.key : `config.${d.key}`,
+      }));
   }
 
   if (

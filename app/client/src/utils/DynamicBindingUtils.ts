@@ -533,11 +533,28 @@ export function getDynamicBindingsChangesSaga(
   formData?: any,
 ) {
   const bindingField = field.replace("actionConfiguration.", "");
+  const queryMode =
+    get(formData, "actionConfiguration.formData.queryMode.data") ??
+    get(action, "actionConfiguration.formData.queryMode.data");
+  const isBuilderDefinitionMirror =
+    bindingField === "formData.definition.data" && queryMode === "BUILDER";
   // we listen to any viewType changes.
   const viewType = field.endsWith(".viewType");
   let dynamicBindings: DynamicPath[] = action.dynamicBindingPathList
     ? [...action.dynamicBindingPathList]
     : [];
+
+  // Builder keeps definition as a synchronized display/export mirror. Its
+  // expressions are already evaluated through the active Builder controls.
+  if (queryMode === "BUILDER") {
+    dynamicBindings = dynamicBindings.filter(
+      ({ key }) => key !== "formData.definition.data",
+    );
+  }
+
+  if (isBuilderDefinitionMirror) {
+    return dynamicBindings;
+  }
 
   if (field.endsWith(".jsonData") || field.endsWith(".componentData")) {
     return dynamicBindings;

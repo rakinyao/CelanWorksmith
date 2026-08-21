@@ -224,6 +224,11 @@ class OntologyConfigurationTest {
         assertEquals(
                 "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
                 definition.path("disabled").asText());
+        assertEquals(
+                "actionConfiguration.formData.queryMode.data",
+                definition.at("/hidden/path").asText());
+        assertEquals("EQUALS", definition.at("/hidden/comparison").asText());
+        assertEquals("BUILDER", definition.at("/hidden/value").asText());
         for (JsonNode control : List.of(objectType, projection, filter, sort, page)) {
             assertEquals(
                     "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",

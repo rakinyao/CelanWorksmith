@@ -190,6 +190,11 @@
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
           "disabled": "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
+          "hidden": {
+            "path": "actionConfiguration.formData.queryMode.data",
+            "comparison": "EQUALS",
+            "value": "BUILDER"
+          },
           "isRequired": true,
           "evaluationSubstitutionType": "TEMPLATE",
           "conditionals": {

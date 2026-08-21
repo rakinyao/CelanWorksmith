@@ -308,6 +308,47 @@ describe("getReactivePathsOfAction", () => {
     });
   });
 
+  it("does not evaluate the builder definition mirror", () => {
+    const config = [
+      {
+        children: [
+          {
+            configProperty: "actionConfiguration.formData.definition.data",
+            controlType: "QUERY_DYNAMIC_INPUT_TEXT",
+            hidden: {
+              path: "actionConfiguration.formData.queryMode.data",
+              comparison: "EQUALS",
+              value: "BUILDER",
+            },
+          },
+        ],
+      },
+    ];
+    const action = {
+      ...DEFAULT_ACTION,
+      actionConfiguration: {
+        formData: {
+          definition: { data: '{"page":{"offset":"{{Table1.pageOffset}}"}}' },
+          queryMode: { data: "BUILDER" },
+        },
+      },
+    };
+
+    expect(
+      getBindingAndReactivePathsOfAction(action, config).reactivePaths[
+        "config.formData.definition.data"
+      ],
+    ).toBeUndefined();
+
+    action.actionConfiguration.formData.queryMode.data = "ADVANCED";
+
+    expect(
+      getBindingAndReactivePathsOfAction(action, config).reactivePaths[
+        "config.formData.definition.data"
+      ],
+    ).toBe(EvaluationSubstitutionType.TEMPLATE);
+  });
+
   it("returns default list of no config is sent", () => {
     const response = getBindingAndReactivePathsOfAction(
       DEFAULT_ACTION,

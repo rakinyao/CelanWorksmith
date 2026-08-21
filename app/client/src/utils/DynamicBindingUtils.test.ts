@@ -163,6 +163,30 @@ describe("DynamicBindingPathlist", () => {
 
     expect(equal(expectedResult, actualResult)).toBeTruthy();
   });
+
+  it("removes the inactive ontology builder definition mirror", () => {
+    const action = {
+      ...({} as Action),
+      actionConfiguration: {
+        formData: {
+          queryMode: { data: "BUILDER" },
+        },
+      },
+      dynamicBindingPathList: [
+        { key: "formData.page.data" },
+        { key: "formData.definition.data" },
+      ],
+    };
+
+    expect(
+      getDynamicBindingsChangesSaga(
+        action,
+        "OBJECT_QUERY",
+        "actionConfiguration.formData.operation.data",
+        action,
+      ),
+    ).toEqual([{ key: "formData.page.data" }]);
+  });
 });
 
 describe("getPropertyPath function", () => {
