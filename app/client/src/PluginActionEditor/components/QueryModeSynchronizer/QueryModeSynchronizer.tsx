@@ -32,6 +32,11 @@ export interface OntologyQueryDefinitionUpdate {
   value: string;
 }
 
+export interface OntologyFullPageUpdate {
+  field: "actionConfiguration.formData.page.data";
+  value: { mode: "FULL" };
+}
+
 export type OntologyAdvancedToBuilderResult =
   | {
       updates: Record<string, unknown>;
@@ -189,6 +194,41 @@ export function getOntologyQueryDefinitionUpdate(
   return { field: "actionConfiguration.formData.definition.data", value };
 }
 
+export function getOntologyFullPageUpdate(
+  input: OntologyQuerySynchronizerInput,
+): OntologyFullPageUpdate | undefined {
+  if (input.pluginPackageName !== PluginPackageName.ONTOLOGY) {
+    return undefined;
+  }
+
+  if (
+    readControlData(input.formData.operation) !== "OBJECT_QUERY" ||
+    readControlData(input.formData.queryMode) !== "BUILDER"
+  ) {
+    return undefined;
+  }
+
+  const page = readControlData(input.formData.page);
+  if (
+    page === null ||
+    typeof page !== "object" ||
+    Array.isArray(page) ||
+    (page as Record<string, unknown>).mode !== "FULL"
+  ) {
+    return undefined;
+  }
+
+  const pageData = page as Record<string, unknown>;
+  if (!("offset" in pageData) && !("limit" in pageData)) {
+    return undefined;
+  }
+
+  return {
+    field: "actionConfiguration.formData.page.data",
+    value: { mode: "FULL" },
+  };
+}
+
 interface OntologyQueryModeSynchronizerProps {
   formName: string;
   enabled: boolean;
@@ -310,13 +350,19 @@ export function OntologyQueryModeSynchronizer({
       hydrationUpdates.current = undefined;
     }
 
-    const update = getOntologyQueryDefinitionUpdate({
+    const synchronizerInput = {
       formData,
       pluginPackageName,
       previousQueryMode: previousQueryMode.current,
-    });
+    };
+    const fullPageUpdate = getOntologyFullPageUpdate(synchronizerInput);
+    const update = getOntologyQueryDefinitionUpdate(synchronizerInput);
 
     previousQueryMode.current = currentQueryMode;
+
+    if (fullPageUpdate) {
+      dispatch(change(formName, fullPageUpdate.field, fullPageUpdate.value));
+    }
 
     if (update) {
       dispatch(change(formName, update.field, update.value));

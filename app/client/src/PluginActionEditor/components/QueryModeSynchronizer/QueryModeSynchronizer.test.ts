@@ -19,6 +19,7 @@ const mockInitialFormValues = {
       objectTypeId: { data: "PurchaseOrder" },
       page: {
         data: {
+          mode: "LIMITED",
           offset: "{{Table1.pageOffset}}",
           limit: "{{Table1.pageSize}}",
         },
@@ -60,6 +61,7 @@ const builderFormData = {
   objectTypeId: { data: "PurchaseOrder" },
   page: {
     data: {
+      mode: "LIMITED",
       offset: "{{Table1.pageOffset}}",
       limit: "{{Table1.pageSize}}",
     },
@@ -70,6 +72,7 @@ const formattedPageDefinition = JSON.stringify(
   {
     objectTypeId: "PurchaseOrder",
     page: {
+      mode: "LIMITED",
       offset: "{{Table1.pageOffset}}",
       limit: "{{Table1.pageSize}}",
     },
@@ -178,6 +181,33 @@ describe("OntologyQueryModeSynchronizer", () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  it("removes stale numeric pagination fields when Builder selects Full mode", () => {
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "OBJECT_QUERY" },
+          queryMode: { data: "BUILDER" },
+          objectTypeId: { data: "PurchaseOrder" },
+          page: { data: { mode: "FULL", offset: 0, limit: 500 } },
+        },
+      },
+    };
+
+    render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.page.data",
+      { mode: "FULL" },
+    );
+  });
+
   it("does not dispatch a second definition update when unchanged Builder state rerenders", () => {
     const builderDefinition = formattedPageDefinition;
     mockCurrentFormValues = {
@@ -284,6 +314,7 @@ describe("OntologyQueryModeSynchronizer", () => {
           ...builderFormData,
           page: {
             data: {
+              mode: "LIMITED",
               offset: "{{Table1.pageOffset}}",
               limit: "{{Table1.pageSize + 10}}",
             },
@@ -307,6 +338,7 @@ describe("OntologyQueryModeSynchronizer", () => {
         {
           objectTypeId: "PurchaseOrder",
           page: {
+            mode: "LIMITED",
             offset: "{{Table1.pageOffset}}",
             limit: "{{Table1.pageSize + 10}}",
           },
@@ -348,6 +380,7 @@ describe("OntologyQueryModeSynchronizer", () => {
       },
       sort: [{ propertyId: "delayDays", direction: "DESC" as const }],
       page: {
+        mode: "LIMITED",
         offset: "{{Table1.pageOffset}}",
         limit: "{{Table1.pageSize}}",
       },
@@ -364,6 +397,7 @@ describe("OntologyQueryModeSynchronizer", () => {
         { propertyId: "delayDays", direction: "DESC" },
       ],
       "actionConfiguration.formData.page.data": {
+        mode: "LIMITED",
         offset: "{{Table1.pageOffset}}",
         limit: "{{Table1.pageSize}}",
       },
@@ -386,6 +420,7 @@ describe("OntologyQueryModeSynchronizer", () => {
         },
         sort: [{ propertyId: "delayDays", direction: "ASC" }],
         page: {
+          mode: "LIMITED",
           offset: "{{Table1.pageOffset}}",
           limit: "{{Table1.pageSize}}",
         },
@@ -408,6 +443,7 @@ describe("OntologyQueryModeSynchronizer", () => {
         },
         sort: [{ propertyId: "delayDays", direction: "ASC" }],
         page: {
+          mode: "LIMITED",
           offset: "{{Table1.pageOffset}}",
           limit: "{{Table1.pageSize}}",
         },
@@ -427,6 +463,7 @@ describe("OntologyQueryModeSynchronizer", () => {
           { propertyId: "delayDays", direction: "ASC" },
         ],
         "actionConfiguration.formData.page.data": {
+          mode: "LIMITED",
           offset: "{{Table1.pageOffset}}",
           limit: "{{Table1.pageSize}}",
         },
@@ -466,7 +503,7 @@ describe("OntologyQueryModeSynchronizer", () => {
                 ],
               },
               sort: [{ propertyId: "delayDays", direction: "DESC" }],
-              page: { offset: 0, limit: 10 },
+              page: { mode: "LIMITED", offset: 0, limit: 10 },
             }),
           },
         },
@@ -504,7 +541,7 @@ describe("OntologyQueryModeSynchronizer", () => {
     expect(mockChange).toHaveBeenCalledWith(
       "QueryEditorForm",
       "actionConfiguration.formData.page.data",
-      { offset: 0, limit: 10 },
+      { mode: "LIMITED", offset: 0, limit: 10 },
     );
   });
 
@@ -534,7 +571,7 @@ describe("OntologyQueryModeSynchronizer", () => {
   it("restores the last valid Advanced definition when switching with invalid JSON", () => {
     const validDefinition = JSON.stringify({
       objectTypeId: "PurchaseOrder",
-      page: { offset: 0, limit: 10 },
+      page: { mode: "LIMITED", offset: 0, limit: 10 },
     });
     mockEvaluationState = {
       "": {
@@ -596,7 +633,10 @@ describe("OntologyQueryModeSynchronizer", () => {
   });
 
   it("retains the existing Advanced definition while metadata is unavailable", () => {
-    const validDefinition = '{"objectTypeId":"PurchaseOrder"}';
+    const validDefinition = JSON.stringify({
+      objectTypeId: "PurchaseOrder",
+      page: { mode: "LIMITED", offset: 0, limit: 100 },
+    });
     mockCurrentFormValues = {
       pluginId: "ontology-plugin-id",
       actionConfiguration: {

@@ -76,6 +76,17 @@ class MockRuntimeProviderTest {
     }
 
     @Test
+    void acceptsLimitsUpToOneThousandAndRejectsLargerLimits() {
+        ObjectSetResult result = dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 500));
+
+        assertEquals(200, result.items().size());
+        assertEquals(500, result.limit());
+        assertThrows(
+                CelanWorksmithException.class,
+                () -> dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 1001)));
+    }
+
+    @Test
     void structuredFiltersUsedByObjectSetVariablesAreEvaluated() {
         var filter = com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
         filter.put("typeId", "PurchaseOrder");
