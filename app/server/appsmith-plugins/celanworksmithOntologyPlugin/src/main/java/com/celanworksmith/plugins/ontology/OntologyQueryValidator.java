@@ -17,8 +17,9 @@ import java.util.Map;
 
 final class OntologyQueryValidator {
     private static final int DEFAULT_OFFSET = 0;
-    private static final int DEFAULT_LIMIT = 50;
+    private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 1_000;
+    static final int FULL_RESULT_LIMIT = 5_000;
 
     private final ObjectMapper objectMapper;
 
@@ -26,7 +27,7 @@ final class OntologyQueryValidator {
         this.objectMapper = objectMapper;
     }
 
-    ObjectQuery validateObjectQuery(OntologyActionConfiguration configuration, Snapshot snapshot) {
+    ValidatedObjectQuery validateObjectQuery(OntologyActionConfiguration configuration, Snapshot snapshot) {
         if (configuration.operation() != OntologyActionConfiguration.Operation.OBJECT_QUERY) {
             throw new IllegalArgumentException("Ontology executor only supports OBJECT_QUERY");
         }
@@ -39,7 +40,9 @@ final class OntologyQueryValidator {
         JsonNode filter = filter(definition, objectTypeId, properties);
         Sort sort = sort(definition, properties);
         Page page = page(definition);
-        return new ObjectQuery(projection, filter, sort.propertyId(), sort.direction(), page.offset(), page.limit());
+        return new ValidatedObjectQuery(
+                new ObjectQuery(projection, filter, sort.propertyId(), sort.direction(), page.offset(), page.limit()),
+                page.full());
     }
 
     Map<String, Object> validateFunctionParameters(OntologyActionConfiguration configuration, Snapshot snapshot) {
@@ -253,17 +256,27 @@ final class OntologyQueryValidator {
     private Page page(Map<String, Object> definition) {
         Object value = definition.get("page");
         if (value == null) {
-            return new Page(DEFAULT_OFFSET, DEFAULT_LIMIT);
+            return new Page(DEFAULT_OFFSET, DEFAULT_LIMIT, false);
         }
         if (!(value instanceof Map<?, ?> page)) {
             throw new IllegalArgumentException("Ontology page must contain integer offset and limit");
+        }
+        Object mode = page.get("mode");
+        if ("FULL".equals(mode)) {
+            if (page.containsKey("offset") || page.containsKey("limit")) {
+                throw new IllegalArgumentException("Ontology full page must not contain offset or limit");
+            }
+            return new Page(DEFAULT_OFFSET, FULL_RESULT_LIMIT, true);
+        }
+        if (mode != null && !"LIMITED".equals(mode)) {
+            throw new IllegalArgumentException("Ontology page mode must be LIMITED or FULL");
         }
         int offset = page.get("offset") == null ? DEFAULT_OFFSET : nonNegativeInteger(page.get("offset"), "offset");
         int limit = page.get("limit") == null ? DEFAULT_LIMIT : positiveInteger(page.get("limit"), "limit");
         if (limit > MAX_LIMIT) {
             throw new IllegalArgumentException("Ontology page limit must not exceed " + MAX_LIMIT);
         }
-        return new Page(offset, limit);
+        return new Page(offset, limit, false);
     }
 
     private int nonNegativeInteger(Object value, String field) {
@@ -334,5 +347,7 @@ final class OntologyQueryValidator {
 
     private record Sort(String propertyId, String direction) {}
 
-    private record Page(int offset, int limit) {}
+    record ValidatedObjectQuery(ObjectQuery query, boolean full) {}
+
+    private record Page(int offset, int limit, boolean full) {}
 }

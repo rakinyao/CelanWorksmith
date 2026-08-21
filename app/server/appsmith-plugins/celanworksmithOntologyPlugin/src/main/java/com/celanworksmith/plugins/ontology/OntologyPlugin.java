@@ -351,19 +351,29 @@ public class OntologyPlugin extends BasePlugin {
                 return Mono.error(
                         new IllegalArgumentException("Ontology metadata snapshot does not match datasource pin"));
             }
-            OntologyRuntimeGateway.ObjectQuery query = queryValidator.validateObjectQuery(configuration, snapshot);
+            OntologyQueryValidator.ValidatedObjectQuery validatedQuery =
+                    queryValidator.validateObjectQuery(configuration, snapshot);
+            OntologyRuntimeGateway.ObjectQuery query = validatedQuery.query();
             String objectTypeId = (String) configuration.definition().get("objectTypeId");
             return runtimeGateway
                     .queryObjects(datasourceConfiguration.runtimeProviderId(), snapshot, objectTypeId, query)
-                    .map(result -> successResult(result, query, configuration.resultMode()));
+                    .map(result -> successResult(result, query, configuration.resultMode(), validatedQuery.full()));
         }
 
         private ActionExecutionResult successResult(
-                ObjectQueryResult result, OntologyRuntimeGateway.ObjectQuery query, String resultMode) {
+                ObjectQueryResult result,
+                OntologyRuntimeGateway.ObjectQuery query,
+                String resultMode,
+                boolean fullQuery) {
             ActionExecutionResult executionResult = new ActionExecutionResult();
             if ("TOTAL".equals(resultMode)) {
                 executionResult.setBody(Map.of("n", result.total()));
             } else {
+                if (fullQuery && result.total() > OntologyQueryValidator.FULL_RESULT_LIMIT) {
+                    throw new IllegalArgumentException("Full ontology queries cannot return more than "
+                            + OntologyQueryValidator.FULL_RESULT_LIMIT
+                            + " records. Add filters or use Limited mode.");
+                }
                 executionResult.setBody(result.items().stream()
                         .map(item -> projectedItem(item, query.projection()))
                         .toList());

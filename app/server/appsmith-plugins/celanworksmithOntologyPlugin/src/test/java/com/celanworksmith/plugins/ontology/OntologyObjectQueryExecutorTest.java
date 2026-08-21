@@ -502,7 +502,40 @@ class OntologyObjectQueryExecutorTest {
 
         assertTrue(result.getIsExecutionSuccess(), result.getReadableError());
         assertEquals(0, gateway.query.offset());
-        assertEquals(50, gateway.query.limit());
+        assertEquals(100, gateway.query.limit());
+    }
+
+    @Test
+    void fullQueryUsesTheBoundedFullResultLimit() {
+        RecordingGateway gateway = gateway();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "page", Map.of("mode", "FULL")));
+
+        assertTrue(result.getIsExecutionSuccess(), result.getReadableError());
+        assertEquals(0, gateway.query.offset());
+        assertEquals(5_000, gateway.query.limit());
+    }
+
+    @Test
+    void fullQueryFailsWithoutReturningPartialRowsWhenItsTotalExceedsTheBound() {
+        RecordingGateway gateway = gateway();
+        gateway.total = 5_001;
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "page", Map.of("mode", "FULL")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("5000"));
+        assertFalse(result.getBody() instanceof List<?>);
     }
 
     @Test
@@ -697,6 +730,7 @@ class OntologyObjectQueryExecutorTest {
         private RuntimeException queryFailure;
         private boolean emptyResult;
         private List<Map<String, Object>> customItems;
+        private long total = 21;
 
         private RecordingGateway(Snapshot snapshot) {
             this.snapshot = snapshot;
@@ -733,7 +767,7 @@ class OntologyObjectQueryExecutorTest {
                                     true,
                                     "internalNote",
                                     "private"));
-            return Mono.just(new ObjectQueryResult(items, query.offset(), query.limit(), 21));
+            return Mono.just(new ObjectQueryResult(items, query.offset(), query.limit(), total));
         }
     }
 }
