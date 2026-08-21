@@ -222,6 +222,18 @@ curl -fsS http://10.10.101.210/api/v1/health
 The migration deliberately does not restore old Appsmith accounts or Apps;
 create a fresh test account and App through the UI on this machine.
 
+## 2026-08-21 Result Sizing Deployment Checkpoint
+
+- The Ontology plugin was rebuilt and deployed to
+  `app/server/dist/plugins/celanworksmithOntologyPlugin-1.0-SNAPSHOT.jar`.
+- `cw-backend`, `cw-rts`, and `cw-frontend` were active after deployment, and
+  the backend health endpoint returned HTTP 200.
+- The active manual-test `Query_PurchaseOrder1` now uses literal
+  `{ mode: "LIMITED", offset: 0, limit: 100 }`. Its Table page-size and
+  page-offset dependencies were removed; existing sort dependencies remain.
+- The reproducible runtime data contains 10 `purchase_orders` rows. Browser
+  acceptance for the new Result mode controls remains pending manual testing.
+
 ## Validation Gate
 
 Run the non-browser migration check:
