@@ -37,7 +37,10 @@ import type {
   WidgetQueryConfig,
   WidgetQueryGenerationFormConfig,
 } from "WidgetQueryGenerators/types";
-import { QUERY_TYPE } from "WidgetQueryGenerators/types";
+import {
+  QUERY_TYPE,
+  QueryPaginationBindingMode,
+} from "WidgetQueryGenerators/types";
 import type { WidgetProps } from "widgets/BaseWidget";
 import type { ApiResponse } from "api/ApiResponses";
 import type { ActionCreateUpdateResponse } from "api/ActionAPI";
@@ -53,6 +56,17 @@ import {
   oneClickBindingFailureMessage,
   oneClickBindingSuccessMessage,
 } from "./OneClickBindingMessages";
+
+type GeneratedActionMetadata = {
+  type: QUERY_TYPE | string;
+  paginationBindingMode?: QueryPaginationBindingMode;
+};
+
+export const getPaginationBindingMode = (
+  actions: GeneratedActionMetadata[],
+): QueryPaginationBindingMode | undefined =>
+  actions.find((action) => action.type === QUERY_TYPE.SELECT)
+    ?.paginationBindingMode;
 
 export function* createActionsForOneClickBindingSaga(
   payload: Partial<Action> & { eventData: unknown; pluginId: string },
@@ -144,6 +158,9 @@ function* BindWidgetToDatasource(
       widgetQueryGenerationConfig,
       action.payload,
       defaultValues,
+    );
+    const paginationBindingMode = getPaginationBindingMode(
+      actionConfigurationList,
     );
 
     const newActionName =
@@ -261,6 +278,10 @@ function* BindWidgetToDatasource(
       const createdQueryNames = createdActions.map((d) => d.name);
 
       const queryBindingConfig: WidgetQueryConfig = {};
+
+      if (paginationBindingMode) {
+        queryBindingConfig.paginationBindingMode = paginationBindingMode;
+      }
 
       const { alertMessage } = action.payload;
 

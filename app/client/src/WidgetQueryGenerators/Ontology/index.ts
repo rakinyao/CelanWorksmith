@@ -4,7 +4,10 @@ import type {
   WidgetQueryGenerationConfig,
   WidgetQueryGenerationFormConfig,
 } from "WidgetQueryGenerators/types";
-import { QUERY_TYPE } from "WidgetQueryGenerators/types";
+import {
+  QUERY_TYPE,
+  QueryPaginationBindingMode,
+} from "WidgetQueryGenerators/types";
 import { removeSpecialChars } from "utils/helpers";
 import { serializeBuilderForm } from "../../PluginActionEditor/components/QueryModeSynchronizer/ontologyObjectQueryDefinition";
 
@@ -52,12 +55,13 @@ export default abstract class Ontology {
       objectTypeId: { data: formConfig.tableName },
       page: {
         data: {
-          offset: select.offset ? `{{${select.offset}}}` : 0,
-          limit: select.limit ? `{{${select.limit}}}` : 50,
+          mode: "LIMITED",
+          offset: 0,
+          limit: 100,
         },
       },
     };
-    const dynamicBindingPathList = [{ key: "formData.page.data" }];
+    const dynamicBindingPathList: { key: string }[] = [];
 
     const projection = formConfig.columns?.map((column) => column.name);
 
@@ -93,46 +97,7 @@ export default abstract class Ontology {
         formData,
       },
       dynamicBindingPathList,
-    };
-  }
-
-  private static buildTotalRecord(
-    widgetConfig: WidgetQueryGenerationConfig,
-    formConfig: WidgetQueryGenerationFormConfig,
-  ) {
-    const { select } = widgetConfig;
-
-    if (!select || !formConfig.tableName) {
-      return;
-    }
-
-    const formData: Record<string, unknown> = {
-      operation: { data: "OBJECT_QUERY" },
-      queryMode: { data: "BUILDER" },
-      objectTypeId: { data: formConfig.tableName },
-      resultMode: { data: "TOTAL" },
-      page: {
-        data: {
-          offset: 0,
-          limit: 1,
-        },
-      },
-    };
-    const dynamicBindingPathList: { key: string }[] = [];
-    const filter = this.buildFilter(select, formConfig);
-
-    if (filter) {
-      formData.filter = filter;
-      dynamicBindingPathList.push({ key: "formData.filter.data" });
-    }
-
-    return {
-      type: QUERY_TYPE.TOTAL_RECORD,
-      name: `Total_record_${removeSpecialChars(formConfig.tableName)}`,
-      payload: {
-        formData,
-      },
-      dynamicBindingPathList,
+      paginationBindingMode: QueryPaginationBindingMode.CLIENT_SIDE,
     };
   }
 
@@ -161,27 +126,6 @@ export default abstract class Ontology {
       },
     ];
 
-    if (widgetConfig.totalRecord) {
-      const totalRecord = this.buildTotalRecord(widgetConfig, formConfig);
-
-      if (totalRecord) {
-        const totalFormData = merge(
-          {},
-          initialFormData,
-          totalRecord.payload.formData,
-        );
-        totalFormData.definition = {
-          data: serializeBuilderForm(totalFormData, true),
-        };
-        actions.push({
-          ...totalRecord,
-          payload: {
-            formData: totalFormData,
-          },
-        });
-      }
-    }
-
     return actions;
   }
 
@@ -189,7 +133,4 @@ export default abstract class Ontology {
     return DatasourceConnectionMode.READ_ONLY;
   }
 
-  static getTotalRecordExpression(binding: string) {
-    return `${binding}.n`;
-  }
 }

@@ -43,10 +43,11 @@ describe("TableWidgetV2 native Query bindings", () => {
     });
   });
 
-  it("keeps ontology binding on the native Table contract", () => {
+  it("uses client pagination for an explicitly client-paginated Query", () => {
     const updates =
       TableWidgetV2.getMethods().getPropertyUpdatesForQueryBinding(
         {
+          paginationBindingMode: "CLIENT_SIDE",
           select: {
             data: "{{ PurchaseOrders.data }}",
             run: "{{ PurchaseOrders.run() }}",
@@ -61,9 +62,10 @@ describe("TableWidgetV2 native Query bindings", () => {
 
     expect(updates.modify).toMatchObject({
       tableData: "{{ PurchaseOrders.data }}",
-      onPageChange: "{{ PurchaseOrders.run() }}",
-      serverSidePaginationEnabled: true,
+      serverSidePaginationEnabled: false,
     });
+    expect(updates.modify).not.toHaveProperty("onPageChange");
+    expect(updates.modify).not.toHaveProperty("totalRecordsCount");
     expect(updates.modify).not.toHaveProperty("$objects");
     expect(updates.modify).not.toHaveProperty("objectType");
     expect(updates.modify).not.toHaveProperty("objectProperties");

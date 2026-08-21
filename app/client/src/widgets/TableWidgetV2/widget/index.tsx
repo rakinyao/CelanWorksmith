@@ -53,6 +53,7 @@ import type {
   WidgetQueryConfig,
   WidgetQueryGenerationFormConfig,
 } from "WidgetQueryGenerators/types";
+import { QueryPaginationBindingMode } from "WidgetQueryGenerators/types";
 import type { WidgetProps, WidgetState } from "widgets/BaseWidget";
 import BaseWidget from "widgets/BaseWidget";
 import { TimePrecision } from "widgets/DatePickerWidget2/constants";
@@ -272,10 +273,18 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
         const dynamicPropertyPathList: DynamicPath[] = [];
 
         if (queryConfig.select) {
+          const isClientPaginated =
+            queryConfig.paginationBindingMode ===
+            QueryPaginationBindingMode.CLIENT_SIDE;
+
           modify = merge(modify, {
             tableData: queryConfig.select.data,
-            onPageChange: queryConfig.select.run,
-            serverSidePaginationEnabled: true,
+            ...(isClientPaginated
+              ? { serverSidePaginationEnabled: false }
+              : {
+                  onPageChange: queryConfig.select.run,
+                  serverSidePaginationEnabled: true,
+                }),
             onSearchTextChanged: formConfig.searchableColumn
               ? queryConfig.select.run
               : undefined,

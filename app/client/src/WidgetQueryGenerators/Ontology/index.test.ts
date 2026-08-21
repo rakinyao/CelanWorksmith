@@ -14,7 +14,7 @@ describe("Ontology WidgetQueryGenerator", () => {
     connectionMode: DatasourceConnectionMode.READ_ONLY,
   };
 
-  it("generates a total-record query alongside a paged object query", () => {
+  it("generates a client-paginated object query without Table-size bindings", () => {
     const actions = Ontology.build(
       {
         select: {
@@ -28,17 +28,16 @@ describe("Ontology WidgetQueryGenerator", () => {
       {},
     );
 
-    expect(actions).toHaveLength(2);
-    expect(actions[1]).toMatchObject({
-      type: "total_record",
-      name: "Total_record_PurchaseOrder",
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({
+      type: "select",
+      paginationBindingMode: "CLIENT_SIDE",
       payload: {
         formData: {
           operation: { data: "OBJECT_QUERY" },
           queryMode: { data: "BUILDER" },
           objectTypeId: { data: "PurchaseOrder" },
-          resultMode: { data: "TOTAL" },
-          page: { data: { offset: 0, limit: 1 } },
+          page: { data: { mode: "LIMITED", offset: 0, limit: 100 } },
           filter: {
             data: {
               conditions: [
@@ -54,18 +53,9 @@ describe("Ontology WidgetQueryGenerator", () => {
       },
     });
 
-    expect(
-      JSON.parse(actions[1].payload.formData.definition.data),
-    ).toMatchObject({
-      objectTypeId: "PurchaseOrder",
-      resultMode: "TOTAL",
+    expect(actions[0].dynamicBindingPathList).not.toContainEqual({
+      key: "formData.page.data",
     });
-  });
-
-  it("exposes the native total-record binding shape", () => {
-    expect(
-      Ontology.getTotalRecordExpression("Total_record_PurchaseOrder.data"),
-    ).toBe("Total_record_PurchaseOrder.data.n");
   });
 
   it("seeds the generated builder query with its canonical definition", () => {
@@ -101,11 +91,13 @@ describe("Ontology WidgetQueryGenerator", () => {
     expect(definition.page).toEqual(builderFormData.page.data);
     expect(selectAction.dynamicBindingPathList).toEqual(
       expect.arrayContaining([
-        { key: "formData.page.data" },
         { key: "formData.filter.data" },
         { key: "formData.sort.data" },
       ]),
     );
+    expect(selectAction.dynamicBindingPathList).not.toContainEqual({
+      key: "formData.page.data",
+    });
   });
 
   it("builds the canonical definition after merging initial form values", () => {
@@ -129,7 +121,7 @@ describe("Ontology WidgetQueryGenerator", () => {
         {
           objectTypeId: "PurchaseOrder",
           projection: ["id", "delayDays"],
-          page: { offset: 0, limit: 50 },
+          page: { mode: "LIMITED", offset: 0, limit: 100 },
         },
         null,
         2,

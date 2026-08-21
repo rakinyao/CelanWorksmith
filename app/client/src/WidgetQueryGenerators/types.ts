@@ -52,13 +52,21 @@ export enum QUERY_TYPE {
   TOTAL_RECORD = "total_record",
 }
 
-export type WidgetQueryConfig = Record<
-  string,
-  {
-    data: string;
-    run: string;
-  }
->;
+export enum QueryPaginationBindingMode {
+  CLIENT_SIDE = "CLIENT_SIDE",
+}
+
+export type WidgetQueryConfig = Partial<
+  Record<
+    QUERY_TYPE,
+    {
+      data: string;
+      run: string;
+    }
+  >
+> & {
+  paginationBindingMode?: QueryPaginationBindingMode;
+};
 
 export interface MongoDBFormData {
   aggregate: object;
