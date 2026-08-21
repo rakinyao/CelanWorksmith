@@ -71,9 +71,9 @@ module.exports = function (proxy, allowedHost) {
     },
     client: {
       webSocketURL: {
-        hostname: "127.0.0.1",
-        pathname: "/ws",
-        port: 3000,
+        hostname: sockHost || "127.0.0.1",
+        pathname: sockPath || "/ws",
+        port: sockPort || 3000,
         protocol: "ws",
       },
       overlay: {
