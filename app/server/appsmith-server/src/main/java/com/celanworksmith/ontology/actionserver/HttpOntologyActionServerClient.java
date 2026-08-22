@@ -74,10 +74,16 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
 
         try {
             DomainFailure failure = objectMapper.readValue(body, DomainFailure.class);
+            if (failure == null) {
+                return Mono.error(new IllegalStateException("Action Server returned a null error response"));
+            }
             if (!OntologyActionServerProtocol.V1.equals(failure.contractVersion())
                     || failure.message() == null
                     || failure.message().isBlank()) {
                 return Mono.error(new IllegalStateException("Action Server returned an undeclared error response"));
+            }
+            if (failure.auditId() == null || failure.auditId().isBlank()) {
+                return Mono.error(new IllegalStateException("Action Server error response auditId must not be blank"));
             }
             return Mono.error(new DomainException(failure.message(), failure.auditId()));
         } catch (JsonProcessingException | IllegalArgumentException exception) {
@@ -86,6 +92,9 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
     }
 
     private static void validateSuccess(ExecuteSuccess success) {
+        if (success == null) {
+            throw new IllegalArgumentException("success body must not be null");
+        }
         if (!OntologyActionServerProtocol.V1.equals(success.contractVersion())) {
             throw new IllegalArgumentException("contractVersion must be v1");
         }

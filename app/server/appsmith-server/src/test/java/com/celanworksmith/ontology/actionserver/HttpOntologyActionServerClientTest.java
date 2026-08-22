@@ -85,6 +85,46 @@ class HttpOntologyActionServerClientTest {
     }
 
     @Test
+    void rejectsDomainFailureWithoutAuditId() {
+        server.enqueue(new MockResponse().setResponseCode(409).setBody("""
+                {"contractVersion":"v1","code":"CONFLICT","message":"Schedule is already published."}
+                """));
+
+        StepVerifier.create(client.execute(request()))
+                .expectError(IllegalStateException.class)
+                .verify();
+    }
+
+    @Test
+    void rejectsDomainFailureWithBlankAuditId() {
+        server.enqueue(new MockResponse().setResponseCode(409).setBody("""
+                {"contractVersion":"v1","auditId":"","code":"CONFLICT","message":"Schedule is already published."}
+                """));
+
+        StepVerifier.create(client.execute(request()))
+                .expectError(IllegalStateException.class)
+                .verify();
+    }
+
+    @Test
+    void rejectsNullSuccessPayload() {
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("null"));
+
+        StepVerifier.create(client.execute(request()))
+                .expectError(IllegalStateException.class)
+                .verify();
+    }
+
+    @Test
+    void rejectsNullDomainFailurePayload() {
+        server.enqueue(new MockResponse().setResponseCode(409).setBody("null"));
+
+        StepVerifier.create(client.execute(request()))
+                .expectError(IllegalStateException.class)
+                .verify();
+    }
+
+    @Test
     void appliesInjectedTimeoutToDelayedResponse() {
         client = new HttpOntologyActionServerClient(
                 WebClient.builder().build(),
