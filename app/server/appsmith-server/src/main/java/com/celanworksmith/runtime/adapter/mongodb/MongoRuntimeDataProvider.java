@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 
 public class MongoRuntimeDataProvider extends MockRuntimeProvider {
+    private static final int MAX_LIMIT = 5_000;
+
     private final ReactiveMongoTemplate template;
     private final CelanworksmithApplicationBindingResolver resolver;
     private final MongoClient client;
@@ -369,10 +371,10 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
     }
 
     private void validateQuery(ObjectTypeDTO type, ObjectSetQuery query) {
-        if (query.offset() < 0 || query.limit() < 1 || query.limit() > 100)
+        if (query.offset() < 0 || query.limit() < 1 || query.limit() > MAX_LIMIT)
             throw new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT,
-                    "offset must be non-negative and limit must be between 1 and 100");
+                    "offset must be non-negative and limit must be between 1 and " + MAX_LIMIT);
         if (!"asc".equalsIgnoreCase(query.sortDirection()) && !"desc".equalsIgnoreCase(query.sortDirection()))
             throw new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "sortDirection must be asc or desc");

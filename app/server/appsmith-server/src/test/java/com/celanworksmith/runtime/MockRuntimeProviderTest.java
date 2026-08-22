@@ -76,14 +76,14 @@ class MockRuntimeProviderTest {
     }
 
     @Test
-    void acceptsLimitsUpToOneThousandAndRejectsLargerLimits() {
-        ObjectSetResult result = dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 500));
+    void acceptsTheFullResultBoundAndRejectsLargerLimits() {
+        ObjectSetResult result = dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 5_000));
 
         assertEquals(200, result.items().size());
-        assertEquals(500, result.limit());
+        assertEquals(5_000, result.limit());
         assertThrows(
                 CelanWorksmithException.class,
-                () -> dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 1001)));
+                () -> dataStore.query("PurchaseOrder", new ObjectSetQuery(null, "id", "asc", 0, 5_001)));
     }
 
     @Test

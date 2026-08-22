@@ -83,6 +83,21 @@ class MongoRuntimeDataProviderTest {
     }
 
     @Test
+    void acceptsTheFullResultBoundForBoundObjects() {
+        when(resolver.resolve("app-1")).thenReturn(Mono.just(RuntimeProviderTestFixtures.binding()));
+        when(template.find(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Flux.just(document("PO001", "CONFIRMED", 0)));
+        when(template.count(any(), eq("purchase_orders"))).thenReturn(Mono.just(1L));
+
+        StepVerifier.create(provider.queryObjects(
+                        RuntimeProviderTestFixtures.context("app-1"),
+                        "PurchaseOrder",
+                        RuntimeProviderTestFixtures.query(0, 5_000)))
+                .assertNext(result -> assertThat(result.limit()).isEqualTo(5_000))
+                .verifyComplete();
+    }
+
+    @Test
     void queriesObjectsUsingThePinnedOntologyDefinitionWithoutAnApplicationBinding() {
         when(template.find(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
                 .thenReturn(Flux.just(document("PO001", "CONFIRMED", 0)));

@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MockDataStore {
-    private static final int MAX_LIMIT = 1_000;
+    private static final int MAX_LIMIT = 5_000;
     private final Map<String, Map<String, ObjectInstanceDTO>> objects = new ConcurrentHashMap<>();
     private final AtomicLong resetVersion = new AtomicLong();
 
@@ -224,7 +224,7 @@ public class MockDataStore {
         if (query.offset() < 0 || query.limit() < 1 || query.limit() > MAX_LIMIT) {
             throw new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT,
-                    "offset must be non-negative and limit must be between 1 and 1000");
+                    "offset must be non-negative and limit must be between 1 and 5000");
         }
         if (!"asc".equalsIgnoreCase(query.sortDirection()) && !"desc".equalsIgnoreCase(query.sortDirection())) {
             throw new CelanWorksmithException(
