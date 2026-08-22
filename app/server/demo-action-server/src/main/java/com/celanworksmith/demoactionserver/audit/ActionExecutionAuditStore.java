@@ -59,8 +59,7 @@ public class ActionExecutionAuditStore {
                 .set("successMessage", successMessage)
                 .set("changedObjects", changedObjects)
                 .set("changedProperties", changedProperties);
-        return mongoTemplate.findAndModify(
-                runningAuditQuery(auditId), update, ActionExecutionAuditDocument.class, COLLECTION);
+        return terminalAuditUpdate(auditId, update);
     }
 
     public Mono<ActionExecutionAuditDocument> markFailed(String auditId, Instant completedAt, DomainFailure failure) {
@@ -68,8 +67,12 @@ public class ActionExecutionAuditStore {
                 .set("status", "FAILED")
                 .set("completedAt", completedAt)
                 .set("failure", failure);
-        return mongoTemplate.findAndModify(
-                runningAuditQuery(auditId), update, ActionExecutionAuditDocument.class, COLLECTION);
+        return terminalAuditUpdate(auditId, update);
+    }
+
+    private Mono<ActionExecutionAuditDocument> terminalAuditUpdate(String auditId, Update update) {
+        return mongoTemplate.findAndModify(runningAuditQuery(auditId), update, ActionExecutionAuditDocument.class, COLLECTION)
+                .switchIfEmpty(Mono.error(new IllegalStateException("Audit " + auditId + " is not RUNNING.")));
     }
 
     private static Query runningAuditQuery(String auditId) {

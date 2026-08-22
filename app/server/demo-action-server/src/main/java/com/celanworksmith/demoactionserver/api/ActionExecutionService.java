@@ -2,6 +2,7 @@ package com.celanworksmith.demoactionserver.api;
 
 import com.celanworksmith.demoactionserver.audit.ActionExecutionAuditDocument;
 import com.celanworksmith.demoactionserver.audit.ActionExecutionAuditStore;
+import com.celanworksmith.demoactionserver.handler.DemoActionHandlerRegistry;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
@@ -16,10 +17,7 @@ import reactor.core.publisher.Mono;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 public class ActionExecutionService {
@@ -28,32 +26,31 @@ public class ActionExecutionService {
     private static final String RUNNING = "RUNNING";
     private static final String ACTION_IN_PROGRESS = "ACTION_IN_PROGRESS";
     private static final String ACTION_EXECUTION_FAILED = "ACTION_EXECUTION_FAILED";
-    private static final String ACTION_NOT_REGISTERED = "ACTION_NOT_REGISTERED";
     private static final String INVALID_REQUEST = "INVALID_REQUEST";
     private static final String SAFE_SERVER_MESSAGE = "Action execution failed.";
     private static final String SUCCESS_MESSAGE = "Action completed.";
 
     private final ActionExecutionAuditStore auditStore;
     private final TransactionalOperator transactionalOperator;
-    private final Map<String, ActionHandler> handlers;
+    private final DemoActionHandlerRegistry handlerRegistry;
     private final Clock clock;
 
     @Autowired
     public ActionExecutionService(
             ActionExecutionAuditStore auditStore,
             TransactionalOperator transactionalOperator,
-            List<ActionHandler> actionHandlers) {
-        this(auditStore, transactionalOperator, actionHandlers, Clock.systemUTC());
+            DemoActionHandlerRegistry handlerRegistry) {
+        this(auditStore, transactionalOperator, handlerRegistry, Clock.systemUTC());
     }
 
     ActionExecutionService(
             ActionExecutionAuditStore auditStore,
             TransactionalOperator transactionalOperator,
-            List<ActionHandler> actionHandlers,
+            DemoActionHandlerRegistry handlerRegistry,
             Clock clock) {
         this.auditStore = auditStore;
         this.transactionalOperator = transactionalOperator;
-        this.handlers = actionHandlers.stream().collect(Collectors.toUnmodifiableMap(ActionHandler::actionId, Function.identity()));
+        this.handlerRegistry = handlerRegistry;
         this.clock = clock;
     }
 
@@ -92,17 +89,9 @@ public class ActionExecutionService {
     }
 
     private Mono<ExecutionResult> invokeHandler(ExecuteRequest request, ActionExecutionAuditDocument audit) {
-        ActionHandler handler = handlers.get(request.actionId());
-        if (handler == null) {
-            return finishFailure(audit.auditId(), new DomainFailure(
-                    OntologyActionServerProtocol.V1,
-                    audit.auditId(),
-                    ACTION_NOT_REGISTERED,
-                    "No handler is registered for action " + request.actionId() + "."));
-        }
-
         return transactionalOperator
-                .transactional(handler.execute(request)
+                .transactional(handlerRegistry.resolve(request.actionId(), audit.auditId())
+                        .flatMap(handler -> handler.execute(request, audit.auditId()))
                         .flatMap(result -> auditStore
                                 .markSucceeded(
                                         audit.auditId(),
@@ -154,19 +143,6 @@ public class ActionExecutionService {
 
     private static DomainFailure internalFailure(String auditId) {
         return new DomainFailure(OntologyActionServerProtocol.V1, auditId, ACTION_EXECUTION_FAILED, SAFE_SERVER_MESSAGE);
-    }
-
-    public interface ActionHandler {
-        String actionId();
-
-        Mono<HandlerResult> execute(ExecuteRequest request);
-    }
-
-    public record HandlerResult(String message, List<ChangedObject> changedObjects, List<ChangedProperty> changedProperties) {
-        public HandlerResult {
-            changedObjects = changedObjects == null ? List.of() : List.copyOf(changedObjects);
-            changedProperties = changedProperties == null ? List.of() : List.copyOf(changedProperties);
-        }
     }
 
     public static final class DeclaredDomainException extends RuntimeException {
