@@ -54,3 +54,6 @@ TASKS.md
 app/server/.runtime-logs/
 app/server/plugins/
 docs/superpowers/archive/ontology-widget-mode-2026-08-13/
+
+# Isolated development worktrees
+.worktrees/
