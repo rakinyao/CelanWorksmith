@@ -144,6 +144,7 @@ export function Pagination(props: {
 export interface PaginationInitialValue {
   offset: number;
   limit: number;
+  [key: string]: unknown;
 }
 
 interface PaginationDependencyResetArgs {
@@ -183,7 +184,7 @@ export function getPaginationResetValue(
     return undefined;
   }
 
-  return { offset: initialValue.offset, limit: initialValue.limit };
+  return { ...initialValue };
 }
 
 interface ReduxDispatchProps {

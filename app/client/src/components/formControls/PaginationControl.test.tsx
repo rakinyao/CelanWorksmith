@@ -26,9 +26,12 @@ describe("PaginationControl dependency reset", () => {
         resetOnDependencyChange: true,
       }),
     ).toBe(true);
-    expect(getPaginationResetValue({ offset: 0, limit: 50 })).toEqual({
+    expect(
+      getPaginationResetValue({ offset: 0, limit: 50, mode: "LIMITED" }),
+    ).toEqual({
       offset: 0,
       limit: 50,
+      mode: "LIMITED",
     });
   });
 
