@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import React from "react";
 import { render } from "@testing-library/react";
 import {
@@ -991,6 +993,72 @@ describe("OntologyQueryModeSynchronizer", () => {
       "QueryEditorForm",
       "actionConfiguration.formData.parameters.data",
       {},
+    );
+  });
+
+  it("exposes canonical Function Builder and Advanced editor controls", () => {
+    const functionEditor = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../server/appsmith-plugins/celanworksmithOntologyPlugin/src/main/resources/editor/function-query.json",
+        ),
+        "utf8",
+      ),
+    );
+    const controls = functionEditor.children[0].children;
+    const queryMode = controls.find(
+      (control: { configProperty?: string }) =>
+        control.configProperty ===
+        "actionConfiguration.formData.queryMode.data",
+    );
+    const functionId = controls.find(
+      (control: { configProperty?: string }) =>
+        control.configProperty ===
+        "actionConfiguration.formData.functionId.data",
+    );
+    const parameters = controls.find(
+      (control: { configProperty?: string }) =>
+        control.configProperty ===
+        "actionConfiguration.formData.parameters.data",
+    );
+    const definition = controls.find(
+      (control: { configProperty?: string }) =>
+        control.configProperty ===
+        "actionConfiguration.formData.definition.data",
+    );
+
+    expect(queryMode).toMatchObject({
+      controlType: "DROP_DOWN",
+      initialValue: "BUILDER",
+    });
+    expect(functionId.conditionals.show).toBe(
+      "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+    );
+    expect(parameters).toMatchObject({
+      controlType: "QUERY_DYNAMIC_INPUT_TEXT",
+      resetOnDependencyChange: true,
+    });
+    expect(parameters.conditionals.show).toBe(
+      "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+    );
+    expect(parameters.conditionals.fetchDynamicValues.config.params).toEqual({
+      requestType: "ONTOLOGY_FUNCTION_PARAMETERS",
+      displayType: "DROP_DOWN",
+      parameters: {
+        functionId: "{{actionConfiguration.formData.functionId.data}}",
+      },
+    });
+    expect(definition).toMatchObject({
+      controlType: "QUERY_DYNAMIC_INPUT_TEXT",
+      inputType: "JSON",
+      isRequired: true,
+      evaluationSubstitutionType: "TEMPLATE",
+      placeholderText:
+        '{"functionId":"CalculateDelayDays","parameters":{"poId":"{{Table1.selectedRow.id}}"}}',
+    });
+    expect(definition.conditionals.show).toBe(
+      "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}",
     );
   });
 });

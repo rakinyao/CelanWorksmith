@@ -10,6 +10,16 @@
       "identifier": "ONTOLOGY_FUNCTION_QUERY_ZONE",
       "children": [
         {
+          "label": "Query mode",
+          "configProperty": "actionConfiguration.formData.queryMode.data",
+          "controlType": "DROP_DOWN",
+          "initialValue": "BUILDER",
+          "options": [
+            { "label": "Builder", "value": "BUILDER" },
+            { "label": "Advanced JSON", "value": "ADVANCED" }
+          ]
+        },
+        {
           "label": "Function",
           "configProperty": "actionConfiguration.formData.functionId.data",
           "controlType": "DROP_DOWN",
@@ -17,6 +27,7 @@
           "placeholderText": "Select a function",
           "fetchOptionsConditionally": true,
           "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "fetchDynamicValues": {
               "condition": "{{true}}",
               "config": {
@@ -29,13 +40,47 @@
           }
         },
         {
-          "label": "Function query definition",
-          "configProperty": "actionConfiguration.formData.definition.data",
+          "label": "Parameters",
+          "configProperty": "actionConfiguration.formData.parameters.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
           "evaluationSubstitutionType": "TEMPLATE",
-          "initialValue": { "functionId": "", "parameters": {} },
-          "placeholderText": "{\"functionId\": \"CalculateDelayDays\", \"parameters\": {}}"
+          "resetOnDependencyChange": true,
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "enable": "{{!!actionConfiguration.formData.functionId.data}}",
+            "fetchDynamicValues": {
+              "condition": "{{!!actionConfiguration.formData.functionId.data}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_FUNCTION_PARAMETERS",
+                  "displayType": "DROP_DOWN",
+                  "parameters": {
+                    "functionId": "{{actionConfiguration.formData.functionId.data}}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "Advanced JSON definition",
+          "configProperty": "actionConfiguration.formData.definition.data",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "inputType": "JSON",
+          "disabled": "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
+          "hidden": {
+            "path": "actionConfiguration.formData.queryMode.data",
+            "comparison": "EQUALS",
+            "value": "BUILDER"
+          },
+          "isRequired": true,
+          "evaluationSubstitutionType": "TEMPLATE",
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}"
+          },
+          "placeholderText": "{\"functionId\":\"CalculateDelayDays\",\"parameters\":{\"poId\":\"{{Table1.selectedRow.id}}\"}}"
         }
       ]
     }
