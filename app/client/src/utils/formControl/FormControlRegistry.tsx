@@ -20,6 +20,8 @@ import type { CheckboxControlProps } from "components/formControls/CheckboxContr
 import CheckboxControl from "components/formControls/CheckboxControl";
 import type { DynamicInputControlProps } from "components/formControls/DynamicInputTextControl";
 import DynamicInputTextControl from "components/formControls/DynamicInputTextControl";
+import FunctionParametersControl from "components/formControls/FunctionParametersControl";
+import type { FunctionParametersControlProps } from "components/formControls/FunctionParametersControl";
 import type { FieldArrayControlProps } from "components/formControls/FieldArrayControl";
 import FieldArrayControl from "components/formControls/FieldArrayControl";
 import type { WhereClauseControlProps } from "components/formControls/WhereClauseControl";
@@ -139,6 +141,16 @@ class FormControlRegistry {
           controlProps: DynamicInputControlProps,
         ): JSX.Element {
           return <DynamicInputTextControl {...controlProps} />;
+        },
+      },
+    );
+    FormControlFactory.registerControlBuilder(
+      formControlTypes.FUNCTION_PARAMETERS,
+      {
+        buildPropertyControl(
+          controlProps: FunctionParametersControlProps,
+        ): JSX.Element {
+          return <FunctionParametersControl {...controlProps} />;
         },
       },
     );
