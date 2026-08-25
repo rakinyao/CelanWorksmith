@@ -7,6 +7,17 @@ adds no Action Widget, alternate Widget state, browser side-channel, or direct
 Mongo client to the plugin. `ACTION_QUERY` returns the Action Server v1 body as
 the normal `ActionExecutionResult` body and appends `auditId`.
 
+Before starting the Demo Action Server, configure its untracked local systemd
+environment file at `~/.config/celanworksmith/demo-action-server.env` with the
+accepted `CELANWORKSMITH_DEMO_ACTION_WORKSPACE_ID`,
+`CELANWORKSMITH_DEMO_ACTION_PROJECT_ID`,
+`CELANWORKSMITH_DEMO_ACTION_PROJECT_VERSION`,
+`CELANWORKSMITH_DEMO_ACTION_DATASOURCE_ID`,
+`CELANWORKSMITH_DEMO_ACTION_METADATA_SNAPSHOT_ID`, and
+`CELANWORKSMITH_DEMO_ACTION_METADATA_DIGEST` values. The server audits and
+rejects any request whose identity or required snapshot context does not match
+those pins before handler dispatch.
+
 Positive `UpdateProductionSchedule` mutation/manual business-loop acceptance
 is deferred to a separate complete-data/business-flow phase. The tracked Demo
 seed intentionally has no `productionOrderId` on its PurchaseOrders and no
@@ -64,7 +75,8 @@ using a fallback server.
 Post-integration, create or update an existing Ontology Query with operation
 `ACTION_QUERY`, action ID `UpdateProductionSchedule`, object type
 `PurchaseOrder`, a seeded object ID such as `PO001`, and
-`parameters.newScheduleDate` set to `2026-09-01`. Trigger it from an existing
+`parameters.newScheduleDate` set to the ISO-8601 offset date-time
+`2026-09-01T00:00:00Z`. Trigger it from an existing
 Button, Table row event, or Form submit with `{{ActionQuery.run()}}`.
 
 For the current seed, this is the expected negative result:

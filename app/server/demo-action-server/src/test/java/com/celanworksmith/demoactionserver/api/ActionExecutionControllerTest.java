@@ -27,8 +27,8 @@ class ActionExecutionControllerTest {
 
     @Test
     void returnsTheV1SuccessEnvelopeFromTheActionService() {
-        when(actionExecutionService.execute(any())).thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Success(
-                new ExecuteSuccess(
+        when(actionExecutionService.execute(any()))
+                .thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Success(new ExecuteSuccess(
                         "v1",
                         "audit-1",
                         "SUCCEEDED",
@@ -59,8 +59,9 @@ class ActionExecutionControllerTest {
 
     @Test
     void mapsAnInProgressFailureToConflict() {
-        when(actionExecutionService.execute(any())).thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Failure(
-                new DomainFailure("v1", "audit-1", "ACTION_IN_PROGRESS", "Action execution is in progress."))));
+        when(actionExecutionService.execute(any()))
+                .thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Failure(
+                        new DomainFailure("v1", "audit-1", "ACTION_IN_PROGRESS", "Action execution is in progress."))));
 
         webTestClient
                 .post()
@@ -79,8 +80,9 @@ class ActionExecutionControllerTest {
 
     @Test
     void mapsADeclaredDomainFailureToUnprocessableEntity() {
-        when(actionExecutionService.execute(any())).thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Failure(
-                new DomainFailure("v1", "audit-1", "ACTION_NOT_REGISTERED", "No handler is registered."))));
+        when(actionExecutionService.execute(any()))
+                .thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Failure(
+                        new DomainFailure("v1", "audit-1", "ACTION_NOT_REGISTERED", "No handler is registered."))));
 
         webTestClient
                 .post()
@@ -98,8 +100,33 @@ class ActionExecutionControllerTest {
     }
 
     @Test
+    void mapsPersistedUnexpectedFailureToInternalServerErrorWithoutLeakingDetails() {
+        when(actionExecutionService.execute(any()))
+                .thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Failure(
+                        new DomainFailure("v1", "audit-1", "ACTION_EXECUTION_FAILED", "Action execution failed."))));
+
+        webTestClient
+                .post()
+                .uri("/api/v1/actions/execute")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(validRequest())
+                .exchange()
+                .expectStatus()
+                .isEqualTo(500)
+                .expectBody()
+                .jsonPath("$.auditId")
+                .isEqualTo("audit-1")
+                .jsonPath("$.message")
+                .isEqualTo("Action execution failed.")
+                .jsonPath("$.message")
+                .value(value -> org.assertj.core.api.Assertions.assertThat(String.valueOf(value))
+                        .doesNotContain("password"));
+    }
+
+    @Test
     void hidesUnexpectedServiceExceptionDetails() {
-        when(actionExecutionService.execute(any())).thenReturn(Mono.error(new IllegalStateException("mongodb password leaked")));
+        when(actionExecutionService.execute(any()))
+                .thenReturn(Mono.error(new IllegalStateException("mongodb password leaked")));
 
         webTestClient
                 .post()
@@ -113,7 +140,8 @@ class ActionExecutionControllerTest {
                 .jsonPath("$.message")
                 .isEqualTo("Action execution failed.")
                 .jsonPath("$.message")
-                .value(value -> org.assertj.core.api.Assertions.assertThat(String.valueOf(value)).doesNotContain("password"));
+                .value(value -> org.assertj.core.api.Assertions.assertThat(String.valueOf(value))
+                        .doesNotContain("password"));
     }
 
     private static String validRequest() {

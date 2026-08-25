@@ -12,6 +12,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class HttpOntologyActionServerClient implements OntologyActionServerClient {
     private static final String EXECUTE_PATH = "/api/v1/actions/execute";
@@ -65,7 +68,7 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
             try {
                 ExecuteSuccess success = objectMapper.readValue(body, ExecuteSuccess.class);
                 validateSuccess(success);
-                return Mono.just(new Result(success, success.auditId()));
+                return Mono.just(new Result(successBody(success), success.auditId()));
             } catch (JsonProcessingException | IllegalArgumentException exception) {
                 return Mono.error(new IllegalStateException(
                         "Action Server returned malformed success response: " + exception.getMessage(), exception));
@@ -78,6 +81,8 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
                 return Mono.error(new IllegalStateException("Action Server returned a null error response"));
             }
             if (!OntologyActionServerProtocol.V1.equals(failure.contractVersion())
+                    || failure.code() == null
+                    || failure.code().isBlank()
                     || failure.message() == null
                     || failure.message().isBlank()) {
                 return Mono.error(new IllegalStateException("Action Server returned an undeclared error response"));
@@ -85,7 +90,7 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
             if (failure.auditId() == null || failure.auditId().isBlank()) {
                 return Mono.error(new IllegalStateException("Action Server error response auditId must not be blank"));
             }
-            return Mono.error(new DomainException(failure.message(), failure.auditId()));
+            return Mono.error(new DomainException(failure.code(), failure.message(), failure.auditId()));
         } catch (JsonProcessingException | IllegalArgumentException exception) {
             return Mono.error(new IllegalStateException("Action Server returned malformed error response", exception));
         }
@@ -104,5 +109,39 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
         if (success.status() == null || success.status().isBlank()) {
             throw new IllegalArgumentException("status must not be blank");
         }
+        if (success.message() == null || success.message().isBlank()) {
+            throw new IllegalArgumentException("message must not be blank");
+        }
+    }
+
+    private static Map<String, Object> successBody(ExecuteSuccess success) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", success.status());
+        body.put("message", success.message());
+        body.put("changedObjects", changedObjects(success));
+        body.put("changedProperties", changedProperties(success));
+        body.put("auditId", success.auditId());
+        return Map.copyOf(body);
+    }
+
+    private static List<Map<String, Object>> changedObjects(ExecuteSuccess success) {
+        return success.changedObjects().stream()
+                .map(changed -> Map.<String, Object>of(
+                        "objectTypeId", changed.objectTypeId(),
+                        "objectId", changed.objectId()))
+                .toList();
+    }
+
+    private static List<Map<String, Object>> changedProperties(ExecuteSuccess success) {
+        return success.changedProperties().stream()
+                .map(changed -> {
+                    Map<String, Object> property = new LinkedHashMap<>();
+                    property.put("objectTypeId", changed.objectTypeId());
+                    property.put("objectId", changed.objectId());
+                    property.put("propertyId", changed.propertyId());
+                    property.put("newValue", changed.newValue());
+                    return property;
+                })
+                .toList();
     }
 }

@@ -15,7 +15,7 @@ import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionalOperator;
 
 @Configuration
-@EnableConfigurationProperties(DemoActionServerProperties.class)
+@EnableConfigurationProperties({DemoActionServerProperties.class, DemoActionServerRequestProperties.class})
 public class DemoActionServerMongoConfiguration {
     @Bean(destroyMethod = "close")
     MongoClient demoActionServerMongoClient(DemoActionServerProperties properties) {
@@ -29,7 +29,8 @@ public class DemoActionServerMongoConfiguration {
     }
 
     @Bean
-    ReactiveMongoTemplate demoActionServerReactiveMongoTemplate(ReactiveMongoDatabaseFactory demoActionServerMongoDatabaseFactory) {
+    ReactiveMongoTemplate demoActionServerReactiveMongoTemplate(
+            ReactiveMongoDatabaseFactory demoActionServerMongoDatabaseFactory) {
         return new ReactiveMongoTemplate(demoActionServerMongoDatabaseFactory);
     }
 

@@ -25,11 +25,21 @@ public interface OntologyActionServerClient {
     record Result(Object body, String auditId) {}
 
     class DomainException extends RuntimeException {
+        private final String code;
         private final String auditId;
 
-        public DomainException(String message, String auditId) {
+        public DomainException(String code, String message, String auditId) {
             super(message);
+            this.code = code;
             this.auditId = auditId;
+        }
+
+        public DomainException(String message, String auditId) {
+            this("ACTION_SERVER_DOMAIN_ERROR", message, auditId);
+        }
+
+        public String code() {
+            return code;
         }
 
         public String auditId() {

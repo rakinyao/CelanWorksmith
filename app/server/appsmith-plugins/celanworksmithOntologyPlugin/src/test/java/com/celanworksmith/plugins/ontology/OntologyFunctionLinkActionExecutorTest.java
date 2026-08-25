@@ -179,7 +179,8 @@ class OntologyFunctionLinkActionExecutorTest {
     void retainsAuditIdWhenTheActionServerReturnsADomainError() {
         RecordingGateway gateway = new RecordingGateway();
         RecordingActionServer actionServer = new RecordingActionServer();
-        actionServer.domainFailure = new OntologyActionServerClient.DomainException("Schedule rejected", "audit-456");
+        actionServer.domainFailure = new OntologyActionServerClient.DomainException(
+                "RELATED_OBJECT_NOT_FOUND", "ProductionOrder PR001 was not found.", "audit-456");
 
         ActionExecutionResult result = execute(
                 gateway,
@@ -191,7 +192,8 @@ class OntologyFunctionLinkActionExecutorTest {
                         "objectId", "PO001"));
 
         assertFalse(result.getIsExecutionSuccess());
-        assertTrue(result.getReadableError().contains("Schedule rejected"));
+        assertTrue(result.getReadableError().contains("RELATED_OBJECT_NOT_FOUND"));
+        assertTrue(result.getReadableError().contains("ProductionOrder PR001 was not found."));
         assertTrue(result.getReadableError().contains("audit-456"));
     }
 

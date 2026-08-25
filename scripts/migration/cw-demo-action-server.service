@@ -7,6 +7,8 @@ After=network-online.target
 Type=simple
 WorkingDirectory=/home/gavin/workspace/projects/CelanWorksmith/app/server
 Environment=DEMO_ACTION_SERVER_PORT=8092
+# Host-local identity and snapshot pins live in this untracked environment file.
+EnvironmentFile=-%h/.config/celanworksmith/demo-action-server.env
 # Keep the service from starting until the local Docker-backed Mongo runtime responds.
 ExecStartPre=/usr/bin/docker exec appsmith-mongodb mongosh --quiet --eval=db.runCommand({ping:1})
 ExecStart=/bin/bash -lc '/usr/bin/mvn -q -pl demo-action-server -am -DskipTests package && exec /usr/bin/java -jar demo-action-server/target/demo-action-server-1.0-SNAPSHOT.jar'

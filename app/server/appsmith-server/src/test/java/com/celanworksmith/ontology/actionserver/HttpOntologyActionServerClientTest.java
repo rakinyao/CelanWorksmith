@@ -47,7 +47,17 @@ class HttpOntologyActionServerClientTest {
                 """));
 
         StepVerifier.create(client.execute(request()))
-                .assertNext(result -> assertThat(result.auditId()).isEqualTo("audit-1"))
+                .assertNext(result -> {
+                    assertThat(result.auditId()).isEqualTo("audit-1");
+                    assertThat(result.body()).isInstanceOf(Map.class);
+                    Map<?, ?> body = (Map<?, ?>) result.body();
+                    assertThat(body.get("status")).isEqualTo("SUCCEEDED");
+                    assertThat(body.get("message")).isEqualTo("Production schedule updated.");
+                    assertThat(body.get("changedObjects")).isEqualTo(java.util.List.of());
+                    assertThat(body.get("changedProperties")).isEqualTo(java.util.List.of());
+                    assertThat(body.get("auditId")).isEqualTo("audit-1");
+                    assertThat(body.containsKey("data")).isFalse();
+                })
                 .verifyComplete();
 
         var recorded = server.takeRequest();
@@ -57,18 +67,19 @@ class HttpOntologyActionServerClientTest {
     }
 
     @Test
-    void mapsDeclaredDomainFailureToDomainException() {
+    void mapsDeclaredDomainFailureCodeToDomainException() {
         server.enqueue(new MockResponse().setResponseCode(409).setBody("""
-                {"contractVersion":"v1","auditId":"audit-2","code":"CONFLICT",
-                 "message":"Schedule is already published."}
+                {"contractVersion":"v1","auditId":"audit-2","code":"RELATED_OBJECT_NOT_FOUND",
+                 "message":"ProductionOrder PR001 was not found."}
                 """));
 
         StepVerifier.create(client.execute(request()))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(OntologyActionServerClient.DomainException.class);
                     var domainError = (OntologyActionServerClient.DomainException) error;
-                    assertThat(domainError).hasMessage("Schedule is already published.");
+                    assertThat(domainError).hasMessage("ProductionOrder PR001 was not found.");
                     assertThat(domainError.auditId()).isEqualTo("audit-2");
+                    assertThat(domainError.code()).isEqualTo("RELATED_OBJECT_NOT_FOUND");
                 })
                 .verify();
     }

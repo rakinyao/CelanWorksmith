@@ -2,10 +2,9 @@ package com.celanworksmith.demoactionserver.api;
 
 import com.celanworksmith.demoactionserver.audit.ActionExecutionAuditDocument;
 import com.celanworksmith.demoactionserver.audit.ActionExecutionAuditStore;
+import com.celanworksmith.demoactionserver.config.DemoActionServerRequestProperties;
 import com.celanworksmith.demoactionserver.handler.DemoActionHandlerRegistry;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol;
-import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject;
-import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.DomainFailure;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
@@ -25,7 +24,7 @@ public class ActionExecutionService {
     private static final String FAILED = "FAILED";
     private static final String RUNNING = "RUNNING";
     private static final String ACTION_IN_PROGRESS = "ACTION_IN_PROGRESS";
-    private static final String ACTION_EXECUTION_FAILED = "ACTION_EXECUTION_FAILED";
+    public static final String ACTION_EXECUTION_FAILED = "ACTION_EXECUTION_FAILED";
     private static final String INVALID_REQUEST = "INVALID_REQUEST";
     private static final String SAFE_SERVER_MESSAGE = "Action execution failed.";
     private static final String SUCCESS_MESSAGE = "Action completed.";
@@ -33,24 +32,28 @@ public class ActionExecutionService {
     private final ActionExecutionAuditStore auditStore;
     private final TransactionalOperator transactionalOperator;
     private final DemoActionHandlerRegistry handlerRegistry;
+    private final DemoActionServerRequestProperties requestProperties;
     private final Clock clock;
 
     @Autowired
     public ActionExecutionService(
             ActionExecutionAuditStore auditStore,
             TransactionalOperator transactionalOperator,
-            DemoActionHandlerRegistry handlerRegistry) {
-        this(auditStore, transactionalOperator, handlerRegistry, Clock.systemUTC());
+            DemoActionHandlerRegistry handlerRegistry,
+            DemoActionServerRequestProperties requestProperties) {
+        this(auditStore, transactionalOperator, handlerRegistry, requestProperties, Clock.systemUTC());
     }
 
     ActionExecutionService(
             ActionExecutionAuditStore auditStore,
             TransactionalOperator transactionalOperator,
             DemoActionHandlerRegistry handlerRegistry,
+            DemoActionServerRequestProperties requestProperties,
             Clock clock) {
         this.auditStore = auditStore;
         this.transactionalOperator = transactionalOperator;
         this.handlerRegistry = handlerRegistry;
+        this.requestProperties = requestProperties;
         this.clock = clock;
     }
 
@@ -60,9 +63,10 @@ public class ActionExecutionService {
                     OntologyActionServerProtocol.V1, null, INVALID_REQUEST, "contractVersion must be v1.")));
         }
 
-        return auditStore.findByIdempotencyKey(request.idempotencyKey())
+        return auditStore
+                .findByIdempotencyKey(request.idempotencyKey())
                 .flatMap(this::replay)
-                .switchIfEmpty(createAndExecute(request));
+                .switchIfEmpty(Mono.defer(() -> createAndExecute(request)));
     }
 
     private Mono<ExecutionResult> createAndExecute(ExecuteRequest request) {
@@ -84,13 +88,15 @@ public class ActionExecutionService {
                 List.of(),
                 List.of());
 
-        return auditStore.createIfAbsent(runningAudit)
+        return auditStore
+                .createIfAbsent(runningAudit)
                 .flatMap(audit -> audit.auditId().equals(auditId) ? invokeHandler(request, audit) : replay(audit));
     }
 
     private Mono<ExecutionResult> invokeHandler(ExecuteRequest request, ActionExecutionAuditDocument audit) {
         return transactionalOperator
-                .transactional(handlerRegistry.resolve(request.actionId(), audit.auditId())
+                .transactional(validateSupportedRequest(request, audit.auditId())
+                        .then(handlerRegistry.resolve(request.actionId(), audit.auditId()))
                         .flatMap(handler -> handler.execute(request, audit.auditId()))
                         .flatMap(result -> auditStore
                                 .markSucceeded(
@@ -106,8 +112,21 @@ public class ActionExecutionService {
                                         result.message(),
                                         result.changedObjects(),
                                         result.changedProperties())))))
-                .onErrorResume(DeclaredDomainException.class, exception -> finishFailure(audit.auditId(), exception.failure()))
-                .onErrorResume(Throwable.class, exception -> finishFailure(audit.auditId(), internalFailure(audit.auditId())));
+                .onErrorResume(
+                        DeclaredDomainException.class, exception -> finishFailure(audit.auditId(), exception.failure()))
+                .onErrorResume(
+                        Throwable.class, exception -> finishFailure(audit.auditId(), internalFailure(audit.auditId())));
+    }
+
+    private Mono<Void> validateSupportedRequest(ExecuteRequest request, String auditId) {
+        if (requestProperties.supports(request)) {
+            return Mono.empty();
+        }
+        return Mono.error(new DeclaredDomainException(new DomainFailure(
+                OntologyActionServerProtocol.V1,
+                auditId,
+                INVALID_REQUEST,
+                "Action request does not match the configured Demo Action Server pin.")));
     }
 
     private Mono<ExecutionResult> replay(ActionExecutionAuditDocument audit) {
@@ -136,13 +155,16 @@ public class ActionExecutionService {
     }
 
     private Mono<ExecutionResult> finishFailure(String auditId, DomainFailure failure) {
-        DomainFailure auditFailure = new DomainFailure(
-                OntologyActionServerProtocol.V1, auditId, failure.code(), failure.message());
-        return auditStore.markFailed(auditId, Instant.now(clock), auditFailure).thenReturn(new ExecutionResult.Failure(auditFailure));
+        DomainFailure auditFailure =
+                new DomainFailure(OntologyActionServerProtocol.V1, auditId, failure.code(), failure.message());
+        return auditStore
+                .markFailed(auditId, Instant.now(clock), auditFailure)
+                .thenReturn(new ExecutionResult.Failure(auditFailure));
     }
 
     private static DomainFailure internalFailure(String auditId) {
-        return new DomainFailure(OntologyActionServerProtocol.V1, auditId, ACTION_EXECUTION_FAILED, SAFE_SERVER_MESSAGE);
+        return new DomainFailure(
+                OntologyActionServerProtocol.V1, auditId, ACTION_EXECUTION_FAILED, SAFE_SERVER_MESSAGE);
     }
 
     public static final class DeclaredDomainException extends RuntimeException {

@@ -464,7 +464,8 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         private IllegalStateException actionServerFailure(OntologyActionServerClient.DomainException error) {
-            return new IllegalStateException(error.getMessage() + " (auditId: " + error.auditId() + ")", error);
+            return new IllegalStateException(
+                    error.getMessage() + " (code: " + error.code() + ", auditId: " + error.auditId() + ")", error);
         }
 
         private void validateSnapshotPin(OntologyDatasourceConfiguration datasourceConfiguration, Snapshot snapshot) {

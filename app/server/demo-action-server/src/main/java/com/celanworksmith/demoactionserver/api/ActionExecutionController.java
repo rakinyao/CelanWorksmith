@@ -26,14 +26,17 @@ public class ActionExecutionController {
 
     @PostMapping("/execute")
     public Mono<ResponseEntity<?>> execute(@RequestBody ExecuteRequest request) {
-        return actionExecutionService.execute(request)
+        return actionExecutionService
+                .execute(request)
                 .map(this::toResponse)
-                .onErrorResume(Throwable.class, exception -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(new DomainFailure(
-                                OntologyActionServerProtocol.V1,
-                                null,
-                                "ACTION_EXECUTION_FAILED",
-                                SAFE_SERVER_MESSAGE))));
+                .onErrorResume(
+                        Throwable.class,
+                        exception -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(new DomainFailure(
+                                        OntologyActionServerProtocol.V1,
+                                        null,
+                                        "ACTION_EXECUTION_FAILED",
+                                        SAFE_SERVER_MESSAGE))));
     }
 
     @ExceptionHandler({IllegalArgumentException.class, ServerWebInputException.class})
@@ -50,7 +53,9 @@ public class ActionExecutionController {
         DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
         HttpStatus status = "ACTION_IN_PROGRESS".equals(failure.code())
                 ? HttpStatus.CONFLICT
-                : HttpStatus.UNPROCESSABLE_ENTITY;
+                : ActionExecutionService.ACTION_EXECUTION_FAILED.equals(failure.code())
+                        ? HttpStatus.INTERNAL_SERVER_ERROR
+                        : HttpStatus.UNPROCESSABLE_ENTITY;
         return ResponseEntity.status(status).body(failure);
     }
 }
