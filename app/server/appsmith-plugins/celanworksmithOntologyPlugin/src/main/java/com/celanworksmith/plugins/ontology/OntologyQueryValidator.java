@@ -86,6 +86,10 @@ final class OntologyQueryValidator {
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown ontology " + operationName + " parameter: " + parameterId));
+            if (parameter.readOnly() || parameter.derived()) {
+                throw new IllegalArgumentException(
+                        "Ontology " + operationName + " parameter is not writable: " + parameterId);
+            }
             JsonNode value = objectMapper.valueToTree(entry.getValue());
             if (!matchesType(value, parameter.dataType())) {
                 throw new IllegalArgumentException("Ontology " + operationName + " parameter " + parameterId
@@ -94,7 +98,10 @@ final class OntologyQueryValidator {
             parameters.put(parameterId, entry.getValue());
         }
         for (PropertyMetadata parameter : visibleParameters) {
-            if (parameter.required() && !parameters.containsKey(parameter.id())) {
+            if (parameter.required()
+                    && !parameter.readOnly()
+                    && !parameter.derived()
+                    && !parameters.containsKey(parameter.id())) {
                 throw new IllegalArgumentException(
                         "Ontology " + operationName + " parameter is required: " + parameter.id());
             }

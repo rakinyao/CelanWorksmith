@@ -267,6 +267,7 @@ public class OntologyPlugin extends BasePlugin {
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + value));
             return safeList(function.parameters()).stream()
+                    .filter(parameter -> !parameter.hidden())
                     .map(parameter -> metadataEntry(
                             parameter.id(),
                             parameter.displayName(),

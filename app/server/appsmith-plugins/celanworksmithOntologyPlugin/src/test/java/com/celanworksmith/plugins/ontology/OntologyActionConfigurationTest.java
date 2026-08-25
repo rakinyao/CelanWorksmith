@@ -206,6 +206,31 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void builderFunctionQueryParsesDynamicJsonParametersIntoTheCanonicalDefinition() {
+        assertEquals(
+                Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)),
+                OntologyActionConfiguration.from(action(Map.of(
+                                "operation", uqi("FUNCTION_QUERY"),
+                                "queryMode", uqi("BUILDER"),
+                                "functionId", uqi("delayScore"),
+                                "parameters", uqi("{\"delayDays\":5}"))))
+                        .definition());
+    }
+
+    @Test
+    void builderFunctionQueryRejectsDynamicJsonThatIsNotAnObject() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", uqi("FUNCTION_QUERY"),
+                        "queryMode", uqi("BUILDER"),
+                        "functionId", uqi("delayScore"),
+                        "parameters", uqi("[]")))));
+
+        assertEquals("Ontology function parameters selector must be an object", exception.getMessage());
+    }
+
+    @Test
     void builderFunctionQueryUsesEmptyParametersWhenAbsent() {
         assertEquals(
                 Map.of("functionId", "delayScore", "parameters", Map.of()),
@@ -239,6 +264,25 @@ class OntologyActionConfigurationTest {
                 "definition", Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)))));
 
         assertEquals(Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)), configuration.definition());
+    }
+
+    @Test
+    void advancedFunctionQueryRequiresOnlyCanonicalRootFields() {
+        IllegalArgumentException missingParameters = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "FUNCTION_QUERY",
+                        "queryMode", "ADVANCED",
+                        "definition", "{\"functionId\":\"delayScore\"}"))));
+        IllegalArgumentException unexpectedField = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "FUNCTION_QUERY",
+                        "queryMode", "ADVANCED",
+                        "definition", "{\"functionId\":\"delayScore\",\"parameters\":{},\"page\":{}}"))));
+
+        assertEquals("Ontology function query definition requires: parameters", missingParameters.getMessage());
+        assertEquals("Unsupported field in ontology function query definition: page", unexpectedField.getMessage());
     }
 
     @Test

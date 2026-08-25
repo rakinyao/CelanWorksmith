@@ -25,6 +25,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             "idempotencyKey",
             "context");
     private static final Set<String> OBJECT_QUERY_RESULT_MODES = Set.of("ROWS", "TOTAL");
+    private static final Set<String> FUNCTION_QUERY_ROOT_FIELDS = Set.of("functionId", "parameters");
 
     public enum Operation {
         OBJECT_QUERY,
@@ -91,6 +92,10 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             mergeSelectorFields(formData, definition);
             mergeProjection(formData, definition);
         }
+        if (operation == Operation.FUNCTION_QUERY && !advancedMode && !definition.containsKey("parameters")) {
+            definition.put("parameters", Map.of());
+        }
+        validateFunctionQueryDefinition(operation, definition);
         validateObjectQueryResultMode(operation, definition);
         for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
             if (definition.containsKey(protectedKey)) {
@@ -174,12 +179,34 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             definition.put("parameters", Map.of());
             return;
         }
+        if (value instanceof String json) {
+            try {
+                value = OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception exception) {
+                throw new IllegalArgumentException(
+                        "Ontology function parameters selector must be an object", exception);
+            }
+        }
         if (!(value instanceof Map<?, ?> rawParameters)) {
             throw new IllegalArgumentException("Ontology function parameters selector must be an object");
         }
         Map<String, Object> parameters = new java.util.LinkedHashMap<>();
         rawParameters.forEach((key, parameterValue) -> parameters.put(String.valueOf(key), parameterValue));
         definition.put("parameters", Map.copyOf(parameters));
+    }
+
+    private static void validateFunctionQueryDefinition(Operation operation, Map<String, Object> definition) {
+        if (operation != Operation.FUNCTION_QUERY) {
+            return;
+        }
+        for (String field : definition.keySet()) {
+            if (!FUNCTION_QUERY_ROOT_FIELDS.contains(field)) {
+                throw new IllegalArgumentException("Unsupported field in ontology function query definition: " + field);
+            }
+        }
+        if (!definition.containsKey("parameters")) {
+            throw new IllegalArgumentException("Ontology function query definition requires: parameters");
+        }
     }
 
     private static void copyResultMode(Map<String, Object> formData, Map<String, Object> definition) {

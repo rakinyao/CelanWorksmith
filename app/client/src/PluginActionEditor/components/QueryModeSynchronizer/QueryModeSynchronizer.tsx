@@ -176,9 +176,8 @@ function buildRuntimeMetadata(
 function buildFunctionRuntimeMetadata(
   formData: Record<string, unknown>,
   evaluationState: Record<string, unknown>,
-  functionIdOverride?: string,
 ): OntologyFunctionMetadata | undefined {
-  const functionId = functionIdOverride || readControlData(formData.functionId);
+  const functionId = readControlData(formData.functionId);
 
   if (typeof functionId !== "string" || !functionId) {
     return undefined;
@@ -212,20 +211,6 @@ function buildFunctionRuntimeMetadata(
       },
     ],
   };
-}
-
-function getFunctionIdFromAdvancedDefinition(
-  definitionText: unknown,
-): string | undefined {
-  if (typeof definitionText !== "string") {
-    return undefined;
-  }
-
-  try {
-    return parseFunctionAdvancedDefinition(definitionText).functionId;
-  } catch {
-    return undefined;
-  }
 }
 
 function readControlData(value: unknown): unknown {
@@ -368,6 +353,13 @@ export function OntologyQueryModeSynchronizer({
   ) as Record<string, unknown>;
   const hydrationUpdates = useRef<Record<string, unknown>>();
   const functionHydrationUpdates = useRef<Record<string, unknown>>();
+  const pendingFunctionMetadata = useRef<
+    | {
+        functionId: string;
+        evaluationState: Record<string, unknown>;
+      }
+    | undefined
+  >();
   const previousQueryMode = useRef<unknown>();
   const previousBuilderFunctionId = useRef<unknown>();
   const lastValidAdvancedDefinition = useRef<string>();
@@ -386,19 +378,9 @@ export function OntologyQueryModeSynchronizer({
     const operation = readControlData(formData.operation);
     const metadata =
       metadataOverride || buildRuntimeMetadata(formData, evaluationState);
-    const advancedFunctionId =
-      operation === "FUNCTION_QUERY" &&
-      (currentQueryMode === "ADVANCED" ||
-        previousQueryMode.current === "ADVANCED")
-        ? getFunctionIdFromAdvancedDefinition(definitionText)
-        : undefined;
     const functionMetadata =
       functionMetadataOverride ||
-      buildFunctionRuntimeMetadata(
-        formData,
-        evaluationState,
-        advancedFunctionId,
-      );
+      buildFunctionRuntimeMetadata(formData, evaluationState);
 
     if (operation === "OBJECT_QUERY") {
       if (
@@ -492,28 +474,24 @@ export function OntologyQueryModeSynchronizer({
       if (
         currentQueryMode === "ADVANCED" &&
         typeof definitionText === "string" &&
-        functionMetadata
-      ) {
-        const currentDefinition = getFunctionAdvancedToBuilderUpdates(
-          definitionText,
-          functionMetadata,
-        );
-
-        if (!("error" in currentDefinition)) {
-          lastValidFunctionAdvancedDefinition.current = JSON.stringify(
-            currentDefinition.definition,
-          );
-        }
-      } else if (
-        currentQueryMode === "ADVANCED" &&
-        typeof definitionText === "string" &&
-        definitionText.trim() &&
-        previousQueryMode.current !== "ADVANCED"
+        definitionText.trim()
       ) {
         try {
-          lastValidFunctionAdvancedDefinition.current = JSON.stringify(
-            parseFunctionAdvancedDefinition(definitionText),
+          const parsedDefinition =
+            parseFunctionAdvancedDefinition(definitionText);
+          const metadataForParsedFunction = functionMetadata?.functions.some(
+            (candidate) => candidate.id === parsedDefinition.functionId,
           );
+          const validation = metadataForParsedFunction
+            ? validateFunctionDefinition(parsedDefinition, functionMetadata)
+            : undefined;
+
+          if (!validation || validation.valid) {
+            const definition = validation?.definition || parsedDefinition;
+
+            lastValidFunctionAdvancedDefinition.current =
+              JSON.stringify(definition);
+          }
         } catch {
           return;
         }
@@ -523,13 +501,71 @@ export function OntologyQueryModeSynchronizer({
         currentQueryMode === "BUILDER" &&
         previousQueryMode.current === "ADVANCED"
       ) {
-        const result =
-          typeof definitionText === "string" && functionMetadata
-            ? getFunctionAdvancedToBuilderUpdates(
-                definitionText,
-                functionMetadata,
-              )
-            : { error: "Ontology Function metadata is unavailable" };
+        let parsedDefinition: OntologyFunctionQueryDefinition;
+
+        try {
+          parsedDefinition =
+            typeof definitionText === "string"
+              ? parseFunctionAdvancedDefinition(definitionText)
+              : (() => {
+                  throw new Error(
+                    "Advanced JSON definition could not be parsed",
+                  );
+                })();
+        } catch (error) {
+          previousQueryMode.current = "ADVANCED";
+          toast.show(
+            `Cannot switch to Builder: ${
+              error instanceof Error
+                ? error.message
+                : "Advanced JSON definition could not be parsed"
+            }`,
+            { kind: "error" },
+          );
+          dispatch(
+            change(formName, ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY, "ADVANCED"),
+          );
+
+          return;
+        }
+
+        const currentFunctionId = readControlData(formData.functionId);
+
+        if (currentFunctionId !== parsedDefinition.functionId) {
+          pendingFunctionMetadata.current = {
+            functionId: parsedDefinition.functionId,
+            evaluationState,
+          };
+          dispatch(
+            change(
+              formName,
+              "actionConfiguration.formData.functionId.data",
+              parsedDefinition.functionId,
+            ),
+          );
+
+          return;
+        }
+
+        if (
+          pendingFunctionMetadata.current?.functionId ===
+            parsedDefinition.functionId &&
+          pendingFunctionMetadata.current.evaluationState === evaluationState &&
+          !functionMetadataOverride
+        ) {
+          return;
+        }
+
+        pendingFunctionMetadata.current = undefined;
+        const metadataForParsedFunction = functionMetadata?.functions.some(
+          (candidate) => candidate.id === parsedDefinition.functionId,
+        );
+        const result = metadataForParsedFunction
+          ? getFunctionAdvancedToBuilderUpdates(
+              JSON.stringify(parsedDefinition),
+              functionMetadata as OntologyFunctionMetadata,
+            )
+          : { error: "Ontology Function metadata is unavailable" };
 
         if ("error" in result) {
           previousQueryMode.current = "ADVANCED";
