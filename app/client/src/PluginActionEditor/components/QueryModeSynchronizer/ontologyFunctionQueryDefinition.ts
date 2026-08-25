@@ -36,6 +36,20 @@ function unwrapBuilderValue(value: BuilderValue): unknown {
   return value;
 }
 
+function parseBuilderParameters(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    throw new Error("Function Builder parameters must be valid JSON", {
+      cause: error,
+    });
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -142,10 +156,9 @@ export function serializeFunctionBuilderForm(
   const validation = validateDefinition(
     {
       functionId: unwrapBuilderValue(formData.functionId) as string,
-      parameters: unwrapBuilderValue(formData.parameters) as Record<
-        string,
-        unknown
-      >,
+      parameters: parseBuilderParameters(
+        unwrapBuilderValue(formData.parameters),
+      ) as Record<string, unknown>,
     },
     metadata,
   );

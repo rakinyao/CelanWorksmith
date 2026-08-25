@@ -726,7 +726,9 @@ describe("OntologyQueryModeSynchronizer", () => {
           operation: { data: "FUNCTION_QUERY" },
           queryMode: { data: "ADVANCED" },
           functionId: { data: "CalculateDelayDays" },
-          parameters: { data: { poId: "{{Table1.selectedRow.id}}" } },
+          parameters: {
+            data: '{"poId":"{{Table1.selectedRow.id}}"}',
+          },
         },
       },
     };
