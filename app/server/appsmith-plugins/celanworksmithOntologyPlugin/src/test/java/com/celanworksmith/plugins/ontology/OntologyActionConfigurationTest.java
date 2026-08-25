@@ -194,6 +194,54 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void builderFunctionQueryMergesFunctionParametersIntoCanonicalDefinition() {
+        Map<String, Object> formData = Map.of(
+                "operation", "FUNCTION_QUERY", "queryMode", "BUILDER",
+                "functionId", "delayScore",
+                "parameters", Map.of("delayDays", "{{Table1.selectedRow.delayDays}}"));
+
+        assertEquals(
+                Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", "{{Table1.selectedRow.delayDays}}")),
+                OntologyActionConfiguration.from(action(formData)).definition());
+    }
+
+    @Test
+    void builderFunctionQueryUsesEmptyParametersWhenAbsent() {
+        assertEquals(
+                Map.of("functionId", "delayScore", "parameters", Map.of()),
+                OntologyActionConfiguration.from(action(Map.of(
+                                "operation", "FUNCTION_QUERY",
+                                "queryMode", "BUILDER",
+                                "functionId", "delayScore")))
+                        .definition());
+    }
+
+    @Test
+    void builderFunctionQueryRejectsNonMapParameters() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "FUNCTION_QUERY",
+                        "queryMode", "BUILDER",
+                        "functionId", "delayScore",
+                        "parameters", List.of("not-an-object")))));
+
+        assertEquals("Ontology function parameters selector must be an object", exception.getMessage());
+    }
+
+    @Test
+    void advancedFunctionQueryDefinitionRemainsAuthoritative() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "FUNCTION_QUERY",
+                "queryMode", "ADVANCED",
+                "functionId", "staleFunction",
+                "parameters", Map.of("stale", true),
+                "definition", Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)))));
+
+        assertEquals(Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)), configuration.definition());
+    }
+
+    @Test
     void actionQueryKeepsLegacySelectorBehaviorWhenQueryModeIsPresent() {
         OntologyActionConfiguration configuration = configuration(
                 "ACTION_QUERY",

@@ -16,6 +16,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OntologyFunctionLinkActionExecutorTest {
@@ -296,6 +297,37 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals(true, firstFunction.get("readOnly"));
     }
 
+    @Test
+    void exposesOrderedFunctionParameterMetadataFromThePinnedSnapshot() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO parameters = trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "delayScore"));
+
+        assertEquals(
+                List.of(
+                        metadata("delayDays", "delayDays", "integer", true, false, false),
+                        metadata("Internal token", "internalToken", "string", false, false, false)),
+                parameters.getTrigger());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsMissingOrUnknownFunctionParameterMetadataSelectors() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        IllegalArgumentException missing = assertThrows(
+                IllegalArgumentException.class,
+                () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of()));
+        IllegalArgumentException unknown = assertThrows(
+                IllegalArgumentException.class,
+                () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "unknown")));
+
+        assertEquals("Ontology function is required for parameter metadata", missing.getMessage());
+        assertEquals("Unknown ontology function: unknown", unknown.getMessage());
+    }
+
     private static Map<String, Object> metadata(
             String label, String value, String dataType, boolean required, boolean readOnly, boolean derived) {
         Map<String, Object> metadata = new LinkedHashMap<>();
@@ -343,9 +375,14 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     private TriggerResultDTO trigger(OntologyPlugin.OntologyPluginExecutor executor, String requestType) {
+        return trigger(executor, requestType, Map.of());
+    }
+
+    private TriggerResultDTO trigger(
+            OntologyPlugin.OntologyPluginExecutor executor, String requestType, Map<String, Object> parameters) {
         DatasourceConfiguration datasourceConfiguration = new DatasourceConfiguration();
         return executor.trigger(
-                        datasource(), datasourceConfiguration, new TriggerRequestDTO(requestType, Map.of(), null))
+                        datasource(), datasourceConfiguration, new TriggerRequestDTO(requestType, parameters, null))
                 .block();
     }
 

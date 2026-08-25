@@ -59,7 +59,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
 
         boolean builderMode = false;
         boolean advancedMode = false;
-        if (operation == Operation.OBJECT_QUERY) {
+        if (operation == Operation.OBJECT_QUERY || operation == Operation.FUNCTION_QUERY) {
             Object queryModeValue = formData.get("queryMode");
             if (queryModeValue != null) {
                 if (!(queryModeValue instanceof String queryMode)) {
@@ -81,8 +81,13 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         Map<String, Object> definition = new java.util.LinkedHashMap<>();
         rawDefinitionMap.forEach((key, value) -> definition.put(String.valueOf(key), value));
         if (builderMode) {
-            mergeBuilderFields(formData, definition);
-        } else if (operation != Operation.OBJECT_QUERY || !advancedMode) {
+            if (operation == Operation.FUNCTION_QUERY) {
+                mergeSelectorFields(formData, definition);
+                copyFunctionParameters(formData, definition);
+            } else {
+                mergeBuilderFields(formData, definition);
+            }
+        } else if (!advancedMode) {
             mergeSelectorFields(formData, definition);
             mergeProjection(formData, definition);
         }
@@ -161,6 +166,20 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         copyStructuredField(formData, definition, "sort", List.class, "Ontology sort selector must be a list");
         copyStructuredField(formData, definition, "page", Map.class, "Ontology page selector must be an object");
         copyResultMode(formData, definition);
+    }
+
+    private static void copyFunctionParameters(Map<String, Object> formData, Map<String, Object> definition) {
+        Object value = formData.get("parameters");
+        if (value == null) {
+            definition.put("parameters", Map.of());
+            return;
+        }
+        if (!(value instanceof Map<?, ?> rawParameters)) {
+            throw new IllegalArgumentException("Ontology function parameters selector must be an object");
+        }
+        Map<String, Object> parameters = new java.util.LinkedHashMap<>();
+        rawParameters.forEach((key, parameterValue) -> parameters.put(String.valueOf(key), parameterValue));
+        definition.put("parameters", Map.copyOf(parameters));
     }
 
     private static void copyResultMode(Map<String, Object> formData, Map<String, Object> definition) {
