@@ -7,6 +7,7 @@ import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeObjectDocument;
+import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
 import com.celanworksmith.runtime.dto.ObjectSetResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,6 +81,77 @@ class MongoRuntimeDataProviderTest {
                     assertThat(result.items().getFirst().properties()).containsEntry("status", "CONFIRMED");
                 })
                 .verifyComplete();
+    }
+
+    @Test
+    void calculatesDelayDaysFromPinnedMongoPurchaseOrder() {
+        when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Mono.just(document("PO001", "DELAYED", 4)));
+
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of("poId", "PO001"))))
+                .expectNext(4)
+                .verifyComplete();
+    }
+
+    @Test
+    void requiresPurchaseOrderIdForCalculateDelayDays() {
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of())))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(CelanWorksmithException.class)
+                        .hasMessageContaining("poId"))
+                .verify();
+        verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
+    }
+
+    @Test
+    void reportsMissingMongoPurchaseOrderForCalculateDelayDays() {
+        when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of("poId", "PO404"))))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(CelanWorksmithException.class)
+                        .hasMessageContaining("PO404"))
+                .verify();
+    }
+
+    @Test
+    void rejectsUnsupportedFunctionWithoutQueryingMongo() {
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "UnsupportedFunction",
+                        new FunctionExecutionRequest(Map.of("poId", "PO001"))))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(CelanWorksmithException.class)
+                        .hasMessageContaining("UnsupportedFunction"))
+                .verify();
+        verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
+    }
+
+    @Test
+    void rejectsNonnumericDelayDaysFromMongoPurchaseOrder() {
+        MongoRuntimeObjectDocument invalid = new MongoRuntimeObjectDocument(
+                "PO001", "PurchaseOrder", Map.of("status", "DELAYED", "delayDays", "four"));
+        when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Mono.just(invalid));
+
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of("poId", "PO001"))))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(CelanWorksmithException.class)
+                        .hasMessageContaining("delayDays"))
+                .verify();
     }
 
     @Test
