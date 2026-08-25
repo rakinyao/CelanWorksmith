@@ -138,6 +138,12 @@ class OntologyFunctionLinkActionExecutorTest {
     void executesActionThroughTheWorkspaceActionServerWithTrustedContext() {
         RecordingGateway gateway = new RecordingGateway();
         RecordingActionServer actionServer = new RecordingActionServer();
+        actionServer.response = new OntologyActionServerClient.Result(
+                Map.of(
+                        "status", "SUCCEEDED",
+                        "message", "Production schedule updated.",
+                        "changedObjects", List.of(Map.of("objectTypeId", "ProductionOrder", "objectId", "PR001"))),
+                "audit-123");
 
         ActionExecutionResult result = execute(
                 gateway,
@@ -150,7 +156,12 @@ class OntologyFunctionLinkActionExecutorTest {
                         "parameters", Map.of("newScheduleDate", "2026-09-01")));
 
         assertTrue(result.getIsExecutionSuccess());
-        assertEquals(Map.of("status", "accepted", "auditId", "audit-123"), result.getBody());
+        Map<?, ?> body = (Map<?, ?>) result.getBody();
+        assertEquals("audit-123", body.get("auditId"));
+        assertEquals("SUCCEEDED", body.get("status"));
+        assertEquals("Production schedule updated.", body.get("message"));
+        assertEquals(
+                List.of(Map.of("objectTypeId", "ProductionOrder", "objectId", "PR001")), body.get("changedObjects"));
         assertEquals("workspace-1", actionServer.request.workspaceId());
         assertEquals("supply-chain", actionServer.request.projectId());
         assertEquals("1.0.0", actionServer.request.projectVersion());
