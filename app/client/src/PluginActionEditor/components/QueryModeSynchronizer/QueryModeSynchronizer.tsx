@@ -176,8 +176,9 @@ function buildRuntimeMetadata(
 function buildFunctionRuntimeMetadata(
   formData: Record<string, unknown>,
   evaluationState: Record<string, unknown>,
+  functionIdOverride?: string,
 ): OntologyFunctionMetadata | undefined {
-  const functionId = readControlData(formData.functionId);
+  const functionId = functionIdOverride || readControlData(formData.functionId);
 
   if (typeof functionId !== "string" || !functionId) {
     return undefined;
@@ -211,6 +212,20 @@ function buildFunctionRuntimeMetadata(
       },
     ],
   };
+}
+
+function getFunctionIdFromAdvancedDefinition(
+  definitionText: unknown,
+): string | undefined {
+  if (typeof definitionText !== "string") {
+    return undefined;
+  }
+
+  try {
+    return parseFunctionAdvancedDefinition(definitionText).functionId;
+  } catch {
+    return undefined;
+  }
 }
 
 function readControlData(value: unknown): unknown {
@@ -371,9 +386,19 @@ export function OntologyQueryModeSynchronizer({
     const operation = readControlData(formData.operation);
     const metadata =
       metadataOverride || buildRuntimeMetadata(formData, evaluationState);
+    const advancedFunctionId =
+      operation === "FUNCTION_QUERY" &&
+      (currentQueryMode === "ADVANCED" ||
+        previousQueryMode.current === "ADVANCED")
+        ? getFunctionIdFromAdvancedDefinition(definitionText)
+        : undefined;
     const functionMetadata =
       functionMetadataOverride ||
-      buildFunctionRuntimeMetadata(formData, evaluationState);
+      buildFunctionRuntimeMetadata(
+        formData,
+        evaluationState,
+        advancedFunctionId,
+      );
 
     if (operation === "OBJECT_QUERY") {
       if (
