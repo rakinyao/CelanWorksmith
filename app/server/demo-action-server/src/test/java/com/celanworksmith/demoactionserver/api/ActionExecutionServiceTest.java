@@ -27,8 +27,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ActionExecutionServiceTest {
@@ -112,12 +112,8 @@ class ActionExecutionServiceTest {
     }
 
     @Test
-    void auditsAnyConfiguredIdentityOrSnapshotContextMismatchBeforeHandlerDispatch() {
+    void rejectsAnyConfiguredIdentityOrSnapshotContextMismatchBeforeAuditCreation() {
         AtomicInteger handlerCalls = new AtomicInteger();
-        when(auditStore.findByIdempotencyKey(anyString())).thenReturn(Mono.empty());
-        when(auditStore.createIfAbsent(any()))
-                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
-        when(auditStore.markFailed(anyString(), any(), any())).thenReturn(Mono.just(runningAudit("completed")));
         ActionExecutionService service = service(handler(auditId -> {
             handlerCalls.incrementAndGet();
             return Mono.just(success(auditId));
@@ -140,13 +136,43 @@ class ActionExecutionServiceTest {
                     .assertNext(result -> {
                         DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
                         assertThat(failure.code()).isEqualTo("INVALID_REQUEST");
-                        assertThat(failure.auditId()).isNotBlank();
+                        assertThat(failure.auditId()).isNull();
                     })
                     .verifyComplete();
         }
 
         assertThat(handlerCalls).hasValue(0);
-        verify(auditStore, times(7)).markFailed(anyString(), any(), any());
+        verifyNoInteractions(auditStore);
+    }
+
+    @Test
+    void rejectsMismatchedConfiguredPinBeforeReplayingAnyStoredAuditState() {
+        AtomicInteger handlerCalls = new AtomicInteger();
+        ActionExecutionService service = service(handler(auditId -> {
+            handlerCalls.incrementAndGet();
+            return Mono.just(success(auditId));
+        }));
+
+        for (ActionExecutionAuditDocument storedAudit : List.of(
+                succeededAudit("audit-succeeded"),
+                failedAudit(
+                        "audit-failed",
+                        new DomainFailure("v1", "audit-failed", "RELATED_OBJECT_NOT_FOUND", "Stored failure.")),
+                runningAudit("audit-running"))) {
+            when(auditStore.findByIdempotencyKey("key-1")).thenReturn(Mono.just(storedAudit));
+
+            StepVerifier.create(service.execute(request("other-workspace", "project-1", "1.0.0", "datasource-1", context())))
+                    .assertNext(result -> {
+                        assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                        DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
+                        assertThat(failure.code()).isEqualTo("INVALID_REQUEST");
+                        assertThat(failure.auditId()).isNull();
+                    })
+                    .verifyComplete();
+        }
+
+        assertThat(handlerCalls).hasValue(0);
+        verifyNoInteractions(auditStore);
     }
 
     private ActionExecutionService service(DemoActionHandler handler) {
@@ -248,6 +274,27 @@ class ActionExecutionServiceTest {
                 failure,
                 List.of(),
                 List.of());
+    }
+
+    private static ActionExecutionAuditDocument succeededAudit(String auditId) {
+        ActionExecutionAuditDocument runningAudit = runningAudit(auditId);
+        return new ActionExecutionAuditDocument(
+                runningAudit.auditId(),
+                runningAudit.idempotencyKey(),
+                runningAudit.workspaceId(),
+                runningAudit.projectId(),
+                runningAudit.projectVersion(),
+                runningAudit.datasourceId(),
+                runningAudit.actionId(),
+                runningAudit.objectTypeId(),
+                runningAudit.objectId(),
+                runningAudit.startedAt(),
+                Instant.parse("2026-08-25T00:00:01Z"),
+                "SUCCEEDED",
+                null,
+                List.of(),
+                List.of(),
+                "Stored success.");
     }
 
     private static ExecuteSuccess success(String auditId) {

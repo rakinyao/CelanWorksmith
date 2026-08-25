@@ -63,10 +63,14 @@ public class ActionExecutionService {
                     OntologyActionServerProtocol.V1, null, INVALID_REQUEST, "contractVersion must be v1.")));
         }
 
-        return auditStore
-                .findByIdempotencyKey(request.idempotencyKey())
-                .flatMap(this::replay)
-                .switchIfEmpty(Mono.defer(() -> createAndExecute(request)));
+        return validateSupportedRequest(request, null)
+                .then(Mono.defer(() -> auditStore
+                        .findByIdempotencyKey(request.idempotencyKey())
+                        .flatMap(this::replay)
+                        .switchIfEmpty(Mono.defer(() -> createAndExecute(request)))))
+                .onErrorResume(
+                        DeclaredDomainException.class,
+                        exception -> Mono.just(new ExecutionResult.Failure(exception.failure())));
     }
 
     private Mono<ExecutionResult> createAndExecute(ExecuteRequest request) {
@@ -95,8 +99,7 @@ public class ActionExecutionService {
 
     private Mono<ExecutionResult> invokeHandler(ExecuteRequest request, ActionExecutionAuditDocument audit) {
         return transactionalOperator
-                .transactional(validateSupportedRequest(request, audit.auditId())
-                        .then(handlerRegistry.resolve(request.actionId(), audit.auditId()))
+                .transactional(handlerRegistry.resolve(request.actionId(), audit.auditId())
                         .flatMap(handler -> handler.execute(request, audit.auditId()))
                         .flatMap(result -> auditStore
                                 .markSucceeded(
