@@ -170,35 +170,20 @@ export function serializeFunctionBuilderForm(
   return JSON.stringify(validation.definition);
 }
 
-export function hydrateBuilderForm(
-  definition: OntologyFunctionQueryDefinition,
-): Record<string, unknown> {
-  const normalized = normalizeDefinition(definition);
-
-  return {
-    "actionConfiguration.formData.functionId.data": normalized.functionId,
-    "actionConfiguration.formData.parameters.data": normalized.parameters,
-  };
-}
-
-export function parseAdvancedDefinition(
-  text: string,
-): OntologyFunctionQueryDefinition {
+export function parseAdvancedParameters(text: string): Record<string, unknown> {
   let parsed: unknown;
 
   try {
     parsed = JSON.parse(text);
   } catch (error) {
-    throw new Error("Advanced JSON definition must be valid JSON", {
+    throw new Error("Advanced Function parameters must be a JSON object", {
       cause: error,
     });
   }
 
-  const shapeError = validateDefinitionShape(parsed);
-
-  if (shapeError) {
-    throw new Error(shapeError);
+  if (!isRecord(parsed)) {
+    throw new Error("Advanced Function parameters must be a JSON object");
   }
 
-  return normalizeDefinition(parsed as OntologyFunctionQueryDefinition);
+  return { ...parsed };
 }

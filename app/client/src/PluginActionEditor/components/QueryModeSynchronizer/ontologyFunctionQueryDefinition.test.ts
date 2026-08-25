@@ -1,6 +1,5 @@
 import {
-  hydrateBuilderForm,
-  parseAdvancedDefinition,
+  parseAdvancedParameters,
   serializeFunctionBuilderForm,
   validateDefinition,
   type OntologyFunctionMetadata,
@@ -38,39 +37,20 @@ describe("ontology function query definition", () => {
     );
   });
 
-  it("hydrates valid Advanced JSON into the Function Builder controls", () => {
-    const definition = parseAdvancedDefinition(
-      '{"functionId":"CalculateDelayDays","parameters":{"poId":"{{Table1.selectedRow.id}}"}}',
-    );
-
-    expect(validateDefinition(definition, metadata)).toEqual({
-      valid: true,
-      definition: {
-        functionId: "CalculateDelayDays",
-        parameters: { poId: "{{Table1.selectedRow.id}}" },
-      },
-    });
-    expect(hydrateBuilderForm(definition)).toEqual({
-      "actionConfiguration.formData.functionId.data": "CalculateDelayDays",
-      "actionConfiguration.formData.parameters.data": {
-        poId: "{{Table1.selectedRow.id}}",
-      },
+  it("parses unknown Advanced parameters without Function metadata validation", () => {
+    expect(parseAdvancedParameters('{"unknown":"x"}')).toEqual({
+      unknown: "x",
     });
   });
 
-  it("rejects an absent Function ID", () => {
-    expect(() =>
-      parseAdvancedDefinition('{"parameters":{"poId":"purchase-order"}}'),
-    ).toThrow("Function query definition requires functionId");
-  });
-
-  it("rejects an untrimmed Function ID", () => {
-    expect(() =>
-      parseAdvancedDefinition(
-        '{"functionId":" CalculateDelayDays ","parameters":{"poId":"purchase-order"}}',
-      ),
-    ).toThrow("Function query definition requires functionId");
-  });
+  it.each(["{", "[]"])(
+    "rejects malformed or non-object Advanced parameters: %s",
+    (text) => {
+      expect(() => parseAdvancedParameters(text)).toThrow(
+        "Advanced Function parameters must be a JSON object",
+      );
+    },
+  );
 
   it("rejects an absent writable required parameter", () => {
     const result = validateDefinition(
@@ -115,13 +95,5 @@ describe("ontology function query definition", () => {
       valid: false,
       message: `Function parameter is not writable: ${parameterId}`,
     });
-  });
-
-  it("rejects unsupported Function definition fields", () => {
-    expect(() =>
-      parseAdvancedDefinition(
-        '{"functionId":"CalculateDelayDays","parameters":{},"resultMode":"ROWS"}',
-      ),
-    ).toThrow("Unsupported field in Function query definition: resultMode");
   });
 });

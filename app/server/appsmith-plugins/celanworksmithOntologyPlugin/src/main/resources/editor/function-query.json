@@ -27,7 +27,6 @@
           "placeholderText": "Select a function",
           "fetchOptionsConditionally": true,
           "conditionals": {
-            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "fetchDynamicValues": {
               "condition": "{{true}}",
               "config": {
@@ -65,8 +64,8 @@
           }
         },
         {
-          "label": "Advanced JSON definition",
-          "configProperty": "actionConfiguration.formData.definition.data",
+          "label": "Advanced JSON parameters",
+          "configProperty": "actionConfiguration.formData.parameters.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
           "disabled": "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
@@ -80,7 +79,7 @@
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}"
           },
-          "placeholderText": "{\"functionId\":\"CalculateDelayDays\",\"parameters\":{\"poId\":\"{{Table1.selectedRow.id}}\"}}"
+          "placeholderText": "{\"poId\":\"{{Table1.selectedRow.id}}\"}"
         }
       ]
     }
