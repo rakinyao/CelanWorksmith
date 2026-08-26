@@ -13,12 +13,14 @@ class OntologyActionServerProtocolTest {
     void copiesMapsAndRequiresVersionedRequestIdentity() {
         var request = new OntologyActionServerProtocol.ExecuteRequest(
                 "v1", "workspace-1", "project-1", "1.0.0", "datasource-1",
-                "UpdateProductionSchedule", "PurchaseOrder", "PO001",
+                "UpdateProductionSchedule", new OntologyObjectSet("PurchaseOrder", List.of("PO001")), false,
                 Map.of("newScheduleDate", "2026-09-01"),
                 Map.of("metadataSnapshotId", "snapshot-1"), "key-1");
 
         assertThat(request.contractVersion()).isEqualTo("v1");
         assertThat(request.parameters()).isUnmodifiable();
+        assertThat(request.targets()).isEqualTo(new OntologyObjectSet("PurchaseOrder", List.of("PO001")));
+        assertThat(request.atomic()).isFalse();
         assertThatThrownBy(() -> request.parameters().put("x", "y"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
@@ -27,11 +29,12 @@ class OntologyActionServerProtocolTest {
     void rejectsBlankActionIdAndIdempotencyKey() {
         assertThatThrownBy(() -> new OntologyActionServerProtocol.ExecuteRequest(
                 "v1", "workspace-1", "project-1", "1.0.0", "datasource-1",
-                " ", "PurchaseOrder", "PO001", Map.of(), Map.of(), "key-1"))
+                " ", new OntologyObjectSet("PurchaseOrder", List.of("PO001")), false, Map.of(), Map.of(), "key-1"))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new OntologyActionServerProtocol.ExecuteRequest(
                 "v1", "workspace-1", "project-1", "1.0.0", "datasource-1",
-                "UpdateProductionSchedule", "PurchaseOrder", "PO001", Map.of(), Map.of(), ""))
+                "UpdateProductionSchedule", new OntologyObjectSet("PurchaseOrder", List.of("PO001")), false,
+                Map.of(), Map.of(), ""))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -40,15 +43,19 @@ class OntologyActionServerProtocolTest {
         var changedObjects = List.of(new OntologyActionServerProtocol.ChangedObject("PurchaseOrder", "PO001"));
         var changedProperties = List.of(new OntologyActionServerProtocol.ChangedProperty(
                 "PurchaseOrder", "PO001", "status", "approved"));
-        var success = new OntologyActionServerProtocol.ExecuteSuccess(
-                "v1", "audit-1", "COMPLETED", "Schedule accepted", changedObjects, changedProperties);
+        var outcome = new OntologyActionServerProtocol.TargetOutcome(
+                new OntologyActionServerProtocol.ChangedObject("PurchaseOrder", "PO001"),
+                "SUCCEEDED",
+                changedObjects,
+                changedProperties,
+                null,
+                "audit-1");
+        var success = new OntologyActionServerProtocol.ExecuteSuccess("v1", List.of(outcome));
         var failure = new OntologyActionServerProtocol.DomainFailure(
                 "v1", "audit-2", "DOMAIN_REJECTED", "Schedule rejected");
 
-        assertThat(success.auditId()).isEqualTo("audit-1");
-        assertThat(success.message()).isEqualTo("Schedule accepted");
-        assertThat(success.changedObjects()).isUnmodifiable();
-        assertThat(success.changedProperties()).isUnmodifiable();
+        assertThat(success.outcomes()).containsExactly(outcome);
+        assertThat(success.outcomes()).isUnmodifiable();
         assertThat(failure.auditId()).isEqualTo("audit-2");
         assertThat(failure.message()).isEqualTo("Schedule rejected");
     }

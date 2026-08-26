@@ -5,6 +5,7 @@ import com.celanworksmith.demoactionserver.runtime.DemoRuntimeObjectDocument;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -38,9 +39,11 @@ class UpdateProductionScheduleHandlerTest {
 
         StepVerifier.create(handler.execute(request("PO001", "2026-09-01T00:00:00Z"), "audit-1"))
                 .assertNext(result -> {
-                    assertThat(result.message()).isEqualTo("Production schedule updated.");
-                    assertThat(result.changedObjects()).containsExactly(new ChangedObject("ProductionOrder", "PR001"));
-                    assertThat(result.changedProperties())
+                    assertThat(result.outcomes()).hasSize(1);
+                    assertThat(result.outcomes().getFirst().target()).isEqualTo(new ChangedObject("PurchaseOrder", "PO001"));
+                    assertThat(result.outcomes().getFirst().changedObjects())
+                            .containsExactly(new ChangedObject("ProductionOrder", "PR001"));
+                    assertThat(result.outcomes().getFirst().changedProperties())
                             .containsExactly(
                                     new ChangedProperty(
                                             "ProductionOrder", "PR001", "scheduleDate", "2026-09-01T00:00:00Z"),
@@ -177,8 +180,8 @@ class UpdateProductionScheduleHandlerTest {
                 "1.0.0",
                 "datasource-1",
                 actionId,
-                objectTypeId,
-                objectId,
+                new OntologyObjectSet(objectTypeId, List.of(objectId)),
+                false,
                 parameters,
                 Map.of(),
                 "key-1");

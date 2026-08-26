@@ -16,8 +16,8 @@ public final class OntologyActionServerProtocol {
             String projectVersion,
             String datasourceId,
             String actionId,
-            String objectTypeId,
-            String objectId,
+            OntologyObjectSet targets,
+            boolean atomic,
             Map<String, Object> parameters,
             Map<String, Object> context,
             String idempotencyKey) {
@@ -28,8 +28,9 @@ public final class OntologyActionServerProtocol {
             requireNonBlank("projectVersion", projectVersion);
             requireNonBlank("datasourceId", datasourceId);
             requireNonBlank("actionId", actionId);
-            requireNonBlank("objectTypeId", objectTypeId);
-            requireNonBlank("objectId", objectId);
+            if (targets == null) {
+                throw new IllegalArgumentException("targets must not be null");
+            }
             requireNonBlank("idempotencyKey", idempotencyKey);
             parameters = parameters == null ? Map.of() : Map.copyOf(parameters);
             context = context == null ? Map.of() : Map.copyOf(context);
@@ -41,13 +42,28 @@ public final class OntologyActionServerProtocol {
     public record ChangedProperty(String objectTypeId, String objectId,
                                   String propertyId, Object newValue) {}
 
-    public record ExecuteSuccess(String contractVersion, String auditId, String status,
-                                 String message, List<ChangedObject> changedObjects,
-                                 List<ChangedProperty> changedProperties) {
-        public ExecuteSuccess {
-            requireNonBlank("contractVersion", contractVersion);
+    public record TargetOutcome(
+            ChangedObject target,
+            String status,
+            List<ChangedObject> changedObjects,
+            List<ChangedProperty> changedProperties,
+            DomainFailure error,
+            String auditId) {
+        public TargetOutcome {
+            if (target == null) {
+                throw new IllegalArgumentException("target must not be null");
+            }
+            requireNonBlank("status", status);
+            requireNonBlank("auditId", auditId);
             changedObjects = changedObjects == null ? List.of() : List.copyOf(changedObjects);
             changedProperties = changedProperties == null ? List.of() : List.copyOf(changedProperties);
+        }
+    }
+
+    public record ExecuteSuccess(String contractVersion, List<TargetOutcome> outcomes) {
+        public ExecuteSuccess {
+            requireNonBlank("contractVersion", contractVersion);
+            outcomes = outcomes == null ? List.of() : List.copyOf(outcomes);
         }
     }
 

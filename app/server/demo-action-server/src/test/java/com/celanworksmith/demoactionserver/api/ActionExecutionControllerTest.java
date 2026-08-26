@@ -4,6 +4,7 @@ import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.Chang
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.DomainFailure;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
+import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.TargetOutcome;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
@@ -30,11 +31,13 @@ class ActionExecutionControllerTest {
         when(actionExecutionService.execute(any()))
                 .thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Success(new ExecuteSuccess(
                         "v1",
-                        "audit-1",
-                        "SUCCEEDED",
-                        "Production schedule updated.",
-                        List.of(new ChangedObject("PurchaseOrder", "PO001")),
-                        List.of(new ChangedProperty("PurchaseOrder", "PO001", "status", "SCHEDULED"))))));
+                        List.of(new TargetOutcome(
+                                new ChangedObject("PurchaseOrder", "PO001"),
+                                "SUCCEEDED",
+                                List.of(new ChangedObject("PurchaseOrder", "PO001")),
+                                List.of(new ChangedProperty("PurchaseOrder", "PO001", "status", "SCHEDULED")),
+                                null,
+                                "audit-1"))))));
 
         webTestClient
                 .post()
@@ -47,13 +50,13 @@ class ActionExecutionControllerTest {
                 .expectBody()
                 .jsonPath("$.contractVersion")
                 .isEqualTo("v1")
-                .jsonPath("$.auditId")
+                .jsonPath("$.outcomes[0].auditId")
                 .isEqualTo("audit-1")
-                .jsonPath("$.status")
+                .jsonPath("$.outcomes[0].status")
                 .isEqualTo("SUCCEEDED")
-                .jsonPath("$.changedObjects[0].objectTypeId")
+                .jsonPath("$.outcomes[0].changedObjects[0].objectTypeId")
                 .isEqualTo("PurchaseOrder")
-                .jsonPath("$.changedProperties[0].propertyId")
+                .jsonPath("$.outcomes[0].changedProperties[0].propertyId")
                 .isEqualTo("status");
     }
 
@@ -153,8 +156,8 @@ class ActionExecutionControllerTest {
                   "projectVersion": "1.0.0",
                   "datasourceId": "datasource-1",
                   "actionId": "UpdateProductionSchedule",
-                  "objectTypeId": "PurchaseOrder",
-                  "objectId": "PO001",
+                  "targets": {"objectTypeId": "PurchaseOrder", "objectIds": ["PO001"]},
+                  "atomic": false,
                   "parameters": {},
                   "context": {},
                   "idempotencyKey": "key-1"

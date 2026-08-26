@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -42,8 +43,10 @@ class HttpOntologyActionServerClientTest {
     @Test
     void postsTrustedRequestAndMapsSuccess() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("""
-                {"contractVersion":"v1","auditId":"audit-1","status":"SUCCEEDED",
-                 "message":"Production schedule updated.","changedObjects":[],"changedProperties":[]}
+                {"contractVersion":"v1","outcomes":[
+                  {"target":{"objectTypeId":"PurchaseOrder","objectId":"PO002"},"status":"SUCCEEDED",
+                   "changedObjects":[],"changedProperties":[],"error":null,"auditId":"audit-1"}
+                ]}
                 """));
 
         StepVerifier.create(client.execute(request()))
@@ -51,11 +54,12 @@ class HttpOntologyActionServerClientTest {
                     assertThat(result.auditId()).isEqualTo("audit-1");
                     assertThat(result.body()).isInstanceOf(Map.class);
                     Map<?, ?> body = (Map<?, ?>) result.body();
-                    assertThat(body.get("status")).isEqualTo("SUCCEEDED");
-                    assertThat(body.get("message")).isEqualTo("Production schedule updated.");
-                    assertThat(body.get("changedObjects")).isEqualTo(java.util.List.of());
-                    assertThat(body.get("changedProperties")).isEqualTo(java.util.List.of());
-                    assertThat(body.get("auditId")).isEqualTo("audit-1");
+                    assertThat(body.get("outcomes")).isEqualTo(List.of(Map.of(
+                            "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO002"),
+                            "status", "SUCCEEDED",
+                            "changedObjects", List.of(),
+                            "changedProperties", List.of(),
+                            "auditId", "audit-1")));
                     assertThat(body.containsKey("data")).isFalse();
                 })
                 .verifyComplete();
@@ -63,7 +67,10 @@ class HttpOntologyActionServerClientTest {
         var recorded = server.takeRequest();
         assertThat(recorded.getPath()).isEqualTo("/api/v1/actions/execute");
         assertThat(recorded.getMethod()).isEqualTo("POST");
-        assertThat(recorded.getBody().readUtf8()).contains("\"contractVersion\":\"v1\"");
+        assertThat(recorded.getBody().readUtf8())
+                .contains("\"contractVersion\":\"v1\"")
+                .contains("\"targets\":{\"objectTypeId\":\"PurchaseOrder\",\"objectIds\":[\"PO002\"]}")
+                .contains("\"atomic\":false");
     }
 
     @Test
@@ -85,24 +92,63 @@ class HttpOntologyActionServerClientTest {
     }
 
     @Test
-    void rejectsMalformedSuccessAndMissingAuditId() {
+    void preservesOrderedMixedTargetOutcomes() {
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("""
+                {"contractVersion":"v1","outcomes":[
+                  {"target":{"objectTypeId":"PurchaseOrder","objectId":"PO002"},"status":"SUCCEEDED",
+                   "changedObjects":[],"changedProperties":[],"auditId":"audit-1"},
+                  {"target":{"objectTypeId":"PurchaseOrder","objectId":"PO404"},"status":"FAILED",
+                   "changedObjects":[],"changedProperties":[],
+                   "error":{"contractVersion":"v1","auditId":"audit-2","code":"TARGET_NOT_FOUND",
+                            "message":"PurchaseOrder PO404 was not found."},"auditId":"audit-2"}
+                ]}
+                """));
+
+        StepVerifier.create(client.execute(request()))
+                .assertNext(result -> {
+                    assertThat(result.auditId()).isNull();
+                    assertThat(result.body()).isEqualTo(Map.of("outcomes", List.of(
+                            Map.of(
+                                    "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO002"),
+                                    "status", "SUCCEEDED",
+                                    "changedObjects", List.of(),
+                                    "changedProperties", List.of(),
+                                    "auditId", "audit-1"),
+                            Map.of(
+                                    "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO404"),
+                                    "status", "FAILED",
+                                    "changedObjects", List.of(),
+                                    "changedProperties", List.of(),
+                                    "error", Map.of(
+                                            "code", "TARGET_NOT_FOUND",
+                                            "message", "PurchaseOrder PO404 was not found."),
+                                    "auditId", "audit-2"))));
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void rejectsMalformedSuccessWithoutOutcomes() {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"contractVersion\":\"v1\",\"status\":\"SUCCEEDED\"}"));
 
         StepVerifier.create(client.execute(request()))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(IllegalStateException.class)
-                        .hasMessageContaining("auditId"))
+                        .hasMessageContaining("outcomes"))
                 .verify();
     }
 
     @Test
-    void rejectsDomainFailureWithoutAuditId() {
+    void mapsEarlyDomainFailureWithoutAuditId() {
         server.enqueue(new MockResponse().setResponseCode(409).setBody("""
                 {"contractVersion":"v1","code":"CONFLICT","message":"Schedule is already published."}
                 """));
 
         StepVerifier.create(client.execute(request()))
-                .expectError(IllegalStateException.class)
+                .expectErrorSatisfies(error -> {
+                    assertThat(error).isInstanceOf(OntologyActionServerClient.DomainException.class);
+                    assertThat(((OntologyActionServerClient.DomainException) error).auditId()).isNull();
+                })
                 .verify();
     }
 
@@ -153,6 +199,10 @@ class HttpOntologyActionServerClientTest {
     private static OntologyActionServerClient.Request request() {
         return new OntologyActionServerClient.Request(
                 "workspace-1", "project-1", "2026-08-22", "datasource-1", "publish",
-                "PurchaseOrder", "po-1", Map.of("status", "PUBLISHED"), Map.of("actor", "test"), "idem-1");
+                new com.celanworksmith.ontology.datasource.OntologyObjectSet("PurchaseOrder", List.of("PO002")),
+                false,
+                Map.of("status", "PUBLISHED"),
+                Map.of("actor", "test"),
+                "idem-1");
     }
 }

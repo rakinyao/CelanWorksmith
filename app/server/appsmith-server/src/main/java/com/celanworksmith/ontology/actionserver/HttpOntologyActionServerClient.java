@@ -5,6 +5,7 @@ import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.DomainFailure;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
+import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.TargetOutcome;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatusCode;
@@ -39,8 +40,8 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
                 request.projectVersion(),
                 request.datasourceId(),
                 request.actionId(),
-                request.objectTypeId(),
-                request.objectId(),
+                request.targets(),
+                request.atomic(),
                 request.parameters(),
                 request.context(),
                 request.idempotencyKey());
@@ -68,7 +69,7 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
             try {
                 ExecuteSuccess success = objectMapper.readValue(body, ExecuteSuccess.class);
                 validateSuccess(success);
-                return Mono.just(new Result(successBody(success), success.auditId()));
+                return Mono.just(new Result(successBody(success), singleAuditId(success)));
             } catch (JsonProcessingException | IllegalArgumentException exception) {
                 return Mono.error(new IllegalStateException(
                         "Action Server returned malformed success response: " + exception.getMessage(), exception));
@@ -87,7 +88,7 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
                     || failure.message().isBlank()) {
                 return Mono.error(new IllegalStateException("Action Server returned an undeclared error response"));
             }
-            if (failure.auditId() == null || failure.auditId().isBlank()) {
+            if (failure.auditId() != null && failure.auditId().isBlank()) {
                 return Mono.error(new IllegalStateException("Action Server error response auditId must not be blank"));
             }
             return Mono.error(new DomainException(failure.code(), failure.message(), failure.auditId()));
@@ -103,37 +104,49 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
         if (!OntologyActionServerProtocol.V1.equals(success.contractVersion())) {
             throw new IllegalArgumentException("contractVersion must be v1");
         }
-        if (success.auditId() == null || success.auditId().isBlank()) {
-            throw new IllegalArgumentException("auditId must not be blank");
-        }
-        if (success.status() == null || success.status().isBlank()) {
-            throw new IllegalArgumentException("status must not be blank");
-        }
-        if (success.message() == null || success.message().isBlank()) {
-            throw new IllegalArgumentException("message must not be blank");
+        if (success.outcomes().isEmpty()) {
+            throw new IllegalArgumentException("outcomes must not be empty");
         }
     }
 
     private static Map<String, Object> successBody(ExecuteSuccess success) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("status", success.status());
-        body.put("message", success.message());
-        body.put("changedObjects", changedObjects(success));
-        body.put("changedProperties", changedProperties(success));
-        body.put("auditId", success.auditId());
+        body.put("outcomes", success.outcomes().stream().map(HttpOntologyActionServerClient::outcome).toList());
         return Map.copyOf(body);
     }
 
-    private static List<Map<String, Object>> changedObjects(ExecuteSuccess success) {
-        return success.changedObjects().stream()
+    private static String singleAuditId(ExecuteSuccess success) {
+        return success.outcomes().size() == 1 ? success.outcomes().getFirst().auditId() : null;
+    }
+
+    private static Map<String, Object> outcome(TargetOutcome outcome) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("target", Map.of(
+                "objectTypeId", outcome.target().objectTypeId(),
+                "objectId", outcome.target().objectId()));
+        body.put("status", outcome.status());
+        body.put("changedObjects", changedObjects(outcome.changedObjects()));
+        body.put("changedProperties", changedProperties(outcome.changedProperties()));
+        if (outcome.error() != null) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("code", outcome.error().code());
+            error.put("message", outcome.error().message());
+            body.put("error", Map.copyOf(error));
+        }
+        body.put("auditId", outcome.auditId());
+        return Map.copyOf(body);
+    }
+
+    private static List<Map<String, Object>> changedObjects(List<OntologyActionServerProtocol.ChangedObject> changedObjects) {
+        return changedObjects.stream()
                 .map(changed -> Map.<String, Object>of(
                         "objectTypeId", changed.objectTypeId(),
                         "objectId", changed.objectId()))
                 .toList();
     }
 
-    private static List<Map<String, Object>> changedProperties(ExecuteSuccess success) {
-        return success.changedProperties().stream()
+    private static List<Map<String, Object>> changedProperties(List<OntologyActionServerProtocol.ChangedProperty> changedProperties) {
+        return changedProperties.stream()
                 .map(changed -> {
                     Map<String, Object> property = new LinkedHashMap<>();
                     property.put("objectTypeId", changed.objectTypeId());

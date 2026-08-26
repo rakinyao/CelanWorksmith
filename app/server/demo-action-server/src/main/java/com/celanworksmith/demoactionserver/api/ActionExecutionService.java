@@ -8,13 +8,18 @@ import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.DomainFailure;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
+import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.TargetOutcome;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +30,7 @@ public class ActionExecutionService {
     private static final String RUNNING = "RUNNING";
     private static final String ACTION_IN_PROGRESS = "ACTION_IN_PROGRESS";
     public static final String ACTION_EXECUTION_FAILED = "ACTION_EXECUTION_FAILED";
+    private static final String ATOMIC_EXECUTION_UNSUPPORTED = "ATOMIC_EXECUTION_UNSUPPORTED";
     private static final String INVALID_REQUEST = "INVALID_REQUEST";
     private static final String SAFE_SERVER_MESSAGE = "Action execution failed.";
     private static final String SUCCESS_MESSAGE = "Action completed.";
@@ -62,18 +68,34 @@ public class ActionExecutionService {
             return Mono.just(new ExecutionResult.Failure(new DomainFailure(
                     OntologyActionServerProtocol.V1, null, INVALID_REQUEST, "contractVersion must be v1.")));
         }
+        if (request.atomic()) {
+            return Mono.just(new ExecutionResult.Failure(new DomainFailure(
+                    OntologyActionServerProtocol.V1,
+                    null,
+                    ATOMIC_EXECUTION_UNSUPPORTED,
+                    "Atomic action execution is not supported.")));
+        }
 
         return validateSupportedRequest(request, null)
-                .then(Mono.defer(() -> auditStore
-                        .findByIdempotencyKey(request.idempotencyKey())
-                        .flatMap(this::replay)
-                        .switchIfEmpty(Mono.defer(() -> createAndExecute(request)))))
+                .thenMany(Flux.fromIterable(request.targets().objectIds())
+                        .concatMap(objectId -> executeTarget(request, objectId)))
+                .collectList()
+                .map(outcomes -> (ExecutionResult) new ExecutionResult.Success(
+                        new ExecuteSuccess(OntologyActionServerProtocol.V1, outcomes)))
                 .onErrorResume(
                         DeclaredDomainException.class,
                         exception -> Mono.just(new ExecutionResult.Failure(exception.failure())));
     }
 
-    private Mono<ExecutionResult> createAndExecute(ExecuteRequest request) {
+    private Mono<TargetOutcome> executeTarget(ExecuteRequest request, String objectId) {
+        ExecuteRequest targetRequest = singleTargetRequest(request, objectId);
+        return auditStore
+                .findByIdempotencyKey(targetRequest.idempotencyKey())
+                .flatMap(audit -> replay(audit, target(targetRequest)))
+                .switchIfEmpty(Mono.defer(() -> createAndExecute(targetRequest)));
+    }
+
+    private Mono<TargetOutcome> createAndExecute(ExecuteRequest request) {
         String auditId = UUID.randomUUID().toString();
         ActionExecutionAuditDocument runningAudit = new ActionExecutionAuditDocument(
                 auditId,
@@ -83,8 +105,8 @@ public class ActionExecutionService {
                 request.projectVersion(),
                 request.datasourceId(),
                 request.actionId(),
-                request.objectTypeId(),
-                request.objectId(),
+                request.targets().objectTypeId(),
+                request.targets().objectIds().getFirst(),
                 Instant.now(clock),
                 null,
                 RUNNING,
@@ -94,31 +116,30 @@ public class ActionExecutionService {
 
         return auditStore
                 .createIfAbsent(runningAudit)
-                .flatMap(audit -> audit.auditId().equals(auditId) ? invokeHandler(request, audit) : replay(audit));
+                .flatMap(audit -> audit.auditId().equals(auditId)
+                        ? invokeHandler(request, audit)
+                        : replay(audit, target(request)));
     }
 
-    private Mono<ExecutionResult> invokeHandler(ExecuteRequest request, ActionExecutionAuditDocument audit) {
+    private Mono<TargetOutcome> invokeHandler(ExecuteRequest request, ActionExecutionAuditDocument audit) {
         return transactionalOperator
                 .transactional(handlerRegistry.resolve(request.actionId(), audit.auditId())
                         .flatMap(handler -> handler.execute(request, audit.auditId()))
-                        .flatMap(result -> auditStore
+                        .map(result -> handlerSuccess(result, request, audit.auditId()))
+                        .flatMap(outcome -> auditStore
                                 .markSucceeded(
                                         audit.auditId(),
                                         Instant.now(clock),
-                                        result.message(),
-                                        result.changedObjects(),
-                                        result.changedProperties())
-                                .thenReturn((ExecutionResult) new ExecutionResult.Success(new ExecuteSuccess(
-                                        OntologyActionServerProtocol.V1,
-                                        audit.auditId(),
-                                        SUCCEEDED,
-                                        result.message(),
-                                        result.changedObjects(),
-                                        result.changedProperties())))))
+                                        SUCCESS_MESSAGE,
+                                        outcome.changedObjects(),
+                                        outcome.changedProperties())
+                                .thenReturn(outcome)))
                 .onErrorResume(
-                        DeclaredDomainException.class, exception -> finishFailure(audit.auditId(), exception.failure()))
+                        DeclaredDomainException.class,
+                        exception -> finishFailure(audit, target(request), exception.failure()))
                 .onErrorResume(
-                        Throwable.class, exception -> finishFailure(audit.auditId(), internalFailure(audit.auditId())));
+                        Throwable.class,
+                        exception -> finishFailure(audit, target(request), internalFailure(audit.auditId())));
     }
 
     private Mono<Void> validateSupportedRequest(ExecuteRequest request, String auditId) {
@@ -132,37 +153,87 @@ public class ActionExecutionService {
                 "Action request does not match the configured Demo Action Server pin.")));
     }
 
-    private Mono<ExecutionResult> replay(ActionExecutionAuditDocument audit) {
+    private Mono<TargetOutcome> replay(ActionExecutionAuditDocument audit, OntologyActionServerProtocol.ChangedObject target) {
         if (RUNNING.equals(audit.status())) {
-            return Mono.just(new ExecutionResult.Failure(new DomainFailure(
-                    OntologyActionServerProtocol.V1,
-                    audit.auditId(),
-                    ACTION_IN_PROGRESS,
-                    "Action execution is in progress.")));
+            return Mono.just(failedOutcome(
+                    target,
+                    new DomainFailure(
+                            OntologyActionServerProtocol.V1,
+                            audit.auditId(),
+                            ACTION_IN_PROGRESS,
+                            "Action execution is in progress.")));
         }
         if (SUCCEEDED.equals(audit.status())) {
-            return Mono.just(new ExecutionResult.Success(new ExecuteSuccess(
-                    OntologyActionServerProtocol.V1,
-                    audit.auditId(),
+            return Mono.just(new TargetOutcome(
+                    target,
                     SUCCEEDED,
-                    audit.successMessage() == null || audit.successMessage().isBlank()
-                            ? SUCCESS_MESSAGE
-                            : audit.successMessage(),
                     audit.changedObjects(),
-                    audit.changedProperties())));
+                    audit.changedProperties(),
+                    null,
+                    audit.auditId()));
         }
         if (FAILED.equals(audit.status()) && audit.failure() != null) {
-            return Mono.just(new ExecutionResult.Failure(audit.failure()));
+            return Mono.just(failedOutcome(target, audit.failure()));
         }
-        return Mono.just(new ExecutionResult.Failure(internalFailure(audit.auditId())));
+        return Mono.just(failedOutcome(target, internalFailure(audit.auditId())));
     }
 
-    private Mono<ExecutionResult> finishFailure(String auditId, DomainFailure failure) {
+    private Mono<TargetOutcome> finishFailure(
+            ActionExecutionAuditDocument audit,
+            OntologyActionServerProtocol.ChangedObject target,
+            DomainFailure failure) {
         DomainFailure auditFailure =
-                new DomainFailure(OntologyActionServerProtocol.V1, auditId, failure.code(), failure.message());
+                new DomainFailure(OntologyActionServerProtocol.V1, audit.auditId(), failure.code(), failure.message());
         return auditStore
-                .markFailed(auditId, Instant.now(clock), auditFailure)
-                .thenReturn(new ExecutionResult.Failure(auditFailure));
+                .markFailed(audit.auditId(), Instant.now(clock), auditFailure)
+                .thenReturn(failedOutcome(target, auditFailure));
+    }
+
+    private static ExecuteRequest singleTargetRequest(ExecuteRequest request, String objectId) {
+        return new ExecuteRequest(
+                request.contractVersion(),
+                request.workspaceId(),
+                request.projectId(),
+                request.projectVersion(),
+                request.datasourceId(),
+                request.actionId(),
+                new OntologyObjectSet(request.targets().objectTypeId(), List.of(objectId)),
+                false,
+                request.parameters(),
+                request.context(),
+                targetIdempotencyKey(request.idempotencyKey(), objectId));
+    }
+
+    private static String targetIdempotencyKey(String parentKey, String objectId) {
+        return parentKey + ":" + Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(objectId.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static TargetOutcome handlerSuccess(ExecuteSuccess success, ExecuteRequest request, String auditId) {
+        if (!OntologyActionServerProtocol.V1.equals(success.contractVersion()) || success.outcomes().size() != 1) {
+            throw new IllegalArgumentException("Action handler must return exactly one v1 target outcome");
+        }
+        TargetOutcome outcome = success.outcomes().getFirst();
+        if (!SUCCEEDED.equals(outcome.status()) || outcome.error() != null || !target(request).equals(outcome.target())) {
+            throw new IllegalArgumentException("Action handler returned an invalid target outcome");
+        }
+        return new TargetOutcome(
+                target(request),
+                SUCCEEDED,
+                outcome.changedObjects(),
+                outcome.changedProperties(),
+                null,
+                auditId);
+    }
+
+    private static TargetOutcome failedOutcome(OntologyActionServerProtocol.ChangedObject target, DomainFailure failure) {
+        return new TargetOutcome(target, FAILED, List.of(), List.of(), failure, failure.auditId());
+    }
+
+    private static OntologyActionServerProtocol.ChangedObject target(ExecuteRequest request) {
+        return new OntologyActionServerProtocol.ChangedObject(
+                request.targets().objectTypeId(), request.targets().objectIds().getFirst());
     }
 
     private static DomainFailure internalFailure(String auditId) {

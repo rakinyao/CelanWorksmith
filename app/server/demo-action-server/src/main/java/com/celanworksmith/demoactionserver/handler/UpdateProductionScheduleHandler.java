@@ -8,6 +8,7 @@ import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.Chang
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.DomainFailure;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
+import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.TargetOutcome;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -45,9 +46,10 @@ public class UpdateProductionScheduleHandler implements DemoActionHandler {
         if (!ACTION_ID.equals(request.actionId())) {
             return invalidRequest(auditId, "Action must be UpdateProductionSchedule.");
         }
-        if (!TARGET_OBJECT_TYPE.equals(request.objectTypeId())) {
+        if (!TARGET_OBJECT_TYPE.equals(request.targets().objectTypeId()) || request.targets().objectIds().size() != 1) {
             return invalidRequest(auditId, "UpdateProductionSchedule requires a PurchaseOrder target.");
         }
+        String targetObjectId = request.targets().objectIds().getFirst();
         String newScheduleDate = requiredNonBlankParameter(request, "newScheduleDate");
         if (newScheduleDate == null) {
             return invalidRequest(auditId, "newScheduleDate must be provided.");
@@ -58,22 +60,25 @@ public class UpdateProductionScheduleHandler implements DemoActionHandler {
 
         return mongoTemplate
                 .findOne(
-                        Query.query(Criteria.where("_id").is(request.objectId())),
+                        Query.query(Criteria.where("_id").is(targetObjectId)),
                         DemoRuntimeObjectDocument.class,
                         PURCHASE_ORDERS)
                 .switchIfEmpty(domainFailure(
-                        auditId, "TARGET_NOT_FOUND", "PurchaseOrder " + request.objectId() + " was not found."))
+                        auditId, "TARGET_NOT_FOUND", "PurchaseOrder " + targetObjectId + " was not found."))
                 .flatMap(purchaseOrder -> updateReferencedProductionOrder(purchaseOrder, newScheduleDate, auditId))
                 .map(productionOrderId -> new ExecuteSuccess(
                         OntologyActionServerProtocol.V1,
-                        auditId,
-                        "SUCCEEDED",
-                        "Production schedule updated.",
-                        List.of(new ChangedObject("ProductionOrder", productionOrderId)),
-                        List.of(
-                                new ChangedProperty(
-                                        "ProductionOrder", productionOrderId, "scheduleDate", newScheduleDate),
-                                new ChangedProperty("ProductionOrder", productionOrderId, "status", "RESCHEDULED"))));
+                        List.of(new TargetOutcome(
+                                new ChangedObject(TARGET_OBJECT_TYPE, targetObjectId),
+                                "SUCCEEDED",
+                                List.of(new ChangedObject("ProductionOrder", productionOrderId)),
+                                List.of(
+                                        new ChangedProperty(
+                                                "ProductionOrder", productionOrderId, "scheduleDate", newScheduleDate),
+                                        new ChangedProperty(
+                                                "ProductionOrder", productionOrderId, "status", "RESCHEDULED")),
+                                null,
+                                auditId))));
     }
 
     private Mono<String> updateReferencedProductionOrder(

@@ -8,6 +8,8 @@ import com.celanworksmith.demoactionserver.handler.DemoActionHandlerRegistry;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.DomainFailure;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
+import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.TargetOutcome;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -44,18 +46,18 @@ class ActionExecutionServiceTest {
 
     @Test
     void auditsDeclaredHandlerDomainFailureAsUnprocessableResult() {
-        when(auditStore.findByIdempotencyKey("key-1")).thenReturn(Mono.empty());
+        when(auditStore.findByIdempotencyKey("key-1:UE8wMDE")).thenReturn(Mono.empty());
         when(auditStore.createIfAbsent(any()))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
         when(auditStore.markFailed(anyString(), any(), any())).thenReturn(Mono.just(runningAudit("completed")));
         ActionExecutionService service = service(
-                handler(auditId -> Mono.error(new ActionExecutionService.DeclaredDomainException(new DomainFailure(
+                handler((request, auditId) -> Mono.error(new ActionExecutionService.DeclaredDomainException(new DomainFailure(
                         "v1", auditId, "RELATED_OBJECT_NOT_FOUND", "ProductionOrder PR001 was not found.")))));
 
         StepVerifier.create(service.execute(request()))
                 .assertNext(result -> {
-                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
-                    DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
+                    ExecuteSuccess success = ((ActionExecutionService.ExecutionResult.Success) result).response();
+                    DomainFailure failure = success.outcomes().getFirst().error();
                     assertThat(failure.code()).isEqualTo("RELATED_OBJECT_NOT_FOUND");
                     assertThat(failure.auditId()).isNotBlank();
                 })
@@ -68,17 +70,17 @@ class ActionExecutionServiceTest {
 
     @Test
     void auditsUnexpectedHandlerExceptionAsSafeInternalResult() {
-        when(auditStore.findByIdempotencyKey("key-1")).thenReturn(Mono.empty());
+        when(auditStore.findByIdempotencyKey("key-1:UE8wMDE")).thenReturn(Mono.empty());
         when(auditStore.createIfAbsent(any()))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
         when(auditStore.markFailed(anyString(), any(), any())).thenReturn(Mono.just(runningAudit("completed")));
         ActionExecutionService service =
-                service(handler(auditId -> Mono.error(new IllegalStateException("mongodb password leaked"))));
+                service(handler((request, auditId) -> Mono.error(new IllegalStateException("mongodb password leaked"))));
 
         StepVerifier.create(service.execute(request()))
                 .assertNext(result -> {
-                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
-                    DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
+                    ExecuteSuccess success = ((ActionExecutionService.ExecutionResult.Success) result).response();
+                    DomainFailure failure = success.outcomes().getFirst().error();
                     assertThat(failure.code()).isEqualTo("ACTION_EXECUTION_FAILED");
                     assertThat(failure.message()).isEqualTo("Action execution failed.");
                     assertThat(failure.auditId()).isNotBlank();
@@ -94,16 +96,20 @@ class ActionExecutionServiceTest {
     void replaysStoredRelatedObjectFailureWithoutDispatchingHandler() {
         DomainFailure storedFailure = new DomainFailure(
                 "v1", "audit-replay", "RELATED_OBJECT_NOT_FOUND", "ProductionOrder PR001 was not found.");
-        when(auditStore.findByIdempotencyKey("key-1"))
+        when(auditStore.findByIdempotencyKey("key-1:UE8wMDE"))
                 .thenReturn(Mono.just(failedAudit("audit-replay", storedFailure)));
         AtomicInteger handlerCalls = new AtomicInteger();
-        ActionExecutionService service = service(handler(auditId -> {
+        ActionExecutionService service = service(handler((request, auditId) -> {
             handlerCalls.incrementAndGet();
             return Mono.just(success(auditId));
         }));
 
         StepVerifier.create(service.execute(request()))
-                .assertNext(result -> assertThat(((ActionExecutionService.ExecutionResult.Failure) result).response())
+                .assertNext(result -> assertThat(((ActionExecutionService.ExecutionResult.Success) result)
+                        .response()
+                        .outcomes()
+                        .getFirst()
+                        .error())
                         .isEqualTo(storedFailure))
                 .verifyComplete();
 
@@ -114,7 +120,7 @@ class ActionExecutionServiceTest {
     @Test
     void rejectsAnyConfiguredIdentityOrSnapshotContextMismatchBeforeAuditCreation() {
         AtomicInteger handlerCalls = new AtomicInteger();
-        ActionExecutionService service = service(handler(auditId -> {
+        ActionExecutionService service = service(handler((request, auditId) -> {
             handlerCalls.incrementAndGet();
             return Mono.just(success(auditId));
         }));
@@ -148,7 +154,7 @@ class ActionExecutionServiceTest {
     @Test
     void rejectsMismatchedConfiguredPinBeforeReplayingAnyStoredAuditState() {
         AtomicInteger handlerCalls = new AtomicInteger();
-        ActionExecutionService service = service(handler(auditId -> {
+        ActionExecutionService service = service(handler((request, auditId) -> {
             handlerCalls.incrementAndGet();
             return Mono.just(success(auditId));
         }));
@@ -159,7 +165,7 @@ class ActionExecutionServiceTest {
                         "audit-failed",
                         new DomainFailure("v1", "audit-failed", "RELATED_OBJECT_NOT_FOUND", "Stored failure.")),
                 runningAudit("audit-running"))) {
-            when(auditStore.findByIdempotencyKey("key-1")).thenReturn(Mono.just(storedAudit));
+            when(auditStore.findByIdempotencyKey("key-1:UE8wMDE")).thenReturn(Mono.just(storedAudit));
 
             StepVerifier.create(service.execute(request("other-workspace", "project-1", "1.0.0", "datasource-1", context())))
                     .assertNext(result -> {
@@ -175,6 +181,88 @@ class ActionExecutionServiceTest {
         verifyNoInteractions(auditStore);
     }
 
+    @Test
+    void retainsOrderedAuditedOutcomesWhenOneNonAtomicTargetFails() {
+        when(auditStore.findByIdempotencyKey(anyString())).thenReturn(Mono.empty());
+        when(auditStore.createIfAbsent(any()))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+        when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
+                .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        when(auditStore.markFailed(anyString(), any(), any()))
+                .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        ActionExecutionService service = service(handler((request, auditId) -> {
+            String objectId = request.targets().objectIds().getFirst();
+            if ("PO404".equals(objectId)) {
+                return Mono.error(new ActionExecutionService.DeclaredDomainException(
+                        new DomainFailure("v1", auditId, "TARGET_NOT_FOUND", "PurchaseOrder PO404 was not found.")));
+            }
+            return Mono.just(success(auditId, objectId));
+        }));
+
+        StepVerifier.create(service.execute(request(List.of("PO001", "PO404", "PO003"), false)))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Success.class);
+                    ExecuteSuccess success = ((ActionExecutionService.ExecutionResult.Success) result).response();
+                    assertThat(success.outcomes()).hasSize(3);
+                    assertThat(success.outcomes())
+                            .extracting(outcome -> outcome.target().objectId(), TargetOutcome::status)
+                            .containsExactly(
+                                    org.assertj.core.groups.Tuple.tuple("PO001", "SUCCEEDED"),
+                                    org.assertj.core.groups.Tuple.tuple("PO404", "FAILED"),
+                                    org.assertj.core.groups.Tuple.tuple("PO003", "SUCCEEDED"));
+                    assertThat(success.outcomes().get(1).error().code()).isEqualTo("TARGET_NOT_FOUND");
+                    assertThat(success.outcomes()).allSatisfy(outcome -> assertThat(outcome.auditId()).isNotBlank());
+                })
+                .verifyComplete();
+
+        verify(auditStore, org.mockito.Mockito.times(3)).createIfAbsent(any());
+        verify(auditStore, org.mockito.Mockito.times(2)).markSucceeded(anyString(), any(), anyString(), any(), any());
+        verify(auditStore).markFailed(anyString(), any(), any());
+    }
+
+    @Test
+    void rejectsAtomicRequestsBeforeDispatchingHandlersOrCreatingAudits() {
+        AtomicInteger handlerCalls = new AtomicInteger();
+        ActionExecutionService service = service(handler((request, auditId) -> {
+            handlerCalls.incrementAndGet();
+            return Mono.just(success(auditId, request.targets().objectIds().getFirst()));
+        }));
+
+        StepVerifier.create(service.execute(request(List.of("PO001", "PO002"), true)))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                    assertThat(((ActionExecutionService.ExecutionResult.Failure) result).response().code())
+                            .isEqualTo("ATOMIC_EXECUTION_UNSUPPORTED");
+                })
+                .verifyComplete();
+
+        assertThat(handlerCalls).hasValue(0);
+        verifyNoInteractions(auditStore);
+        verify(transactionalOperator, never()).transactional(any(Mono.class));
+    }
+
+    @Test
+    void derivesDistinctTargetAuditKeysForColonBearingTargetAndParentKeys() {
+        when(auditStore.findByIdempotencyKey(anyString())).thenReturn(Mono.empty());
+        when(auditStore.createIfAbsent(any()))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+        when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
+                .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        ActionExecutionService service = service(handler((request, auditId) ->
+                Mono.just(success(auditId, request.targets().objectIds().getFirst()))));
+
+        StepVerifier.create(service.execute(request(List.of("a:b"), false, "key")))
+                .expectNextCount(1)
+                .verifyComplete();
+        StepVerifier.create(service.execute(request(List.of("b"), false, "key:a")))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        ArgumentCaptor<String> keys = ArgumentCaptor.forClass(String.class);
+        verify(auditStore, org.mockito.Mockito.times(2)).findByIdempotencyKey(keys.capture());
+        assertThat(keys.getAllValues()).containsExactly("key:YTpi", "key:a:Yg");
+    }
+
     private ActionExecutionService service(DemoActionHandler handler) {
         return new ActionExecutionService(
                 auditStore,
@@ -184,7 +272,7 @@ class ActionExecutionServiceTest {
                 CLOCK);
     }
 
-    private static DemoActionHandler handler(java.util.function.Function<String, Mono<ExecuteSuccess>> behavior) {
+    private static DemoActionHandler handler(java.util.function.BiFunction<ExecuteRequest, String, Mono<ExecuteSuccess>> behavior) {
         return new DemoActionHandler() {
             @Override
             public String actionId() {
@@ -193,7 +281,7 @@ class ActionExecutionServiceTest {
 
             @Override
             public Mono<ExecuteSuccess> execute(ExecuteRequest request, String auditId) {
-                return behavior.apply(auditId);
+                return behavior.apply(request, auditId);
             }
         };
     }
@@ -226,11 +314,30 @@ class ActionExecutionServiceTest {
                 projectVersion,
                 datasourceId,
                 "UpdateProductionSchedule",
-                "PurchaseOrder",
-                "PO001",
+                new OntologyObjectSet("PurchaseOrder", List.of("PO001")),
+                false,
                 Map.of("newScheduleDate", "2026-09-01T00:00:00Z"),
                 context,
                 "key-1");
+    }
+
+    private static ExecuteRequest request(List<String> objectIds, boolean atomic) {
+        return request(objectIds, atomic, "key-1");
+    }
+
+    private static ExecuteRequest request(List<String> objectIds, boolean atomic, String idempotencyKey) {
+        return new ExecuteRequest(
+                "v1",
+                "workspace-1",
+                "project-1",
+                "1.0.0",
+                "datasource-1",
+                "UpdateProductionSchedule",
+                new OntologyObjectSet("PurchaseOrder", objectIds),
+                atomic,
+                Map.of("newScheduleDate", "2026-09-01T00:00:00Z"),
+                context(),
+                idempotencyKey);
     }
 
     private static Map<String, Object> context() {
@@ -298,6 +405,16 @@ class ActionExecutionServiceTest {
     }
 
     private static ExecuteSuccess success(String auditId) {
-        return new ExecuteSuccess("v1", auditId, "SUCCEEDED", "Production schedule updated.", List.of(), List.of());
+        return success(auditId, "PO001");
+    }
+
+    private static ExecuteSuccess success(String auditId, String objectId) {
+        return new ExecuteSuccess("v1", List.of(new TargetOutcome(
+                new com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject("PurchaseOrder", objectId),
+                "SUCCEEDED",
+                List.of(),
+                List.of(),
+                null,
+                auditId)));
     }
 }

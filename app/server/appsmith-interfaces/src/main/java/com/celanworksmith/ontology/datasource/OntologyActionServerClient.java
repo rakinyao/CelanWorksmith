@@ -2,6 +2,7 @@ package com.celanworksmith.ontology.datasource;
 
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 
 public interface OntologyActionServerClient {
@@ -11,18 +12,50 @@ public interface OntologyActionServerClient {
             String projectVersion,
             String datasourceId,
             String actionId,
-            String objectTypeId,
-            String objectId,
+            OntologyObjectSet targets,
+            boolean atomic,
             Map<String, Object> parameters,
             Map<String, Object> context,
             String idempotencyKey) {
         public Request {
+            if (targets == null) {
+                throw new IllegalArgumentException("targets must not be null");
+            }
             parameters = parameters == null ? Map.of() : Map.copyOf(parameters);
             context = context == null ? Map.of() : Map.copyOf(context);
         }
+
+        /** Compatibility constructor for callers that still submit one non-atomic target. */
+        public Request(
+                String workspaceId,
+                String projectId,
+                String projectVersion,
+                String datasourceId,
+                String actionId,
+                String objectTypeId,
+                String objectId,
+                Map<String, Object> parameters,
+                Map<String, Object> context,
+                String idempotencyKey) {
+            this(
+                    workspaceId,
+                    projectId,
+                    projectVersion,
+                    datasourceId,
+                    actionId,
+                    new OntologyObjectSet(objectTypeId, List.of(objectId)),
+                    false,
+                    parameters,
+                    context,
+                    idempotencyKey);
+        }
     }
 
-    record Result(Object body, String auditId) {}
+    record Result(Object body, String auditId) {
+        public Result(Object body) {
+            this(body, null);
+        }
+    }
 
     class DomainException extends RuntimeException {
         private final String code;
