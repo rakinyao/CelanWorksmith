@@ -8,6 +8,7 @@ import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeObjectDocument;
 import com.celanworksmith.runtime.dto.ObjectSetResult;
+import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -115,6 +116,68 @@ class MongoRuntimeDataProviderTest {
 
         verify(template).find(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
         verify(resolver, never()).resolve(any());
+    }
+
+    @Test
+    void calculatesDelayDaysFromPinnedMongoPurchaseOrder() {
+        when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Mono.just(document("PO002", "DELAYED", 4)));
+
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of("poId", "PO002"))))
+                .expectNext(4)
+                .verifyComplete();
+    }
+
+    @Test
+    void rejectsBlankFunctionPoIdBeforeMongoQuery() {
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of("poId", "  "))))
+                .expectErrorMessage("Function parameter poId is required")
+                .verify();
+        verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
+    }
+
+    @Test
+    void rejectsUnsupportedFunctionBeforeMongoQuery() {
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "UnsupportedFunction",
+                        new FunctionExecutionRequest(Map.of("poId", "PO002"))))
+                .expectErrorMessage("Unknown function: UnsupportedFunction")
+                .verify();
+        verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
+    }
+
+    @Test
+    void rejectsNonNumericDelayDaysFromMongo() {
+        when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Mono.just(new MongoRuntimeObjectDocument(
+                        "PO002", "PurchaseOrder", Map.of("delayDays", "four"))));
+
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of("poId", "PO002"))))
+                .expectErrorMessage("PurchaseOrder PO002 has invalid delayDays")
+                .verify();
+    }
+
+    @Test
+    void reportsUnknownPurchaseOrderFromMongo() {
+        when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(Map.of("poId", "PO404"))))
+                .expectErrorMessage("Unknown object: PurchaseOrder/PO404")
+                .verify();
     }
 
     @Test

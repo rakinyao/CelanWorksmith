@@ -16,6 +16,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OntologyFunctionLinkActionExecutorTest {
@@ -29,6 +30,24 @@ class OntologyFunctionLinkActionExecutorTest {
 
         assertTrue(result.getIsExecutionSuccess());
         assertEquals(50, result.getBody());
+        assertEquals(Map.of("delayDays", 5), gateway.functionParameters);
+    }
+
+    @Test
+    void executesBuilderFunctionParametersFromDynamicJsonInput() {
+        RecordingGateway gateway = new RecordingGateway();
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", Map.of("data", "FUNCTION_QUERY"),
+                "queryMode", Map.of("data", "BUILDER"),
+                "functionId", Map.of("data", "delayScore"),
+                "parameters", Map.of("data", "{\"delayDays\":5}")));
+
+        ActionExecutionResult result = new OntologyPlugin.OntologyPluginExecutor(gateway)
+                .execute(datasource(), null, action)
+                .block();
+
+        assertTrue(result.getIsExecutionSuccess());
         assertEquals(Map.of("delayDays", 5), gateway.functionParameters);
     }
 
@@ -75,6 +94,71 @@ class OntologyFunctionLinkActionExecutorTest {
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("Unknown ontology function parameter"));
         assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsUnknownAndNonWritableAdvancedFunctionParametersBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult unexpectedRoot = executeAdvanced(gateway, "delayScore", "{\"page\":{}}");
+        ActionExecutionResult unknown = executeAdvanced(gateway, "delayScore", "{\"unknown\":5}");
+        ActionExecutionResult readOnly =
+                executeAdvanced(gateway, "protectedScore", "{\"input\":\"value\",\"readOnlyValue\":\"value\"}");
+        ActionExecutionResult derived =
+                executeAdvanced(gateway, "protectedScore", "{\"input\":\"value\",\"derivedValue\":\"value\"}");
+
+        assertFalse(unexpectedRoot.getIsExecutionSuccess());
+        assertTrue(unexpectedRoot.getReadableError().contains("Unknown ontology function parameter"));
+        assertFalse(unknown.getIsExecutionSuccess());
+        assertTrue(unknown.getReadableError().contains("Unknown ontology function parameter"));
+        assertFalse(readOnly.getIsExecutionSuccess());
+        assertTrue(readOnly.getReadableError().contains("not writable"));
+        assertFalse(derived.getIsExecutionSuccess());
+        assertTrue(derived.getReadableError().contains("not writable"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsAdvancedFunctionIdParameterBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = executeAdvanced(gateway, "delayScore", "{\"functionId\":\"other\"}");
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown ontology function parameter"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsMissingRequiredAdvancedFunctionParametersBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = executeAdvanced(gateway, "protectedScore", "{}");
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Ontology function parameter is required"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsNullAdvancedFunctionParametersWithSemanticValidation() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = executeAdvanced(gateway, "delayScore", "{\"delayDays\":null}");
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("must be an integer"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void permitsOnlyWritableRequiredAdvancedFunctionParameters() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = executeAdvanced(gateway, "protectedScore", "{\"input\":\"value\"}");
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(Map.of("input", "value"), gateway.functionParameters);
     }
 
     @Test
@@ -270,7 +354,8 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals(
                 List.of(
                         metadata("Calculate delay", "delayScore", "integer", false, true, false),
-                        metadata("Optional score", "optionalScore", "integer", false, true, false)),
+                        metadata("Optional score", "optionalScore", "integer", false, true, false),
+                        metadata("Protected score", "protectedScore", "integer", false, true, false)),
                 functions.getTrigger());
         assertEquals(
                 List.of(metadata(
@@ -294,6 +379,34 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals("integer", firstFunction.get("dataType"));
         assertEquals("Calculate delay (integer); read-only", firstFunction.get("description"));
         assertEquals(true, firstFunction.get("readOnly"));
+    }
+
+    @Test
+    void exposesOrderedFunctionParameterMetadataFromThePinnedSnapshot() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO parameters =
+                trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "delayScore"));
+
+        assertEquals(
+                List.of(metadata("delayDays", "delayDays", "integer", true, false, false)), parameters.getTrigger());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsMissingOrUnknownFunctionParameterMetadataSelectors() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        IllegalArgumentException missing = assertThrows(
+                IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of()));
+        IllegalArgumentException unknown = assertThrows(
+                IllegalArgumentException.class,
+                () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "unknown")));
+
+        assertEquals("Ontology function is required for parameter metadata", missing.getMessage());
+        assertEquals("Unknown ontology function: unknown", unknown.getMessage());
     }
 
     private static Map<String, Object> metadata(
@@ -333,8 +446,32 @@ class OntologyFunctionLinkActionExecutorTest {
                 ? new OntologyPlugin.OntologyPluginExecutor(gateway)
                 : new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> Mono.just(actionServer));
         ActionConfiguration action = new ActionConfiguration();
-        action.setFormData(Map.of("operation", operation, "definition", definition));
+        if ("FUNCTION_QUERY".equals(operation)) {
+            action.setFormData(Map.of(
+                    "operation",
+                    operation,
+                    "queryMode",
+                    "BUILDER",
+                    "functionId",
+                    definition.get("functionId"),
+                    "parameters",
+                    definition.getOrDefault("parameters", Map.of())));
+        } else {
+            action.setFormData(Map.of("operation", operation, "definition", definition));
+        }
         return executor.execute(datasource(), null, action).block();
+    }
+
+    private ActionExecutionResult executeAdvanced(RecordingGateway gateway, String functionId, String parameters) {
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", Map.of("data", "FUNCTION_QUERY"),
+                "queryMode", Map.of("data", "ADVANCED"),
+                "functionId", Map.of("data", functionId),
+                "parameters", Map.of("data", parameters)));
+        return new OntologyPlugin.OntologyPluginExecutor(gateway)
+                .execute(datasource(), null, action)
+                .block();
     }
 
     private OntologyDatasourceConfiguration datasource() {
@@ -343,9 +480,14 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     private TriggerResultDTO trigger(OntologyPlugin.OntologyPluginExecutor executor, String requestType) {
+        return trigger(executor, requestType, Map.of());
+    }
+
+    private TriggerResultDTO trigger(
+            OntologyPlugin.OntologyPluginExecutor executor, String requestType, Map<String, Object> parameters) {
         DatasourceConfiguration datasourceConfiguration = new DatasourceConfiguration();
         return executor.trigger(
-                        datasource(), datasourceConfiguration, new TriggerRequestDTO(requestType, Map.of(), null))
+                        datasource(), datasourceConfiguration, new TriggerRequestDTO(requestType, parameters, null))
                 .block();
     }
 
@@ -375,7 +517,33 @@ class OntologyFunctionLinkActionExecutorTest {
                                 "optionalScore",
                                 "Optional score",
                                 "integer",
-                                List.of(new PropertyMetadata("threshold", "integer", false, false)))),
+                                List.of(new PropertyMetadata("threshold", "integer", false, false))),
+                        new FunctionMetadata(
+                                "protectedScore",
+                                "Protected score",
+                                "integer",
+                                List.of(
+                                        new PropertyMetadata("input", "string", false, true),
+                                        new PropertyMetadata(
+                                                "readOnlyValue",
+                                                "Read-only value",
+                                                "string",
+                                                false,
+                                                true,
+                                                true,
+                                                false,
+                                                List.of(),
+                                                null),
+                                        new PropertyMetadata(
+                                                "derivedValue",
+                                                "Derived value",
+                                                "string",
+                                                false,
+                                                true,
+                                                false,
+                                                true,
+                                                List.of(),
+                                                null)))),
                 List.of(new LinkMetadata(
                         "po_delivery", "Purchase order deliveries", "PurchaseOrder", "DeliveryOrder", "many")),
                 List.of(new ActionMetadata(

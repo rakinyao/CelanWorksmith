@@ -559,7 +559,11 @@ export enum WhereClauseSubComponent {
   Value = "value",
 }
 
-export const allowedControlTypes = ["DROP_DOWN", "QUERY_DYNAMIC_INPUT_TEXT"];
+export const allowedControlTypes = [
+  "DROP_DOWN",
+  "QUERY_DYNAMIC_INPUT_TEXT",
+  "FUNCTION_PARAMETERS",
+];
 
 const extractExpressionObject = (
   config: string,

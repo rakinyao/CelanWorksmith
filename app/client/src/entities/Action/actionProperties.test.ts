@@ -102,6 +102,37 @@ describe("getReactivePathsOfAction", () => {
     });
   });
 
+  it("registers Function parameter maps as template bindings", () => {
+    const config = [
+      {
+        children: [
+          {
+            label: "Parameters",
+            configProperty: "actionConfiguration.formData.parameters.data",
+            controlType: "FUNCTION_PARAMETERS",
+          },
+        ],
+      },
+    ];
+    const action = {
+      ...DEFAULT_ACTION,
+      actionConfiguration: {
+        formData: {
+          parameters: { data: { poId: "{{Table1.selectedRow.id}}" } },
+        },
+      },
+    };
+
+    const response = getBindingAndReactivePathsOfAction(
+      action,
+      config,
+    ).reactivePaths;
+
+    expect(response).toMatchObject({
+      "config.formData.parameters.data": EvaluationSubstitutionType.TEMPLATE,
+    });
+  });
+
   it("returns correct values for array field config", () => {
     const config = [
       {

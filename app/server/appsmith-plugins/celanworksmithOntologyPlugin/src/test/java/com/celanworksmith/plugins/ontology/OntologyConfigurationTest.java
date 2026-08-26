@@ -162,8 +162,7 @@ class OntologyConfigurationTest {
                 "OBJECT_QUERY",
                 root.at("/editor/0/children/0/children/0/initialValue").asText());
         assertEquals(4, root.at("/editor/0/children/0/children/0/options").size());
-        for (String resource :
-                List.of("object-query.json", "function-query.json", "action-query.json", "link-query.json")) {
+        for (String resource : List.of("object-query.json", "action-query.json", "link-query.json")) {
             JsonNode editor = readEditorResource(resource);
             JsonNode children = editor.at("/children/0/children");
             assertEquals(
@@ -175,6 +174,16 @@ class OntologyConfigurationTest {
             assertTrue(!editor.toString().contains("metadataDigest"));
             assertTrue(!editor.toString().contains("workspaceId"));
         }
+
+        JsonNode functionEditor = readEditorResource("function-query.json");
+        JsonNode functionChildren = functionEditor.at("/children/0/children");
+        assertEquals(
+                "actionConfiguration.formData.parameters.data",
+                findControl(functionChildren, "actionConfiguration.formData.parameters.data")
+                        .path("configProperty")
+                        .asText());
+        assertTrue(!functionEditor.toString().contains("metadataDigest"));
+        assertTrue(!functionEditor.toString().contains("workspaceId"));
     }
 
     @Test

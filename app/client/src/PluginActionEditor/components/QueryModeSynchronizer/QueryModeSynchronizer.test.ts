@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import React from "react";
 import { render } from "@testing-library/react";
 import {
@@ -96,6 +98,26 @@ const ontologyMetadata: OntologyQueryMetadata = {
   ],
 };
 
+const functionParameterEvaluationState = {
+  "": {
+    ONTOLOGY_FUNCTION_PARAMETERS: {
+      fetchDynamicValues: {
+        data: {
+          content: [
+            { value: "poId", required: true },
+            { value: "internalToken", readOnly: true },
+          ],
+        },
+      },
+    },
+  },
+};
+
+const functionBuilderDefinition = JSON.stringify({
+  functionId: "CalculateDelayDays",
+  parameters: { poId: "{{Table1.selectedRow.id}}" },
+});
+
 describe("OntologyQueryModeSynchronizer", () => {
   beforeEach(() => {
     mockDispatch.mockClear();
@@ -160,6 +182,7 @@ describe("OntologyQueryModeSynchronizer", () => {
 
   it("writes the generated JSON when the Query Mode control enters Advanced", () => {
     const request = jest.fn();
+
     Object.defineProperty(global, "fetch", {
       configurable: true,
       value: request,
@@ -210,6 +233,7 @@ describe("OntologyQueryModeSynchronizer", () => {
 
   it("does not dispatch a second definition update when unchanged Builder state rerenders", () => {
     const builderDefinition = formattedPageDefinition;
+
     mockCurrentFormValues = {
       pluginId: "ontology-plugin-id",
       actionConfiguration: {
@@ -289,6 +313,7 @@ describe("OntologyQueryModeSynchronizer", () => {
 
   it("dispatches exactly one definition update when a Builder page binding changes", () => {
     const initialDefinition = formattedPageDefinition;
+
     mockCurrentFormValues = {
       pluginId: "ontology-plugin-id",
       actionConfiguration: {
@@ -305,6 +330,7 @@ describe("OntologyQueryModeSynchronizer", () => {
         formName: "QueryEditorForm",
       }),
     );
+
     expect(mockChange).not.toHaveBeenCalled();
 
     mockCurrentFormValues = {
@@ -573,6 +599,7 @@ describe("OntologyQueryModeSynchronizer", () => {
       objectTypeId: "PurchaseOrder",
       page: { mode: "LIMITED", offset: 0, limit: 10 },
     });
+
     mockEvaluationState = {
       "": {
         ONTOLOGY_FILTER_PROPERTY: {
@@ -637,6 +664,7 @@ describe("OntologyQueryModeSynchronizer", () => {
       objectTypeId: "PurchaseOrder",
       page: { mode: "LIMITED", offset: 0, limit: 100 },
     });
+
     mockCurrentFormValues = {
       pluginId: "ontology-plugin-id",
       actionConfiguration: {
@@ -682,5 +710,315 @@ describe("OntologyQueryModeSynchronizer", () => {
       "actionConfiguration.formData.queryMode.data",
       "ADVANCED",
     );
+  });
+
+  it("serializes Function Builder object parameters when entering Advanced", () => {
+    mockEvaluationState = functionParameterEvaluationState;
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "BUILDER" },
+          functionId: { data: "CalculateDelayDays" },
+          parameters: {
+            data: { poId: "{{Table1.selectedRow.id}}" },
+          },
+          definition: { data: "" },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockChange.mockClear();
+    mockDispatch.mockClear();
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "ADVANCED" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.definition.data",
+      functionBuilderDefinition,
+    );
+  });
+
+  it("serializes Advanced Function parameters without reading parameter metadata", () => {
+    const evaluationState = {};
+
+    Object.defineProperty(evaluationState, "ONTOLOGY_FUNCTION_PARAMETERS", {
+      get: () => {
+        throw new Error("Advanced mode must not read Function metadata");
+      },
+    });
+    mockEvaluationState = { "": evaluationState };
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          functionId: { data: "CalculateDelayDays" },
+          parameters: { data: '{"unknown":"x"}' },
+        },
+      },
+    };
+
+    render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.definition.data",
+      JSON.stringify({
+        functionId: "CalculateDelayDays",
+        parameters: { unknown: "x" },
+      }),
+    );
+  });
+
+  it("clears stale Function parameters once when the Builder Function changes", () => {
+    mockEvaluationState = functionParameterEvaluationState;
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "BUILDER" },
+          functionId: { data: "CalculateDelayDays" },
+          parameters: { data: { poId: "{{Table1.selectedRow.id}}" } },
+          definition: { data: functionBuilderDefinition },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).not.toHaveBeenCalled();
+
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          functionId: { data: "CalculateDelayDaysV2" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledTimes(1);
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.parameters.data",
+      {},
+    );
+  });
+
+  it("clears stale Function parameters once when the Advanced Function changes", () => {
+    const parameters = '{"poId":"{{Table1.selectedRow.id}}"}';
+    const definition = JSON.stringify({
+      functionId: "CalculateDelayDays",
+      parameters: { poId: "{{Table1.selectedRow.id}}" },
+    });
+
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          functionId: { data: "CalculateDelayDays" },
+          parameters: { data: parameters },
+          definition: { data: definition },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).not.toHaveBeenCalled();
+
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          functionId: { data: "CalculateDelayDaysV2" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledTimes(1);
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.parameters.data",
+      {},
+    );
+  });
+
+  it("preserves parameters when the initial Function selection hydrates", () => {
+    const parameters = '{"poId":"{{Table1.selectedRow.id}}"}';
+
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          parameters: { data: parameters },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          functionId: { data: "CalculateDelayDays" },
+          definition: {
+            data: JSON.stringify({
+              functionId: "CalculateDelayDays",
+              parameters: { poId: "{{Table1.selectedRow.id}}" },
+            }),
+          },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).not.toHaveBeenCalled();
+  });
+
+  it("exposes the Function selector for both parameter modes", () => {
+    const functionEditor = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../server/appsmith-plugins/celanworksmithOntologyPlugin/src/main/resources/editor/function-query.json",
+        ),
+        "utf8",
+      ),
+    );
+    const controls = functionEditor.children[0].children;
+    const queryMode = controls.find(
+      (control: { configProperty?: string }) =>
+        control.configProperty ===
+        "actionConfiguration.formData.queryMode.data",
+    );
+    const functionId = controls.find(
+      (control: { configProperty?: string }) =>
+        control.configProperty ===
+        "actionConfiguration.formData.functionId.data",
+    );
+    const parameters = controls.find(
+      (control: { configProperty?: string }) =>
+        control.configProperty ===
+        "actionConfiguration.formData.parameters.data",
+    );
+    const advancedParameters = controls.find(
+      (control: { label?: string }) =>
+        control.label === "Advanced JSON parameters",
+    );
+
+    expect(queryMode).toMatchObject({
+      controlType: "DROP_DOWN",
+      initialValue: "BUILDER",
+    });
+    expect(functionId.conditionals.show).toBeUndefined();
+    expect(parameters).toMatchObject({
+      controlType: "FUNCTION_PARAMETERS",
+    });
+    expect(parameters).not.toHaveProperty("resetOnDependencyChange");
+    expect(parameters.conditionals.show).toBe(
+      "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+    );
+    expect(parameters.conditionals.fetchDynamicValues.config.params).toEqual({
+      requestType: "ONTOLOGY_FUNCTION_PARAMETERS",
+      displayType: "DROP_DOWN",
+      parameters: {
+        functionId: "{{actionConfiguration.formData.functionId.data}}",
+      },
+    });
+    expect(parameters.conditionals.fetchDynamicValues.condition).toBe(
+      "{{actionConfiguration.formData.queryMode.data === 'BUILDER' && !!actionConfiguration.formData.functionId.data}}",
+    );
+    expect(advancedParameters).toMatchObject({
+      controlType: "QUERY_DYNAMIC_INPUT_TEXT",
+      inputType: "JSON",
+      isRequired: true,
+      evaluationSubstitutionType: "TEMPLATE",
+      placeholderText: '{"poId":"{{Table1.selectedRow.id}}"}',
+    });
+    expect(advancedParameters.configProperty).toBe(
+      "actionConfiguration.formData.parameters.data",
+    );
+    expect(advancedParameters.conditionals.show).toBe(
+      "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}",
+    );
+    expect(advancedParameters).not.toHaveProperty("functionId");
+    expect(
+      controls.some(
+        (control: { configProperty?: string }) =>
+          control.configProperty ===
+          "actionConfiguration.formData.definition.data",
+      ),
+    ).toBe(false);
   });
 });

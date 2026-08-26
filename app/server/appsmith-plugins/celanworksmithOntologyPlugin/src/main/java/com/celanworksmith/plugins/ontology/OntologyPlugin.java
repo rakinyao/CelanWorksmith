@@ -211,6 +211,7 @@ public class OntologyPlugin extends BasePlugin {
                                     List.<String>of(),
                                     null))
                             .toList());
+                case "ONTOLOGY_FUNCTION_PARAMETERS" -> dropdownResult(functionParameters(snapshot, request));
                 case "ONTOLOGY_ACTIONS" ->
                     dropdownResult(safeList(snapshot.actions()).stream()
                             .map(action -> metadataEntry(
@@ -253,6 +254,29 @@ public class OntologyPlugin extends BasePlugin {
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ontology object type: " + value));
             return visiblePropertiesWithPrimaryKey(objectType).stream()
                     .map(property -> propertyMetadataEntry(property))
+                    .toList();
+        }
+
+        private List<Map<String, Object>> functionParameters(Snapshot snapshot, TriggerRequestDTO request) {
+            Object functionId = request.getParameters() == null ? null : request.getParameters().get("functionId");
+            if (!(functionId instanceof String value) || value.isBlank()) {
+                throw new IllegalArgumentException("Ontology function is required for parameter metadata");
+            }
+            OntologyRuntimeGateway.FunctionMetadata function = safeList(snapshot.functions()).stream()
+                    .filter(candidate -> value.equals(candidate.id()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + value));
+            return safeList(function.parameters()).stream()
+                    .filter(parameter -> !parameter.hidden())
+                    .map(parameter -> metadataEntry(
+                            parameter.id(),
+                            parameter.displayName(),
+                            parameter.dataType(),
+                            parameter.required(),
+                            parameter.readOnly(),
+                            parameter.derived(),
+                            parameter.enumValues(),
+                            parameter.referenceTypeId()))
                     .toList();
         }
 
