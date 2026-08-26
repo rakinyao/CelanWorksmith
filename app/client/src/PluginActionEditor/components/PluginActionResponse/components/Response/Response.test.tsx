@@ -364,4 +364,26 @@ describe("Response", () => {
       container.querySelector("[data-testid='t--post-run-action-container']"),
     ).toBeNull();
   });
+
+  it("shows a successful zero-valued response instead of the empty response state", () => {
+    const actionResponse = {
+      body: 0,
+      dataTypes: [{ dataType: "JSON" }],
+      isExecutionSuccess: true,
+      responseDisplayFormat: "JSON",
+    } as unknown as ActionResponse;
+
+    const { getByTestId, queryByAltText } = render(
+      <Provider store={store}>
+        <ThemeProvider theme={lightTheme}>
+          <Router>
+            <Response {...defaultProps} actionResponse={actionResponse} />
+          </Router>
+        </ThemeProvider>
+      </Provider>,
+    );
+
+    expect(getByTestId("t--response-data-container")).not.toBeNull();
+    expect(queryByAltText("no-response-yet")).toBeNull();
+  });
 });

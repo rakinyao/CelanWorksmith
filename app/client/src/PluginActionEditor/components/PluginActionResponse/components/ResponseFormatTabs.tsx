@@ -3,8 +3,9 @@ import { ResponseDisplayFormats } from "../../../constants/CommonApiConstants";
 import ReadOnlyEditor from "components/editorComponents/ReadOnlyEditor";
 import { isString } from "lodash";
 import Table from "./Table";
+import type { ParsedActionResponse } from "./Response/utils/parseActionResponse";
 
-type ResponseData = string | Record<string, unknown>[];
+type ResponseData = Exclude<ParsedActionResponse, null>;
 
 const inputValue = (data: ResponseData) => {
   return {
@@ -13,7 +14,7 @@ const inputValue = (data: ResponseData) => {
 };
 
 const tableValue = (data: ResponseData): Record<string, unknown>[] => {
-  if (isString(data)) {
+  if (!Array.isArray(data)) {
     return [{}];
   }
 

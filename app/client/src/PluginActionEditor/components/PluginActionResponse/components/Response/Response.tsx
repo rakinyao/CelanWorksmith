@@ -68,7 +68,7 @@ export function Response(props: ResponseProps) {
   const { errorMessage, hintMessages, response } =
     parseActionResponse(actionResponse);
 
-  const recordCount = response?.length ?? 1;
+  const recordCount = Array.isArray(response) ? response.length : 1;
 
   const { responseDataTypes, responseDisplayFormat } =
     actionResponseDisplayDataFormats(actionResponse);
@@ -181,7 +181,7 @@ export function Response(props: ResponseProps) {
     );
   }
 
-  if (!response && !errorMessage) {
+  if (response == null && !errorMessage) {
     return (
       <NoResponse
         isRunDisabled={isRunDisabled}
@@ -223,7 +223,7 @@ export function Response(props: ResponseProps) {
         </Styled.HelpSection>
       )}
 
-      {response && !!currentContentType && (
+      {response != null && !!currentContentType && (
         <Styled.DataContainer
           $height={responseTabHeight}
           data-testid="t--response-data-container"

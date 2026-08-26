@@ -2,8 +2,16 @@ import type { ActionResponse } from "api/ActionAPI";
 import { getErrorAsString } from "sagas/ActionExecution/errorUtils";
 import { isString } from "lodash";
 
+export type ParsedActionResponse =
+  | Array<Record<string, unknown>>
+  | Record<string, unknown>
+  | string
+  | number
+  | boolean
+  | null;
+
 export function parseActionResponse(actionResponse?: ActionResponse) {
-  let response: Array<Record<string, unknown>> | string = "";
+  let response: ParsedActionResponse | undefined;
   let errorMessage = "";
   let hintMessages: Array<string> = [];
 
