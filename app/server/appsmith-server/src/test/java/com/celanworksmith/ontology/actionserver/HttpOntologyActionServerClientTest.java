@@ -42,7 +42,11 @@ class HttpOntologyActionServerClientTest {
 
     @Test
     void postsTrustedRequestAndMapsSuccess() throws Exception {
-        server.enqueue(new MockResponse().setResponseCode(200).setBody("""
+        server.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody(
+                                """
                 {"contractVersion":"v1","outcomes":[
                   {"target":{"objectTypeId":"PurchaseOrder","objectId":"PO002"},"status":"SUCCEEDED",
                    "changedObjects":[],"changedProperties":[],"error":null,"auditId":"audit-1"}
@@ -54,12 +58,13 @@ class HttpOntologyActionServerClientTest {
                     assertThat(result.auditId()).isEqualTo("audit-1");
                     assertThat(result.body()).isInstanceOf(Map.class);
                     Map<?, ?> body = (Map<?, ?>) result.body();
-                    assertThat(body.get("outcomes")).isEqualTo(List.of(Map.of(
-                            "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO002"),
-                            "status", "SUCCEEDED",
-                            "changedObjects", List.of(),
-                            "changedProperties", List.of(),
-                            "auditId", "audit-1")));
+                    assertThat(body.get("outcomes"))
+                            .isEqualTo(List.of(Map.of(
+                                    "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO002"),
+                                    "status", "SUCCEEDED",
+                                    "changedObjects", List.of(),
+                                    "changedProperties", List.of(),
+                                    "auditId", "audit-1")));
                     assertThat(body.containsKey("data")).isFalse();
                 })
                 .verifyComplete();
@@ -75,7 +80,11 @@ class HttpOntologyActionServerClientTest {
 
     @Test
     void mapsDeclaredDomainFailureCodeToDomainException() {
-        server.enqueue(new MockResponse().setResponseCode(409).setBody("""
+        server.enqueue(
+                new MockResponse()
+                        .setResponseCode(409)
+                        .setBody(
+                                """
                 {"contractVersion":"v1","auditId":"audit-2","code":"RELATED_OBJECT_NOT_FOUND",
                  "message":"ProductionOrder PR001 was not found."}
                 """));
@@ -92,8 +101,38 @@ class HttpOntologyActionServerClientTest {
     }
 
     @Test
+    void mapsASingleFailedOutcomeFromASuccessEnvelopeToDomainException() {
+        server.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody(
+                                """
+                {"contractVersion":"v1","outcomes":[
+                  {"target":{"objectTypeId":"PurchaseOrder","objectId":"PO002"},"status":"FAILED",
+                   "changedObjects":[],"changedProperties":[],
+                   "error":{"contractVersion":"v1","auditId":"audit-2","code":"RELATED_OBJECT_NOT_FOUND",
+                            "message":"ProductionOrder PR001 was not found."},"auditId":"audit-2"}
+                ]}
+                """));
+
+        StepVerifier.create(client.execute(request()))
+                .expectErrorSatisfies(error -> {
+                    assertThat(error).isInstanceOf(OntologyActionServerClient.DomainException.class);
+                    var domainError = (OntologyActionServerClient.DomainException) error;
+                    assertThat(domainError).hasMessage("ProductionOrder PR001 was not found.");
+                    assertThat(domainError.code()).isEqualTo("RELATED_OBJECT_NOT_FOUND");
+                    assertThat(domainError.auditId()).isEqualTo("audit-2");
+                })
+                .verify();
+    }
+
+    @Test
     void preservesOrderedMixedTargetOutcomes() {
-        server.enqueue(new MockResponse().setResponseCode(200).setBody("""
+        server.enqueue(
+                new MockResponse()
+                        .setResponseCode(200)
+                        .setBody(
+                                """
                 {"contractVersion":"v1","outcomes":[
                   {"target":{"objectTypeId":"PurchaseOrder","objectId":"PO002"},"status":"SUCCEEDED",
                    "changedObjects":[],"changedProperties":[],"auditId":"audit-1"},
@@ -107,29 +146,45 @@ class HttpOntologyActionServerClientTest {
         StepVerifier.create(client.execute(request()))
                 .assertNext(result -> {
                     assertThat(result.auditId()).isNull();
-                    assertThat(result.body()).isEqualTo(Map.of("outcomes", List.of(
-                            Map.of(
-                                    "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO002"),
-                                    "status", "SUCCEEDED",
-                                    "changedObjects", List.of(),
-                                    "changedProperties", List.of(),
-                                    "auditId", "audit-1"),
-                            Map.of(
-                                    "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO404"),
-                                    "status", "FAILED",
-                                    "changedObjects", List.of(),
-                                    "changedProperties", List.of(),
-                                    "error", Map.of(
-                                            "code", "TARGET_NOT_FOUND",
-                                            "message", "PurchaseOrder PO404 was not found."),
-                                    "auditId", "audit-2"))));
+                    assertThat(result.body())
+                            .isEqualTo(Map.of(
+                                    "outcomes",
+                                    List.of(
+                                            Map.of(
+                                                    "target",
+                                                            Map.of(
+                                                                    "objectTypeId",
+                                                                    "PurchaseOrder",
+                                                                    "objectId",
+                                                                    "PO002"),
+                                                    "status", "SUCCEEDED",
+                                                    "changedObjects", List.of(),
+                                                    "changedProperties", List.of(),
+                                                    "auditId", "audit-1"),
+                                            Map.of(
+                                                    "target",
+                                                            Map.of(
+                                                                    "objectTypeId",
+                                                                    "PurchaseOrder",
+                                                                    "objectId",
+                                                                    "PO404"),
+                                                    "status", "FAILED",
+                                                    "changedObjects", List.of(),
+                                                    "changedProperties", List.of(),
+                                                    "error",
+                                                            Map.of(
+                                                                    "code", "TARGET_NOT_FOUND",
+                                                                    "message", "PurchaseOrder PO404 was not found."),
+                                                    "auditId", "audit-2"))));
                 })
                 .verifyComplete();
     }
 
     @Test
     void rejectsMalformedSuccessWithoutOutcomes() {
-        server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"contractVersion\":\"v1\",\"status\":\"SUCCEEDED\"}"));
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setBody("{\"contractVersion\":\"v1\",\"status\":\"SUCCEEDED\"}"));
 
         StepVerifier.create(client.execute(request()))
                 .expectErrorSatisfies(error -> assertThat(error)
@@ -140,21 +195,30 @@ class HttpOntologyActionServerClientTest {
 
     @Test
     void mapsEarlyDomainFailureWithoutAuditId() {
-        server.enqueue(new MockResponse().setResponseCode(409).setBody("""
+        server.enqueue(
+                new MockResponse()
+                        .setResponseCode(409)
+                        .setBody(
+                                """
                 {"contractVersion":"v1","code":"CONFLICT","message":"Schedule is already published."}
                 """));
 
         StepVerifier.create(client.execute(request()))
                 .expectErrorSatisfies(error -> {
                     assertThat(error).isInstanceOf(OntologyActionServerClient.DomainException.class);
-                    assertThat(((OntologyActionServerClient.DomainException) error).auditId()).isNull();
+                    assertThat(((OntologyActionServerClient.DomainException) error).auditId())
+                            .isNull();
                 })
                 .verify();
     }
 
     @Test
     void rejectsDomainFailureWithBlankAuditId() {
-        server.enqueue(new MockResponse().setResponseCode(409).setBody("""
+        server.enqueue(
+                new MockResponse()
+                        .setResponseCode(409)
+                        .setBody(
+                                """
                 {"contractVersion":"v1","auditId":"","code":"CONFLICT","message":"Schedule is already published."}
                 """));
 
@@ -198,7 +262,11 @@ class HttpOntologyActionServerClientTest {
 
     private static OntologyActionServerClient.Request request() {
         return new OntologyActionServerClient.Request(
-                "workspace-1", "project-1", "2026-08-22", "datasource-1", "publish",
+                "workspace-1",
+                "project-1",
+                "2026-08-22",
+                "datasource-1",
+                "publish",
                 new com.celanworksmith.ontology.datasource.OntologyObjectSet("PurchaseOrder", List.of("PO002")),
                 false,
                 Map.of("status", "PUBLISHED"),

@@ -540,23 +540,64 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         private ActionExecutionResult actionSuccessResult(OntologyActionServerClient.Result result) {
-            return successResult(actionResultBody(result));
+            Map<String, Object> body = actionResultBody(result);
+            OntologyActionServerClient.DomainException failure = singleActionFailure(body);
+            if (failure != null) {
+                throw failure;
+            }
+            return successResult(body);
         }
 
         private Map<String, Object> actionResultBody(OntologyActionServerClient.Result result) {
-            if (result == null || result.auditId() == null || result.auditId().isBlank()) {
+            if (result == null
+                    || (result.auditId() != null && result.auditId().isBlank())
+                    || (result.auditId() == null && !hasMultipleActionOutcomes(result.body()))) {
                 throw new IllegalStateException("Action Server returned a malformed response: auditId is required");
             }
             if (result.body() instanceof Map<?, ?> values) {
                 Map<String, Object> body = new java.util.LinkedHashMap<>();
                 values.forEach((key, value) -> body.put(String.valueOf(key), value));
-                body.put("auditId", result.auditId());
+                if (result.auditId() != null) {
+                    body.put("auditId", result.auditId());
+                } else {
+                    body.remove("auditId");
+                }
                 return body;
             }
             Map<String, Object> body = new java.util.LinkedHashMap<>();
             body.put("data", result.body());
             body.put("auditId", result.auditId());
             return body;
+        }
+
+        private boolean hasMultipleActionOutcomes(Object body) {
+            return body instanceof Map<?, ?> values
+                    && values.get("outcomes") instanceof List<?> outcomes
+                    && outcomes.size() > 1;
+        }
+
+        private OntologyActionServerClient.DomainException singleActionFailure(Map<String, Object> body) {
+            Object rawOutcomes = body.get("outcomes");
+            if (!(rawOutcomes instanceof List<?> outcomes) || outcomes.size() != 1) {
+                return null;
+            }
+            Object rawOutcome = outcomes.getFirst();
+            if (!(rawOutcome instanceof Map<?, ?> outcome) || !"FAILED".equals(outcome.get("status"))) {
+                return null;
+            }
+            Object rawError = outcome.get("error");
+            if (!(rawError instanceof Map<?, ?> error)) {
+                throw new IllegalStateException("Action Server returned a malformed failed target outcome");
+            }
+            Object rawCode = error.get("code");
+            Object rawMessage = error.get("message");
+            if (!(rawCode instanceof String code)
+                    || code.isBlank()
+                    || !(rawMessage instanceof String message)
+                    || message.isBlank()) {
+                throw new IllegalStateException("Action Server returned a malformed failed target outcome");
+            }
+            return new OntologyActionServerClient.DomainException(code, message, (String) body.get("auditId"));
         }
 
         private IllegalStateException actionServerFailure(OntologyActionServerClient.DomainException error) {

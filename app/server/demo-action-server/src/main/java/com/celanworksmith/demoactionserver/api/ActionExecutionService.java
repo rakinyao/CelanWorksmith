@@ -80,11 +80,23 @@ public class ActionExecutionService {
                 .thenMany(Flux.fromIterable(request.targets().objectIds())
                         .concatMap(objectId -> executeTarget(request, objectId)))
                 .collectList()
-                .map(outcomes -> (ExecutionResult) new ExecutionResult.Success(
-                        new ExecuteSuccess(OntologyActionServerProtocol.V1, outcomes)))
+                .map(outcomes -> singleTargetFailure(outcomes)
+                        .<ExecutionResult>map(ExecutionResult.Failure::new)
+                        .orElseGet(() -> new ExecutionResult.Success(
+                                new ExecuteSuccess(OntologyActionServerProtocol.V1, outcomes))))
                 .onErrorResume(
                         DeclaredDomainException.class,
                         exception -> Mono.just(new ExecutionResult.Failure(exception.failure())));
+    }
+
+    private static java.util.Optional<DomainFailure> singleTargetFailure(List<TargetOutcome> outcomes) {
+        if (outcomes.size() != 1) {
+            return java.util.Optional.empty();
+        }
+        TargetOutcome outcome = outcomes.getFirst();
+        return FAILED.equals(outcome.status()) && outcome.error() != null
+                ? java.util.Optional.of(outcome.error())
+                : java.util.Optional.empty();
     }
 
     private Mono<TargetOutcome> executeTarget(ExecuteRequest request, String objectId) {
@@ -123,7 +135,8 @@ public class ActionExecutionService {
 
     private Mono<TargetOutcome> invokeHandler(ExecuteRequest request, ActionExecutionAuditDocument audit) {
         return transactionalOperator
-                .transactional(handlerRegistry.resolve(request.actionId(), audit.auditId())
+                .transactional(handlerRegistry
+                        .resolve(request.actionId(), audit.auditId())
                         .flatMap(handler -> handler.execute(request, audit.auditId()))
                         .map(result -> handlerSuccess(result, request, audit.auditId()))
                         .flatMap(outcome -> auditStore
@@ -153,7 +166,8 @@ public class ActionExecutionService {
                 "Action request does not match the configured Demo Action Server pin.")));
     }
 
-    private Mono<TargetOutcome> replay(ActionExecutionAuditDocument audit, OntologyActionServerProtocol.ChangedObject target) {
+    private Mono<TargetOutcome> replay(
+            ActionExecutionAuditDocument audit, OntologyActionServerProtocol.ChangedObject target) {
         if (RUNNING.equals(audit.status())) {
             return Mono.just(failedOutcome(
                     target,
@@ -165,12 +179,7 @@ public class ActionExecutionService {
         }
         if (SUCCEEDED.equals(audit.status())) {
             return Mono.just(new TargetOutcome(
-                    target,
-                    SUCCEEDED,
-                    audit.changedObjects(),
-                    audit.changedProperties(),
-                    null,
-                    audit.auditId()));
+                    target, SUCCEEDED, audit.changedObjects(), audit.changedProperties(), null, audit.auditId()));
         }
         if (FAILED.equals(audit.status()) && audit.failure() != null) {
             return Mono.just(failedOutcome(target, audit.failure()));
@@ -205,29 +214,27 @@ public class ActionExecutionService {
     }
 
     private static String targetIdempotencyKey(String parentKey, String objectId) {
-        return parentKey + ":" + Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(objectId.getBytes(StandardCharsets.UTF_8));
+        return parentKey + ":"
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(objectId.getBytes(StandardCharsets.UTF_8));
     }
 
     private static TargetOutcome handlerSuccess(ExecuteSuccess success, ExecuteRequest request, String auditId) {
-        if (!OntologyActionServerProtocol.V1.equals(success.contractVersion()) || success.outcomes().size() != 1) {
+        if (!OntologyActionServerProtocol.V1.equals(success.contractVersion())
+                || success.outcomes().size() != 1) {
             throw new IllegalArgumentException("Action handler must return exactly one v1 target outcome");
         }
         TargetOutcome outcome = success.outcomes().getFirst();
-        if (!SUCCEEDED.equals(outcome.status()) || outcome.error() != null || !target(request).equals(outcome.target())) {
+        if (!SUCCEEDED.equals(outcome.status())
+                || outcome.error() != null
+                || !target(request).equals(outcome.target())) {
             throw new IllegalArgumentException("Action handler returned an invalid target outcome");
         }
         return new TargetOutcome(
-                target(request),
-                SUCCEEDED,
-                outcome.changedObjects(),
-                outcome.changedProperties(),
-                null,
-                auditId);
+                target(request), SUCCEEDED, outcome.changedObjects(), outcome.changedProperties(), null, auditId);
     }
 
-    private static TargetOutcome failedOutcome(OntologyActionServerProtocol.ChangedObject target, DomainFailure failure) {
+    private static TargetOutcome failedOutcome(
+            OntologyActionServerProtocol.ChangedObject target, DomainFailure failure) {
         return new TargetOutcome(target, FAILED, List.of(), List.of(), failure, failure.auditId());
     }
 

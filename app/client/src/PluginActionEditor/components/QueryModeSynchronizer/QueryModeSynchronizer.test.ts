@@ -218,6 +218,114 @@ describe("OntologyQueryModeSynchronizer", () => {
     },
   );
 
+  it("serializes a zero-parameter Function into Advanced when no parameter control value exists", () => {
+    expect(
+      getOntologyQueryDefinitionUpdate({
+        pluginPackageName: "celanworksmith-ontology-plugin",
+        previousQueryMode: "BUILDER",
+        capabilityMetadata: {
+          capabilities: [{ id: "CalculateDelayDays", parameters: [] }],
+        },
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{Table1.selectedRow.id}}",
+            },
+          },
+        },
+      }),
+    ).toEqual({
+      field: "actionConfiguration.formData.definition.data",
+      value:
+        '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
+    });
+  });
+
+  it("does not serialize an unverified capability with absent Builder parameters", () => {
+    expect(
+      getOntologyQueryDefinitionUpdate({
+        pluginPackageName: "celanworksmith-ontology-plugin",
+        previousQueryMode: "BUILDER",
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "UnverifiedFunction" },
+          target: {
+            data: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{Table1.selectedRow.id}}",
+            },
+          },
+        },
+      }),
+    ).toBeUndefined();
+  });
+
+  it("retains zero-parameter metadata while Builder enters Advanced", () => {
+    mockEvaluationState = {
+      "": {
+        ONTOLOGY_FUNCTION_PARAMETERS: {
+          fetchDynamicValues: { data: [] },
+        },
+      },
+    };
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "BUILDER" },
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{Table1.selectedRow.id}}",
+            },
+          },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockChange.mockClear();
+    mockDispatch.mockClear();
+
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "ADVANCED" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.definition.data",
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
+    );
+  });
+
   it.each([
     ["FUNCTION_QUERY", "CalculateDelayDays", { delayDays: 5 }],
     [
@@ -250,6 +358,95 @@ describe("OntologyQueryModeSynchronizer", () => {
           "actionConfiguration.formData.parameters.data": parameters,
         },
       });
+    },
+  );
+
+  it.each([
+    [
+      "a colon-containing owner and capability pair",
+      "owner:a",
+      "capability",
+      "owner",
+      "a:capability",
+    ],
+    [
+      "an owner change while the capability remains selected",
+      "PurchaseOrder",
+      "sharedCapability",
+      "Supplier",
+      "sharedCapability",
+    ],
+  ])(
+    "resets target and parameters when %s changes",
+    (
+      _reason,
+      objectTypeId,
+      capabilityId,
+      nextObjectTypeId,
+      nextCapabilityId,
+    ) => {
+      const definition = JSON.stringify({
+        target: { source: "SINGLE_OBJECT", objectId: "PO002" },
+        parameters: {},
+      });
+
+      mockCurrentFormValues = {
+        pluginId: "ontology-plugin-id",
+        actionConfiguration: {
+          formData: {
+            operation: { data: "FUNCTION_QUERY" },
+            queryMode: { data: "BUILDER" },
+            objectTypeId: { data: objectTypeId },
+            functionId: { data: capabilityId },
+            target: { data: { source: "SINGLE_OBJECT", objectId: "PO002" } },
+            parameters: { data: {} },
+            definition: { data: definition },
+          },
+        },
+      };
+
+      const view = render(
+        React.createElement(OntologyQueryModeSynchronizer, {
+          enabled: true,
+          formName: "QueryEditorForm",
+        }),
+      );
+
+      expect(mockChange).not.toHaveBeenCalled();
+
+      mockCurrentFormValues = {
+        ...mockCurrentFormValues,
+        actionConfiguration: {
+          formData: {
+            ...mockCurrentFormValues.actionConfiguration.formData,
+            objectTypeId: { data: nextObjectTypeId },
+            functionId: { data: nextCapabilityId },
+          },
+        },
+      };
+      view.rerender(
+        React.createElement(OntologyQueryModeSynchronizer, {
+          enabled: true,
+          formName: "QueryEditorForm",
+        }),
+      );
+
+      expect(mockChange).toHaveBeenCalledTimes(3);
+      expect(mockChange).toHaveBeenCalledWith(
+        "QueryEditorForm",
+        "actionConfiguration.formData.target.data",
+        { source: "SINGLE_OBJECT", objectId: "" },
+      );
+      expect(mockChange).toHaveBeenCalledWith(
+        "QueryEditorForm",
+        "actionConfiguration.formData.parameters.data",
+        {},
+      );
+      expect(mockChange).toHaveBeenCalledWith(
+        "QueryEditorForm",
+        "actionConfiguration.formData.definition.data",
+        "",
+      );
     },
   );
 

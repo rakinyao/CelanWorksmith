@@ -65,6 +65,47 @@ describe("ontology capability query definition", () => {
     },
   );
 
+  it("serializes a zero-parameter Function when its control has not written form data", () => {
+    expect(
+      serializeCapabilityBuilderForm(
+        {
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{Table1.selectedRow.id}}",
+            },
+          },
+        },
+        "FUNCTION_QUERY",
+        {
+          capabilities: [{ id: "CalculateDelayDays", parameters: [] }],
+        },
+      ),
+    ).toBe(
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
+    );
+  });
+
+  it("does not assume an unverified capability has zero parameters", () => {
+    expect(() =>
+      serializeCapabilityBuilderForm(
+        {
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "UnverifiedFunction" },
+          target: {
+            data: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{Table1.selectedRow.id}}",
+            },
+          },
+        },
+        "FUNCTION_QUERY",
+      ),
+    ).toThrow("Ontology capability parameters must be a JSON object");
+  });
+
   it("hydrates Advanced target and parameters into Builder controls", () => {
     expect(
       hydrateCapabilityBuilderForm({

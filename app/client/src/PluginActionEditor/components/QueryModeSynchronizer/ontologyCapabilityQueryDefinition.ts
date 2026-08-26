@@ -87,6 +87,38 @@ function parseParameters(value: unknown): Record<string, unknown> {
   }
 }
 
+function hasNoWritableParameters(
+  selectedCapabilityId: unknown,
+  metadata?: OntologyCapabilityMetadata,
+): boolean {
+  if (typeof selectedCapabilityId !== "string" || !metadata) {
+    return false;
+  }
+
+  return (
+    metadata.capabilities
+      .find((capability) => capability.id === selectedCapabilityId)
+      ?.parameters.every(
+        (parameter) => parameter.readOnly || parameter.derived,
+      ) === true
+  );
+}
+
+function parseBuilderParameters(
+  value: unknown,
+  selectedCapabilityId: unknown,
+  metadata?: OntologyCapabilityMetadata,
+): Record<string, unknown> {
+  if (
+    value === undefined &&
+    hasNoWritableParameters(selectedCapabilityId, metadata)
+  ) {
+    return {};
+  }
+
+  return parseParameters(value);
+}
+
 function normalizeDefinition(
   definition: OntologyCapabilityQueryDefinition,
 ): OntologyCapabilityQueryDefinition {
@@ -243,6 +275,9 @@ export function serializeCapabilityBuilderForm(
   metadata?: OntologyCapabilityMetadata,
 ): string {
   const objectTypeId = unwrapBuilderValue(formData.objectTypeId);
+  const selectedCapabilityId = unwrapBuilderValue(
+    formData[capabilityField(operation)],
+  );
 
   if (
     typeof objectTypeId !== "string" ||
@@ -257,10 +292,14 @@ export function serializeCapabilityBuilderForm(
       target: unwrapBuilderValue(
         formData.target,
       ) as OntologyCapabilityQueryDefinition["target"],
-      parameters: parseParameters(unwrapBuilderValue(formData.parameters)),
+      parameters: parseBuilderParameters(
+        unwrapBuilderValue(formData.parameters),
+        selectedCapabilityId,
+        metadata,
+      ),
     },
     operation,
-    unwrapBuilderValue(formData[capabilityField(operation)]),
+    selectedCapabilityId,
     metadata,
   );
 

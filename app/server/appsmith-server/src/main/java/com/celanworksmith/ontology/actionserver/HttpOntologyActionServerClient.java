@@ -24,8 +24,7 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
     private final WorkspaceActionServerProperties.Endpoint endpoint;
     private final ObjectMapper objectMapper;
 
-    public HttpOntologyActionServerClient(
-            WebClient webClient, WorkspaceActionServerProperties.Endpoint endpoint) {
+    public HttpOntologyActionServerClient(WebClient webClient, WorkspaceActionServerProperties.Endpoint endpoint) {
         this.webClient = webClient;
         this.endpoint = endpoint;
         this.objectMapper = new ObjectMapper().findAndRegisterModules();
@@ -69,6 +68,10 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
             try {
                 ExecuteSuccess success = objectMapper.readValue(body, ExecuteSuccess.class);
                 validateSuccess(success);
+                DomainException failure = singleTargetFailure(success);
+                if (failure != null) {
+                    return Mono.error(failure);
+                }
                 return Mono.just(new Result(successBody(success), singleAuditId(success)));
             } catch (JsonProcessingException | IllegalArgumentException exception) {
                 return Mono.error(new IllegalStateException(
@@ -109,9 +112,33 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
         }
     }
 
+    private static DomainException singleTargetFailure(ExecuteSuccess success) {
+        if (success.outcomes().size() != 1) {
+            return null;
+        }
+        TargetOutcome outcome = success.outcomes().getFirst();
+        if (!"FAILED".equals(outcome.status())) {
+            return null;
+        }
+        DomainFailure failure = outcome.error();
+        if (failure == null
+                || !OntologyActionServerProtocol.V1.equals(failure.contractVersion())
+                || failure.code() == null
+                || failure.code().isBlank()
+                || failure.message() == null
+                || failure.message().isBlank()) {
+            throw new IllegalArgumentException("failed target outcome must declare a v1 domain failure");
+        }
+        return new DomainException(failure.code(), failure.message(), outcome.auditId());
+    }
+
     private static Map<String, Object> successBody(ExecuteSuccess success) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("outcomes", success.outcomes().stream().map(HttpOntologyActionServerClient::outcome).toList());
+        body.put(
+                "outcomes",
+                success.outcomes().stream()
+                        .map(HttpOntologyActionServerClient::outcome)
+                        .toList());
         return Map.copyOf(body);
     }
 
@@ -121,9 +148,11 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
 
     private static Map<String, Object> outcome(TargetOutcome outcome) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("target", Map.of(
-                "objectTypeId", outcome.target().objectTypeId(),
-                "objectId", outcome.target().objectId()));
+        body.put(
+                "target",
+                Map.of(
+                        "objectTypeId", outcome.target().objectTypeId(),
+                        "objectId", outcome.target().objectId()));
         body.put("status", outcome.status());
         body.put("changedObjects", changedObjects(outcome.changedObjects()));
         body.put("changedProperties", changedProperties(outcome.changedProperties()));
@@ -137,7 +166,8 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
         return Map.copyOf(body);
     }
 
-    private static List<Map<String, Object>> changedObjects(List<OntologyActionServerProtocol.ChangedObject> changedObjects) {
+    private static List<Map<String, Object>> changedObjects(
+            List<OntologyActionServerProtocol.ChangedObject> changedObjects) {
         return changedObjects.stream()
                 .map(changed -> Map.<String, Object>of(
                         "objectTypeId", changed.objectTypeId(),
@@ -145,7 +175,8 @@ public final class HttpOntologyActionServerClient implements OntologyActionServe
                 .toList();
     }
 
-    private static List<Map<String, Object>> changedProperties(List<OntologyActionServerProtocol.ChangedProperty> changedProperties) {
+    private static List<Map<String, Object>> changedProperties(
+            List<OntologyActionServerProtocol.ChangedProperty> changedProperties) {
         return changedProperties.stream()
                 .map(changed -> {
                     Map<String, Object> property = new LinkedHashMap<>();

@@ -119,7 +119,7 @@ public class ReleaseDependencyScanner {
                 datasourceId,
                 dependencies,
                 diagnostics);
-        if (operation.equals("ACTION_QUERY")) {
+        if (operation.equals("FUNCTION_QUERY") || operation.equals("ACTION_QUERY")) {
             addReference(
                     definition,
                     "objectTypeId",

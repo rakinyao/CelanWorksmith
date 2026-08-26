@@ -44,10 +44,15 @@ class ReleaseDependencyScannerTest {
 
     @Test
     void scansAllOntologyOperationsAndTheirRelatedReferences() {
-        assertThat(scan(action("function", formData("FUNCTION_QUERY", "{\"functionId\":\"f1\"}", Map.of())))
+        assertThat(scan(action(
+                                "function",
+                                formData(
+                                        "FUNCTION_QUERY",
+                                        "{\"functionId\":\"f1\"}",
+                                        Map.of("objectTypeId", Map.of("data", "Order")))))
                         .dependencies())
                 .extracting(ReleaseDependency::kind, ReleaseDependency::referenceId)
-                .contains(tuple("FUNCTION", "f1"));
+                .contains(tuple("FUNCTION", "f1"), tuple("OBJECT_TYPE", "Order"));
         assertThat(scan(action(
                                 "ontology-action",
                                 formData("ACTION_QUERY", "{\"actionId\":\"a1\",\"objectTypeId\":\"Order\"}", Map.of())))

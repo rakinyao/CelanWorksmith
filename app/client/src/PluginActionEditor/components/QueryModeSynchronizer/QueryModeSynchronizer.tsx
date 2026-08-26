@@ -347,6 +347,11 @@ interface OntologyQueryModeSynchronizerProps {
   capabilityMetadata?: OntologyCapabilityMetadata;
 }
 
+interface CapabilitySelection {
+  objectTypeId: string;
+  capabilityId: string;
+}
+
 export function OntologyQueryModeSynchronizer({
   capabilityMetadata: capabilityMetadataOverride,
   enabled,
@@ -367,7 +372,7 @@ export function OntologyQueryModeSynchronizer({
   ) as Record<string, unknown>;
   const hydrationUpdates = useRef<Record<string, unknown>>();
   const previousQueryMode = useRef<unknown>();
-  const previousCapabilitySelection = useRef<string>();
+  const previousCapabilitySelection = useRef<CapabilitySelection>();
   const hasInitialCapabilitySelection = useRef(false);
   const lastValidAdvancedDefinition = useRef<string>();
   const formData = get(formValues, "actionConfiguration.formData") as
@@ -387,7 +392,8 @@ export function OntologyQueryModeSynchronizer({
         metadataOverride || buildRuntimeMetadata(formData, evaluationState);
       const capabilityMetadata =
         (operation === "FUNCTION_QUERY" || operation === "ACTION_QUERY") &&
-        currentQueryMode === "BUILDER"
+        (currentQueryMode === "BUILDER" ||
+          previousQueryMode.current === "BUILDER")
           ? capabilityMetadataOverride ||
             buildCapabilityRuntimeMetadata(formData, evaluationState, operation)
           : undefined;
@@ -539,7 +545,7 @@ export function OntologyQueryModeSynchronizer({
           typeof capabilityId === "string" &&
           capabilityId.trim() !== "";
         const currentSelection = hasSelection
-          ? `${objectTypeId}:${capabilityId}`
+          ? { objectTypeId, capabilityId }
           : undefined;
 
         if (!hasInitialCapabilitySelection.current) {
@@ -547,7 +553,9 @@ export function OntologyQueryModeSynchronizer({
             previousCapabilitySelection.current = currentSelection;
             hasInitialCapabilitySelection.current = true;
           }
-        } else if (previousCapabilitySelection.current !== currentSelection) {
+        } else if (
+          !isEqual(previousCapabilitySelection.current, currentSelection)
+        ) {
           previousCapabilitySelection.current = currentSelection;
           dispatch(
             change(formName, "actionConfiguration.formData.target.data", {

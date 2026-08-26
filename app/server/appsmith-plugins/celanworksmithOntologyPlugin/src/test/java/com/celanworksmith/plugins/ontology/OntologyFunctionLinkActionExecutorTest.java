@@ -252,10 +252,14 @@ class OntologyFunctionLinkActionExecutorTest {
                 actionServer,
                 "ACTION_QUERY",
                 Map.of(
-                        "actionId", "reschedulePurchaseOrder",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001"),
-                        "parameters", Map.of("newScheduleDate", "2026-09-01")));
+                        "actionId",
+                        "reschedulePurchaseOrder",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO001"),
+                        "parameters",
+                        Map.of("newScheduleDate", "2026-09-01")));
 
         assertTrue(result.getIsExecutionSuccess());
         Map<?, ?> body = (Map<?, ?>) result.getBody();
@@ -297,6 +301,80 @@ class OntologyFunctionLinkActionExecutorTest {
         assertTrue(result.getReadableError().contains("RELATED_OBJECT_NOT_FOUND"));
         assertTrue(result.getReadableError().contains("ProductionOrder PR001 was not found."));
         assertTrue(result.getReadableError().contains("audit-456"));
+    }
+
+    @Test
+    void mapsASingleFailedActionResultToANativeQueryError() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        actionServer.response = new OntologyActionServerClient.Result(
+                Map.of(
+                        "outcomes",
+                        List.of(Map.of(
+                                "target",
+                                Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO001"),
+                                "status",
+                                "FAILED",
+                                "changedObjects",
+                                List.of(),
+                                "changedProperties",
+                                List.of(),
+                                "error",
+                                Map.of(
+                                        "code", "RELATED_OBJECT_NOT_FOUND",
+                                        "message", "ProductionOrder PR001 was not found."),
+                                "auditId",
+                                "audit-456"))),
+                "audit-456");
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("RELATED_OBJECT_NOT_FOUND"));
+        assertTrue(result.getReadableError().contains("ProductionOrder PR001 was not found."));
+        assertTrue(result.getReadableError().contains("audit-456"));
+    }
+
+    @Test
+    void preservesMixedTargetActionResultsWithoutATopLevelAuditId() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        List<Map<String, Object>> outcomes = List.of(
+                Map.of(
+                        "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO001"),
+                        "status", "SUCCEEDED",
+                        "changedObjects", List.of(),
+                        "changedProperties", List.of(),
+                        "auditId", "audit-1"),
+                Map.of(
+                        "target", Map.of("objectTypeId", "PurchaseOrder", "objectId", "PO404"),
+                        "status", "FAILED",
+                        "changedObjects", List.of(),
+                        "changedProperties", List.of(),
+                        "error", Map.of("code", "TARGET_NOT_FOUND", "message", "PurchaseOrder PO404 was not found."),
+                        "auditId", "audit-2"));
+        actionServer.response = new OntologyActionServerClient.Result(Map.of("outcomes", outcomes), null);
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
+
+        assertTrue(result.getIsExecutionSuccess());
+        Map<?, ?> body = (Map<?, ?>) result.getBody();
+        assertEquals(outcomes, body.get("outcomes"));
+        assertFalse(body.containsKey("auditId"));
     }
 
     @Test
@@ -401,10 +479,10 @@ class OntologyFunctionLinkActionExecutorTest {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
-        IllegalArgumentException function = assertThrows(
-                IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_FUNCTIONS"));
-        IllegalArgumentException action = assertThrows(
-                IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_ACTIONS"));
+        IllegalArgumentException function =
+                assertThrows(IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_FUNCTIONS"));
+        IllegalArgumentException action =
+                assertThrows(IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_ACTIONS"));
 
         assertEquals("Ontology object type is required for function metadata", function.getMessage());
         assertEquals("Ontology object type is required for action metadata", action.getMessage());
@@ -430,11 +508,10 @@ class OntologyFunctionLinkActionExecutorTest {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
-        TriggerResultDTO parameters =
-                trigger(
-                        executor,
-                        "ONTOLOGY_FUNCTION_PARAMETERS",
-                        Map.of("objectTypeId", "PurchaseOrder", "functionId", "delayScore"));
+        TriggerResultDTO parameters = trigger(
+                executor,
+                "ONTOLOGY_FUNCTION_PARAMETERS",
+                Map.of("objectTypeId", "PurchaseOrder", "functionId", "delayScore"));
 
         assertEquals(
                 List.of(metadata("delayDays", "delayDays", "integer", true, false, false)), parameters.getTrigger());
@@ -480,6 +557,21 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals("Ontology function is required for parameter metadata", missing.getMessage());
         assertEquals("Unknown ontology function: unknown", unknown.getMessage());
         assertEquals("Ontology function does not apply to object type: Supplier", incompatibleOwner.getMessage());
+    }
+
+    @Test
+    void rejectsOwnerIncompatibleActionParameterMetadataSelectors() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        IllegalArgumentException incompatibleOwner = assertThrows(
+                IllegalArgumentException.class,
+                () -> trigger(
+                        executor,
+                        "ONTOLOGY_ACTION_PARAMETERS",
+                        Map.of("objectTypeId", "Supplier", "actionId", "reschedulePurchaseOrder")));
+
+        assertEquals("Ontology action does not apply to object type: Supplier", incompatibleOwner.getMessage());
     }
 
     private static Map<String, Object> metadata(
@@ -553,10 +645,11 @@ class OntologyFunctionLinkActionExecutorTest {
                 "queryMode", Map.of("data", "ADVANCED"),
                 "objectTypeId", Map.of("data", "PurchaseOrder"),
                 "functionId", Map.of("data", functionId),
-                "definition", Map.of(
-                        "data",
-                        "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
-                                + "\"parameters\":" + parameters + "}")));
+                "definition",
+                        Map.of(
+                                "data",
+                                "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"}," + "\"parameters\":"
+                                        + parameters + "}")));
         return new OntologyPlugin.OntologyPluginExecutor(gateway)
                 .execute(datasource(), null, action)
                 .block();
@@ -642,25 +735,18 @@ class OntologyFunctionLinkActionExecutorTest {
                                 List.of("PurchaseOrder"),
                                 List.of()),
                         new FunctionMetadata(
-                                "supplierScore",
-                                "Score supplier",
-                                "integer",
-                                List.of("Supplier"),
-                                List.of())),
+                                "supplierScore", "Score supplier", "integer", List.of("Supplier"), List.of())),
                 List.of(new LinkMetadata(
                         "po_delivery", "Purchase order deliveries", "PurchaseOrder", "DeliveryOrder", "many")),
-                List.of(new ActionMetadata(
-                        "reschedulePurchaseOrder",
-                        "Reschedule purchase order",
-                        List.of("PurchaseOrder"),
-                        true,
-                        List.of(new PropertyMetadata("newScheduleDate", "string", false, false))),
+                List.of(
                         new ActionMetadata(
-                                "notifySupplier",
-                                "Notify supplier",
-                                List.of("Supplier"),
-                                false,
-                                List.of())));
+                                "reschedulePurchaseOrder",
+                                "Reschedule purchase order",
+                                List.of("PurchaseOrder"),
+                                true,
+                                List.of(new PropertyMetadata("newScheduleDate", "string", false, false))),
+                        new ActionMetadata(
+                                "notifySupplier", "Notify supplier", List.of("Supplier"), false, List.of())));
         private Map<String, Object> functionParameters;
         private OntologyObjectSet functionTargets;
         private String linkId;
