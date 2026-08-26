@@ -115,15 +115,23 @@ class OntologySnapshotRuntimeGatewayTest {
                 new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
 
         StepVerifier.create(
-                        gateway.executeFunction("demo-mongo-readonly", pinned, "delayScore", Map.of("delayDays", 5)))
+                        gateway.executeFunction(
+                                "demo-mongo-readonly",
+                                pinned,
+                                "delayScore",
+                                new OntologyObjectSet("PurchaseOrder", List.of("po-1")),
+                                Map.of("delayDays", 5)))
                 .expectNext(50)
                 .verifyComplete();
         StepVerifier.create(gateway.resolveLink("demo-mongo-readonly", pinned, "PurchaseOrder", "po-1", "po_delivery"))
                 .expectNext(List.of(Map.of("id", "delivery-1", "status", "LATE")))
                 .verifyComplete();
 
-        verify(provider)
-                .executeFunction(eq(snapshot.definition()), eq("delayScore"), org.mockito.ArgumentMatchers.any());
+        org.mockito.ArgumentCaptor<com.celanworksmith.runtime.dto.FunctionExecutionRequest> requestCaptor =
+                org.mockito.ArgumentCaptor.forClass(com.celanworksmith.runtime.dto.FunctionExecutionRequest.class);
+        verify(provider).executeFunction(eq(snapshot.definition()), eq("delayScore"), requestCaptor.capture());
+        assertThat(requestCaptor.getValue().targets()).isEqualTo(new OntologyObjectSet("PurchaseOrder", List.of("po-1")));
+        assertThat(requestCaptor.getValue().parameters()).containsExactlyEntriesOf(Map.of("delayDays", 5));
         verify(provider)
                 .getLinks(
                         eq(snapshot.definition()),

@@ -59,10 +59,15 @@ public class OntologySnapshotRuntimeGateway implements OntologyRuntimeGateway {
 
     @Override
     public Mono<Object> executeFunction(
-            String providerId, Snapshot snapshot, String functionId, Map<String, Object> parameters) {
+            String providerId,
+            Snapshot snapshot,
+            String functionId,
+            OntologyObjectSet targets,
+            Map<String, Object> parameters) {
         return requiredSnapshot(snapshot).flatMap(persistedSnapshot -> runtimeProviderRegistry
                 .resolveRequired(providerId)
-                .executeFunction(persistedSnapshot.definition(), functionId, new FunctionExecutionRequest(parameters)));
+                .executeFunction(
+                        persistedSnapshot.definition(), functionId, new FunctionExecutionRequest(targets, parameters)));
     }
 
     @Override

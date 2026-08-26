@@ -413,10 +413,15 @@ public class OntologyPlugin extends BasePlugin {
                 OntologyActionConfiguration configuration,
                 Snapshot snapshot) {
             validateSnapshotPin(datasourceConfiguration, snapshot);
-            Map<String, Object> parameters = queryValidator.validateFunctionParameters(configuration, snapshot);
-            String functionId = (String) configuration.definition().get("functionId");
+            OntologyQueryValidator.ValidatedCapabilityQuery validatedQuery =
+                    queryValidator.validateFunctionQuery(configuration, snapshot);
             return runtimeGateway
-                    .executeFunction(datasourceConfiguration.runtimeProviderId(), snapshot, functionId, parameters)
+                    .executeFunction(
+                            datasourceConfiguration.runtimeProviderId(),
+                            snapshot,
+                            validatedQuery.capabilityId(),
+                            validatedQuery.targets(),
+                            validatedQuery.parameters())
                     .map(this::successResult);
         }
 

@@ -2,6 +2,7 @@ package com.celanworksmith.runtime.adapter.mock;
 
 import com.celanworksmith.CelanWorksmithErrorCode;
 import com.celanworksmith.CelanWorksmithException;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.celanworksmith.runtime.dto.ActionExecutionRequest;
 import com.celanworksmith.runtime.dto.ActionResult;
 import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
@@ -125,20 +126,47 @@ public class MockRuntimeProvider implements RuntimeProvider {
     private Object executeFunctionSync(String functionId, FunctionExecutionRequest request) {
         Map<String, Object> parameters =
                 request == null || request.parameters() == null ? Collections.emptyMap() : request.parameters();
+        if (!parameters.isEmpty()) {
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                    "Unknown function parameter: " + parameters.keySet().iterator().next());
+        }
+        OntologyObjectSet targets = request == null ? null : request.targets();
+        if (targets == null) {
+            throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "Function targets are required");
+        }
+        List<Object> results = targets.objectIds().stream()
+                .map(objectId -> executeFunctionForTarget(functionId, targets.objectTypeId(), objectId))
+                .toList();
+        return results.size() == 1 ? results.getFirst() : results;
+    }
+
+    private Object executeFunctionForTarget(String functionId, String objectTypeId, String objectId) {
         return switch (functionId) {
-            case "CalculateDelayDays" ->
-                calculateDelayDays(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
-            case "CalculatePenalty" ->
-                calculatePenalty(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
-            case "CalculateAdjustedProfit" ->
-                calculateAdjustedProfit(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
-            case "CalculateMarginRate" ->
-                calculateMarginRate(dataStore.get("PurchaseOrder", requiredString(parameters, "poId")));
-            case "CalculateSupplierGrade" -> calculateSupplierGrade(requiredString(parameters, "supplierId"));
-            default ->
-                throw new CelanWorksmithException(
-                        CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId);
+            case "CalculateDelayDays" -> calculateDelayDays(purchaseOrder(objectTypeId, objectId));
+            case "CalculatePenalty" -> calculatePenalty(purchaseOrder(objectTypeId, objectId));
+            case "CalculateAdjustedProfit" -> calculateAdjustedProfit(purchaseOrder(objectTypeId, objectId));
+            case "CalculateMarginRate" -> calculateMarginRate(purchaseOrder(objectTypeId, objectId));
+            case "CalculateSupplierGrade" -> {
+                requireTargetType(functionId, objectTypeId, "Supplier");
+                yield calculateSupplierGrade(objectId);
+            }
+            default -> throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId);
         };
+    }
+
+    private ObjectInstanceDTO purchaseOrder(String objectTypeId, String objectId) {
+        requireTargetType("function", objectTypeId, "PurchaseOrder");
+        return dataStore.get("PurchaseOrder", objectId);
+    }
+
+    private void requireTargetType(String functionId, String actualTypeId, String expectedTypeId) {
+        if (!expectedTypeId.equals(actualTypeId)) {
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                    "Function " + functionId + " does not apply to object type: " + actualTypeId);
+        }
     }
 
     private ReasoningResult reasonSync(ReasoningRequest request) {

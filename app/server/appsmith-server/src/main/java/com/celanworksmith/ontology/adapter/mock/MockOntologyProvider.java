@@ -80,35 +80,35 @@ public class MockOntologyProvider implements OntologyProvider {
                     "Calculate Delay Days",
                     "INTEGER",
                     List.of("PurchaseOrder"),
-                    List.of(parameter("poId", "Purchase Order", "STRING")),
+                    List.of(),
                     true),
             new FunctionDTO(
                     "CalculatePenalty",
                     "Calculate Penalty",
                     "DECIMAL",
                     List.of("PurchaseOrder"),
-                    List.of(parameter("poId", "Purchase Order", "STRING")),
+                    List.of(),
                     true),
             new FunctionDTO(
                     "CalculateAdjustedProfit",
                     "Calculate Adjusted Profit",
                     "DECIMAL",
                     List.of("PurchaseOrder"),
-                    List.of(parameter("poId", "Purchase Order", "STRING")),
+                    List.of(),
                     true),
             new FunctionDTO(
                     "CalculateMarginRate",
                     "Calculate Margin Rate",
                     "DECIMAL",
                     List.of("PurchaseOrder"),
-                    List.of(parameter("poId", "Purchase Order", "STRING")),
+                    List.of(),
                     true),
             new FunctionDTO(
                     "CalculateSupplierGrade",
                     "Calculate Supplier Grade",
                     "DECIMAL",
                     List.of("Supplier"),
-                    List.of(parameter("supplierId", "Supplier", "STRING")),
+                    List.of(),
                     true));
 
     private static final List<ActionTypeDTO> ACTIONS = List.of(

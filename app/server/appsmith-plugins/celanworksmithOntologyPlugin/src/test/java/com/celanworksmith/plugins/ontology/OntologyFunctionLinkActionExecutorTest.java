@@ -6,6 +6,7 @@ import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.TriggerRequestDTO;
 import com.appsmith.external.models.TriggerResultDTO;
 import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -31,6 +32,7 @@ class OntologyFunctionLinkActionExecutorTest {
         assertTrue(result.getIsExecutionSuccess());
         assertEquals(50, result.getBody());
         assertEquals(Map.of("delayDays", 5), gateway.functionParameters);
+        assertEquals(new OntologyObjectSet("PurchaseOrder", List.of("PO002")), gateway.functionTargets);
     }
 
     @Test
@@ -95,6 +97,20 @@ class OntologyFunctionLinkActionExecutorTest {
 
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("Unknown ontology function parameter"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsPoIdAsAnUnknownParameterForTheZeroParameterDemoFunction() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of("functionId", "CalculateDelayDays", "parameters", Map.of("poId", "PO002")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown ontology function parameter: poId"));
         assertEquals(0, gateway.functionCalls);
     }
 
@@ -373,7 +389,8 @@ class OntologyFunctionLinkActionExecutorTest {
                 List.of(
                         metadata("Calculate delay", "delayScore", "integer", false, true, false),
                         metadata("Optional score", "optionalScore", "integer", false, true, false),
-                        metadata("Protected score", "protectedScore", "integer", false, true, false)),
+                        metadata("Protected score", "protectedScore", "integer", false, true, false),
+                        metadata("Calculate delay days", "CalculateDelayDays", "integer", false, true, false)),
                 functions.getTrigger());
         assertEquals(
                 List.of(metadata(
@@ -579,7 +596,13 @@ class OntologyFunctionLinkActionExecutorTest {
                                                 false,
                                                 true,
                                                 List.of(),
-                                                null)))),
+                                                null))),
+                        new FunctionMetadata(
+                                "CalculateDelayDays",
+                                "Calculate delay days",
+                                "integer",
+                                List.of("PurchaseOrder"),
+                                List.of())),
                 List.of(new LinkMetadata(
                         "po_delivery", "Purchase order deliveries", "PurchaseOrder", "DeliveryOrder", "many")),
                 List.of(new ActionMetadata(
@@ -589,6 +612,7 @@ class OntologyFunctionLinkActionExecutorTest {
                         false,
                         List.of(new PropertyMetadata("newScheduleDate", "string", false, false)))));
         private Map<String, Object> functionParameters;
+        private OntologyObjectSet functionTargets;
         private String linkId;
         private int functionCalls;
         private int linkCalls;
@@ -608,8 +632,13 @@ class OntologyFunctionLinkActionExecutorTest {
 
         @Override
         public Mono<Object> executeFunction(
-                String providerId, Snapshot snapshot, String functionId, Map<String, Object> parameters) {
+                String providerId,
+                Snapshot snapshot,
+                String functionId,
+                OntologyObjectSet targets,
+                Map<String, Object> parameters) {
             functionCalls++;
+            functionTargets = targets;
             functionParameters = parameters;
             return Mono.just(50);
         }

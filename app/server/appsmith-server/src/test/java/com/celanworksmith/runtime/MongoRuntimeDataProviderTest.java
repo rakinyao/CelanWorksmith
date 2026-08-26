@@ -2,6 +2,7 @@ package com.celanworksmith.runtime;
 
 import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.application.CelanworksmithApplicationBindingResolver;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
@@ -84,27 +85,40 @@ class MongoRuntimeDataProviderTest {
     }
 
     @Test
-    void calculatesDelayDaysFromMappedMongoPurchaseOrder() {
+    void calculatesDelayDaysFromTheTargetedMongoPurchaseOrder() {
         when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
                 .thenReturn(Mono.just(document("PO001", "DELAYED", 4)));
 
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of("poId", "PO001"))))
+                        functionRequest("PurchaseOrder", "PO001")))
                 .expectNext(4)
                 .verifyComplete();
     }
 
     @Test
-    void requiresPurchaseOrderIdForCalculateDelayDays() {
+    void rejectsFunctionParametersThatAreNotDeclaredBusinessInputs() {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of())))
+                        new FunctionExecutionRequest(
+                                new OntologyObjectSet("PurchaseOrder", List.of("PO001")), Map.of("poId", "PO001"))))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(CelanWorksmithException.class)
-                        .hasMessageContaining("poId"))
+                        .hasMessageContaining("Unknown function parameter: poId"))
+                .verify();
+        verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
+    }
+
+    @Test
+    void rejectsFunctionTargetsOutsideTheirOwnerTypeBeforeMongoLookup() {
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(
+                                new OntologyObjectSet("Supplier", List.of("SUP001")), Map.of())))
+                .expectErrorMessage("Function CalculateDelayDays does not apply to object type: Supplier")
                 .verify();
         verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
     }
@@ -117,7 +131,7 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of("poId", "PO404"))))
+                        functionRequest("PurchaseOrder", "PO404")))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(CelanWorksmithException.class)
                         .hasMessageContaining("PO404"))
@@ -129,7 +143,7 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "UnsupportedFunction",
-                        new FunctionExecutionRequest(Map.of("poId", "PO001"))))
+                        functionRequest("PurchaseOrder", "PO001")))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(CelanWorksmithException.class)
                         .hasMessageContaining("UnsupportedFunction"))
@@ -147,7 +161,7 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of("poId", "PO001"))))
+                        functionRequest("PurchaseOrder", "PO001")))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(CelanWorksmithException.class)
                         .hasMessageContaining("delayDays"))
@@ -197,18 +211,18 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of("poId", "PO002"))))
+                        functionRequest("PurchaseOrder", "PO002")))
                 .expectNext(4)
                 .verifyComplete();
     }
 
     @Test
-    void rejectsBlankFunctionPoIdBeforeMongoQuery() {
+    void rejectsMissingFunctionTargetsBeforeMongoQuery() {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of("poId", "  "))))
-                .expectErrorMessage("Function parameter poId is required")
+                        new FunctionExecutionRequest(null, Map.of())))
+                .expectErrorMessage("Function targets are required")
                 .verify();
         verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
     }
@@ -218,7 +232,7 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "UnsupportedFunction",
-                        new FunctionExecutionRequest(Map.of("poId", "PO002"))))
+                        functionRequest("PurchaseOrder", "PO002")))
                 .expectErrorMessage("Unknown function: UnsupportedFunction")
                 .verify();
         verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));
@@ -233,7 +247,7 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of("poId", "PO002"))))
+                        functionRequest("PurchaseOrder", "PO002")))
                 .expectErrorMessage("PurchaseOrder PO002 has invalid delayDays")
                 .verify();
     }
@@ -246,7 +260,7 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(Map.of("poId", "PO404"))))
+                        functionRequest("PurchaseOrder", "PO404")))
                 .expectErrorMessage("Unknown object: PurchaseOrder/PO404")
                 .verify();
     }
@@ -508,5 +522,9 @@ class MongoRuntimeDataProviderTest {
         properties.put("status", status);
         properties.put("delayDays", delayDays);
         return new MongoRuntimeObjectDocument(id, "PurchaseOrder", properties);
+    }
+
+    private FunctionExecutionRequest functionRequest(String objectTypeId, String objectId) {
+        return new FunctionExecutionRequest(new OntologyObjectSet(objectTypeId, List.of(objectId)), Map.of());
     }
 }

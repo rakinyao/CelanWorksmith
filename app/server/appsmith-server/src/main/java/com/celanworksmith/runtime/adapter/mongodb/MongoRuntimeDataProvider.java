@@ -3,6 +3,7 @@ package com.celanworksmith.runtime.adapter.mongodb;
 import com.celanworksmith.CelanWorksmithErrorCode;
 import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.application.CelanworksmithApplicationBindingResolver;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.celanworksmith.ontology.dto.LinkTypeDTO;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
@@ -25,6 +26,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -129,16 +131,38 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         }
         Map<String, Object> parameters =
                 request == null || request.parameters() == null ? Map.of() : request.parameters();
-        Object poIdValue = parameters.get("poId");
-        if (!(poIdValue instanceof String poId) || poId.isBlank()) {
+        if (!parameters.isEmpty()) {
             return Mono.error(new CelanWorksmithException(
-                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Function parameter poId is required"));
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                    "Unknown function parameter: " + parameters.keySet().iterator().next()));
         }
-        return resolveType(definition, "PurchaseOrder").flatMap(type -> template.findOne(
-                        Query.query(Criteria.where("_id").is(poId)), MongoRuntimeObjectDocument.class, collection(type))
-                .switchIfEmpty(Mono.error(new CelanWorksmithException(
-                        CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: PurchaseOrder/" + poId)))
-                .flatMap(document -> parseDelayDays(poId, document)));
+        OntologyObjectSet targets = request == null ? null : request.targets();
+        if (targets == null) {
+            return Mono.error(new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "Function targets are required"));
+        }
+        if (!"PurchaseOrder".equals(targets.objectTypeId())) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                    "Function CalculateDelayDays does not apply to object type: " + targets.objectTypeId()));
+        }
+        return resolveType(definition, targets.objectTypeId()).flatMap(type -> Flux.fromIterable(targets.objectIds())
+                .concatMap(objectId -> template
+                        .findOne(
+                                Query.query(Criteria.where("_id").is(objectId)),
+                                MongoRuntimeObjectDocument.class,
+                                collection(type))
+                        .switchIfEmpty(Mono.error(new CelanWorksmithException(
+                                CelanWorksmithErrorCode.OBJECT_NOT_FOUND,
+                                "Unknown object: PurchaseOrder/" + objectId)))
+                        .flatMap(document -> parseDelayDays(objectId, document)))
+                .collectList()
+                .map(results -> results.size() == 1 ? results.getFirst() : results));
+    }
+
+    @Override
+    public Mono<Object> executeFunction(String functionId, FunctionExecutionRequest request) {
+        return Mono.error(new CelanWorksmithException(
+                CelanWorksmithErrorCode.INVALID_ARGUMENT, "Mongo function execution requires a pinned ontology definition"));
     }
 
     @Override

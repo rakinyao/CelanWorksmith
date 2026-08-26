@@ -128,7 +128,11 @@ public interface OntologyRuntimeGateway {
     Mono<ObjectQueryResult> queryObjects(String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query);
 
     default Mono<Object> executeFunction(
-            String providerId, Snapshot snapshot, String functionId, Map<String, Object> parameters) {
+            String providerId,
+            Snapshot snapshot,
+            String functionId,
+            OntologyObjectSet targets,
+            Map<String, Object> parameters) {
         return Mono.error(new UnsupportedOperationException("Ontology function execution is not configured"));
     }
 

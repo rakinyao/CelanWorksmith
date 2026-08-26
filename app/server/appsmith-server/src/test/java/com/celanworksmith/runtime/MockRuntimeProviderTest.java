@@ -2,6 +2,7 @@ package com.celanworksmith.runtime;
 
 import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.ontology.adapter.mock.MockOntologyProvider;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.celanworksmith.runtime.adapter.mock.MockRuntimeProvider;
 import com.celanworksmith.runtime.dto.ActionExecutionRequest;
 import com.celanworksmith.runtime.dto.ActionResult;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -124,30 +126,52 @@ class MockRuntimeProviderTest {
         assertEquals(
                 8,
                 runtimeProvider
-                        .executeFunction("CalculateDelayDays", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                        .executeFunction(
+                                "CalculateDelayDays",
+                                new FunctionExecutionRequest(
+                                        new OntologyObjectSet("PurchaseOrder", List.of("PO005")), Map.of()))
                         .block());
         assertEquals(
                 new BigDecimal("850.00"),
                 runtimeProvider
-                        .executeFunction("CalculatePenalty", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                        .executeFunction(
+                                "CalculatePenalty",
+                                new FunctionExecutionRequest(
+                                        new OntologyObjectSet("PurchaseOrder", List.of("PO005")), Map.of()))
                         .block());
         assertEquals(
                 new BigDecimal("3931.25"),
                 runtimeProvider
                         .executeFunction(
-                                "CalculateAdjustedProfit", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                                "CalculateAdjustedProfit",
+                                new FunctionExecutionRequest(
+                                        new OntologyObjectSet("PurchaseOrder", List.of("PO005")), Map.of()))
                         .block());
         assertEquals(
                 new BigDecimal("0.2960"),
                 runtimeProvider
-                        .executeFunction("CalculateMarginRate", new FunctionExecutionRequest(Map.of("poId", "PO005")))
+                        .executeFunction(
+                                "CalculateMarginRate",
+                                new FunctionExecutionRequest(
+                                        new OntologyObjectSet("PurchaseOrder", List.of("PO005")), Map.of()))
                         .block());
         assertEquals(
                 new BigDecimal("3.75"),
                 runtimeProvider
                         .executeFunction(
-                                "CalculateSupplierGrade", new FunctionExecutionRequest(Map.of("supplierId", "S001")))
+                                "CalculateSupplierGrade",
+                                new FunctionExecutionRequest(
+                                        new OntologyObjectSet("Supplier", List.of("S001")), Map.of()))
                         .block());
+    }
+
+    @Test
+    void functionMetadataUsesTargetsInsteadOfBusinessIdentifierParameters() {
+        assertTrue(new MockOntologyProvider()
+                .getFunctions()
+                .block()
+                .stream()
+                .allMatch(function -> function.parameters().isEmpty()));
     }
 
     @Test
