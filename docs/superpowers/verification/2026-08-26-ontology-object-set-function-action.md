@@ -1,7 +1,7 @@
 # Ontology Object Set Function and Action Verification
 
 Date: 2026-08-26
-Candidate: `13a56128a4405964d6fee4d065e6c7a09b6d1b79`
+Candidate: `3e7a64c4a48df6aa3f7c4664dabd4fa3cc9657c6`
 
 ## Automated Regression
 
@@ -39,8 +39,17 @@ cd app/client
 yarn jest ontologyCapabilityQueryDefinition QueryModeSynchronizer --runInBand
 ```
 
-Result: exit 0; 4 suites and 72 tests passed. This is a toolchain alias
+Result: exit 0; 4 suites and 79 tests passed. This is a toolchain alias
 limitation, not a source or test failure. No client toolchain changes were made.
+
+After the final whole-branch review fixes, the primary checkout was rebuilt
+and the focused server command was rerun with
+`OntologyProjectYamlImporterTest` and `ReleaseDependencyScannerTest` included.
+It exited successfully. The same direct Jest command exited successfully with
+4 suites and 79 tests. This covers the zero-parameter Function Builder
+serialization, native single-target Action failure mapping, owner/capability
+selection identity, and Function release dependency checks added in the final
+fix commit.
 
 The server group includes the Action Execution Service regression coverage for
 atomic rejection before audit or handler dispatch. This is the focused
@@ -92,6 +101,14 @@ curl -fsS http://127.0.0.1:8081/api/v1/health
 
 The deployed `dist` contains `server-1.0-SNAPSHOT.jar` and
 `celanworksmithOntologyPlugin-1.0-SNAPSHOT.jar`.
+
+The primary checkout was subsequently fast-forwarded from
+`13a56128a4405964d6fee4d065e6c7a09b6d1b79` to the final-fix candidate above.
+`./build.sh -DskipTests` produced the backend and Ontology plugin artifacts;
+the backend was stopped, the Demo Action Server restarted, and the backend
+started again. All four units returned `active`; the Demo server health endpoint
+returned `{"status":"UP"}`, and the backend health endpoint returned status
+200 with `All systems are up`.
 
 ## Browser and API Evidence
 
