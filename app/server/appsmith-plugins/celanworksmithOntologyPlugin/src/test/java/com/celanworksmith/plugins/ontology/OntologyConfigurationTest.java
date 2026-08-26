@@ -177,11 +177,23 @@ class OntologyConfigurationTest {
 
         JsonNode functionEditor = readEditorResource("function-query.json");
         JsonNode functionChildren = functionEditor.at("/children/0/children");
+        JsonNode builderParameters = findControl(functionChildren, "actionConfiguration.formData.parameters.data");
         assertEquals(
                 "actionConfiguration.formData.parameters.data",
-                findControl(functionChildren, "actionConfiguration.formData.parameters.data")
-                        .path("configProperty")
-                        .asText());
+                builderParameters.path("configProperty").asText());
+        assertEquals(
+                "ONTOLOGY_FUNCTION_PARAMETERS",
+                builderParameters.path("propertyName").asText());
+        assertEquals(
+                "FUNCTION_PARAMETERS", builderParameters.path("controlType").asText());
+
+        JsonNode advancedParameters = functionChildren.get(3);
+        assertEquals(
+                "actionConfiguration.formData.parameters.data",
+                advancedParameters.path("configProperty").asText());
+        assertEquals(
+                "ONTOLOGY_FUNCTION_ADVANCED_PARAMETERS",
+                advancedParameters.path("propertyName").asText());
         assertTrue(!functionEditor.toString().contains("metadataDigest"));
         assertTrue(!functionEditor.toString().contains("workspaceId"));
     }

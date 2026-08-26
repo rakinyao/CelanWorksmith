@@ -40,6 +40,7 @@
         },
         {
           "label": "Parameters",
+          "propertyName": "ONTOLOGY_FUNCTION_PARAMETERS",
           "configProperty": "actionConfiguration.formData.parameters.data",
           "controlType": "FUNCTION_PARAMETERS",
           "evaluationSubstitutionType": "TEMPLATE",
@@ -63,6 +64,7 @@
         },
         {
           "label": "Advanced JSON parameters",
+          "propertyName": "ONTOLOGY_FUNCTION_ADVANCED_PARAMETERS",
           "configProperty": "actionConfiguration.formData.parameters.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
