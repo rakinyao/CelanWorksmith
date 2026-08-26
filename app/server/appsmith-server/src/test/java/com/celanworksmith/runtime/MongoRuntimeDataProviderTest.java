@@ -98,6 +98,27 @@ class MongoRuntimeDataProviderTest {
     }
 
     @Test
+    void calculatesDelayDaysForMultipleTargetsInObjectSetOrder() {
+        when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
+                .thenAnswer(invocation -> {
+                    Query query = invocation.getArgument(0);
+                    return switch (String.valueOf(query.getQueryObject().get("_id"))) {
+                        case "PO002" -> Mono.just(document("PO002", "DELAYED", 4));
+                        case "PO001" -> Mono.just(document("PO001", "DELAYED", 7));
+                        default -> Mono.empty();
+                    };
+                });
+
+        StepVerifier.create(provider.executeFunction(
+                        RuntimeProviderTestFixtures.binding().project(),
+                        "CalculateDelayDays",
+                        new FunctionExecutionRequest(
+                                new OntologyObjectSet("PurchaseOrder", List.of("PO002", "PO001")), Map.of())))
+                .expectNext(List.of(4, 7))
+                .verifyComplete();
+    }
+
+    @Test
     void rejectsFunctionParametersThatAreNotDeclaredBusinessInputs() {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
