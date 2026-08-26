@@ -258,7 +258,9 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         private List<Map<String, Object>> functionParameters(Snapshot snapshot, TriggerRequestDTO request) {
-            Object functionId = request.getParameters() == null ? null : request.getParameters().get("functionId");
+            Object functionId = request.getParameters() == null
+                    ? null
+                    : request.getParameters().get("functionId");
             if (!(functionId instanceof String value) || value.isBlank()) {
                 throw new IllegalArgumentException("Ontology function is required for parameter metadata");
             }
@@ -488,7 +490,8 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         private IllegalStateException actionServerFailure(OntologyActionServerClient.DomainException error) {
-            return new IllegalStateException(error.getMessage() + " (auditId: " + error.auditId() + ")", error);
+            return new IllegalStateException(
+                    error.getMessage() + " (code: " + error.code() + ", auditId: " + error.auditId() + ")", error);
         }
 
         private void validateSnapshotPin(OntologyDatasourceConfiguration datasourceConfiguration, Snapshot snapshot) {

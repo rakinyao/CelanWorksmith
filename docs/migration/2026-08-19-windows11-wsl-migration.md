@@ -185,10 +185,74 @@ cd ~/workspace/projects/CelanWorksmith/app/client
 yarn start
 ```
 
-The local development ports are backend `8081`, RTS `8091`, frontend `3000`,
-MongoDB `27017`, and Redis `6379`. If using the repository HTTPS proxy instead,
-follow `contributions/ClientSetup.md` for mkcert and `dev.appsmith.com` hosts
-configuration.
+The local development ports are backend `8081`, Demo Action Server `8092`, RTS
+`8091`, frontend `3000`, MongoDB `27017`, and Redis `6379`. If using the
+repository HTTPS proxy instead, follow `contributions/ClientSetup.md` for
+mkcert and `dev.appsmith.com` hosts configuration.
+
+| Component | User service | Port | Purpose |
+| --- | --- | --- | --- |
+| Backend | `cw-backend` | `8081` | Appsmith backend and Ontology plugin host |
+| Demo Action Server | `cw-demo-action-server` | `8092` | Development-only v1 Action Server |
+| RTS | `cw-rts` | `8091` | Real-time service |
+| Frontend | `cw-frontend` | `3000` | Development client |
+
+## Demo Action Server Development Service
+
+The Demo Action Server is development-only. A future public Action Server must
+replace it through workspace Action Server configuration; do not make the
+plugin select this local endpoint by default.
+
+After this change is integrated into the main workspace, install the tracked
+template and configure only the intended local workspace through the backend's
+ignored `app/server/.env` file. `start-dev-server.sh` sources that file, so use
+shell-valid exported environment variables rather than dotted property names.
+Replace the placeholder with the actual workspace ID; it must contain only the
+workspace's hexadecimal ID, not angle brackets.
+
+```bash
+install -Dm644 scripts/migration/cw-demo-action-server.service \\
+  ~/.config/systemd/user/cw-demo-action-server.service
+
+# Add these two lines to the ignored app/server/.env after replacing WORKSPACE_ID.
+# Development-only: map exactly one workspace to the local Demo Action Server.
+export CELANWORKSMITH_ACTION_SERVER_WORKSPACES_<WORKSPACE_ID>_URL=http://127.0.0.1:8092
+export CELANWORKSMITH_ACTION_SERVER_WORKSPACES_<WORKSPACE_ID>_TIMEOUT_MILLIS=3000
+```
+
+Only after that endpoint is configured, make `cw-backend` wait for the local
+server with a host-local override:
+
+```bash
+systemctl --user edit cw-backend
+```
+
+```ini
+[Unit]
+Requires=cw-demo-action-server.service
+After=cw-demo-action-server.service
+```
+
+Do not commit the local endpoint configuration, the override, or an `.env`
+file. The template waits for `network-online.target` and gates startup on a
+successful MongoDB ping to the `appsmith-mongodb` container.
+
+Deploy and check the services serially only after integration and local
+workspace configuration. Do not run these commands from an isolated feature
+worktree while main-worktree services are active:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now cw-demo-action-server
+systemctl --user restart cw-backend
+systemctl --user status cw-demo-action-server cw-backend --no-pager
+curl -fsS http://127.0.0.1:8092/actuator/health
+curl -fsS http://127.0.0.1:8081/api/v1/health
+```
+
+If no workspace endpoint is configured, an Ontology `ACTION_QUERY` must return
+the existing "Ontology Action Server is not configured" error. It must not
+silently use the Demo Action Server.
 
 ## Verified Target Setup
 
@@ -199,11 +263,13 @@ entry point is:
 http://10.10.101.210/
 ```
 
-On this WSL2 host, the running processes are managed by systemd user units
-`cw-backend`, `cw-rts`, and `cw-frontend`. Nginx runs as `cw-nginx` and proxies
-the same-origin frontend/API entry point on port `80` to frontend `3000`,
-backend `8081`, and RTS `8091`. MongoDB and Redis use Docker containers named
-`appsmith-mongodb` and `appsmith-redis`, with restart policy `unless-stopped`.
+On this WSL2 host, the running core processes are managed by systemd user units
+`cw-backend`, `cw-rts`, and `cw-frontend`. Add `cw-demo-action-server` only
+after its local workspace endpoint has been configured as described above.
+Nginx runs as `cw-nginx` and proxies the same-origin frontend/API entry point
+on port `80` to frontend `3000`, backend `8081`, and RTS `8091`. MongoDB and
+Redis use Docker containers named `appsmith-mongodb` and `appsmith-redis`,
+with restart policy `unless-stopped`.
 
 The Windows host forwards `10.10.101.210:80` to the current WSL address on
 port `80`, and has an inbound firewall rule named
@@ -228,6 +294,10 @@ create a fresh test account and App through the UI on this machine.
   `app/server/dist/plugins/celanworksmithOntologyPlugin-1.0-SNAPSHOT.jar`.
 - `cw-backend`, `cw-rts`, and `cw-frontend` were active after deployment, and
   the backend health endpoint returned HTTP 200.
+- The Demo Action Server template is tracked as
+  `scripts/migration/cw-demo-action-server.service`. Its installation and
+  activation are a post-integration operation, after a local workspace Action
+  Server endpoint has been configured.
 - The active manual-test `Query_PurchaseOrder1` now uses literal
   `{ mode: "LIMITED", offset: 0, limit: 100 }`. Its Table page-size and
   page-offset dependencies were removed; existing sort dependencies remain.
@@ -257,6 +327,7 @@ Those actions would violate the agreed migration boundary.
 ## Troubleshooting
 
 - `502`: confirm backend `8081`, frontend proxy target, and RTS `8091`; inspect the backend startup terminal first.
+- Demo Action Server unavailable: run `systemctl --user status cw-demo-action-server --no-pager`, confirm `appsmith-mongodb` responds to `docker exec appsmith-mongodb mongosh --quiet --eval 'db.runCommand({ping:1})'`, then check `curl -fsS http://127.0.0.1:8092/actuator/health`. Restart `cw-backend` only after the workspace endpoint and its `cw-backend` ordering override are configured.
 - `Error fetching latest DSL version`: RTS must be started before the backend.
 - `Unable to load datasource templates`: rebuild the backend/plugin from the current checkout and restart the backend; do not reuse an old `app/server/dist` directory.
 - Mongo replica set errors: check `docker exec appsmith-mongodb mongosh --quiet --eval 'rs.status()'` and confirm `.env` uses `?replicaSet=rs0`.

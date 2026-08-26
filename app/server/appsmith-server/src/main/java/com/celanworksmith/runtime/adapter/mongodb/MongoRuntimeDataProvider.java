@@ -9,10 +9,10 @@ import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.runtime.adapter.mock.MockRuntimeProvider;
 import com.celanworksmith.runtime.context.CelanworksmithRuntimeContext;
+import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
 import com.celanworksmith.runtime.dto.ObjectInstanceDTO;
 import com.celanworksmith.runtime.dto.ObjectSetQuery;
 import com.celanworksmith.runtime.dto.ObjectSetResult;
-import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
 import com.celanworksmith.runtime.mock.MockDataStore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -127,23 +127,18 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId));
         }
-        Map<String, Object> parameters = request == null || request.parameters() == null
-                ? Map.of()
-                : request.parameters();
+        Map<String, Object> parameters =
+                request == null || request.parameters() == null ? Map.of() : request.parameters();
         Object poIdValue = parameters.get("poId");
         if (!(poIdValue instanceof String poId) || poId.isBlank()) {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "Function parameter poId is required"));
         }
-        return resolveType(definition, "PurchaseOrder")
-                .flatMap(type -> template.findOne(
-                                Query.query(Criteria.where("_id").is(poId)),
-                                MongoRuntimeObjectDocument.class,
-                                collection(type))
-                        .switchIfEmpty(Mono.error(new CelanWorksmithException(
-                                CelanWorksmithErrorCode.OBJECT_NOT_FOUND,
-                                "Unknown object: PurchaseOrder/" + poId)))
-                        .flatMap(document -> parseDelayDays(poId, document)));
+        return resolveType(definition, "PurchaseOrder").flatMap(type -> template.findOne(
+                        Query.query(Criteria.where("_id").is(poId)), MongoRuntimeObjectDocument.class, collection(type))
+                .switchIfEmpty(Mono.error(new CelanWorksmithException(
+                        CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: PurchaseOrder/" + poId)))
+                .flatMap(document -> parseDelayDays(poId, document)));
     }
 
     @Override
@@ -269,18 +264,18 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
     }
 
     private Mono<Object> parseDelayDays(String poId, MongoRuntimeObjectDocument document) {
-        Object value = document.getProperties() == null ? null : document.getProperties().get("delayDays");
+        Object value = document.getProperties() == null
+                ? null
+                : document.getProperties().get("delayDays");
         if (value == null) {
             return Mono.error(new CelanWorksmithException(
-                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
-                    "PurchaseOrder " + poId + " has invalid delayDays"));
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "PurchaseOrder " + poId + " has invalid delayDays"));
         }
         try {
             return Mono.just(Integer.parseInt(String.valueOf(value)));
         } catch (NumberFormatException exception) {
             return Mono.error(new CelanWorksmithException(
-                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
-                    "PurchaseOrder " + poId + " has invalid delayDays"));
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "PurchaseOrder " + poId + " has invalid delayDays"));
         }
     }
 

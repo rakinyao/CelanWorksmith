@@ -1,0 +1,50 @@
+package com.celanworksmith.demoactionserver.audit;
+
+import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject;
+import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.time.Instant;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class ActionExecutionAuditStoreTest {
+    @Test
+    void looksUpTheIdempotencyKeyBeforeInsertingANewRunningAudit() {
+        ReactiveMongoTemplate mongoTemplate = mock(ReactiveMongoTemplate.class);
+        ActionExecutionAuditStore store = new ActionExecutionAuditStore(mongoTemplate);
+        ActionExecutionAuditDocument audit = new ActionExecutionAuditDocument(
+                "audit-1", "key-1", "workspace-1", "project-1", "1.0.0",
+                "datasource-1", "UpdateProductionSchedule", "PurchaseOrder", "PO001",
+                Instant.parse("2026-08-22T00:00:00Z"), null, "RUNNING", null, List.of(), List.of());
+
+        when(mongoTemplate.findOne(
+                        any(Query.class), eq(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION)))
+                .thenReturn(Mono.empty());
+        when(mongoTemplate.insert(any(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION)))
+                .thenReturn(Mono.just(audit));
+
+        StepVerifier.create(store.createIfAbsent(audit))
+                .expectNext(audit)
+                .verifyComplete();
+
+        ArgumentCaptor<ActionExecutionAuditDocument> inserted = ArgumentCaptor.forClass(ActionExecutionAuditDocument.class);
+        InOrder calls = inOrder(mongoTemplate);
+        calls.verify(mongoTemplate)
+                .findOne(any(Query.class), eq(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION));
+        calls.verify(mongoTemplate).insert(inserted.capture(), eq(ActionExecutionAuditStore.COLLECTION));
+        assertThat(inserted.getValue()).isEqualTo(audit);
+    }
+}

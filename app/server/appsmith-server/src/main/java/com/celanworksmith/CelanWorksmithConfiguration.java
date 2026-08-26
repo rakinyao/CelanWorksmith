@@ -16,6 +16,7 @@ import com.celanworksmith.ontology.datasource.LocalYamlOntologyProjectImporter;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceCompatibilityService;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceUpgradeService;
+import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshotRepository;
 import com.celanworksmith.ontology.datasource.OntologyProjectImportSource;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
@@ -25,6 +26,8 @@ import com.celanworksmith.ontology.datasource.PlatformOntologyProjectImporter;
 import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
 import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
 import com.celanworksmith.ontology.datasource.WorkspaceActionServerConfigurationResolver;
+import com.celanworksmith.ontology.actionserver.HttpOntologyActionServerClient;
+import com.celanworksmith.ontology.actionserver.WorkspaceActionServerProperties;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.ontology.project.OntologyProjectYamlImporter;
@@ -49,13 +52,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.reactive.TransactionalOperator;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 
 @Configuration
-@EnableConfigurationProperties(MongoRuntimeProperties.class)
+@EnableConfigurationProperties({MongoRuntimeProperties.class, WorkspaceActionServerProperties.class})
 public class CelanWorksmithConfiguration {
     @Bean
     public OntologyProjectYamlImporter ontologyProjectYamlImporter() {
@@ -85,9 +90,14 @@ public class CelanWorksmithConfiguration {
     }
 
     @Bean
-    public WorkspaceActionServerConfigurationResolver workspaceActionServerConfigurationResolver() {
-        return workspaceId -> reactor.core.publisher.Mono.error(
-                new IllegalStateException("Ontology Action Server is not configured for workspace: " + workspaceId));
+    public WorkspaceActionServerConfigurationResolver workspaceActionServerConfigurationResolver(
+            WorkspaceActionServerProperties properties) {
+        WebClient webClient = WebClient.builder().build();
+        return workspaceId -> Optional.ofNullable(properties.getWorkspaces().get(workspaceId))
+                .map(endpoint -> reactor.core.publisher.Mono.<OntologyActionServerClient>just(
+                        new HttpOntologyActionServerClient(webClient, endpoint)))
+                .orElseGet(() -> reactor.core.publisher.Mono.error(
+                        new IllegalStateException("Ontology Action Server is not configured for workspace: " + workspaceId)));
     }
 
     @Bean
