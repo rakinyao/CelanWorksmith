@@ -100,20 +100,15 @@ class OntologyFunctionLinkActionExecutorTest {
     void rejectsUnknownAndNonWritableAdvancedFunctionParametersBeforeProviderCall() {
         RecordingGateway gateway = new RecordingGateway();
 
-        ActionExecutionResult unexpectedRoot = executeAdvanced(
-                gateway, "{\"functionId\":\"delayScore\",\"parameters\":{\"delayDays\":5},\"page\":{}}");
-        ActionExecutionResult unknown =
-                executeAdvanced(gateway, "{\"functionId\":\"delayScore\",\"parameters\":{\"unknown\":5}}");
-        ActionExecutionResult readOnly = executeAdvanced(
-                gateway,
-                "{\"functionId\":\"protectedScore\",\"parameters\":{\"input\":\"value\",\"readOnlyValue\":\"value\"}}");
-        ActionExecutionResult derived = executeAdvanced(
-                gateway,
-                "{\"functionId\":\"protectedScore\",\"parameters\":{\"input\":\"value\",\"derivedValue\":\"value\"}}");
+        ActionExecutionResult unexpectedRoot = executeAdvanced(gateway, "delayScore", "{\"page\":{}}");
+        ActionExecutionResult unknown = executeAdvanced(gateway, "delayScore", "{\"unknown\":5}");
+        ActionExecutionResult readOnly =
+                executeAdvanced(gateway, "protectedScore", "{\"input\":\"value\",\"readOnlyValue\":\"value\"}");
+        ActionExecutionResult derived =
+                executeAdvanced(gateway, "protectedScore", "{\"input\":\"value\",\"derivedValue\":\"value\"}");
 
         assertFalse(unexpectedRoot.getIsExecutionSuccess());
-        assertTrue(
-                unexpectedRoot.getReadableError().contains("Unsupported field in ontology function query definition"));
+        assertTrue(unexpectedRoot.getReadableError().contains("Unknown ontology function parameter"));
         assertFalse(unknown.getIsExecutionSuccess());
         assertTrue(unknown.getReadableError().contains("Unknown ontology function parameter"));
         assertFalse(readOnly.getIsExecutionSuccess());
@@ -127,8 +122,7 @@ class OntologyFunctionLinkActionExecutorTest {
     void permitsOnlyWritableRequiredAdvancedFunctionParameters() {
         RecordingGateway gateway = new RecordingGateway();
 
-        ActionExecutionResult result =
-                executeAdvanced(gateway, "{\"functionId\":\"protectedScore\",\"parameters\":{\"input\":\"value\"}}");
+        ActionExecutionResult result = executeAdvanced(gateway, "protectedScore", "{\"input\":\"value\"}");
 
         assertTrue(result.getIsExecutionSuccess());
         assertEquals(Map.of("input", "value"), gateway.functionParameters);
@@ -359,7 +353,8 @@ class OntologyFunctionLinkActionExecutorTest {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
-        TriggerResultDTO parameters = trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "delayScore"));
+        TriggerResultDTO parameters =
+                trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "delayScore"));
 
         assertEquals(
                 List.of(metadata("delayDays", "delayDays", "integer", true, false, false)), parameters.getTrigger());
@@ -372,8 +367,7 @@ class OntologyFunctionLinkActionExecutorTest {
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
         IllegalArgumentException missing = assertThrows(
-                IllegalArgumentException.class,
-                () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of()));
+                IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of()));
         IllegalArgumentException unknown = assertThrows(
                 IllegalArgumentException.class,
                 () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "unknown")));
@@ -419,16 +413,29 @@ class OntologyFunctionLinkActionExecutorTest {
                 ? new OntologyPlugin.OntologyPluginExecutor(gateway)
                 : new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> Mono.just(actionServer));
         ActionConfiguration action = new ActionConfiguration();
-        action.setFormData(Map.of("operation", operation, "definition", definition));
+        if ("FUNCTION_QUERY".equals(operation)) {
+            action.setFormData(Map.of(
+                    "operation",
+                    operation,
+                    "queryMode",
+                    "BUILDER",
+                    "functionId",
+                    definition.get("functionId"),
+                    "parameters",
+                    definition.getOrDefault("parameters", Map.of())));
+        } else {
+            action.setFormData(Map.of("operation", operation, "definition", definition));
+        }
         return executor.execute(datasource(), null, action).block();
     }
 
-    private ActionExecutionResult executeAdvanced(RecordingGateway gateway, String definition) {
+    private ActionExecutionResult executeAdvanced(RecordingGateway gateway, String functionId, String parameters) {
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(Map.of(
                 "operation", Map.of("data", "FUNCTION_QUERY"),
                 "queryMode", Map.of("data", "ADVANCED"),
-                "definition", Map.of("data", definition)));
+                "functionId", Map.of("data", functionId),
+                "parameters", Map.of("data", parameters)));
         return new OntologyPlugin.OntologyPluginExecutor(gateway)
                 .execute(datasource(), null, action)
                 .block();

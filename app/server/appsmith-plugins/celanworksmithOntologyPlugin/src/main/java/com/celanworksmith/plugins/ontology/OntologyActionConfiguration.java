@@ -74,26 +74,22 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             }
         }
 
-        Object definitionValue = builderMode ? Map.of() : parseDefinition(formData.get("definition"));
+        Object definitionValue = operation == Operation.FUNCTION_QUERY
+                ? Map.of()
+                : builderMode ? Map.of() : parseDefinition(formData.get("definition"));
         if (!(definitionValue instanceof Map<?, ?> rawDefinitionMap)) {
             throw new IllegalArgumentException("Ontology operation definition is required");
         }
 
         Map<String, Object> definition = new java.util.LinkedHashMap<>();
         rawDefinitionMap.forEach((key, value) -> definition.put(String.valueOf(key), value));
-        if (builderMode) {
-            if (operation == Operation.FUNCTION_QUERY) {
-                mergeSelectorFields(formData, definition);
-                copyFunctionParameters(formData, definition);
-            } else {
-                mergeBuilderFields(formData, definition);
-            }
+        if (operation == Operation.FUNCTION_QUERY) {
+            composeFunctionQueryDefinition(formData, definition);
+        } else if (builderMode) {
+            mergeBuilderFields(formData, definition);
         } else if (!advancedMode) {
             mergeSelectorFields(formData, definition);
             mergeProjection(formData, definition);
-        }
-        if (operation == Operation.FUNCTION_QUERY && !advancedMode && !definition.containsKey("parameters")) {
-            definition.put("parameters", Map.of());
         }
         validateFunctionQueryDefinition(operation, definition);
         validateObjectQueryResultMode(operation, definition);
@@ -193,6 +189,15 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         Map<String, Object> parameters = new java.util.LinkedHashMap<>();
         rawParameters.forEach((key, parameterValue) -> parameters.put(String.valueOf(key), parameterValue));
         definition.put("parameters", Map.copyOf(parameters));
+    }
+
+    private static void composeFunctionQueryDefinition(Map<String, Object> formData, Map<String, Object> definition) {
+        Object functionId = formData.get("functionId");
+        if (!(functionId instanceof String identifier) || identifier.isBlank()) {
+            throw new IllegalArgumentException("Ontology operation definition requires: functionId");
+        }
+        definition.put("functionId", identifier);
+        copyFunctionParameters(formData, definition);
     }
 
     private static void validateFunctionQueryDefinition(Operation operation, Map<String, Object> definition) {

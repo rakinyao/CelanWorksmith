@@ -196,12 +196,21 @@ class OntologyActionConfigurationTest {
     @Test
     void builderFunctionQueryMergesFunctionParametersIntoCanonicalDefinition() {
         Map<String, Object> formData = Map.of(
-                "operation", "FUNCTION_QUERY", "queryMode", "BUILDER",
-                "functionId", "delayScore",
-                "parameters", Map.of("delayDays", "{{Table1.selectedRow.delayDays}}"));
+                "operation",
+                "FUNCTION_QUERY",
+                "queryMode",
+                "BUILDER",
+                "functionId",
+                "delayScore",
+                "parameters",
+                Map.of("delayDays", "{{Table1.selectedRow.delayDays}}"));
 
         assertEquals(
-                Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", "{{Table1.selectedRow.delayDays}}")),
+                Map.of(
+                        "functionId",
+                        "delayScore",
+                        "parameters",
+                        Map.of("delayDays", "{{Table1.selectedRow.delayDays}}")),
                 OntologyActionConfiguration.from(action(formData)).definition());
     }
 
@@ -255,34 +264,73 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
-    void advancedFunctionQueryDefinitionRemainsAuthoritative() {
+    void advancedFunctionQueryComposesSelectedFunctionAndParameterJson() {
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
                 "operation", "FUNCTION_QUERY",
                 "queryMode", "ADVANCED",
-                "functionId", "staleFunction",
-                "parameters", Map.of("stale", true),
-                "definition", Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)))));
+                "functionId", "delayScore",
+                "parameters", "{\"delayDays\":5}",
+                "definition", Map.of("functionId", "staleFunction", "page", Map.of()))));
 
-        assertEquals(Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)), configuration.definition());
+        assertEquals(
+                Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)), configuration.definition());
     }
 
     @Test
-    void advancedFunctionQueryRequiresOnlyCanonicalRootFields() {
-        IllegalArgumentException missingParameters = assertThrows(
-                IllegalArgumentException.class,
-                () -> OntologyActionConfiguration.from(action(Map.of(
-                        "operation", "FUNCTION_QUERY",
-                        "queryMode", "ADVANCED",
-                        "definition", "{\"functionId\":\"delayScore\"}"))));
-        IllegalArgumentException unexpectedField = assertThrows(
-                IllegalArgumentException.class,
-                () -> OntologyActionConfiguration.from(action(Map.of(
-                        "operation", "FUNCTION_QUERY",
-                        "queryMode", "ADVANCED",
-                        "definition", "{\"functionId\":\"delayScore\",\"parameters\":{},\"page\":{}}"))));
+    void advancedFunctionQueryTreatsFunctionIdInParametersAsAParameter() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "FUNCTION_QUERY",
+                "queryMode", "ADVANCED",
+                "functionId", "delayScore",
+                "parameters", "{\"functionId\":\"nested\"}")));
 
-        assertEquals("Ontology function query definition requires: parameters", missingParameters.getMessage());
-        assertEquals("Unsupported field in ontology function query definition: page", unexpectedField.getMessage());
+        assertEquals(
+                Map.of("functionId", "delayScore", "parameters", Map.of("functionId", "nested")),
+                configuration.definition());
+    }
+
+    @Test
+    void advancedFunctionQueryRejectsMalformedOrNonObjectParameters() {
+        IllegalArgumentException malformed = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "FUNCTION_QUERY",
+                        "queryMode", "ADVANCED",
+                        "functionId", "delayScore",
+                        "parameters", "not-json"))));
+        IllegalArgumentException array = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "FUNCTION_QUERY",
+                        "queryMode", "ADVANCED",
+                        "functionId", "delayScore",
+                        "parameters", "[]"))));
+
+        assertEquals("Ontology function parameters selector must be an object", malformed.getMessage());
+        assertEquals("Ontology function parameters selector must be an object", array.getMessage());
+    }
+
+    @Test
+    void functionQueryRequiresASelectedFunctionId() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(
+                        action(Map.of("operation", "FUNCTION_QUERY", "queryMode", "ADVANCED", "parameters", "{}"))));
+
+        assertEquals("Ontology operation definition requires: functionId", exception.getMessage());
+    }
+
+    @Test
+    void functionQueryLeavesUnknownFunctionAndParameterIdsForNativeValidation() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "FUNCTION_QUERY",
+                "queryMode", "ADVANCED",
+                "functionId", "unknownFunction",
+                "parameters", "{\"poId\":\"missing\"}")));
+
+        assertEquals(
+                Map.of("functionId", "unknownFunction", "parameters", Map.of("poId", "missing")),
+                configuration.definition());
     }
 
     @Test
