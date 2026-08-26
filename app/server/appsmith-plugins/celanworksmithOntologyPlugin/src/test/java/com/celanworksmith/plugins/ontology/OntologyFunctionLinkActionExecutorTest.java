@@ -40,7 +40,9 @@ class OntologyFunctionLinkActionExecutorTest {
         action.setFormData(Map.of(
                 "operation", Map.of("data", "FUNCTION_QUERY"),
                 "queryMode", Map.of("data", "BUILDER"),
+                "objectTypeId", Map.of("data", "PurchaseOrder"),
                 "functionId", Map.of("data", "delayScore"),
+                "target", Map.of("data", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002")),
                 "parameters", Map.of("data", "{\"delayDays\":5}")));
 
         ActionExecutionResult result = new OntologyPlugin.OntologyPluginExecutor(gateway)
@@ -236,7 +238,7 @@ class OntologyFunctionLinkActionExecutorTest {
                 Map.of(
                         "actionId", "reschedulePurchaseOrder",
                         "objectTypeId", "PurchaseOrder",
-                        "objectId", "PO001",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001"),
                         "parameters", Map.of("newScheduleDate", "2026-09-01")));
 
         assertTrue(result.getIsExecutionSuccess());
@@ -273,7 +275,7 @@ class OntologyFunctionLinkActionExecutorTest {
                 Map.of(
                         "actionId", "reschedulePurchaseOrder",
                         "objectTypeId", "PurchaseOrder",
-                        "objectId", "PO001"));
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
 
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("RELATED_OBJECT_NOT_FOUND"));
@@ -294,7 +296,7 @@ class OntologyFunctionLinkActionExecutorTest {
                 Map.of(
                         "actionId", "reschedulePurchaseOrder",
                         "objectTypeId", "PurchaseOrder",
-                        "objectId", "PO001"));
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
 
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("Action Server returned a malformed response"));
@@ -313,7 +315,7 @@ class OntologyFunctionLinkActionExecutorTest {
                 Map.of(
                         "actionId", "reschedulePurchaseOrder",
                         "objectTypeId", "PurchaseOrder",
-                        "objectId", "PO001"));
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
 
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("Action Server timeout"));
@@ -332,7 +334,7 @@ class OntologyFunctionLinkActionExecutorTest {
                         "actionId", "reschedulePurchaseOrder",
                         "projectVersion", "2.0.0",
                         "objectTypeId", "PurchaseOrder",
-                        "objectId", "PO001"));
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
 
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("cannot override: projectVersion"));
@@ -348,7 +350,10 @@ class OntologyFunctionLinkActionExecutorTest {
                 gateway,
                 actionServer,
                 "ACTION_QUERY",
-                Map.of("actionId", "unknown", "objectTypeId", "PurchaseOrder", "objectId", "PO001"));
+                Map.of(
+                        "actionId", "unknown",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
 
         assertFalse(result.getIsExecutionSuccess());
         assertTrue(result.getReadableError().contains("Unknown ontology action"));
@@ -465,10 +470,21 @@ class OntologyFunctionLinkActionExecutorTest {
                     operation,
                     "queryMode",
                     "BUILDER",
+                    "objectTypeId",
+                    "PurchaseOrder",
                     "functionId",
                     definition.get("functionId"),
+                    "target",
+                    Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
                     "parameters",
                     definition.getOrDefault("parameters", Map.of())));
+        } else if ("ACTION_QUERY".equals(operation)) {
+            Map<String, Object> formData = new LinkedHashMap<>();
+            formData.put("operation", operation);
+            formData.put("queryMode", "BUILDER");
+            formData.putAll(definition);
+            formData.putIfAbsent("parameters", Map.of());
+            action.setFormData(formData);
         } else {
             action.setFormData(Map.of("operation", operation, "definition", definition));
         }
@@ -480,8 +496,12 @@ class OntologyFunctionLinkActionExecutorTest {
         action.setFormData(Map.of(
                 "operation", Map.of("data", "FUNCTION_QUERY"),
                 "queryMode", Map.of("data", "ADVANCED"),
+                "objectTypeId", Map.of("data", "PurchaseOrder"),
                 "functionId", Map.of("data", functionId),
-                "parameters", Map.of("data", parameters)));
+                "definition", Map.of(
+                        "data",
+                        "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                + "\"parameters\":" + parameters + "}")));
         return new OntologyPlugin.OntologyPluginExecutor(gateway)
                 .execute(datasource(), null, action)
                 .block();

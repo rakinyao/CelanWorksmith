@@ -441,16 +441,17 @@ public class OntologyPlugin extends BasePlugin {
                 OntologyActionConfiguration configuration,
                 Snapshot snapshot) {
             validateSnapshotPin(datasourceConfiguration, snapshot);
-            Map<String, Object> parameters = queryValidator.validateActionParameters(configuration, snapshot);
+            OntologyQueryValidator.ValidatedCapabilityQuery validatedQuery =
+                    queryValidator.validateActionQuery(configuration, snapshot);
             OntologyActionServerClient.Request request = new OntologyActionServerClient.Request(
                     datasourceConfiguration.workspaceId(),
                     datasourceConfiguration.projectId(),
                     datasourceConfiguration.projectVersion(),
                     datasourceConfiguration.datasourceId(),
-                    (String) configuration.definition().get("actionId"),
-                    (String) configuration.definition().get("objectTypeId"),
-                    (String) configuration.definition().get("objectId"),
-                    parameters,
+                    validatedQuery.capabilityId(),
+                    validatedQuery.objectTypeId(),
+                    validatedQuery.targets().objectIds().getFirst(),
+                    validatedQuery.parameters(),
                     Map.of(
                             "metadataSnapshotId", datasourceConfiguration.metadataSnapshotId(),
                             "metadataDigest", datasourceConfiguration.metadataDigest()),

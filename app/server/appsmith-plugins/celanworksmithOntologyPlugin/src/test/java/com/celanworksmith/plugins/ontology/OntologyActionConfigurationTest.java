@@ -177,21 +177,24 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
-    void functionQueryKeepsLegacySelectorBehaviorWhenQueryModeIsPresent() {
+    void builderFunctionQueryComposesSelectedCapabilityOwnerAndTarget() {
         OntologyActionConfiguration configuration = configuration(
                 "FUNCTION_QUERY",
                 Map.of(
                         "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
                         "functionId", "selectedFunction",
-                        "filter", Map.of("stale", true),
-                        "sort", List.of(Map.of("stale", true)),
-                        "page", Map.of("offset", 99),
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("delayDays", 5),
                         "definition", Map.of("functionId", "definitionFunction")));
 
-        assertEquals("selectedFunction", configuration.definition().get("functionId"));
-        assertFalse(configuration.definition().containsKey("filter"));
-        assertFalse(configuration.definition().containsKey("sort"));
-        assertFalse(configuration.definition().containsKey("page"));
+        assertEquals(
+                Map.of(
+                        "functionId", "selectedFunction",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("delayDays", 5)),
+                configuration.definition());
     }
 
     @Test
@@ -201,8 +204,12 @@ class OntologyActionConfigurationTest {
                 "FUNCTION_QUERY",
                 "queryMode",
                 "BUILDER",
+                "objectTypeId",
+                "PurchaseOrder",
                 "functionId",
                 "delayScore",
+                "target",
+                Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
                 "parameters",
                 Map.of("delayDays", "{{Table1.selectedRow.delayDays}}"));
 
@@ -210,6 +217,10 @@ class OntologyActionConfigurationTest {
                 Map.of(
                         "functionId",
                         "delayScore",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
                         "parameters",
                         Map.of("delayDays", "{{Table1.selectedRow.delayDays}}")),
                 OntologyActionConfiguration.from(action(formData)).definition());
@@ -218,11 +229,17 @@ class OntologyActionConfigurationTest {
     @Test
     void builderFunctionQueryParsesDynamicJsonParametersIntoTheCanonicalDefinition() {
         assertEquals(
-                Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)),
+                Map.of(
+                        "functionId", "delayScore",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("delayDays", 5)),
                 OntologyActionConfiguration.from(action(Map.of(
                                 "operation", uqi("FUNCTION_QUERY"),
                                 "queryMode", uqi("BUILDER"),
+                                "objectTypeId", uqi("PurchaseOrder"),
                                 "functionId", uqi("delayScore"),
+                                "target", uqi(Map.of("source", "SINGLE_OBJECT", "objectId", "PO002")),
                                 "parameters", uqi("{\"delayDays\":5}"))))
                         .definition());
     }
@@ -234,20 +251,28 @@ class OntologyActionConfigurationTest {
                 () -> OntologyActionConfiguration.from(action(Map.of(
                         "operation", uqi("FUNCTION_QUERY"),
                         "queryMode", uqi("BUILDER"),
+                        "objectTypeId", uqi("PurchaseOrder"),
                         "functionId", uqi("delayScore"),
+                        "target", uqi(Map.of("source", "SINGLE_OBJECT", "objectId", "PO002")),
                         "parameters", uqi("[]")))));
 
-        assertEquals("Ontology function parameters selector must be an object", exception.getMessage());
+        assertEquals("Ontology capability parameters selector must be an object", exception.getMessage());
     }
 
     @Test
     void builderFunctionQueryUsesEmptyParametersWhenAbsent() {
         assertEquals(
-                Map.of("functionId", "delayScore", "parameters", Map.of()),
+                Map.of(
+                        "functionId", "delayScore",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of()),
                 OntologyActionConfiguration.from(action(Map.of(
                                 "operation", "FUNCTION_QUERY",
                                 "queryMode", "BUILDER",
-                                "functionId", "delayScore")))
+                                "objectTypeId", "PurchaseOrder",
+                                "functionId", "delayScore",
+                                "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"))))
                         .definition());
     }
 
@@ -258,23 +283,31 @@ class OntologyActionConfigurationTest {
                 () -> OntologyActionConfiguration.from(action(Map.of(
                         "operation", "FUNCTION_QUERY",
                         "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
                         "functionId", "delayScore",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
                         "parameters", List.of("not-an-object")))));
 
-        assertEquals("Ontology function parameters selector must be an object", exception.getMessage());
+        assertEquals("Ontology capability parameters selector must be an object", exception.getMessage());
     }
 
     @Test
-    void advancedFunctionQueryComposesSelectedFunctionAndParameterJson() {
+    void advancedFunctionQueryComposesSelectedFunctionWithDefinitionTargetAndParameters() {
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
                 "operation", "FUNCTION_QUERY",
                 "queryMode", "ADVANCED",
+                "objectTypeId", "PurchaseOrder",
                 "functionId", "delayScore",
-                "parameters", "{\"delayDays\":5}",
-                "definition", Map.of("functionId", "staleFunction", "page", Map.of()))));
+                "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                        + "\"parameters\":{\"delayDays\":5}}")));
 
         assertEquals(
-                Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)), configuration.definition());
+                Map.of(
+                        "functionId", "delayScore",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("delayDays", 5)),
+                configuration.definition());
     }
 
     @Test
@@ -282,8 +315,10 @@ class OntologyActionConfigurationTest {
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
                 "operation", uqi("FUNCTION_QUERY"),
                 "queryMode", uqi("ADVANCED"),
+                "objectTypeId", uqi("PurchaseOrder"),
                 "functionId", uqi("delayScore"),
-                "parameters", uqi("{\"delayDays\":null}"))));
+                "definition", uqi("{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                        + "\"parameters\":{\"delayDays\":null}}"))));
 
         Map<?, ?> parameters = (Map<?, ?>) configuration.definition().get("parameters");
         assertTrue(parameters.containsKey("delayDays"));
@@ -295,11 +330,17 @@ class OntologyActionConfigurationTest {
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
                 "operation", "FUNCTION_QUERY",
                 "queryMode", "ADVANCED",
+                "objectTypeId", "PurchaseOrder",
                 "functionId", "delayScore",
-                "parameters", "{\"functionId\":\"nested\"}")));
+                "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                        + "\"parameters\":{\"functionId\":\"nested\"}}")));
 
         assertEquals(
-                Map.of("functionId", "delayScore", "parameters", Map.of("functionId", "nested")),
+                Map.of(
+                        "functionId", "delayScore",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("functionId", "nested")),
                 configuration.definition());
     }
 
@@ -310,26 +351,32 @@ class OntologyActionConfigurationTest {
                 () -> OntologyActionConfiguration.from(action(Map.of(
                         "operation", "FUNCTION_QUERY",
                         "queryMode", "ADVANCED",
+                        "objectTypeId", "PurchaseOrder",
                         "functionId", "delayScore",
-                        "parameters", "not-json"))));
+                        "definition", "not-json"))));
         IllegalArgumentException array = assertThrows(
                 IllegalArgumentException.class,
                 () -> OntologyActionConfiguration.from(action(Map.of(
                         "operation", "FUNCTION_QUERY",
                         "queryMode", "ADVANCED",
+                        "objectTypeId", "PurchaseOrder",
                         "functionId", "delayScore",
-                        "parameters", "[]"))));
+                        "definition", "[]"))));
 
-        assertEquals("Ontology function parameters selector must be an object", malformed.getMessage());
-        assertEquals("Ontology function parameters selector must be an object", array.getMessage());
+        assertEquals("Ontology operation definition must be a JSON object", malformed.getMessage());
+        assertEquals("Ontology operation definition must be a JSON object", array.getMessage());
     }
 
     @Test
     void functionQueryRequiresASelectedFunctionId() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> OntologyActionConfiguration.from(
-                        action(Map.of("operation", "FUNCTION_QUERY", "queryMode", "ADVANCED", "parameters", "{}"))));
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "FUNCTION_QUERY",
+                        "queryMode", "ADVANCED",
+                        "objectTypeId", "PurchaseOrder",
+                        "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                + "\"parameters\":{}}"))));
 
         assertEquals("Ontology operation definition requires: functionId", exception.getMessage());
     }
@@ -339,30 +386,69 @@ class OntologyActionConfigurationTest {
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
                 "operation", "FUNCTION_QUERY",
                 "queryMode", "ADVANCED",
+                "objectTypeId", "PurchaseOrder",
                 "functionId", "unknownFunction",
-                "parameters", "{\"poId\":\"missing\"}")));
+                "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                        + "\"parameters\":{\"poId\":\"missing\"}}")));
 
         assertEquals(
-                Map.of("functionId", "unknownFunction", "parameters", Map.of("poId", "missing")),
+                Map.of(
+                        "functionId", "unknownFunction",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("poId", "missing")),
                 configuration.definition());
     }
 
     @Test
-    void actionQueryKeepsLegacySelectorBehaviorWhenQueryModeIsPresent() {
+    void builderActionQueryComposesSelectedOwnerCapabilityAndTarget() {
         OntologyActionConfiguration configuration = configuration(
                 "ACTION_QUERY",
                 Map.of(
-                        "queryMode",
-                        "ADVANCED",
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
                         "actionId",
                         "selectedAction",
-                        "projection",
-                        List.of("staleProperty"),
-                        "definition",
-                        Map.of("actionId", "definitionAction")));
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("newScheduleDate", "2026-08-27"),
+                        "definition", Map.of("actionId", "definitionAction")));
 
-        assertEquals("selectedAction", configuration.definition().get("actionId"));
-        assertEquals(List.of("staleProperty"), configuration.definition().get("projection"));
+        assertEquals(
+                Map.of(
+                        "actionId", "selectedAction",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters", Map.of("newScheduleDate", "2026-08-27")),
+                configuration.definition());
+    }
+
+    @Test
+    void advancedCapabilityDefinitionRejectsProtectedSelectorsAndAtomicity() {
+        for (String protectedField : List.of("functionId", "actionId", "objectTypeId", "atomic")) {
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> configuration(
+                            "FUNCTION_QUERY",
+                            Map.of(
+                                    "queryMode", "ADVANCED",
+                                    "objectTypeId", "PurchaseOrder",
+                                    "functionId", "delayScore",
+                                    "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                            + "\"parameters\":{},\"" + protectedField + "\":\"forged\"}")));
+
+            assertTrue(exception.getMessage().contains(protectedField));
+        }
+    }
+
+    @Test
+    void capabilityQueryRequiresTargetDefinition() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> configuration(
+                        "FUNCTION_QUERY",
+                        Map.of("queryMode", "BUILDER", "objectTypeId", "PurchaseOrder", "functionId", "delayScore")));
+
+        assertEquals("Ontology capability query definition requires: target", exception.getMessage());
     }
 
     @Test

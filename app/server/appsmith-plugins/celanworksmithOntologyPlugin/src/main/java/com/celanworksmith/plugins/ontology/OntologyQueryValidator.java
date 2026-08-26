@@ -7,6 +7,7 @@ import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectTypeMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.PropertyMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -46,26 +47,75 @@ final class OntologyQueryValidator {
     }
 
     Map<String, Object> validateFunctionParameters(OntologyActionConfiguration configuration, Snapshot snapshot) {
+        return validateFunctionQuery(configuration, snapshot).parameters();
+    }
+
+    ValidatedCapabilityQuery validateFunctionQuery(OntologyActionConfiguration configuration, Snapshot snapshot) {
+        if (configuration.operation() != OntologyActionConfiguration.Operation.FUNCTION_QUERY) {
+            throw new IllegalArgumentException("Ontology validator only supports FUNCTION_QUERY");
+        }
         String functionId = requiredStableId(configuration.definition(), "functionId");
         FunctionMetadata function = snapshot.functions().stream()
                 .filter(candidate -> functionId.equals(candidate.id()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + functionId));
-        return parameters(configuration.definition(), function.parameters(), "function");
+        String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
+        validateOwner("function", function.ownerObjectTypeIds(), objectTypeId);
+        return new ValidatedCapabilityQuery(
+                functionId,
+                objectTypeId,
+                singleObjectTarget(configuration.definition(), objectTypeId),
+                parameters(configuration.definition(), function.parameters(), "function"),
+                false);
     }
 
-    Map<String, Object> validateActionParameters(OntologyActionConfiguration configuration, Snapshot snapshot) {
+    ValidatedCapabilityQuery validateActionQuery(OntologyActionConfiguration configuration, Snapshot snapshot) {
+        if (configuration.operation() != OntologyActionConfiguration.Operation.ACTION_QUERY) {
+            throw new IllegalArgumentException("Ontology validator only supports ACTION_QUERY");
+        }
         String actionId = requiredStableId(configuration.definition(), "actionId");
         ActionMetadata action = snapshot.actions().stream()
                 .filter(candidate -> actionId.equals(candidate.id()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown ontology action: " + actionId));
         String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
-        if (!action.ownerObjectTypeIds().contains(objectTypeId)) {
-            throw new IllegalArgumentException("Ontology action does not apply to object type: " + objectTypeId);
+        validateOwner("action", action.ownerObjectTypeIds(), objectTypeId);
+        return new ValidatedCapabilityQuery(
+                actionId,
+                objectTypeId,
+                singleObjectTarget(configuration.definition(), objectTypeId),
+                parameters(configuration.definition(), action.parameters(), "action"),
+                action.atomic());
+    }
+
+    Map<String, Object> validateActionParameters(OntologyActionConfiguration configuration, Snapshot snapshot) {
+        return validateActionQuery(configuration, snapshot).parameters();
+    }
+
+    private void validateOwner(String capabilityName, List<String> ownerObjectTypeIds, String objectTypeId) {
+        if (!ownerObjectTypeIds.contains(objectTypeId)) {
+            throw new IllegalArgumentException(
+                    "Ontology " + capabilityName + " does not apply to object type: " + objectTypeId);
         }
-        requiredStableId(configuration.definition(), "objectId");
-        return parameters(configuration.definition(), action.parameters(), "action");
+    }
+
+    private OntologyObjectSet singleObjectTarget(Map<String, Object> definition, String objectTypeId) {
+        Object value = definition.get("target");
+        if (!(value instanceof Map<?, ?> target)) {
+            throw new IllegalArgumentException("Ontology capability target must be an object");
+        }
+        if (!target.keySet().stream().allMatch(key -> "source".equals(key) || "objectId".equals(key))) {
+            throw new IllegalArgumentException("Ontology capability target contains unsupported fields");
+        }
+        Object source = target.get("source");
+        if (!"SINGLE_OBJECT".equals(source)) {
+            throw new IllegalArgumentException("Unsupported ontology capability target source: " + source);
+        }
+        Object objectId = target.get("objectId");
+        if (!(objectId instanceof String identifier) || isBlank(identifier)) {
+            throw new IllegalArgumentException("Ontology capability target requires a stable object ID");
+        }
+        return new OntologyObjectSet(objectTypeId, List.of(identifier));
     }
 
     private Map<String, Object> parameters(
@@ -355,6 +405,13 @@ final class OntologyQueryValidator {
     private record Sort(String propertyId, String direction) {}
 
     record ValidatedObjectQuery(ObjectQuery query, boolean full) {}
+
+    record ValidatedCapabilityQuery(
+            String capabilityId,
+            String objectTypeId,
+            OntologyObjectSet targets,
+            Map<String, Object> parameters,
+            boolean atomic) {}
 
     private record Page(int offset, int limit, boolean full) {}
 }

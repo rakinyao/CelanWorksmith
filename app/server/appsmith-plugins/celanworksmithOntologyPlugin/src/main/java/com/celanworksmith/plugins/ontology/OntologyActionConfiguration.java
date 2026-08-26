@@ -26,7 +26,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             "idempotencyKey",
             "context");
     private static final Set<String> OBJECT_QUERY_RESULT_MODES = Set.of("ROWS", "TOTAL");
-    private static final Set<String> FUNCTION_QUERY_ROOT_FIELDS = Set.of("functionId", "parameters");
+    private static final Set<String> CAPABILITY_ADVANCED_ROOT_FIELDS = Set.of("target", "parameters");
 
     public enum Operation {
         OBJECT_QUERY,
@@ -61,9 +61,13 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
 
         boolean builderMode = false;
         boolean advancedMode = false;
-        if (operation == Operation.OBJECT_QUERY || operation == Operation.FUNCTION_QUERY) {
+        if (operation == Operation.OBJECT_QUERY
+                || operation == Operation.FUNCTION_QUERY
+                || operation == Operation.ACTION_QUERY) {
             Object queryModeValue = formData.get("queryMode");
-            if (queryModeValue != null) {
+            if (queryModeValue == null) {
+                builderMode = true;
+            } else {
                 if (!(queryModeValue instanceof String queryMode)) {
                     throw new IllegalArgumentException("Ontology query mode must be BUILDER or ADVANCED");
                 }
@@ -75,24 +79,28 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             }
         }
 
-        Object definitionValue = operation == Operation.FUNCTION_QUERY
-                ? Map.of()
-                : builderMode ? Map.of() : parseDefinition(formData.get("definition"));
+        boolean capabilityQuery = operation == Operation.FUNCTION_QUERY || operation == Operation.ACTION_QUERY;
+        Object definitionValue = builderMode ? Map.of() : parseDefinition(formData.get("definition"));
         if (!(definitionValue instanceof Map<?, ?> rawDefinitionMap)) {
             throw new IllegalArgumentException("Ontology operation definition is required");
         }
 
         Map<String, Object> definition = new java.util.LinkedHashMap<>();
         rawDefinitionMap.forEach((key, value) -> definition.put(String.valueOf(key), value));
-        if (operation == Operation.FUNCTION_QUERY) {
-            composeFunctionQueryDefinition(formData, definition);
+        if (capabilityQuery) {
+            if (advancedMode) {
+                validateAdvancedCapabilityDefinition(operation, definition);
+                mergeCapabilitySelectorFields(operation, formData, definition);
+            } else {
+                composeCapabilityQueryDefinition(operation, formData, definition);
+            }
         } else if (builderMode) {
             mergeBuilderFields(formData, definition);
         } else if (!advancedMode) {
             mergeSelectorFields(formData, definition);
             mergeProjection(formData, definition);
         }
-        validateFunctionQueryDefinition(operation, definition);
+        validateCapabilityQueryDefinition(operation, definition);
         validateObjectQueryResultMode(operation, definition);
         for (String protectedKey : PROTECTED_CONTEXT_KEYS) {
             if (definition.containsKey(protectedKey)) {
@@ -142,6 +150,19 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         }
     }
 
+    private static void mergeCapabilitySelectorFields(
+            Operation operation, Map<String, Object> formData, Map<String, Object> definition) {
+        copyIdentifier(formData, definition, "objectTypeId");
+        copyIdentifier(formData, definition, capabilityIdField(operation));
+    }
+
+    private static void copyIdentifier(Map<String, Object> formData, Map<String, Object> definition, String field) {
+        Object value = formData.get(field);
+        if (value instanceof String identifier && !identifier.isBlank()) {
+            definition.put(field, identifier);
+        }
+    }
+
     private static void mergeProjection(Map<String, Object> formData, Map<String, Object> definition) {
         Object value = formData.get("projection");
         if (value == null) {
@@ -170,7 +191,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         copyResultMode(formData, definition);
     }
 
-    private static void copyFunctionParameters(Map<String, Object> formData, Map<String, Object> definition) {
+    private static void copyCapabilityParameters(Map<String, Object> formData, Map<String, Object> definition) {
         Object value = formData.get("parameters");
         if (value == null) {
             definition.put("parameters", Map.of());
@@ -181,37 +202,83 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
                 value = OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {});
             } catch (Exception exception) {
                 throw new IllegalArgumentException(
-                        "Ontology function parameters selector must be an object", exception);
+                        "Ontology capability parameters selector must be an object", exception);
             }
         }
         if (!(value instanceof Map<?, ?> rawParameters)) {
-            throw new IllegalArgumentException("Ontology function parameters selector must be an object");
+            throw new IllegalArgumentException("Ontology capability parameters selector must be an object");
         }
         Map<String, Object> parameters = new java.util.LinkedHashMap<>();
         rawParameters.forEach((key, parameterValue) -> parameters.put(String.valueOf(key), parameterValue));
         definition.put("parameters", Collections.unmodifiableMap(parameters));
     }
 
-    private static void composeFunctionQueryDefinition(Map<String, Object> formData, Map<String, Object> definition) {
-        Object functionId = formData.get("functionId");
-        if (!(functionId instanceof String identifier) || identifier.isBlank()) {
-            throw new IllegalArgumentException("Ontology operation definition requires: functionId");
-        }
-        definition.put("functionId", identifier);
-        copyFunctionParameters(formData, definition);
+    private static void composeCapabilityQueryDefinition(
+            Operation operation, Map<String, Object> formData, Map<String, Object> definition) {
+        mergeCapabilitySelectorFields(operation, formData, definition);
+        copyCapabilityTarget(formData, definition);
+        copyCapabilityParameters(formData, definition);
     }
 
-    private static void validateFunctionQueryDefinition(Operation operation, Map<String, Object> definition) {
-        if (operation != Operation.FUNCTION_QUERY) {
+    private static void copyCapabilityTarget(Map<String, Object> formData, Map<String, Object> definition) {
+        Object value = formData.get("target");
+        if (value == null) {
             return;
         }
+        if (!(value instanceof Map<?, ?> rawTarget)) {
+            throw new IllegalArgumentException("Ontology capability target selector must be an object");
+        }
+        Map<String, Object> target = new java.util.LinkedHashMap<>();
+        rawTarget.forEach((key, targetValue) -> target.put(String.valueOf(key), targetValue));
+        definition.put("target", Collections.unmodifiableMap(target));
+    }
+
+    private static void validateAdvancedCapabilityDefinition(Operation operation, Map<String, Object> definition) {
         for (String field : definition.keySet()) {
-            if (!FUNCTION_QUERY_ROOT_FIELDS.contains(field)) {
-                throw new IllegalArgumentException("Unsupported field in ontology function query definition: " + field);
+            if (!CAPABILITY_ADVANCED_ROOT_FIELDS.contains(field)) {
+                throw new IllegalArgumentException(
+                        "Unsupported field in ontology " + capabilityName(operation) + " query definition: " + field);
             }
         }
+    }
+
+    private static void validateCapabilityQueryDefinition(Operation operation, Map<String, Object> definition) {
+        if (operation != Operation.FUNCTION_QUERY && operation != Operation.ACTION_QUERY) {
+            return;
+        }
+        String capabilityIdField = capabilityIdField(operation);
+        requireIdentifier(definition, capabilityIdField);
+        requireIdentifier(definition, "objectTypeId");
+        if (!definition.containsKey("target")) {
+            throw new IllegalArgumentException("Ontology capability query definition requires: target");
+        }
+        if (!(definition.get("target") instanceof Map<?, ?>)) {
+            throw new IllegalArgumentException("Ontology capability target selector must be an object");
+        }
         if (!definition.containsKey("parameters")) {
-            throw new IllegalArgumentException("Ontology function query definition requires: parameters");
+            definition.put("parameters", Map.of());
+        }
+        if (!(definition.get("parameters") instanceof Map<?, ?>)) {
+            throw new IllegalArgumentException("Ontology capability parameters selector must be an object");
+        }
+    }
+
+    private static String capabilityIdField(Operation operation) {
+        return switch (operation) {
+            case FUNCTION_QUERY -> "functionId";
+            case ACTION_QUERY -> "actionId";
+            default -> throw new IllegalArgumentException("Ontology operation is not a capability query");
+        };
+    }
+
+    private static String capabilityName(Operation operation) {
+        return operation == Operation.FUNCTION_QUERY ? "function" : "action";
+    }
+
+    private static void requireIdentifier(Map<String, Object> definition, String field) {
+        Object value = definition.get(field);
+        if (!(value instanceof String identifier) || identifier.isBlank()) {
+            throw new IllegalArgumentException("Ontology operation definition requires: " + field);
         }
     }
 
