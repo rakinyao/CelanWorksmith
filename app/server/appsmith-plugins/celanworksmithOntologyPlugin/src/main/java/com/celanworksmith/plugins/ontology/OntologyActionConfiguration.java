@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -188,7 +189,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         }
         Map<String, Object> parameters = new java.util.LinkedHashMap<>();
         rawParameters.forEach((key, parameterValue) -> parameters.put(String.valueOf(key), parameterValue));
-        definition.put("parameters", Map.copyOf(parameters));
+        definition.put("parameters", Collections.unmodifiableMap(parameters));
     }
 
     private static void composeFunctionQueryDefinition(Map<String, Object> formData, Map<String, Object> definition) {

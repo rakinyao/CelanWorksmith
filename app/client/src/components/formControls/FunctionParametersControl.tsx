@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Input } from "@appsmith/ads";
 import { connect } from "react-redux";
 import type { DefaultRootState } from "react-redux";
@@ -16,7 +16,6 @@ export interface FunctionParameterMetadata {
 }
 
 export interface FunctionParametersControlProps extends ControlProps {
-  functionId?: unknown;
   metadata?: FunctionParameterMetadata[];
   parameterValues?: Record<string, unknown>;
   onParametersChange: (parameters: Record<string, unknown>) => void;
@@ -48,28 +47,10 @@ function getParameterValues(value: unknown): Record<string, unknown> {
 
 export function FunctionParametersControl({
   configProperty,
-  functionId,
   metadata = [],
   onParametersChange,
   parameterValues = {},
 }: FunctionParametersControlProps) {
-  const previousFunctionId = useRef(functionId);
-
-  useEffect(
-    function clearParametersWhenFunctionChanges() {
-      const didSelectedFunctionChange =
-        previousFunctionId.current !== undefined &&
-        previousFunctionId.current !== functionId;
-
-      previousFunctionId.current = functionId;
-
-      if (didSelectedFunctionChange) {
-        onParametersChange({});
-      }
-    },
-    [functionId, onParametersChange],
-  );
-
   return (
     <div className={`t--${configProperty} uqi-function-parameters`}>
       {metadata
@@ -114,10 +95,6 @@ const mapStateToProps = (
   const dynamicValues = getDynamicFetchedValues(state, props);
 
   return {
-    functionId: valueSelector(
-      state,
-      "actionConfiguration.formData.functionId.data",
-    ),
     metadata: getMetadata(dynamicValues.data),
     parameterValues: getParameterValues(
       valueSelector(state, props.configProperty),

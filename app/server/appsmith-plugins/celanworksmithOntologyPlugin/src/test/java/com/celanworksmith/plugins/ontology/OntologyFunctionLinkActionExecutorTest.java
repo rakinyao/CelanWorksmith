@@ -119,6 +119,39 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void rejectsAdvancedFunctionIdParameterBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = executeAdvanced(gateway, "delayScore", "{\"functionId\":\"other\"}");
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown ontology function parameter"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsMissingRequiredAdvancedFunctionParametersBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = executeAdvanced(gateway, "protectedScore", "{}");
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Ontology function parameter is required"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsNullAdvancedFunctionParametersWithSemanticValidation() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = executeAdvanced(gateway, "delayScore", "{\"delayDays\":null}");
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("must be an integer"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
     void permitsOnlyWritableRequiredAdvancedFunctionParameters() {
         RecordingGateway gateway = new RecordingGateway();
 

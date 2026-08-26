@@ -352,7 +352,8 @@ export function OntologyQueryModeSynchronizer({
   ) as Record<string, unknown>;
   const hydrationUpdates = useRef<Record<string, unknown>>();
   const previousQueryMode = useRef<unknown>();
-  const previousBuilderFunctionId = useRef<unknown>();
+  const previousFunctionId = useRef<unknown>();
+  const hasInitialFunctionSelection = useRef(false);
   const lastValidAdvancedDefinition = useRef<string>();
   const formData = get(formValues, "actionConfiguration.formData") as
     | Record<string, unknown>
@@ -464,30 +465,27 @@ export function OntologyQueryModeSynchronizer({
       }
 
       if (operation === "FUNCTION_QUERY") {
-        if (
-          currentQueryMode === "BUILDER" &&
-          previousQueryMode.current === "BUILDER"
-        ) {
-          const currentFunctionId = readControlData(formData.functionId);
+        const currentFunctionId = readControlData(formData.functionId);
+        const hasSelectedFunction =
+          typeof currentFunctionId === "string" &&
+          currentFunctionId.trim() !== "";
 
-          if (previousBuilderFunctionId.current === undefined) {
-            previousBuilderFunctionId.current = currentFunctionId;
-          } else if (previousBuilderFunctionId.current !== currentFunctionId) {
-            previousBuilderFunctionId.current = currentFunctionId;
-            dispatch(
-              change(
-                formName,
-                "actionConfiguration.formData.parameters.data",
-                {},
-              ),
-            );
-
-            return;
+        if (!hasInitialFunctionSelection.current) {
+          if (hasSelectedFunction) {
+            previousFunctionId.current = currentFunctionId;
+            hasInitialFunctionSelection.current = true;
           }
-        } else if (currentQueryMode === "BUILDER") {
-          previousBuilderFunctionId.current = readControlData(
-            formData.functionId,
+        } else if (previousFunctionId.current !== currentFunctionId) {
+          previousFunctionId.current = currentFunctionId;
+          dispatch(
+            change(
+              formName,
+              "actionConfiguration.formData.parameters.data",
+              {},
+            ),
           );
+
+          return;
         }
       }
 

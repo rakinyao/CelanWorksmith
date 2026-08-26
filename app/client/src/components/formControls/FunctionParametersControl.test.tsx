@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { FunctionParametersControl } from "./FunctionParametersControl";
 
 const metadata = [
@@ -68,72 +68,5 @@ describe("FunctionParametersControl", () => {
     expect(onParametersChange).toHaveBeenLastCalledWith({
       poId: "{{Table1.selectedRow.id}}",
     });
-  });
-
-  it("clears parameters once after the selected Function changes", async () => {
-    const onParametersChange = jest.fn();
-    const { rerender } = render(
-      <FunctionParametersControl
-        {...controlProps}
-        functionId="CalculateDelayDays"
-        metadata={metadata}
-        onParametersChange={onParametersChange}
-        parameterValues={{ poId: "purchase-order" }}
-      />,
-    );
-
-    expect(onParametersChange).not.toHaveBeenCalled();
-
-    rerender(
-      <FunctionParametersControl
-        {...controlProps}
-        functionId="CalculateDelayDaysV2"
-        metadata={metadata}
-        onParametersChange={onParametersChange}
-        parameterValues={{ poId: "purchase-order" }}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(onParametersChange).toHaveBeenCalledTimes(1);
-    });
-    expect(onParametersChange).toHaveBeenCalledWith({});
-
-    rerender(
-      <FunctionParametersControl
-        {...controlProps}
-        functionId="CalculateDelayDaysV2"
-        metadata={metadata}
-        onParametersChange={onParametersChange}
-        parameterValues={{}}
-      />,
-    );
-
-    expect(onParametersChange).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not clear hydrated parameters when the initial Function ID arrives", () => {
-    const onParametersChange = jest.fn();
-    const { rerender } = render(
-      <FunctionParametersControl
-        {...controlProps}
-        functionId={undefined}
-        metadata={metadata}
-        onParametersChange={onParametersChange}
-        parameterValues={{ poId: "purchase-order" }}
-      />,
-    );
-
-    rerender(
-      <FunctionParametersControl
-        {...controlProps}
-        functionId="CalculateDelayDays"
-        metadata={metadata}
-        onParametersChange={onParametersChange}
-        parameterValues={{ poId: "purchase-order" }}
-      />,
-    );
-
-    expect(onParametersChange).not.toHaveBeenCalled();
   });
 });

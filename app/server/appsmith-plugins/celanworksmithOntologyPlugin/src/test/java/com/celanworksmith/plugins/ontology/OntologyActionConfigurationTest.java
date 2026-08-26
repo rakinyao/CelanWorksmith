@@ -9,6 +9,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OntologyActionConfigurationTest {
 
@@ -274,6 +275,19 @@ class OntologyActionConfigurationTest {
 
         assertEquals(
                 Map.of("functionId", "delayScore", "parameters", Map.of("delayDays", 5)), configuration.definition());
+    }
+
+    @Test
+    void preservesNullAdvancedFunctionParametersForNativeSemanticValidation() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", uqi("FUNCTION_QUERY"),
+                "queryMode", uqi("ADVANCED"),
+                "functionId", uqi("delayScore"),
+                "parameters", uqi("{\"delayDays\":null}"))));
+
+        Map<?, ?> parameters = (Map<?, ?>) configuration.definition().get("parameters");
+        assertTrue(parameters.containsKey("delayDays"));
+        assertEquals(null, parameters.get("delayDays"));
     }
 
     @Test

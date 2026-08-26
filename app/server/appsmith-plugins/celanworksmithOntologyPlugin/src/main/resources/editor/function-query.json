@@ -41,16 +41,14 @@
         {
           "label": "Parameters",
           "configProperty": "actionConfiguration.formData.parameters.data",
-          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
-          "inputType": "JSON",
+          "controlType": "FUNCTION_PARAMETERS",
           "evaluationSubstitutionType": "TEMPLATE",
-          "resetOnDependencyChange": true,
           "fetchOptionsConditionally": true,
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
             "enable": "{{!!actionConfiguration.formData.functionId.data}}",
             "fetchDynamicValues": {
-              "condition": "{{!!actionConfiguration.formData.functionId.data}}",
+              "condition": "{{actionConfiguration.formData.queryMode.data === 'BUILDER' && !!actionConfiguration.formData.functionId.data}}",
               "config": {
                 "params": {
                   "requestType": "ONTOLOGY_FUNCTION_PARAMETERS",
