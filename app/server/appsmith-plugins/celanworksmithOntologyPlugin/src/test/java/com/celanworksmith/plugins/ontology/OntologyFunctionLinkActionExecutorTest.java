@@ -442,6 +442,22 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void exposesOwnerScopedActionParameterMetadataFromThePinnedSnapshot() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO parameters = trigger(
+                executor,
+                "ONTOLOGY_ACTION_PARAMETERS",
+                Map.of("objectTypeId", "PurchaseOrder", "actionId", "reschedulePurchaseOrder"));
+
+        assertEquals(
+                List.of(metadata("newScheduleDate", "newScheduleDate", "string", false, false, false)),
+                parameters.getTrigger());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
     void rejectsMissingUnknownOrOwnerIncompatibleFunctionParameterMetadataSelectors() {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);

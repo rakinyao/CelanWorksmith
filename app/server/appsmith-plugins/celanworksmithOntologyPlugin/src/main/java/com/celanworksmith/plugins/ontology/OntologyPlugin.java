@@ -224,6 +224,7 @@ public class OntologyPlugin extends BasePlugin {
                                     List.<String>of(),
                                     null))
                             .toList());
+                case "ONTOLOGY_ACTION_PARAMETERS" -> dropdownResult(actionParameters(snapshot, request));
                 case "ONTOLOGY_LINKS" ->
                     dropdownResult(safeList(snapshot.links()).stream()
                             .map(link -> metadataEntry(
@@ -288,6 +289,32 @@ public class OntologyPlugin extends BasePlugin {
             String objectTypeId = requiredMetadataObjectTypeId("function", request);
             return safeList(snapshot.functions()).stream()
                     .filter(function -> function.ownerObjectTypeIds().contains(objectTypeId))
+                    .toList();
+        }
+
+        private List<Map<String, Object>> actionParameters(Snapshot snapshot, TriggerRequestDTO request) {
+            Object actionId = request.getParameters() == null
+                    ? null
+                    : request.getParameters().get("actionId");
+            if (!(actionId instanceof String value) || value.isBlank()) {
+                throw new IllegalArgumentException("Ontology action is required for parameter metadata");
+            }
+            OntologyRuntimeGateway.ActionMetadata action = safeList(snapshot.actions()).stream()
+                    .filter(candidate -> value.equals(candidate.id()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown ontology action: " + value));
+            validateCapabilityOwner("action", action.ownerObjectTypeIds(), request);
+            return safeList(action.parameters()).stream()
+                    .filter(parameter -> !parameter.hidden())
+                    .map(parameter -> metadataEntry(
+                            parameter.id(),
+                            parameter.displayName(),
+                            parameter.dataType(),
+                            parameter.required(),
+                            parameter.readOnly(),
+                            parameter.derived(),
+                            parameter.enumValues(),
+                            parameter.referenceTypeId()))
                     .toList();
         }
 

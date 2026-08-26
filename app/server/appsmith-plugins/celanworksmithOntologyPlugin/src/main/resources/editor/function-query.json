@@ -20,6 +20,25 @@
           ]
         },
         {
+          "label": "Object type",
+          "configProperty": "actionConfiguration.formData.objectTypeId.data",
+          "controlType": "DROP_DOWN",
+          "isRequired": true,
+          "placeholderText": "Select an object type",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "fetchDynamicValues": {
+              "condition": "{{true}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_OBJECT_TYPES",
+                  "displayType": "DROP_DOWN"
+                }
+              }
+            }
+          }
+        },
+        {
           "label": "Function",
           "configProperty": "actionConfiguration.formData.functionId.data",
           "controlType": "DROP_DOWN",
@@ -27,15 +46,41 @@
           "placeholderText": "Select a function",
           "fetchOptionsConditionally": true,
           "conditionals": {
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}",
             "fetchDynamicValues": {
-              "condition": "{{true}}",
+              "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
               "config": {
                 "params": {
                   "requestType": "ONTOLOGY_FUNCTIONS",
-                  "displayType": "DROP_DOWN"
+                  "displayType": "DROP_DOWN",
+                  "parameters": {
+                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                  }
                 }
               }
             }
+          }
+        },
+        {
+          "label": "Target source",
+          "configProperty": "actionConfiguration.formData.target.data.source",
+          "controlType": "DROP_DOWN",
+          "initialValue": "SINGLE_OBJECT",
+          "disabled": true,
+          "options": [{ "label": "Single object", "value": "SINGLE_OBJECT" }],
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}"
+          }
+        },
+        {
+          "label": "Object ID",
+          "configProperty": "actionConfiguration.formData.target.data.objectId",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "isRequired": true,
+          "placeholderText": "{{Table1.selectedRow.id}}",
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "enable": "{{!!actionConfiguration.formData.functionId.data}}"
           }
         },
         {
@@ -47,14 +92,15 @@
           "fetchOptionsConditionally": true,
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
-            "enable": "{{!!actionConfiguration.formData.functionId.data}}",
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data && !!actionConfiguration.formData.functionId.data}}",
             "fetchDynamicValues": {
-              "condition": "{{actionConfiguration.formData.queryMode.data === 'BUILDER' && !!actionConfiguration.formData.functionId.data}}",
+              "condition": "{{actionConfiguration.formData.queryMode.data === 'BUILDER' && !!actionConfiguration.formData.objectTypeId.data && !!actionConfiguration.formData.functionId.data}}",
               "config": {
                 "params": {
                   "requestType": "ONTOLOGY_FUNCTION_PARAMETERS",
                   "displayType": "DROP_DOWN",
                   "parameters": {
+                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}",
                     "functionId": "{{actionConfiguration.formData.functionId.data}}"
                   }
                 }
@@ -63,9 +109,8 @@
           }
         },
         {
-          "label": "Advanced JSON parameters",
-          "propertyName": "ONTOLOGY_FUNCTION_ADVANCED_PARAMETERS",
-          "configProperty": "actionConfiguration.formData.parameters.data",
+          "label": "Advanced JSON definition",
+          "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
           "disabled": "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
@@ -79,7 +124,7 @@
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}"
           },
-          "placeholderText": "{\"poId\":\"{{Table1.selectedRow.id}}\"}"
+          "placeholderText": "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"{{Table1.selectedRow.id}}\"},\"parameters\":{}}"
         }
       ]
     }

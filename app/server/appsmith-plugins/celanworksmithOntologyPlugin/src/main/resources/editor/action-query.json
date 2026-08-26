@@ -10,23 +10,14 @@
       "identifier": "ONTOLOGY_ACTION_QUERY_ZONE",
       "children": [
         {
-          "label": "Action",
-          "configProperty": "actionConfiguration.formData.actionId.data",
+          "label": "Query mode",
+          "configProperty": "actionConfiguration.formData.queryMode.data",
           "controlType": "DROP_DOWN",
-          "isRequired": true,
-          "placeholderText": "Select an action",
-          "fetchOptionsConditionally": true,
-          "conditionals": {
-            "fetchDynamicValues": {
-              "condition": "{{true}}",
-              "config": {
-                "params": {
-                  "requestType": "ONTOLOGY_ACTIONS",
-                  "displayType": "DROP_DOWN"
-                }
-              }
-            }
-          }
+          "initialValue": "BUILDER",
+          "options": [
+            { "label": "Builder", "value": "BUILDER" },
+            { "label": "Advanced JSON", "value": "ADVANCED" }
+          ]
         },
         {
           "label": "Object type",
@@ -48,25 +39,92 @@
           }
         },
         {
-          "label": "Object ID",
-          "configProperty": "actionConfiguration.formData.objectId.data",
-          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "label": "Action",
+          "configProperty": "actionConfiguration.formData.actionId.data",
+          "controlType": "DROP_DOWN",
           "isRequired": true,
-          "placeholderText": "PO001"
+          "placeholderText": "Select an action",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+            "fetchDynamicValues": {
+              "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_ACTIONS",
+                  "displayType": "DROP_DOWN",
+                  "parameters": {
+                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                  }
+                }
+              }
+            }
+          }
         },
         {
-          "label": "Action query definition",
+          "label": "Target source",
+          "configProperty": "actionConfiguration.formData.target.data.source",
+          "controlType": "DROP_DOWN",
+          "initialValue": "SINGLE_OBJECT",
+          "disabled": true,
+          "options": [{ "label": "Single object", "value": "SINGLE_OBJECT" }],
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}"
+          }
+        },
+        {
+          "label": "Object ID",
+          "configProperty": "actionConfiguration.formData.target.data.objectId",
+          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "isRequired": true,
+          "placeholderText": "{{Table1.selectedRow.id}}",
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "enable": "{{!!actionConfiguration.formData.actionId.data}}"
+          }
+        },
+        {
+          "label": "Parameters",
+          "propertyName": "ONTOLOGY_ACTION_PARAMETERS",
+          "configProperty": "actionConfiguration.formData.parameters.data",
+          "controlType": "FUNCTION_PARAMETERS",
+          "evaluationSubstitutionType": "TEMPLATE",
+          "fetchOptionsConditionally": true,
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "enable": "{{!!actionConfiguration.formData.objectTypeId.data && !!actionConfiguration.formData.actionId.data}}",
+            "fetchDynamicValues": {
+              "condition": "{{actionConfiguration.formData.queryMode.data === 'BUILDER' && !!actionConfiguration.formData.objectTypeId.data && !!actionConfiguration.formData.actionId.data}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_ACTION_PARAMETERS",
+                  "displayType": "DROP_DOWN",
+                  "parameters": {
+                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}",
+                    "actionId": "{{actionConfiguration.formData.actionId.data}}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "label": "Advanced JSON definition",
           "configProperty": "actionConfiguration.formData.definition.data",
           "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
           "inputType": "JSON",
-          "evaluationSubstitutionType": "TEMPLATE",
-          "initialValue": {
-            "actionId": "",
-            "objectTypeId": "",
-            "objectId": "",
-            "parameters": {}
+          "disabled": "{{actionConfiguration.formData.queryMode.data !== 'ADVANCED'}}",
+          "hidden": {
+            "path": "actionConfiguration.formData.queryMode.data",
+            "comparison": "EQUALS",
+            "value": "BUILDER"
           },
-          "placeholderText": "{\"actionId\": \"ReschedulePurchaseOrder\", \"objectTypeId\": \"PurchaseOrder\", \"objectId\": \"PO001\"}"
+          "isRequired": true,
+          "evaluationSubstitutionType": "TEMPLATE",
+          "conditionals": {
+            "show": "{{actionConfiguration.formData.queryMode.data === 'ADVANCED'}}"
+          },
+          "placeholderText": "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"{{Table1.selectedRow.id}}\"},\"parameters\":{}}"
         }
       ]
     }

@@ -1,0 +1,136 @@
+import {
+  hydrateCapabilityBuilderForm,
+  parseAdvancedCapabilityDefinition,
+  serializeCapabilityBuilderForm,
+  validateCapabilityDefinition,
+  type OntologyCapabilityMetadata,
+} from "./ontologyCapabilityQueryDefinition";
+
+const functionMetadata: OntologyCapabilityMetadata = {
+  capabilities: [
+    {
+      id: "CalculateDelayDays",
+      parameters: [
+        { id: "delayDays", required: true },
+        { id: "internalToken", readOnly: true },
+      ],
+    },
+  ],
+};
+
+const actionMetadata: OntologyCapabilityMetadata = {
+  capabilities: [
+    {
+      id: "ReschedulePurchaseOrder",
+      parameters: [{ id: "newDeliveryDate", required: true }],
+    },
+  ],
+};
+
+describe("ontology capability query definition", () => {
+  it.each([
+    ["FUNCTION_QUERY", "functionId", "CalculateDelayDays", functionMetadata],
+    ["ACTION_QUERY", "actionId", "ReschedulePurchaseOrder", actionMetadata],
+  ] as const)(
+    "serializes %s Builder target and parameters without protected selectors",
+    (operation, capabilityField, capabilityId, metadata) => {
+      expect(
+        serializeCapabilityBuilderForm(
+          {
+            objectTypeId: { data: "PurchaseOrder" },
+            [capabilityField]: { data: capabilityId },
+            target: {
+              data: {
+                source: "SINGLE_OBJECT",
+                objectId: "{{Table1.selectedRow.id}}",
+              },
+            },
+            parameters: {
+              data:
+                operation === "FUNCTION_QUERY"
+                  ? { delayDays: 5 }
+                  : { newDeliveryDate: "2026-08-30" },
+            },
+          },
+          operation,
+          metadata,
+        ),
+      ).toBe(
+        '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":' +
+          (operation === "FUNCTION_QUERY"
+            ? '{"delayDays":5}'
+            : '{"newDeliveryDate":"2026-08-30"}') +
+          "}",
+      );
+    },
+  );
+
+  it("hydrates Advanced target and parameters into Builder controls", () => {
+    expect(
+      hydrateCapabilityBuilderForm({
+        target: { source: "SINGLE_OBJECT", objectId: "PO002" },
+        parameters: { delayDays: 5 },
+      }),
+    ).toEqual({
+      "actionConfiguration.formData.target.data": {
+        source: "SINGLE_OBJECT",
+        objectId: "PO002",
+      },
+      "actionConfiguration.formData.parameters.data": { delayDays: 5 },
+    });
+  });
+
+  it.each([
+    ["invalid JSON", "{"],
+    [
+      "a protected function selector",
+      '{"functionId":"forged","target":{"source":"SINGLE_OBJECT","objectId":"PO002"},"parameters":{}}',
+    ],
+    [
+      "a protected action selector",
+      '{"actionId":"forged","target":{"source":"SINGLE_OBJECT","objectId":"PO002"},"parameters":{}}',
+    ],
+    [
+      "a protected owner selector",
+      '{"objectTypeId":"Supplier","target":{"source":"SINGLE_OBJECT","objectId":"PO002"},"parameters":{}}',
+    ],
+    [
+      "a blank object ID",
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"   "},"parameters":{}}',
+    ],
+  ])("rejects Advanced definition with %s", (_reason, text) => {
+    expect(() => parseAdvancedCapabilityDefinition(text)).toThrow();
+  });
+
+  it("rejects an incompatible capability and unwritable parameters", () => {
+    expect(
+      validateCapabilityDefinition(
+        {
+          target: { source: "SINGLE_OBJECT", objectId: "PO002" },
+          parameters: { internalToken: "forged" },
+        },
+        "FUNCTION_QUERY",
+        "UnknownFunction",
+        functionMetadata,
+      ),
+    ).toEqual({
+      valid: false,
+      message: "Unknown Function: UnknownFunction",
+    });
+
+    expect(
+      validateCapabilityDefinition(
+        {
+          target: { source: "SINGLE_OBJECT", objectId: "PO002" },
+          parameters: { delayDays: 5, internalToken: "forged" },
+        },
+        "FUNCTION_QUERY",
+        "CalculateDelayDays",
+        functionMetadata,
+      ),
+    ).toEqual({
+      valid: false,
+      message: "Function parameter is not writable: internalToken",
+    });
+  });
+});

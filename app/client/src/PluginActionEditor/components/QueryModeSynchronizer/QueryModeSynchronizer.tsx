@@ -16,10 +16,13 @@ import {
   type OntologyQueryMetadata,
 } from "./ontologyObjectQueryDefinition";
 import {
-  parseAdvancedParameters,
-  serializeFunctionBuilderForm,
-  type OntologyFunctionMetadata,
-} from "./ontologyFunctionQueryDefinition";
+  hydrateCapabilityBuilderForm,
+  parseAdvancedCapabilityDefinition,
+  serializeCapabilityBuilderForm,
+  validateCapabilityDefinition,
+  type OntologyCapabilityMetadata,
+  type OntologyCapabilityOperation,
+} from "./ontologyCapabilityQueryDefinition";
 
 export const ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY =
   "actionConfiguration.formData.queryMode.data";
@@ -30,7 +33,7 @@ export interface OntologyQuerySynchronizerInput {
   pluginPackageName?: string;
   formData: Record<string, unknown>;
   previousQueryMode?: unknown;
-  functionMetadata?: OntologyFunctionMetadata;
+  capabilityMetadata?: OntologyCapabilityMetadata;
 }
 
 export interface OntologyQueryDefinitionUpdate {
@@ -47,6 +50,12 @@ export type OntologyAdvancedToBuilderResult =
   | {
       updates: Record<string, unknown>;
       definition: OntologyObjectQueryDefinition;
+    }
+  | { error: string };
+
+export type OntologyCapabilityAdvancedToBuilderResult =
+  | {
+      updates: Record<string, unknown>;
     }
   | { error: string };
 
@@ -78,6 +87,38 @@ export function getAdvancedToBuilderUpdates(
         error instanceof Error
           ? error.message
           : "Advanced JSON definition could not be parsed",
+    };
+  }
+}
+
+export function getCapabilityAdvancedToBuilderUpdates(
+  text: string,
+  operation: OntologyCapabilityOperation,
+  capabilityId: unknown,
+  metadata?: OntologyCapabilityMetadata,
+): OntologyCapabilityAdvancedToBuilderResult {
+  try {
+    const parsedDefinition = parseAdvancedCapabilityDefinition(text);
+    const validation = validateCapabilityDefinition(
+      parsedDefinition,
+      operation,
+      capabilityId,
+      metadata,
+    );
+
+    if (!validation.valid) {
+      return { error: validation.message };
+    }
+
+    return {
+      updates: hydrateCapabilityBuilderForm(validation.definition),
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Advanced capability definition could not be parsed",
     };
   }
 }
@@ -137,19 +178,24 @@ function buildRuntimeMetadata(
   };
 }
 
-function buildFunctionRuntimeMetadata(
+function buildCapabilityRuntimeMetadata(
   formData: Record<string, unknown>,
   evaluationState: Record<string, unknown>,
-): OntologyFunctionMetadata | undefined {
-  const functionId = readControlData(formData.functionId);
+  operation: OntologyCapabilityOperation,
+): OntologyCapabilityMetadata | undefined {
+  const capabilityId = readControlData(
+    formData[operation === "FUNCTION_QUERY" ? "functionId" : "actionId"],
+  );
 
-  if (typeof functionId !== "string" || !functionId) {
+  if (typeof capabilityId !== "string" || !capabilityId) {
     return undefined;
   }
 
   const parameterEntries = dynamicMetadata(
     evaluationState,
-    "ONTOLOGY_FUNCTION_PARAMETERS",
+    operation === "FUNCTION_QUERY"
+      ? "ONTOLOGY_FUNCTION_PARAMETERS"
+      : "ONTOLOGY_ACTION_PARAMETERS",
   );
 
   if (!parameterEntries) {
@@ -157,9 +203,9 @@ function buildFunctionRuntimeMetadata(
   }
 
   return {
-    functions: [
+    capabilities: [
       {
-        id: functionId,
+        id: capabilityId,
         parameters: parameterEntries.flatMap((entry) =>
           typeof entry.value === "string"
             ? [
@@ -207,35 +253,6 @@ function shouldSynchronize(
   );
 }
 
-function serializeAdvancedFunctionParameters(
-  formData: Record<string, unknown>,
-): string {
-  const functionId = readControlData(formData.functionId);
-  const parameters = readControlData(formData.parameters);
-
-  if (typeof functionId !== "string" || functionId.trim() === "") {
-    throw new Error("Function query definition requires functionId");
-  }
-
-  const parsedParameters =
-    typeof parameters === "string"
-      ? parseAdvancedParameters(parameters)
-      : parameters !== null &&
-          typeof parameters === "object" &&
-          !Array.isArray(parameters)
-        ? (parameters as Record<string, unknown>)
-        : undefined;
-
-  if (!parsedParameters) {
-    throw new Error("Advanced Function parameters must be a JSON object");
-  }
-
-  return JSON.stringify({
-    functionId: functionId.trim(),
-    parameters: parsedParameters,
-  });
-}
-
 export function getOntologyQueryDefinitionUpdate(
   input: OntologyQuerySynchronizerInput,
 ): OntologyQueryDefinitionUpdate | undefined {
@@ -247,14 +264,15 @@ export function getOntologyQueryDefinitionUpdate(
   const queryMode = readControlData(input.formData.queryMode) as QueryMode;
 
   if (
-    (operation !== "OBJECT_QUERY" && operation !== "FUNCTION_QUERY") ||
+    (operation !== "OBJECT_QUERY" &&
+      operation !== "FUNCTION_QUERY" &&
+      operation !== "ACTION_QUERY") ||
     (queryMode !== "BUILDER" && queryMode !== "ADVANCED") ||
-    (!(operation === "FUNCTION_QUERY" && queryMode === "ADVANCED") &&
-      !shouldSynchronize(
-        queryMode,
-        input.previousQueryMode,
-        readControlData(input.formData.definition),
-      ))
+    !shouldSynchronize(
+      queryMode,
+      input.previousQueryMode,
+      readControlData(input.formData.definition),
+    )
   ) {
     return undefined;
   }
@@ -265,14 +283,11 @@ export function getOntologyQueryDefinitionUpdate(
     value =
       operation === "OBJECT_QUERY"
         ? serializeBuilderForm(input.formData, true)
-        : queryMode === "ADVANCED"
-          ? serializeAdvancedFunctionParameters(input.formData)
-          : input.functionMetadata
-            ? serializeFunctionBuilderForm(
-                input.formData,
-                input.functionMetadata,
-              )
-            : "";
+        : serializeCapabilityBuilderForm(
+            input.formData,
+            operation as OntologyCapabilityOperation,
+            input.capabilityMetadata,
+          );
   } catch {
     return undefined;
   }
@@ -329,13 +344,13 @@ interface OntologyQueryModeSynchronizerProps {
   formName: string;
   enabled: boolean;
   metadata?: OntologyQueryMetadata;
-  functionMetadata?: OntologyFunctionMetadata;
+  capabilityMetadata?: OntologyCapabilityMetadata;
 }
 
 export function OntologyQueryModeSynchronizer({
+  capabilityMetadata: capabilityMetadataOverride,
   enabled,
   formName,
-  functionMetadata: functionMetadataOverride,
   metadata: metadataOverride,
 }: OntologyQueryModeSynchronizerProps) {
   const dispatch = useDispatch();
@@ -352,8 +367,8 @@ export function OntologyQueryModeSynchronizer({
   ) as Record<string, unknown>;
   const hydrationUpdates = useRef<Record<string, unknown>>();
   const previousQueryMode = useRef<unknown>();
-  const previousFunctionId = useRef<unknown>();
-  const hasInitialFunctionSelection = useRef(false);
+  const previousCapabilitySelection = useRef<string>();
+  const hasInitialCapabilitySelection = useRef(false);
   const lastValidAdvancedDefinition = useRef<string>();
   const formData = get(formValues, "actionConfiguration.formData") as
     | Record<string, unknown>
@@ -370,10 +385,11 @@ export function OntologyQueryModeSynchronizer({
       const operation = readControlData(formData.operation);
       const metadata =
         metadataOverride || buildRuntimeMetadata(formData, evaluationState);
-      const functionMetadata =
-        operation === "FUNCTION_QUERY" && currentQueryMode === "BUILDER"
-          ? functionMetadataOverride ||
-            buildFunctionRuntimeMetadata(formData, evaluationState)
+      const capabilityMetadata =
+        (operation === "FUNCTION_QUERY" || operation === "ACTION_QUERY") &&
+        currentQueryMode === "BUILDER"
+          ? capabilityMetadataOverride ||
+            buildCapabilityRuntimeMetadata(formData, evaluationState, operation)
           : undefined;
 
       if (operation === "OBJECT_QUERY") {
@@ -464,24 +480,93 @@ export function OntologyQueryModeSynchronizer({
         }
       }
 
-      if (operation === "FUNCTION_QUERY") {
-        const currentFunctionId = readControlData(formData.functionId);
-        const hasSelectedFunction =
-          typeof currentFunctionId === "string" &&
-          currentFunctionId.trim() !== "";
+      if (operation === "FUNCTION_QUERY" || operation === "ACTION_QUERY") {
+        const capabilityId = readControlData(
+          formData[operation === "FUNCTION_QUERY" ? "functionId" : "actionId"],
+        );
 
-        if (!hasInitialFunctionSelection.current) {
-          if (hasSelectedFunction) {
-            previousFunctionId.current = currentFunctionId;
-            hasInitialFunctionSelection.current = true;
+        if (
+          currentQueryMode === "BUILDER" &&
+          previousQueryMode.current === "ADVANCED"
+        ) {
+          const result =
+            typeof definitionText === "string"
+              ? getCapabilityAdvancedToBuilderUpdates(
+                  definitionText,
+                  operation,
+                  capabilityId,
+                  capabilityMetadata,
+                )
+              : { error: "Advanced capability definition is unavailable" };
+
+          if ("error" in result) {
+            previousQueryMode.current = "ADVANCED";
+            toast.show(`Cannot switch to Builder: ${result.error}`, {
+              kind: "error",
+            });
+            dispatch(
+              change(formName, ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY, "ADVANCED"),
+            );
+
+            return;
           }
-        } else if (previousFunctionId.current !== currentFunctionId) {
-          previousFunctionId.current = currentFunctionId;
+
+          previousQueryMode.current = "BUILDER";
+          hydrationUpdates.current = result.updates;
+          Object.entries(result.updates).forEach(([field, value]) => {
+            dispatch(change(formName, field, value));
+          });
+
+          return;
+        }
+
+        if (currentQueryMode === "BUILDER" && hydrationUpdates.current) {
+          const isHydrationComplete = Object.entries(
+            hydrationUpdates.current,
+          ).every(([field, value]) => isEqual(get(formValues, field), value));
+
+          if (!isHydrationComplete) {
+            return;
+          }
+
+          hydrationUpdates.current = undefined;
+        }
+
+        const objectTypeId = readControlData(formData.objectTypeId);
+        const hasSelection =
+          typeof objectTypeId === "string" &&
+          objectTypeId.trim() !== "" &&
+          typeof capabilityId === "string" &&
+          capabilityId.trim() !== "";
+        const currentSelection = hasSelection
+          ? `${objectTypeId}:${capabilityId}`
+          : undefined;
+
+        if (!hasInitialCapabilitySelection.current) {
+          if (currentSelection) {
+            previousCapabilitySelection.current = currentSelection;
+            hasInitialCapabilitySelection.current = true;
+          }
+        } else if (previousCapabilitySelection.current !== currentSelection) {
+          previousCapabilitySelection.current = currentSelection;
+          dispatch(
+            change(formName, "actionConfiguration.formData.target.data", {
+              source: "SINGLE_OBJECT",
+              objectId: "",
+            }),
+          );
           dispatch(
             change(
               formName,
               "actionConfiguration.formData.parameters.data",
               {},
+            ),
+          );
+          dispatch(
+            change(
+              formName,
+              "actionConfiguration.formData.definition.data",
+              "",
             ),
           );
 
@@ -493,7 +578,7 @@ export function OntologyQueryModeSynchronizer({
         formData,
         pluginPackageName,
         previousQueryMode: previousQueryMode.current,
-        functionMetadata,
+        capabilityMetadata,
       };
       const fullPageUpdate = getOntologyFullPageUpdate(synchronizerInput);
       const update = getOntologyQueryDefinitionUpdate(synchronizerInput);
@@ -518,7 +603,7 @@ export function OntologyQueryModeSynchronizer({
       evaluationState,
       formValues,
       metadataOverride,
-      functionMetadataOverride,
+      capabilityMetadataOverride,
     ],
   );
 
