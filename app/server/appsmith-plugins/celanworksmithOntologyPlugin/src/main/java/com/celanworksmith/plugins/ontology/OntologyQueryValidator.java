@@ -61,7 +61,7 @@ final class OntologyQueryValidator {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown ontology action: " + actionId));
         String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
-        if (!objectTypeId.equals(action.objectTypeId())) {
+        if (!action.ownerObjectTypeIds().contains(objectTypeId)) {
             throw new IllegalArgumentException("Ontology action does not apply to object type: " + objectTypeId);
         }
         requiredStableId(configuration.definition(), "objectId");

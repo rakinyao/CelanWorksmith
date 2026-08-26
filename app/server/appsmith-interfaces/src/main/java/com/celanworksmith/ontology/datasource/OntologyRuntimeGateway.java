@@ -70,13 +70,20 @@ public interface OntologyRuntimeGateway {
         }
     }
 
-    record FunctionMetadata(String id, String displayName, String returnType, List<PropertyMetadata> parameters) {
+    record FunctionMetadata(
+            String id,
+            String displayName,
+            String returnType,
+            List<String> ownerObjectTypeIds,
+            List<PropertyMetadata> parameters) {
         public FunctionMetadata {
+            ownerObjectTypeIds = immutableList(ownerObjectTypeIds);
             parameters = immutableList(parameters);
         }
 
-        public FunctionMetadata(String id, String returnType, List<PropertyMetadata> parameters) {
-            this(id, id, returnType, parameters);
+        public FunctionMetadata(
+                String id, String returnType, List<String> ownerObjectTypeIds, List<PropertyMetadata> parameters) {
+            this(id, id, returnType, ownerObjectTypeIds, parameters);
         }
     }
 
@@ -86,13 +93,20 @@ public interface OntologyRuntimeGateway {
         }
     }
 
-    record ActionMetadata(String id, String displayName, String objectTypeId, List<PropertyMetadata> parameters) {
+    record ActionMetadata(
+            String id,
+            String displayName,
+            List<String> ownerObjectTypeIds,
+            boolean atomic,
+            List<PropertyMetadata> parameters) {
         public ActionMetadata {
+            ownerObjectTypeIds = immutableList(ownerObjectTypeIds);
             parameters = immutableList(parameters);
         }
 
-        public ActionMetadata(String id, String objectTypeId, List<PropertyMetadata> parameters) {
-            this(id, id, objectTypeId, parameters);
+        public ActionMetadata(
+                String id, List<String> ownerObjectTypeIds, boolean atomic, List<PropertyMetadata> parameters) {
+            this(id, id, ownerObjectTypeIds, atomic, parameters);
         }
     }
 

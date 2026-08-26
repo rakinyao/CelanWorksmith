@@ -74,13 +74,8 @@ public final class OntologyProjectZipFixtures {
                 id: CalculateDelayDays
                 displayName: Calculate Delay Days
                 returnType: INTEGER
-                parameters:
-                  - id: poId
-                    displayName: Purchase Order
-                    dataType: STRING
-                    required: true
-                    readOnly: false
-                    derived: false
+                ownerObjectTypeIds: [PurchaseOrder]
+                parameters: []
                 sideEffectFree: true
                 """);
         entries.put(
@@ -88,7 +83,8 @@ public final class OntologyProjectZipFixtures {
                 """
                 id: UpdateProductionSchedule
                 displayName: Update Production Schedule
-                objectTypeId: PurchaseOrder
+                ownerObjectTypeIds: [PurchaseOrder]
+                atomic: false
                 parameters:
                   - id: newScheduleDate
                     displayName: New Schedule Date

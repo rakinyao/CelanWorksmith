@@ -8,5 +8,6 @@ public record FunctionDTO(
         @Field("id") String id,
         String displayName,
         String returnType,
+        List<String> ownerObjectTypeIds,
         List<PropertyDTO> parameters,
         boolean sideEffectFree) {}

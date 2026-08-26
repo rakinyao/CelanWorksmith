@@ -27,7 +27,30 @@ public class OntologyProjectValidator {
                 errors.add("Link " + linkType.id() + " references unknown target object " + linkType.targetTypeId());
             }
         }
+        definition.functions().forEach(function -> validateOwners(
+                "Function", function.id(), function.ownerObjectTypeIds(), objectIds, errors));
+        definition.actions().forEach(action -> validateOwners(
+                "Action", action.id(), action.ownerObjectTypeIds(), objectIds, errors));
         return List.copyOf(errors);
+    }
+
+    private static void validateOwners(
+            String definitionType, String definitionId, List<String> ownerObjectTypeIds, Set<String> objectIds, List<String> errors) {
+        if (ownerObjectTypeIds == null || ownerObjectTypeIds.isEmpty()) {
+            errors.add(definitionType + " " + definitionId + " must declare at least one owner object type");
+            return;
+        }
+
+        Set<String> owners = new HashSet<>();
+        for (String ownerObjectTypeId : ownerObjectTypeIds) {
+            if (ownerObjectTypeId == null || ownerObjectTypeId.isBlank()) {
+                errors.add(definitionType + " " + definitionId + " has a blank owner object type");
+            } else if (!owners.add(ownerObjectTypeId)) {
+                errors.add(definitionType + " " + definitionId + " has a duplicate owner object type: " + ownerObjectTypeId);
+            } else if (!objectIds.contains(ownerObjectTypeId)) {
+                errors.add(definitionType + " " + definitionId + " references unknown owner object " + ownerObjectTypeId);
+            }
+        }
     }
 
     private static <T> void validateUniqueIds(

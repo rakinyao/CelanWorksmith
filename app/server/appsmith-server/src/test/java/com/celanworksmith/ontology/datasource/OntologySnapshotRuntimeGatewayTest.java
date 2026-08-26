@@ -56,6 +56,15 @@ class OntologySnapshotRuntimeGatewayTest {
                                 .extracting(OntologyRuntimeGateway.PropertyMetadata::id)
                                 .containsExactly("id", "amount");
                     });
+                    assertThat(gatewaySnapshot.functions()).singleElement().satisfies(function -> {
+                        assertThat(function.id()).isEqualTo("delayScore");
+                        assertThat(function.ownerObjectTypeIds()).containsExactly("PurchaseOrder");
+                    });
+                    assertThat(gatewaySnapshot.actions()).singleElement().satisfies(action -> {
+                        assertThat(action.id()).isEqualTo("updateSchedule");
+                        assertThat(action.ownerObjectTypeIds()).containsExactly("PurchaseOrder");
+                        assertThat(action.atomic()).isFalse();
+                    });
                 })
                 .verifyComplete();
 
@@ -153,8 +162,15 @@ class OntologySnapshotRuntimeGatewayTest {
                                 "delayScore",
                                 "Delay Score",
                                 "INTEGER",
+                                List.of("PurchaseOrder"),
                                 List.of(new PropertyDTO("delayDays", "Delay Days", "INTEGER", true, false, false)),
                                 true)),
-                        List.of()));
+                        List.of(new com.celanworksmith.ontology.dto.ActionTypeDTO(
+                                "updateSchedule",
+                                "Update Schedule",
+                                List.of("PurchaseOrder"),
+                                false,
+                                List.of(),
+                                false))));
     }
 }

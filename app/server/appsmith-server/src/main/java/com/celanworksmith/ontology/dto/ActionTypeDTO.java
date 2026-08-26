@@ -7,6 +7,7 @@ import java.util.List;
 public record ActionTypeDTO(
         @Field("id") String id,
         String displayName,
-        String objectTypeId,
+        List<String> ownerObjectTypeIds,
+        boolean atomic,
         List<PropertyDTO> parameters,
         boolean requiresConfirmation) {}

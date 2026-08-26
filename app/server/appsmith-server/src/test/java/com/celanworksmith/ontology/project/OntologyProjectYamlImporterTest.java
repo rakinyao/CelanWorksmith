@@ -31,8 +31,15 @@ class OntologyProjectYamlImporterTest {
                 "DECIMAL",
                 definition.objectTypes().get(1).properties().getFirst().dataType());
         assertEquals("supplier_orders", definition.linkTypes().getFirst().id());
-        assertEquals("CalculateDelayDays", definition.functions().getFirst().id());
-        assertEquals("UpdateProductionSchedule", definition.actions().getFirst().id());
+        var calculateDelayDays = definition.functions().getFirst();
+        assertEquals("CalculateDelayDays", calculateDelayDays.id());
+        assertEquals(List.of("PurchaseOrder"), calculateDelayDays.ownerObjectTypeIds());
+        assertTrue(calculateDelayDays.parameters().isEmpty());
+
+        var updateProductionSchedule = definition.actions().getFirst();
+        assertEquals("UpdateProductionSchedule", updateProductionSchedule.id());
+        assertEquals(List.of("PurchaseOrder"), updateProductionSchedule.ownerObjectTypeIds());
+        assertTrue(!updateProductionSchedule.atomic());
     }
 
     @Test
@@ -101,6 +108,44 @@ class OntologyProjectYamlImporterTest {
                 "links/supplier_orders.yaml",
                 entries.get("links/supplier_orders.yaml").replace("PurchaseOrder", "MissingObject"));
 
+        assertError(entries, "PROJECT_VALIDATION_FAILED");
+    }
+
+    @Test
+    void rejectsFunctionWithoutOwners() {
+        Map<String, String> entries = validEntries();
+        entries.put(
+                "functions/CalculateDelayDays.yaml",
+                entries.get("functions/CalculateDelayDays.yaml").replace("ownerObjectTypeIds: [PurchaseOrder]\n", ""));
+
+        assertError(entries, "PROJECT_VALIDATION_FAILED");
+    }
+
+    @Test
+    void rejectsActionReferencingUnknownOwner() {
+        Map<String, String> entries = validEntries();
+        entries.put(
+                "actions/UpdateProductionSchedule.yaml",
+                entries.get("actions/UpdateProductionSchedule.yaml")
+                        .replace("ownerObjectTypeIds: [PurchaseOrder]", "ownerObjectTypeIds: [MissingObject]"));
+
+        assertError(entries, "PROJECT_VALIDATION_FAILED");
+    }
+
+    @Test
+    void rejectsBlankAndDuplicateCapabilityOwners() {
+        Map<String, String> entries = validEntries();
+        entries.put(
+                "functions/CalculateDelayDays.yaml",
+                entries.get("functions/CalculateDelayDays.yaml")
+                        .replace("ownerObjectTypeIds: [PurchaseOrder]", "ownerObjectTypeIds: [PurchaseOrder, \"\"]"));
+        assertError(entries, "PROJECT_VALIDATION_FAILED");
+
+        entries = validEntries();
+        entries.put(
+                "functions/CalculateDelayDays.yaml",
+                entries.get("functions/CalculateDelayDays.yaml")
+                        .replace("ownerObjectTypeIds: [PurchaseOrder]", "ownerObjectTypeIds: [PurchaseOrder, PurchaseOrder]"));
         assertError(entries, "PROJECT_VALIDATION_FAILED");
     }
 
@@ -404,6 +449,7 @@ class OntologyProjectYamlImporterTest {
                         id: CalculateDelayDays
                         displayName: Calculate Delay Days
                         returnType: INTEGER
+                        ownerObjectTypeIds: [PurchaseOrder]
                         parameters: []
                         sideEffectFree: true
                         """),
@@ -412,7 +458,8 @@ class OntologyProjectYamlImporterTest {
                                 """
                         id: UpdateProductionSchedule
                         displayName: Update Production Schedule
-                        objectTypeId: PurchaseOrder
+                        ownerObjectTypeIds: [PurchaseOrder]
+                        atomic: false
                         parameters: []
                         requiresConfirmation: true
                         """)));

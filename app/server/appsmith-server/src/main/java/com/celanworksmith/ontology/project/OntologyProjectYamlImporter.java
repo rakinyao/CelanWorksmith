@@ -149,6 +149,7 @@ public class OntologyProjectYamlImporter {
                     string(yaml, "id"),
                     string(yaml, "displayName"),
                     string(yaml, "returnType"),
+                    stringList(yaml, "ownerObjectTypeIds"),
                     properties(yaml, "parameters"),
                     bool(yaml, "sideEffectFree")));
         }
@@ -162,7 +163,8 @@ public class OntologyProjectYamlImporter {
             actions.add(new ActionTypeDTO(
                     string(yaml, "id"),
                     string(yaml, "displayName"),
-                    string(yaml, "objectTypeId"),
+                    stringList(yaml, "ownerObjectTypeIds"),
+                    bool(yaml, "atomic"),
                     properties(yaml, "parameters"),
                     bool(yaml, "requiresConfirmation")));
         }

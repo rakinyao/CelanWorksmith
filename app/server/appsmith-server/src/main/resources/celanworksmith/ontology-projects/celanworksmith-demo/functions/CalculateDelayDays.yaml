@@ -1,11 +1,6 @@
 id: CalculateDelayDays
 displayName: Calculate Delay Days
 returnType: INTEGER
-parameters:
-  - id: poId
-    displayName: Purchase Order
-    dataType: STRING
-    required: true
-    readOnly: false
-    derived: false
+ownerObjectTypeIds: [PurchaseOrder]
+parameters: []
 sideEffectFree: true

@@ -79,30 +79,35 @@ public class MockOntologyProvider implements OntologyProvider {
                     "CalculateDelayDays",
                     "Calculate Delay Days",
                     "INTEGER",
+                    List.of("PurchaseOrder"),
                     List.of(parameter("poId", "Purchase Order", "STRING")),
                     true),
             new FunctionDTO(
                     "CalculatePenalty",
                     "Calculate Penalty",
                     "DECIMAL",
+                    List.of("PurchaseOrder"),
                     List.of(parameter("poId", "Purchase Order", "STRING")),
                     true),
             new FunctionDTO(
                     "CalculateAdjustedProfit",
                     "Calculate Adjusted Profit",
                     "DECIMAL",
+                    List.of("PurchaseOrder"),
                     List.of(parameter("poId", "Purchase Order", "STRING")),
                     true),
             new FunctionDTO(
                     "CalculateMarginRate",
                     "Calculate Margin Rate",
                     "DECIMAL",
+                    List.of("PurchaseOrder"),
                     List.of(parameter("poId", "Purchase Order", "STRING")),
                     true),
             new FunctionDTO(
                     "CalculateSupplierGrade",
                     "Calculate Supplier Grade",
                     "DECIMAL",
+                    List.of("Supplier"),
                     List.of(parameter("supplierId", "Supplier", "STRING")),
                     true));
 
@@ -110,25 +115,29 @@ public class MockOntologyProvider implements OntologyProvider {
             new ActionTypeDTO(
                     "UpdateProductionSchedule",
                     "Update Production Schedule",
-                    "PurchaseOrder",
+                    List.of("PurchaseOrder"),
+                    false,
                     List.of(parameter("newScheduleDate", "New Schedule Date", "DATETIME")),
                     true),
             new ActionTypeDTO(
                     "UpdateDeliveryDate",
                     "Update Delivery Date",
-                    "PurchaseOrder",
+                    List.of("PurchaseOrder"),
+                    false,
                     List.of(parameter("newDeliveryDate", "New Delivery Date", "DATETIME")),
                     true),
             new ActionTypeDTO(
                     "UpdateFinancialRecord",
                     "Update Financial Record",
-                    "PurchaseOrder",
+                    List.of("PurchaseOrder"),
+                    false,
                     List.of(parameter("penalty", "Penalty", "DECIMAL")),
                     true),
             new ActionTypeDTO(
                     "NotifyProductionTeam",
                     "Notify Production Team",
-                    "PurchaseOrder",
+                    List.of("PurchaseOrder"),
+                    false,
                     List.of(parameter("message", "Message", "STRING")),
                     false));
 
@@ -181,7 +190,7 @@ public class MockOntologyProvider implements OntologyProvider {
                     CelanWorksmithErrorCode.OBJECT_TYPE_NOT_FOUND, "Unknown object type: " + objectTypeId));
         }
         return Mono.just(ACTIONS.stream()
-                .filter(action -> action.objectTypeId().equals(objectTypeId))
+                .filter(action -> action.ownerObjectTypeIds().contains(objectTypeId))
                 .toList());
     }
 }

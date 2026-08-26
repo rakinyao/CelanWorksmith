@@ -514,6 +514,7 @@ class OntologyFunctionLinkActionExecutorTest {
                                 "delayScore",
                                 "Calculate delay",
                                 "integer",
+                                List.of("PurchaseOrder"),
                                 List.of(
                                         new PropertyMetadata("delayDays", "integer", false, true),
                                         new PropertyMetadata(
@@ -530,11 +531,13 @@ class OntologyFunctionLinkActionExecutorTest {
                                 "optionalScore",
                                 "Optional score",
                                 "integer",
+                                List.of("PurchaseOrder"),
                                 List.of(new PropertyMetadata("threshold", "integer", false, false))),
                         new FunctionMetadata(
                                 "protectedScore",
                                 "Protected score",
                                 "integer",
+                                List.of("PurchaseOrder"),
                                 List.of(
                                         new PropertyMetadata("input", "string", false, true),
                                         new PropertyMetadata(
@@ -562,7 +565,8 @@ class OntologyFunctionLinkActionExecutorTest {
                 List.of(new ActionMetadata(
                         "reschedulePurchaseOrder",
                         "Reschedule purchase order",
-                        "PurchaseOrder",
+                        List.of("PurchaseOrder"),
+                        false,
                         List.of(new PropertyMetadata("newScheduleDate", "string", false, false)))));
         private Map<String, Object> functionParameters;
         private String linkId;

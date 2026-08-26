@@ -146,6 +146,7 @@ public class OntologySnapshotService {
         canonical.put("id", function.id());
         canonical.put("displayName", function.displayName());
         canonical.put("returnType", function.returnType());
+        canonical.put("ownerObjectTypeIds", function.ownerObjectTypeIds());
         canonical.put("parameters", canonicalProperties(function.parameters()));
         canonical.put("sideEffectFree", function.sideEffectFree());
         return canonical;
@@ -155,7 +156,8 @@ public class OntologySnapshotService {
         Map<String, Object> canonical = new LinkedHashMap<>();
         canonical.put("id", action.id());
         canonical.put("displayName", action.displayName());
-        canonical.put("objectTypeId", action.objectTypeId());
+        canonical.put("ownerObjectTypeIds", action.ownerObjectTypeIds());
+        canonical.put("atomic", action.atomic());
         canonical.put("parameters", canonicalProperties(action.parameters()));
         canonical.put("requiresConfirmation", action.requiresConfirmation());
         return canonical;

@@ -1,6 +1,7 @@
 id: UpdateProductionSchedule
 displayName: Update Production Schedule
-objectTypeId: PurchaseOrder
+ownerObjectTypeIds: [PurchaseOrder]
+atomic: false
 parameters:
   - id: newScheduleDate
     displayName: New Schedule Date

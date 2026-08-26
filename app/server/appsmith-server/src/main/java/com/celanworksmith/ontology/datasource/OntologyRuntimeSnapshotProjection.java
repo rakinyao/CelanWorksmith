@@ -18,6 +18,7 @@ public final class OntologyRuntimeSnapshotProjection {
                                 function.id(),
                                 function.displayName(),
                                 function.returnType(),
+                                function.ownerObjectTypeIds(),
                                 function.parameters().stream()
                                         .map(OntologyRuntimeSnapshotProjection::propertyMetadata)
                                         .toList()))
@@ -34,7 +35,8 @@ public final class OntologyRuntimeSnapshotProjection {
                         .map(action -> new OntologyRuntimeGateway.ActionMetadata(
                                 action.id(),
                                 action.displayName(),
-                                action.objectTypeId(),
+                                action.ownerObjectTypeIds(),
+                                action.atomic(),
                                 action.parameters().stream()
                                         .map(OntologyRuntimeSnapshotProjection::propertyMetadata)
                                         .toList()))

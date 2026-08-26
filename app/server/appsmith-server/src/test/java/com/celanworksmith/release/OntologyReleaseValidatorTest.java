@@ -216,9 +216,9 @@ class OntologyReleaseValidatorTest {
                 "digest-1",
                 List.of(new OntologyRuntimeGateway.ObjectTypeMetadata(
                         "Order", List.of(new OntologyRuntimeGateway.PropertyMetadata("name", "string", false)))),
-                List.of(new OntologyRuntimeGateway.FunctionMetadata("total", "number", List.of())),
+                List.of(new OntologyRuntimeGateway.FunctionMetadata("total", "number", List.of("Order"), List.of())),
                 List.of(new OntologyRuntimeGateway.LinkMetadata("customer", "Order", "Customer")),
-                List.of(new OntologyRuntimeGateway.ActionMetadata("archive", "Order", List.of())));
+                List.of(new OntologyRuntimeGateway.ActionMetadata("archive", List.of("Order"), false, List.of())));
     }
 
     private static OntologyMetadataSnapshot snapshotEntity() {
@@ -229,8 +229,8 @@ class OntologyReleaseValidatorTest {
                 List.of(new ObjectTypeDTO(
                         "Order", "Order", List.of(new PropertyDTO("name", "Name", "STRING", false, false, false)))),
                 List.of(new LinkTypeDTO("customer", "Customer", "Order", "Customer", "ONE")),
-                List.of(new FunctionDTO("total", "Total", "NUMBER", List.of(), true)),
-                List.of(new ActionTypeDTO("archive", "Archive", "Order", List.of(), true)));
+                List.of(new FunctionDTO("total", "Total", "NUMBER", List.of("Order"), List.of(), true)),
+                List.of(new ActionTypeDTO("archive", "Archive", List.of("Order"), false, List.of(), true)));
         return new OntologyMetadataSnapshot(
                 "snapshot-1",
                 "project-1",
