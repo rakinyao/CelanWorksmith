@@ -562,7 +562,7 @@ class OntologyObjectQueryExecutorTest {
         TriggerResultDTO result = executor.trigger(
                         datasource(),
                         datasourceConfiguration(),
-                        new TriggerRequestDTO("ONTOLOGY_FUNCTIONS", Map.of(), null))
+                        new TriggerRequestDTO("ONTOLOGY_FUNCTIONS", Map.of("objectTypeId", "PurchaseOrder"), null))
                 .block();
 
         assertEquals(List.of(), result.getTrigger());

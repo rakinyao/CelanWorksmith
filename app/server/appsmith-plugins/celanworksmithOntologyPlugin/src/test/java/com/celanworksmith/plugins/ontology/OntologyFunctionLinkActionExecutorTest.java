@@ -269,8 +269,8 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals("1.0.0", actionServer.request.projectVersion());
         assertEquals("datasource-1", actionServer.request.datasourceId());
         assertEquals("reschedulePurchaseOrder", actionServer.request.actionId());
-        assertEquals("PurchaseOrder", actionServer.request.objectTypeId());
-        assertEquals("PO001", actionServer.request.objectId());
+        assertEquals(new OntologyObjectSet("PurchaseOrder", List.of("PO001")), actionServer.request.targets());
+        assertTrue(actionServer.request.atomic());
         assertEquals(Map.of("newScheduleDate", "2026-09-01"), actionServer.request.parameters());
         assertEquals(DIGEST, actionServer.request.context().get("metadataDigest"));
         assertEquals("snapshot-001", actionServer.request.context().get("metadataSnapshotId"));
@@ -377,24 +377,19 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
-    void exposesPinnedFunctionActionAndLinkMetadataToTheNativeQueryEditor() {
+    void scopesFunctionAndActionMetadataToTheSelectedOwnerType() {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
-        TriggerResultDTO functions = trigger(executor, "ONTOLOGY_FUNCTIONS");
-        TriggerResultDTO actions = trigger(executor, "ONTOLOGY_ACTIONS");
+        TriggerResultDTO functions = trigger(executor, "ONTOLOGY_FUNCTIONS", Map.of("objectTypeId", "Supplier"));
+        TriggerResultDTO actions = trigger(executor, "ONTOLOGY_ACTIONS", Map.of("objectTypeId", "Supplier"));
         TriggerResultDTO links = trigger(executor, "ONTOLOGY_LINKS");
 
         assertEquals(
-                List.of(
-                        metadata("Calculate delay", "delayScore", "integer", false, true, false),
-                        metadata("Optional score", "optionalScore", "integer", false, true, false),
-                        metadata("Protected score", "protectedScore", "integer", false, true, false),
-                        metadata("Calculate delay days", "CalculateDelayDays", "integer", false, true, false)),
+                List.of(metadata("Score supplier", "supplierScore", "integer", false, true, false)),
                 functions.getTrigger());
         assertEquals(
-                List.of(metadata(
-                        "Reschedule purchase order", "reschedulePurchaseOrder", "action", false, false, false)),
+                List.of(metadata("Notify supplier", "notifySupplier", "action", false, false, false)),
                 actions.getTrigger());
         assertEquals(
                 List.of(metadata("Purchase order deliveries", "po_delivery", "link", false, true, false)),
@@ -402,11 +397,25 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void requiresAnOwnerTypeForCapabilityMetadata() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        IllegalArgumentException function = assertThrows(
+                IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_FUNCTIONS"));
+        IllegalArgumentException action = assertThrows(
+                IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_ACTIONS"));
+
+        assertEquals("Ontology object type is required for function metadata", function.getMessage());
+        assertEquals("Ontology object type is required for action metadata", action.getMessage());
+    }
+
+    @Test
     void exposesSafeDisplayNamesAndTypeMetadataFromThePinnedSnapshot() {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
-        TriggerResultDTO functions = trigger(executor, "ONTOLOGY_FUNCTIONS");
+        TriggerResultDTO functions = trigger(executor, "ONTOLOGY_FUNCTIONS", Map.of("objectTypeId", "PurchaseOrder"));
         Map<?, ?> firstFunction = ((List<?>) functions.getTrigger())
                 .stream().map(value -> (Map<?, ?>) value).findFirst().orElseThrow();
 
@@ -422,7 +431,10 @@ class OntologyFunctionLinkActionExecutorTest {
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
         TriggerResultDTO parameters =
-                trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "delayScore"));
+                trigger(
+                        executor,
+                        "ONTOLOGY_FUNCTION_PARAMETERS",
+                        Map.of("objectTypeId", "PurchaseOrder", "functionId", "delayScore"));
 
         assertEquals(
                 List.of(metadata("delayDays", "delayDays", "integer", true, false, false)), parameters.getTrigger());
@@ -430,7 +442,7 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
-    void rejectsMissingOrUnknownFunctionParameterMetadataSelectors() {
+    void rejectsMissingUnknownOrOwnerIncompatibleFunctionParameterMetadataSelectors() {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
 
@@ -438,10 +450,20 @@ class OntologyFunctionLinkActionExecutorTest {
                 IllegalArgumentException.class, () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of()));
         IllegalArgumentException unknown = assertThrows(
                 IllegalArgumentException.class,
-                () -> trigger(executor, "ONTOLOGY_FUNCTION_PARAMETERS", Map.of("functionId", "unknown")));
+                () -> trigger(
+                        executor,
+                        "ONTOLOGY_FUNCTION_PARAMETERS",
+                        Map.of("objectTypeId", "PurchaseOrder", "functionId", "unknown")));
+        IllegalArgumentException incompatibleOwner = assertThrows(
+                IllegalArgumentException.class,
+                () -> trigger(
+                        executor,
+                        "ONTOLOGY_FUNCTION_PARAMETERS",
+                        Map.of("objectTypeId", "Supplier", "functionId", "delayScore")));
 
         assertEquals("Ontology function is required for parameter metadata", missing.getMessage());
         assertEquals("Unknown ontology function: unknown", unknown.getMessage());
+        assertEquals("Ontology function does not apply to object type: Supplier", incompatibleOwner.getMessage());
     }
 
     private static Map<String, Object> metadata(
@@ -602,6 +624,12 @@ class OntologyFunctionLinkActionExecutorTest {
                                 "Calculate delay days",
                                 "integer",
                                 List.of("PurchaseOrder"),
+                                List.of()),
+                        new FunctionMetadata(
+                                "supplierScore",
+                                "Score supplier",
+                                "integer",
+                                List.of("Supplier"),
                                 List.of())),
                 List.of(new LinkMetadata(
                         "po_delivery", "Purchase order deliveries", "PurchaseOrder", "DeliveryOrder", "many")),
@@ -609,8 +637,14 @@ class OntologyFunctionLinkActionExecutorTest {
                         "reschedulePurchaseOrder",
                         "Reschedule purchase order",
                         List.of("PurchaseOrder"),
-                        false,
-                        List.of(new PropertyMetadata("newScheduleDate", "string", false, false)))));
+                        true,
+                        List.of(new PropertyMetadata("newScheduleDate", "string", false, false))),
+                        new ActionMetadata(
+                                "notifySupplier",
+                                "Notify supplier",
+                                List.of("Supplier"),
+                                false,
+                                List.of())));
         private Map<String, Object> functionParameters;
         private OntologyObjectSet functionTargets;
         private String linkId;

@@ -200,7 +200,7 @@ public class OntologyPlugin extends BasePlugin {
                             .toList());
                 case "ONTOLOGY_OBJECT_PROPERTIES" -> dropdownResult(objectProperties(snapshot, request));
                 case "ONTOLOGY_FUNCTIONS" ->
-                    dropdownResult(safeList(snapshot.functions()).stream()
+                    dropdownResult(ownerCompatibleFunctions(snapshot, request).stream()
                             .map(function -> metadataEntry(
                                     function.id(),
                                     function.displayName(),
@@ -213,7 +213,7 @@ public class OntologyPlugin extends BasePlugin {
                             .toList());
                 case "ONTOLOGY_FUNCTION_PARAMETERS" -> dropdownResult(functionParameters(snapshot, request));
                 case "ONTOLOGY_ACTIONS" ->
-                    dropdownResult(safeList(snapshot.actions()).stream()
+                    dropdownResult(ownerCompatibleActions(snapshot, request).stream()
                             .map(action -> metadataEntry(
                                     action.id(),
                                     action.displayName(),
@@ -268,6 +268,7 @@ public class OntologyPlugin extends BasePlugin {
                     .filter(candidate -> value.equals(candidate.id()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + value));
+            validateCapabilityOwner("function", function.ownerObjectTypeIds(), request);
             return safeList(function.parameters()).stream()
                     .filter(parameter -> !parameter.hidden())
                     .map(parameter -> metadataEntry(
@@ -280,6 +281,42 @@ public class OntologyPlugin extends BasePlugin {
                             parameter.enumValues(),
                             parameter.referenceTypeId()))
                     .toList();
+        }
+
+        private List<OntologyRuntimeGateway.FunctionMetadata> ownerCompatibleFunctions(
+                Snapshot snapshot, TriggerRequestDTO request) {
+            String objectTypeId = requiredMetadataObjectTypeId("function", request);
+            return safeList(snapshot.functions()).stream()
+                    .filter(function -> function.ownerObjectTypeIds().contains(objectTypeId))
+                    .toList();
+        }
+
+        private List<OntologyRuntimeGateway.ActionMetadata> ownerCompatibleActions(
+                Snapshot snapshot, TriggerRequestDTO request) {
+            String objectTypeId = requiredMetadataObjectTypeId("action", request);
+            return safeList(snapshot.actions()).stream()
+                    .filter(action -> action.ownerObjectTypeIds().contains(objectTypeId))
+                    .toList();
+        }
+
+        private void validateCapabilityOwner(
+                String capabilityName, List<String> ownerObjectTypeIds, TriggerRequestDTO request) {
+            String objectTypeId = requiredMetadataObjectTypeId(capabilityName, request);
+            if (!ownerObjectTypeIds.contains(objectTypeId)) {
+                throw new IllegalArgumentException(
+                        "Ontology " + capabilityName + " does not apply to object type: " + objectTypeId);
+            }
+        }
+
+        private String requiredMetadataObjectTypeId(String capabilityName, TriggerRequestDTO request) {
+            Object objectTypeId = request.getParameters() == null
+                    ? null
+                    : request.getParameters().get("objectTypeId");
+            if (!(objectTypeId instanceof String value) || value.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Ontology object type is required for " + capabilityName + " metadata");
+            }
+            return value;
         }
 
         private List<OntologyRuntimeGateway.PropertyMetadata> visiblePropertiesWithPrimaryKey(
@@ -454,8 +491,8 @@ public class OntologyPlugin extends BasePlugin {
                     datasourceConfiguration.projectVersion(),
                     datasourceConfiguration.datasourceId(),
                     validatedQuery.capabilityId(),
-                    validatedQuery.objectTypeId(),
-                    validatedQuery.targets().objectIds().getFirst(),
+                    validatedQuery.targets(),
+                    validatedQuery.atomic(),
                     validatedQuery.parameters(),
                     Map.of(
                             "metadataSnapshotId", datasourceConfiguration.metadataSnapshotId(),
