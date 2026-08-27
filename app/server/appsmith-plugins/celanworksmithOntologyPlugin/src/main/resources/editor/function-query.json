@@ -79,8 +79,7 @@
           "isRequired": true,
           "placeholderText": "{{Table1.selectedRow.id}}",
           "conditionals": {
-            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
-            "enable": "{{!!actionConfiguration.formData.functionId.data}}"
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}"
           }
         },
         {

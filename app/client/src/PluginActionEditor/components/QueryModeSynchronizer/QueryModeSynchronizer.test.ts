@@ -1116,6 +1116,11 @@ describe("OntologyQueryModeSynchronizer", () => {
           control.configProperty ===
           "actionConfiguration.formData.parameters.data",
       );
+      const targetObjectId = controls.find(
+        (control) =>
+          control.configProperty ===
+          "actionConfiguration.formData.target.data.objectId",
+      );
       const advancedDefinition = controls.find(
         (control) =>
           control.configProperty ===
@@ -1149,6 +1154,10 @@ describe("OntologyQueryModeSynchronizer", () => {
         placeholderText:
           '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
       });
+      expect(targetObjectId?.conditionals).toMatchObject({
+        show: "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+      });
+      expect(targetObjectId?.conditionals).not.toHaveProperty("enable");
       expect(
         controls.some(
           (control) =>
