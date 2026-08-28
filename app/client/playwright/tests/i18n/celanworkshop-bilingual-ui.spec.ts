@@ -8,7 +8,14 @@ const localeStorageKey = "appsmith.locale";
 
 const clearStoredLocale = async (page: import("@playwright/test").Page) => {
   await page.addInitScript((key) => {
+    const initializedMarker = `${key}.initialized`;
+
+    if (window.sessionStorage.getItem(initializedMarker)) {
+      return;
+    }
+
     window.localStorage.removeItem(key);
+    window.sessionStorage.setItem(initializedMarker, "1");
   }, localeStorageKey);
 };
 
