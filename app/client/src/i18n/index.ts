@@ -37,7 +37,7 @@ function updateDocumentLocale(locale: Locale) {
 void i18n.use(initReactI18next).init({
   resources,
   lng: getInitialLocale(),
-  fallbackLng: DEFAULT_LOCALE,
+  fallbackLng: "en-US",
   supportedLngs: ["en-US", "zh-CN"],
   interpolation: {
     escapeValue: false,
