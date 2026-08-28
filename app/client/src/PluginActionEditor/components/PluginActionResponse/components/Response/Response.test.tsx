@@ -427,11 +427,16 @@ describe("Response", () => {
   );
 
   it.each([
-    ["en-US", "An unexpected error occurred"],
-    ["zh-CN", "发生意外错误"],
+    [
+      "en-US",
+      "An unexpected error occurred",
+      "Error",
+      "Request has failed to execute",
+    ],
+    ["zh-CN", "发生意外错误", "错误", "请求执行失败"],
   ])(
     "renders the localized unexpected error chrome in %s",
-    async (locale, expected) => {
+    async (locale, expected, errorLabel, requestFailedLabel) => {
       await i18n.changeLanguage(locale);
       const actionResponse = {
         body: "backend detail that must not be translated",
@@ -451,8 +456,45 @@ describe("Response", () => {
       expect(screen.getByTestId("t--response-error").textContent).toBe(
         expected,
       );
+      expect(screen.getByText(errorLabel)).toBeTruthy();
+      expect(
+        screen.getByText(requestFailedLabel, { exact: false }),
+      ).toBeTruthy();
     },
   );
+
+  it.each([
+    ["en-US", "2 records"],
+    ["zh-CN", "2 条记录"],
+  ])("renders localized record counts in %s", async (locale, expected) => {
+    await i18n.changeLanguage(locale);
+    const actionResponse = {
+      body: [{ key: "one" }, { key: "two" }],
+      dataTypes: [{ dataType: "JSON" }],
+      isExecutionSuccess: true,
+      responseDisplayFormat: "JSON",
+    } as unknown as ActionResponse;
+    const action = {
+      ...defaultProps.action,
+      pluginType: PluginType.DB,
+    } as Action;
+
+    const { getByTestId } = render(
+      <Provider store={store}>
+        <ThemeProvider theme={lightTheme}>
+          <Router>
+            <Response
+              {...defaultProps}
+              action={action}
+              actionResponse={actionResponse}
+            />
+          </Router>
+        </ThemeProvider>
+      </Provider>,
+    );
+
+    expect(getByTestId("t--response-record-count").textContent).toBe(expected);
+  });
 
   it.each(["en-US", "zh-CN"])(
     "keeps backend errors verbatim when the current locale is %s",

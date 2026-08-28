@@ -29,6 +29,10 @@ const zhCN = {
     size: "响应大小",
     status: "状态",
     unexpectedError: "发生意外错误",
+    error: "错误",
+    requestFailed: "请求执行失败",
+    recordCount_one: "{{count}} 条记录",
+    recordCount_other: "{{count}} 条记录",
   },
   navigation: {
     editProfile: "编辑资料",

@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 
 import { useDispatch } from "react-redux";
 import { useBoolean, useEventCallback } from "usehooks-ts";
-import pluralize from "pluralize";
 
 import { Callout, Tooltip, type CalloutLinkProps } from "@appsmith/ads";
 
@@ -256,7 +255,11 @@ export function Response(props: ResponseProps) {
                     $hasTooltip={!!tooltipContent}
                     data-testid="t--response-record-count"
                     kind="code"
-                  >{`${recordCount} ${pluralize("record", recordCount)}`}</Styled.StatusBarText>
+                  >
+                    {t("queryResponse.recordCount", {
+                      count: recordCount,
+                    })}
+                  </Styled.StatusBarText>
                 )}
               </Styled.StatusBarInfo>
             </Tooltip>

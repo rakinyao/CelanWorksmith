@@ -29,6 +29,10 @@ const enUS = {
     size: "Response size",
     status: "Status",
     unexpectedError: "An unexpected error occurred",
+    error: "Error",
+    requestFailed: "Request has failed to execute",
+    recordCount_one: "{{count}} record",
+    recordCount_other: "{{count}} records",
   },
   navigation: {
     editProfile: "Edit profile",

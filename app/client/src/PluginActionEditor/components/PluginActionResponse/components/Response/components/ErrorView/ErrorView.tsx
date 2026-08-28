@@ -82,7 +82,7 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
               $isError
               kind="code"
             >
-              Error
+              {t("queryResponse.error")}
             </Styled.StatusBarText>
           </Styled.StatusBarInfo>
         </Tooltip>
@@ -90,7 +90,7 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
       <Styled.ErrorContainer>
         <Styled.ErrorContent>
           <Styled.ErrorDefaultMessage>
-            Request has failed to execute
+            {t("queryResponse.requestFailed")}
             {errorMessage && ":"}
           </Styled.ErrorDefaultMessage>
           <div data-testid="t--response-error">{errorTitle}</div>
