@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useDispatch } from "react-redux";
 import { useBoolean, useEventCallback } from "usehooks-ts";
@@ -56,6 +57,7 @@ export function Response(props: ResponseProps) {
     theme,
   } = props;
 
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const scrollbarOffset = scrollbarWidth();
 
@@ -95,7 +97,7 @@ export function Response(props: ResponseProps) {
       const messages = [
         [
           "duration",
-          "Time to run",
+          t("queryResponse.duration"),
           `${(Number(actionResponse.duration) / 1000).toFixed(1)}s`,
         ],
       ];
@@ -103,13 +105,17 @@ export function Response(props: ResponseProps) {
       if (actionResponse.size) {
         messages.push([
           "size",
-          "Response size",
+          t("queryResponse.size"),
           `${(Number(actionResponse.size) / 1000).toFixed(1)}kb`,
         ]);
       }
 
       if (actionResponse.statusCode) {
-        messages.push(["statusCode", "Status", actionResponse.statusCode]);
+        messages.push([
+          "statusCode",
+          t("queryResponse.status"),
+          actionResponse.statusCode,
+        ]);
       }
 
       return (
@@ -122,7 +128,7 @@ export function Response(props: ResponseProps) {
     }
 
     return null;
-  }, [actionResponse]);
+  }, [actionResponse, t]);
 
   const showPreparedStatementWarning = Boolean(
     checkForPreparedStatement(action) && errorMessage,

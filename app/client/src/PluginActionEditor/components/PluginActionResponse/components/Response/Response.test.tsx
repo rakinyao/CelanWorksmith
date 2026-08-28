@@ -1,5 +1,5 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 import configureStore from "redux-mock-store";
 import { Response } from "./Response";
@@ -11,6 +11,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { getIDETestState } from "test/factories/AppIDEFactoryUtils";
 import { EditorTheme } from "components/editorComponents/CodeEditor/EditorConfig";
 import type { ActionResponse } from "api/ActionAPI";
+import i18n from "i18n";
 
 const mockStore = configureStore([]);
 
@@ -33,6 +34,10 @@ jest.mock("ee/PluginActionEditor/components/PostActionRun", () => ({
   PostRunActionComponentMap: {
     test_modal: () => <div data-testid="t--post-run-action-test-modal-form" />,
   },
+}));
+
+jest.mock("../ResponseFormatTabs", () => ({
+  ResponseFormatTabs: () => <div />,
 }));
 
 const storeData = getIDETestState({});
@@ -386,4 +391,100 @@ describe("Response", () => {
     expect(getByTestId("t--response-data-container")).not.toBeNull();
     expect(queryByAltText("no-response-yet")).toBeNull();
   });
+
+  it.each([
+    ["en-US", "Time to run: 1.2s", "Response size: 3.5kb", "Status: 200"],
+    ["zh-CN", "运行耗时: 1.2s", "响应大小: 3.5kb", "状态: 200"],
+  ])(
+    "renders localized response status tooltip chrome in %s",
+    async (locale, duration, size, status) => {
+      await i18n.changeLanguage(locale);
+      const actionResponse = {
+        body: [{ key: "value" }],
+        dataTypes: [{ dataType: "JSON" }],
+        duration: 1200,
+        isExecutionSuccess: true,
+        responseDisplayFormat: "JSON",
+        size: 3500,
+        statusCode: 200,
+      } as unknown as ActionResponse;
+
+      const { getByTestId } = render(
+        <Provider store={store}>
+          <ThemeProvider theme={lightTheme}>
+            <Router>
+              <Response {...defaultProps} actionResponse={actionResponse} />
+            </Router>
+          </ThemeProvider>
+        </Provider>,
+      );
+
+      fireEvent.mouseEnter(getByTestId("t--response-status-info"));
+      expect(await screen.findByText(duration)).toBeTruthy();
+      expect(screen.getByText(size)).toBeTruthy();
+      expect(screen.getByText(status)).toBeTruthy();
+    },
+  );
+
+  it.each([
+    ["en-US", "An unexpected error occurred"],
+    ["zh-CN", "发生意外错误"],
+  ])(
+    "renders the localized unexpected error chrome in %s",
+    async (locale, expected) => {
+      await i18n.changeLanguage(locale);
+      const actionResponse = {
+        body: "backend detail that must not be translated",
+        isExecutionSuccess: false,
+      } as ActionResponse;
+
+      render(
+        <Provider store={store}>
+          <ThemeProvider theme={lightTheme}>
+            <Router>
+              <Response {...defaultProps} actionResponse={actionResponse} />
+            </Router>
+          </ThemeProvider>
+        </Provider>,
+      );
+
+      expect(screen.getByTestId("t--response-error").textContent).toBe(
+        expected,
+      );
+    },
+  );
+
+  it.each(["en-US", "zh-CN"])(
+    "keeps backend errors verbatim when the current locale is %s",
+    async (locale) => {
+      await i18n.changeLanguage(locale);
+      const backendError = "queryResponse.unexpectedError";
+      const actionResponse = {
+        body: backendError,
+        isExecutionSuccess: false,
+      } as ActionResponse;
+      const action = {
+        ...defaultProps.action,
+        pluginType: PluginType.DB,
+      } as Action;
+
+      render(
+        <Provider store={store}>
+          <ThemeProvider theme={lightTheme}>
+            <Router>
+              <Response
+                {...defaultProps}
+                action={action}
+                actionResponse={actionResponse}
+              />
+            </Router>
+          </ThemeProvider>
+        </Provider>,
+      );
+
+      expect(screen.getByTestId("t--response-error").textContent).toBe(
+        backendError,
+      );
+    },
+  );
 });

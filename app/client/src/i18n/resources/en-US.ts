@@ -19,6 +19,17 @@ const enUS = {
     name: "CelanWorkshop",
     displayVersion: "CelanWorkshop {{edition}} {{version}}",
   },
+  ontologyQuery: {
+    cannotSwitchToBuilder: "Cannot switch to Builder: {{reason}}",
+    invalidDefinition: "The Advanced definition is invalid.",
+    metadataUnavailable: "Ontology metadata is unavailable.",
+  },
+  queryResponse: {
+    duration: "Time to run",
+    size: "Response size",
+    status: "Status",
+    unexpectedError: "An unexpected error occurred",
+  },
   navigation: {
     editProfile: "Edit profile",
     signOut: "Sign out",

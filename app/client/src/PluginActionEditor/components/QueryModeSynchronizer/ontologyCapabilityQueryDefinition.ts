@@ -22,7 +22,7 @@ export interface OntologyCapabilityMetadata {
 
 type ValidationResult =
   | { valid: true; definition: OntologyCapabilityQueryDefinition }
-  | { valid: false; message: string };
+  | { valid: false; errorId: "invalidDefinition"; message: string };
 
 type BuilderValue = { data?: unknown } | unknown;
 
@@ -56,7 +56,7 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
 }
 
 function invalid(message: string): ValidationResult {
-  return { valid: false, message };
+  return { valid: false, errorId: "invalidDefinition", message };
 }
 
 function parseParameters(value: unknown): Record<string, unknown> {

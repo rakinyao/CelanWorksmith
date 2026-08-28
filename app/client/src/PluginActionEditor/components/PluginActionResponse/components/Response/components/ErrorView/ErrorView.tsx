@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import ReactJson from "react-json-view";
+import { useTranslation } from "react-i18next";
 
 import { JsonWrapper } from "components/editorComponents/Debugger/ErrorLogs/components/LogCollapseData";
 import LogHelper from "components/editorComponents/Debugger/ErrorLogs/components/LogHelper";
@@ -12,7 +13,11 @@ import type { ActionResponse } from "api/ActionAPI";
 import type { SourceEntity } from "entities/AppsmithConsole";
 
 import { getErrorMessageFromActionResponse } from "../../utils";
-import { REACT_JSON_PROPS } from "../../constants";
+import {
+  DEFAULT_ERROR_MESSAGE,
+  DEFAULT_ERROR_MESSAGE_KEY,
+  REACT_JSON_PROPS,
+} from "../../constants";
 import * as Styled from "../../styles";
 
 interface ErrorViewProps {
@@ -32,10 +37,19 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
   handleJsonWrapperClick,
   tooltipContent,
 }) => {
-  const [errorTitle, errorMessage] = getErrorMessageFromActionResponse(
+  const { t } = useTranslation();
+  const [rawErrorTitle, rawErrorMessage] = getErrorMessageFromActionResponse(
     actionResponse,
     action.pluginType,
   );
+  const errorTitle =
+    rawErrorTitle === DEFAULT_ERROR_MESSAGE
+      ? t(DEFAULT_ERROR_MESSAGE_KEY)
+      : rawErrorTitle;
+  const errorMessage =
+    rawErrorMessage === DEFAULT_ERROR_MESSAGE
+      ? t(DEFAULT_ERROR_MESSAGE_KEY)
+      : rawErrorMessage;
 
   const requestWithTimestamp = getUpdateTimestamp(actionResponse?.request);
 

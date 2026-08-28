@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import React from "react";
 import { render } from "@testing-library/react";
+import i18n from "i18n";
 import {
   getAdvancedToBuilderUpdates,
   getCapabilityAdvancedToBuilderUpdates,
@@ -58,6 +59,7 @@ jest.mock("@appsmith/ads", () => ({
 }));
 
 const mockChange = jest.requireMock("redux-form").change as jest.Mock;
+const mockToast = jest.requireMock("@appsmith/ads").toast.show as jest.Mock;
 
 const builderFormData = {
   operation: { data: "OBJECT_QUERY" },
@@ -842,25 +844,22 @@ describe("OntologyQueryModeSynchronizer", () => {
   });
 
   it.each([
-    ["malformed JSON", "{", "Advanced JSON definition must be valid JSON"],
+    ["malformed JSON", "{"],
     [
       "unknown property",
       '{"objectTypeId":"PurchaseOrder","projection":["missing"]}',
-      "Unknown Property ID in projection: missing",
     ],
     [
       "unsupported top-level field",
       '{"objectTypeId":"PurchaseOrder","includeDrafts":true}',
-      "Unsupported field in ontology query definition: includeDrafts",
     ],
     [
       "unrepresentable nested field",
       '{"objectTypeId":"PurchaseOrder","page":{"offset":0,"limit":10,"cursor":"abc"}}',
-      "Unsupported field in pagination: cursor",
     ],
-  ])("returns an error for %s", (_name, text, error) => {
+  ])("returns a stable validation error for %s", (_name, text) => {
     expect(getAdvancedToBuilderUpdates(text, ontologyMetadata)).toEqual({
-      error,
+      error: { id: "invalidDefinition" },
     });
   });
 
@@ -928,6 +927,73 @@ describe("OntologyQueryModeSynchronizer", () => {
       "ADVANCED",
     );
   });
+
+  it.each([
+    ["en-US", "Cannot switch to Builder: The Advanced definition is invalid."],
+    ["zh-CN", "无法切换到构建器：高级定义无效。"],
+  ])(
+    "renders invalid Advanced definitions through the ontology query locale boundary in %s",
+    async (locale, expectedMessage) => {
+      await i18n.changeLanguage(locale);
+      mockEvaluationState = {
+        "": {
+          ONTOLOGY_FILTER_PROPERTY: {
+            fetchDynamicValues: {
+              data: {
+                content: [{ value: "id", operators: [{ value: "eq" }] }],
+              },
+            },
+          },
+        },
+      };
+      mockCurrentFormValues = {
+        pluginId: "ontology-plugin-id",
+        actionConfiguration: {
+          formData: {
+            operation: { data: "OBJECT_QUERY" },
+            queryMode: { data: "ADVANCED" },
+            objectTypeId: { data: "PurchaseOrder" },
+            definition: {
+              data: JSON.stringify({
+                objectTypeId: "PurchaseOrder",
+                page: { mode: "LIMITED", offset: 0, limit: 10 },
+              }),
+            },
+          },
+        },
+      };
+
+      const view = render(
+        React.createElement(OntologyQueryModeSynchronizer, {
+          enabled: true,
+          formName: "QueryEditorForm",
+        }),
+      );
+
+      mockToast.mockClear();
+      mockCurrentFormValues = {
+        ...mockCurrentFormValues,
+        actionConfiguration: {
+          formData: {
+            ...mockCurrentFormValues.actionConfiguration.formData,
+            definition: { data: "{" },
+            queryMode: { data: "BUILDER" },
+          },
+        },
+      };
+      view.rerender(
+        React.createElement(OntologyQueryModeSynchronizer, {
+          enabled: true,
+          formName: "QueryEditorForm",
+        }),
+      );
+
+      expect(mockToast).toHaveBeenCalledWith(expectedMessage, {
+        kind: "error",
+      });
+      view.unmount();
+    },
+  );
 
   it("retains the existing Advanced definition while metadata is unavailable", () => {
     const validDefinition = JSON.stringify({

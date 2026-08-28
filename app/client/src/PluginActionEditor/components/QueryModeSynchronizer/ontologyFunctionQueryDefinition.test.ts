@@ -60,6 +60,7 @@ describe("ontology function query definition", () => {
 
     expect(result).toEqual({
       valid: false,
+      errorId: "invalidDefinition",
       message: "Missing required Function parameter: poId",
     });
   });
@@ -75,6 +76,7 @@ describe("ontology function query definition", () => {
 
     expect(result).toEqual({
       valid: false,
+      errorId: "invalidDefinition",
       message: "Unknown Function parameter: unknown",
     });
   });
@@ -93,6 +95,7 @@ describe("ontology function query definition", () => {
 
     expect(result).toEqual({
       valid: false,
+      errorId: "invalidDefinition",
       message: `Function parameter is not writable: ${parameterId}`,
     });
   });

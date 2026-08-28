@@ -16,4 +16,5 @@ export const REACT_JSON_PROPS = {
   collapsed: 1,
 };
 
-export const DEFAULT_ERROR_MESSAGE = "An unexpected error occurred";
+export const DEFAULT_ERROR_MESSAGE = Symbol("queryResponse.unexpectedError");
+export const DEFAULT_ERROR_MESSAGE_KEY = "queryResponse.unexpectedError";

@@ -289,6 +289,7 @@ describe("ontology object query definition", () => {
       ),
     ).toMatchObject({
       valid: false,
+      errorId: "invalidDefinition",
       message: "Filter operator gt requires a value",
     });
   });

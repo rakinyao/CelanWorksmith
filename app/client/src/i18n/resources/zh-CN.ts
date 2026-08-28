@@ -19,6 +19,17 @@ const zhCN = {
     name: "沧澜工坊",
     displayVersion: "沧澜工坊 {{edition}} {{version}}",
   },
+  ontologyQuery: {
+    cannotSwitchToBuilder: "无法切换到构建器：{{reason}}",
+    invalidDefinition: "高级定义无效。",
+    metadataUnavailable: "本体元数据不可用。",
+  },
+  queryResponse: {
+    duration: "运行耗时",
+    size: "响应大小",
+    status: "状态",
+    unexpectedError: "发生意外错误",
+  },
   navigation: {
     editProfile: "编辑资料",
     signOut: "退出登录",
