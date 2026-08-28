@@ -14,7 +14,7 @@ const resources = {
   "zh-CN": { translation: zhCN },
 } as const;
 
-function getInitialLocale(): Locale {
+export function getInitialLocale(): Locale {
   if (typeof window !== "undefined") {
     const storedLocale = normalizeLocale(
       window.localStorage.getItem(LOCALE_STORAGE_KEY),
@@ -22,14 +22,6 @@ function getInitialLocale(): Locale {
 
     if (storedLocale) {
       return storedLocale;
-    }
-
-    const browserLocale = normalizeLocale(
-      window.navigator.languages?.[0] || window.navigator.language,
-    );
-
-    if (browserLocale) {
-      return browserLocale;
     }
   }
 
