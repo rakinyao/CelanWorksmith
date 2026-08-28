@@ -23,7 +23,7 @@ function FooterLinks() {
 
   return (
     <FooterWrapper>
-      {t("footer.usingAppsmithAgreement")} &nbsp;
+      {t("footer.usingProductAgreement", { brand: t("brand.name") })} &nbsp;
       <Link target="_blank" to="/privacy-policy.html">
         {t("footer.privacyPolicy")}
       </Link>

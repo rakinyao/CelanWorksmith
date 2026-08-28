@@ -15,6 +15,10 @@ const enUS = {
     chinese: "Chinese",
     switchTo: "Switch language",
   },
+  brand: {
+    name: "CelanWorkshop",
+    displayVersion: "CelanWorkshop {{edition}} {{version}}",
+  },
   navigation: {
     editProfile: "Edit profile",
     signOut: "Sign out",
@@ -81,7 +85,7 @@ const enUS = {
     },
   },
   footer: {
-    usingAppsmithAgreement: "By using Appsmith, you are agreeing to our",
+    usingProductAgreement: "By using {{brand}}, you are agreeing to our",
     privacyPolicy: "privacy policy",
     and: "and",
     termsOfService: "terms of service",
@@ -101,10 +105,10 @@ const enUS = {
     forgotPassword: "Forgot password",
     signUp: "Sign up",
     newToAppsmith: "Don't have an account?",
-    lookingToSelfHost: "Looking to self-host Appsmith?",
+    lookingToSelfHost: "Looking to self-host $t(brand.name)?",
     visitOurDocs: "Visit our docs",
-    alreadyUsingAppsmith: "Already using Appsmith?",
-    usingAppsmith: "Using Appsmith?",
+    alreadyUsingAppsmith: "Already using $t(brand.name)?",
+    usingAppsmith: "Using $t(brand.name)?",
     alreadySignedInto: "You've already signed into",
     signInToExistingOrganisation: "Sign in to an existing organisation",
     signupSuccess: "Awesome! You have successfully registered.",
@@ -131,7 +135,7 @@ const enUS = {
     forgotPasswordDescription: "We will send a reset link to the email below",
     sendResetLink: "Send reset link",
     forgotPasswordSuccess:
-      "A password reset link has been sent to your email address {{email}} registered with Appsmith.",
+      "A password reset link has been sent to your email address {{email}} registered with $t(brand.name).",
     checkYourInbox: "Check your inbox",
     verificationPendingBody:
       "To finish your account setup click on the verification link we have sent in an email to",
