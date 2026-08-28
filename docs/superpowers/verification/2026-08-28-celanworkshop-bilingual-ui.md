@@ -60,17 +60,30 @@ git diff --check
 
 Result: both commands exit `0` with no formatting or whitespace errors.
 
+```bash
+npx playwright test tests/i18n/celanworkshop-bilingual-ui.spec.ts --project=smoke --list
+```
+
+Result: exit code `0`; two i18n specs were selected, plus only the existing
+`signup-setup` and `setup` dependencies. The d0 and t9 projects were excluded.
+
 ## Coverage Matrix
 
-Covered by the new browser spec: anonymous `/user/login`, default `zh-CN`,
-visible Chinese brand `沧澜工坊`, visible locale selection to `en-US`, English
-brand `CelanWorkshop`, `document.documentElement.lang`, local-storage
-persistence, and desktop/mobile screenshot capture hooks.
+Phase 1 covers the core anonymous login screen. The new browser spec verifies
+default `zh-CN`, visible Chinese brand `沧澜工坊`, visible locale selection to
+`en-US`, English brand `CelanWorkshop`, `document.documentElement.lang`,
+local-storage persistence, and desktop/mobile screenshot capture hooks.
 
-Deferred: authenticated Ontology datasource/query and application release
-screens. Those remain in `tests/d0/ontology-native-path.spec.ts` and
-`tests/t9/application-release.spec.ts` and require their documented
-`CW_D0_*`/`CW_T9_*` credentials. They were not run or rewritten in this phase.
+The remaining core matrix is deferred to later phases: workspace and
+application navigation, editor/canvas and widget/property panels, datasource
+and query editor/response surfaces beyond the existing d0 contract checks,
+account/profile navigation, dialogs, and toasts. The authenticated d0
+Ontology path and t9 release path remain separately credential-gated and were
+not run or rewritten in this phase.
+
+The existing d0 and t9 specs remain in `tests/d0/ontology-native-path.spec.ts`
+and `tests/t9/application-release.spec.ts` and require their documented
+`CW_D0_*`/`CW_T9_*` credentials.
 
 ## Phase 3 Dependency
 
