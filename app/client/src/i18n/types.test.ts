@@ -21,7 +21,7 @@ describe("locale utilities", () => {
     expect(normalizeLocale(null)).toBeUndefined();
   });
 
-  it("keeps English as the default locale", () => {
-    expect(DEFAULT_LOCALE).toBe("en-US");
+  it("uses Chinese as the default locale", () => {
+    expect(DEFAULT_LOCALE).toBe("zh-CN");
   });
 });

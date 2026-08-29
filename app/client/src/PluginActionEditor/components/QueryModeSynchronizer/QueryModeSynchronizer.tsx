@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { change, getFormValues } from "redux-form";
 import { get, isEqual } from "lodash";
@@ -51,13 +52,13 @@ export type OntologyAdvancedToBuilderResult =
       updates: Record<string, unknown>;
       definition: OntologyObjectQueryDefinition;
     }
-  | { error: string };
+  | { error: { id: "invalidDefinition" | "metadataUnavailable" } };
 
 export type OntologyCapabilityAdvancedToBuilderResult =
   | {
       updates: Record<string, unknown>;
     }
-  | { error: string };
+  | { error: { id: "invalidDefinition" | "metadataUnavailable" } };
 
 export function hydrateBuilderForm(
   definition: OntologyObjectQueryDefinition,
@@ -74,19 +75,16 @@ export function getAdvancedToBuilderUpdates(
     const validation = validateDefinition(parsedDefinition, metadata);
 
     if (!validation.valid) {
-      return { error: validation.message };
+      return { error: { id: validation.errorId } };
     }
 
     return {
       definition: validation.definition,
       updates: hydrateBuilderForm(validation.definition),
     };
-  } catch (error) {
+  } catch {
     return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "Advanced JSON definition could not be parsed",
+      error: { id: "invalidDefinition" },
     };
   }
 }
@@ -107,18 +105,15 @@ export function getCapabilityAdvancedToBuilderUpdates(
     );
 
     if (!validation.valid) {
-      return { error: validation.message };
+      return { error: { id: validation.errorId } };
     }
 
     return {
       updates: hydrateCapabilityBuilderForm(validation.definition),
     };
-  } catch (error) {
+  } catch {
     return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "Advanced capability definition could not be parsed",
+      error: { id: "invalidDefinition" },
     };
   }
 }
@@ -358,6 +353,7 @@ export function OntologyQueryModeSynchronizer({
   formName,
   metadata: metadataOverride,
 }: OntologyQueryModeSynchronizerProps) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const formValues = useSelector((state: DefaultRootState) =>
     getFormValues(formName)(state),
@@ -436,7 +432,7 @@ export function OntologyQueryModeSynchronizer({
           const result =
             typeof definitionText === "string" && metadata
               ? getAdvancedToBuilderUpdates(definitionText, metadata)
-              : { error: "Ontology metadata is unavailable" };
+              : { error: { id: "metadataUnavailable" as const } };
 
           if ("error" in result) {
             previousQueryMode.current = "ADVANCED";
@@ -454,9 +450,14 @@ export function OntologyQueryModeSynchronizer({
               );
             }
 
-            toast.show(`Cannot switch to Builder: ${result.error}`, {
-              kind: "error",
-            });
+            toast.show(
+              t("ontologyQuery.cannotSwitchToBuilder", {
+                reason: t(`ontologyQuery.${result.error.id}`),
+              }),
+              {
+                kind: "error",
+              },
+            );
             dispatch(
               change(formName, ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY, "ADVANCED"),
             );
@@ -503,13 +504,18 @@ export function OntologyQueryModeSynchronizer({
                   capabilityId,
                   capabilityMetadata,
                 )
-              : { error: "Advanced capability definition is unavailable" };
+              : { error: { id: "invalidDefinition" as const } };
 
           if ("error" in result) {
             previousQueryMode.current = "ADVANCED";
-            toast.show(`Cannot switch to Builder: ${result.error}`, {
-              kind: "error",
-            });
+            toast.show(
+              t("ontologyQuery.cannotSwitchToBuilder", {
+                reason: t(`ontologyQuery.${result.error.id}`),
+              }),
+              {
+                kind: "error",
+              },
+            );
             dispatch(
               change(formName, ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY, "ADVANCED"),
             );
@@ -612,6 +618,7 @@ export function OntologyQueryModeSynchronizer({
       formValues,
       metadataOverride,
       capabilityMetadataOverride,
+      t,
     ],
   );
 

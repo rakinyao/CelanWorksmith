@@ -60,7 +60,7 @@ Add a rendered `LocaleSync` test with a mocked current user locale of `"en-US"`,
 Run:
 
 ```bash
-cd app/client && npx jest --runInBand src/i18n/index.test.ts src/i18n/types.test.ts
+cd app/client && npx jest --runInBand src/i18n/index.test.ts src/i18n/types.test.ts src/i18n/LocaleSync.test.tsx
 ```
 
 Expected: the unconfigured-session assertion fails because the existing default/browser fallback selects English or browser language.

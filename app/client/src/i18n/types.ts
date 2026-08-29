@@ -2,7 +2,7 @@ export const SUPPORTED_LOCALES = ["en-US", "zh-CN"] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
-export const DEFAULT_LOCALE: Locale = "en-US";
+export const DEFAULT_LOCALE: Locale = "zh-CN";
 export const LOCALE_STORAGE_KEY = "appsmith.locale";
 
 export function isLocale(value: unknown): value is Locale {

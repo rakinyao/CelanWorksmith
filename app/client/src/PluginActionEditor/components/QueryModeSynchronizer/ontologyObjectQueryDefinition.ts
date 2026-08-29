@@ -37,7 +37,7 @@ export type OntologyQueryMetadata = {
 
 type ValidationResult =
   | { valid: true; definition: OntologyObjectQueryDefinition }
-  | { valid: false; message: string };
+  | { valid: false; errorId: "invalidDefinition"; message: string };
 
 type BuilderValue = { data?: unknown } | unknown;
 
@@ -105,7 +105,7 @@ function isValidLimitedPageValue(value: unknown, isLimit: boolean): boolean {
 }
 
 function invalid(message: string): ValidationResult {
-  return { valid: false, message };
+  return { valid: false, errorId: "invalidDefinition", message };
 }
 
 function findVisibleProperty(
@@ -302,7 +302,8 @@ function validatePage(
     return invalid("Pagination must contain both offset and limit");
   }
   if (
-    definition.page.mode !== undefined && definition.page.mode !== "LIMITED"
+    definition.page.mode !== undefined &&
+    definition.page.mode !== "LIMITED"
   ) {
     return invalid("Pagination mode must be LIMITED or FULL");
   }

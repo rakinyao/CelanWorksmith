@@ -77,7 +77,8 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         storageState: "playwright/auth/user.json",
       },
-      testDir: "./playwright/tests/smoke",
+      testDir: "./playwright/tests",
+      testMatch: ["smoke/**/*.spec.ts", "i18n/**/*.spec.ts"],
     },
     {
       name: "sanity",

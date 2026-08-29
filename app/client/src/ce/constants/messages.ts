@@ -11,7 +11,7 @@ function createMessage(format: (...strArgs: any[]) => string, ...args: any[]) {
   For self hosted CE, it displays the string "Appsmith Community v1.10.0".
  */
 export const APPSMITH_DISPLAY_VERSION = (edition: string, version: string) =>
-  `Appsmith ${edition} ${version}`;
+  i18n.t("brand.displayVersion", { edition, version });
 export const INTERCOM_CONSENT_MESSAGE = () =>
   `Can we have your email for better support?`;
 export const YES = () => `Yes`;

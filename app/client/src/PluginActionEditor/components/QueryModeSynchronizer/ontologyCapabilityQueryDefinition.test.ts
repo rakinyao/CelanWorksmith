@@ -88,6 +88,26 @@ describe("ontology capability query definition", () => {
     );
   });
 
+  it("preserves the canonical zero-parameter capability query JSON", () => {
+    expect(
+      serializeCapabilityBuilderForm(
+        {
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: { source: "SINGLE_OBJECT", objectId: "PO002" },
+          },
+        },
+        "FUNCTION_QUERY",
+        {
+          capabilities: [{ id: "CalculateDelayDays", parameters: [] }],
+        },
+      ),
+    ).toBe(
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"PO002"},"parameters":{}}',
+    );
+  });
+
   it("does not assume an unverified capability has zero parameters", () => {
     expect(() =>
       serializeCapabilityBuilderForm(
@@ -156,6 +176,7 @@ describe("ontology capability query definition", () => {
       ),
     ).toEqual({
       valid: false,
+      errorId: "invalidDefinition",
       message: "Unknown Function: UnknownFunction",
     });
 
@@ -171,6 +192,7 @@ describe("ontology capability query definition", () => {
       ),
     ).toEqual({
       valid: false,
+      errorId: "invalidDefinition",
       message: "Function parameter is not writable: internalToken",
     });
   });
