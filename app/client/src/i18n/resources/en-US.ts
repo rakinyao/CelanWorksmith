@@ -87,6 +87,7 @@ const enUS = {
     queries: "Queries",
     createDatasource: "Create datasource",
     save: "Save",
+    saveAndAuthorize: "Save & Authorize",
     saving: "Saving",
     saved: "Saved",
     saveFailed: "Save failed",

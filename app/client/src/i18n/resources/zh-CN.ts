@@ -86,6 +86,7 @@ const zhCN = {
     queries: "查询",
     createDatasource: "创建数据源",
     save: "保存",
+    saveAndAuthorize: "保存并授权",
     saving: "保存中",
     saved: "已保存",
     saveFailed: "保存失败",

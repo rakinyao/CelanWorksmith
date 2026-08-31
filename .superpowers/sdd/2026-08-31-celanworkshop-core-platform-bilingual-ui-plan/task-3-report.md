@@ -143,3 +143,25 @@ npx jest --runInBand \
 ```
 
 Scoped ESLint exits `0` with no errors (existing datasource JSX performance warning only). `git diff --check` passes. Commit identity: `gavin <gavin@localhost>`.
+
+## Corrective Review Round 4
+
+- Changed `SaveOrDiscardDatasourceModal` to receive a typed save-label factory rather than a label resolved by its class-component caller. Its existing `useTranslation` subscription now resolves that factory during each modal render, so an open dialog reacts immediately to locale changes even when the caller does not rerender.
+- Updated both modal callers to pass their semantic actions (`SAVE_BUTTON_TEXT` and `SAVE_AND_AUTHORIZE_BUTTON_TEXT`) as factories. The authorization action is localized through the new `editor.saveAndAuthorize` resource, preserving its save-and-authorize behavior without inferring or branching on an English literal.
+- Replaced the prior literal-label assertion with render-based coverage for an already-open standard Save dialog and an already-open Save & Authorize dialog across a Chinese-to-English locale change.
+
+### Review Round 4 Verification
+
+```text
+npx jest --runInBand \
+  src/pages/AppIDE/layouts/components/SegmentSwitcher/SegmentSwitcher.i18n.test.tsx \
+  src/pages/AppIDE/components/UIList/UIList.i18n.test.tsx \
+  src/pages/AppIDE/components/JSExplorer/BlankState.i18n.test.tsx \
+  src/pages/AppIDE/layouts/components/Header/DeployButton.i18n.test.tsx \
+  src/pages/Editor/DataSourceEditor/SaveOrDiscardDatasourceModal.test.tsx \
+  src/i18n/resources/resourceParity.test.ts \
+  src/ce/constants/messages.i18n.test.ts --silent
+7 suites passed, 14 tests passed, 0 failures
+```
+
+Scoped ESLint exits `0` with no errors and 12 existing warnings. `git diff --check` passes. Commit identity: `gavin <gavin@localhost>`.

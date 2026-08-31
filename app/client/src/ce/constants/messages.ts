@@ -2221,7 +2221,8 @@ export const GENERATE_NEW_PAGE_BUTTON_TEXT = () => "Generate new page";
 export const RECONNECT_BUTTON_TEXT = () => "Reconnect";
 export const SAVE_BUTTON_TEXT = () => i18n.t("editor.save");
 export const TEST_BUTTON_TEXT = () => "Test configuration";
-export const SAVE_AND_AUTHORIZE_BUTTON_TEXT = () => "Save & Authorize";
+export const SAVE_AND_AUTHORIZE_BUTTON_TEXT = () =>
+  i18n.t("editor.saveAndAuthorize");
 export const CONNECT_DATASOURCE_BUTTON_TEXT = () => "Connect Datasource";
 export const CONNECT_DATASOURCE_BUTTON_TEXT_FOR_AGENTS = () => "Connect";
 export const SAVE_AND_RE_AUTHORIZE_BUTTON_TEXT = () => "Save & Re-Authorize";

@@ -27,7 +27,7 @@ interface SaveOrDiscardModalProps {
   onClose(): void;
   datasourceId: string;
   datasourcePermissions: string[];
-  saveButtonText: string;
+  saveButtonText: () => string;
 }
 
 function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
@@ -74,7 +74,7 @@ function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
             onClick={onSave}
             size="md"
           >
-            {saveButtonText}
+            {createMessage(saveButtonText)}
           </Button>
         </ModalFooter>
       </ModalContent>
