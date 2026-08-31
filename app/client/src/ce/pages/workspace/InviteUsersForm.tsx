@@ -58,6 +58,7 @@ import type { DefaultOptionType } from "rc-select/lib/Select";
 import log from "loglevel";
 import { getAppsmithConfigs } from "ee/configs";
 import { AddScriptTo, ScriptStatus, useScript } from "utils/hooks/useScript";
+import { useTranslation } from "react-i18next";
 
 const featureFlags = selectFeatureFlags(store.getState());
 const isFeatureEnabled = isGACEnabled(featureFlags);
@@ -281,6 +282,7 @@ export function CustomRolesRamp() {
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function InviteUsersForm(props: any) {
+  const { t } = useTranslation();
   const [emailError, setEmailError] = useState("");
   // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -465,9 +467,9 @@ function InviteUsersForm(props: any) {
             customError={(err: string) => errorHandler(err)}
             data-testid="t--invite-email-input"
             intent="success"
-            label="Emails"
+            label={t("invite.emailsLabel")}
             name="users"
-            placeholder={placeholder || "Enter email address(es)"}
+            placeholder={placeholder || t("invite.emailPlaceholder")}
             type="email"
           />
           {emailError && (
@@ -491,7 +493,7 @@ function InviteUsersForm(props: any) {
             onDeselect={onRemoveOptions}
             onSelect={onSelect}
             optionLabelProp="label"
-            placeholder="Select a role"
+            placeholder={t("invite.rolePlaceholder")}
             value={selectedOption}
           >
             {styledRoles.map((role: DefaultOptionType) => (
@@ -531,7 +533,7 @@ function InviteUsersForm(props: any) {
             size="md"
             type="submit"
           >
-            Invite
+            {t("invite.submit")}
           </Button>
         </div>
       </StyledInviteFieldGroup>

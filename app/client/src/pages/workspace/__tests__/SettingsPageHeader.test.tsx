@@ -3,6 +3,7 @@ import "@testing-library/jest-dom";
 import { render, screen } from "test/testUtils";
 import { SettingsPageHeader } from "../SettingsPageHeader";
 import userEvent from "@testing-library/user-event";
+import { i18n } from "i18n";
 
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +35,9 @@ function renderComponent() {
 }
 
 describe("<PageHeader />", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("en-US");
+  });
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -83,5 +87,10 @@ describe("<PageHeader />", () => {
 
     await userEvent.click(menuOptions[0]);
     expect(pageMenuItems[0].onSelect).toHaveBeenCalled();
+  });
+
+  it("provides the localized delete confirmation command", async () => {
+    await i18n.changeLanguage("zh-CN");
+    expect(i18n.t("dialog.confirmationTitle")).toBe("确定吗？");
   });
 });

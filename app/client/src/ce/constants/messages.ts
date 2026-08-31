@@ -23,7 +23,7 @@ export const EDITOR_RUN_BUTTON = () => i18n.t("editor.run");
 export const EDITOR_CLOSE_PANE = () => i18n.t("common.close");
 export const QUERY_CONFIRMATION_MODAL_TITLE = () =>
   i18n.t("dialog.queryConfirmationTitle");
-export const ARE_YOU_SURE = () => `Are you sure?`;
+export const ARE_YOU_SURE = () => i18n.t("dialog.confirmationTitle");
 export const CHAT_WITH_US = () => `Chat with us`;
 export const ERROR_ADD_API_INVALID_URL = () =>
   `Unable to create API. Try adding a URL to the datasource`;
@@ -194,30 +194,35 @@ export const INVALID_NAME_ERROR = () => `Invalid name`;
 export const MAKE_APPLICATION_PUBLIC = () => "Make application public";
 export const MAKE_APPLICATION_PUBLIC_TOOLTIP = () =>
   "A public app is accessible to anyone who can access your instance of appsmith";
-export const INVITE_TAB = () => "Invite";
+export const INVITE_TAB = () => i18n.t("invite.tab");
 export const INVITE_USERS_VALIDATION_EMAIL_LIST = () =>
-  `Invalid email address(es) found`;
-export const INVITE_USERS_VALIDATION_ROLE_EMPTY = () => `Please select a role`;
-export const APPLICATION_INVITE = (name: string) => `Invite users to ${name}`;
+  i18n.t("invite.invalidEmail");
+export const INVITE_USERS_VALIDATION_ROLE_EMPTY = () =>
+  i18n.t("invite.roleRequired");
+export const APPLICATION_INVITE = (name: string) =>
+  i18n.t("invite.title", { name });
 export const INVITE_USERS_EMAIL_LIST_PLACEHOLDER = () =>
-  `Comma separated emails`;
-export const INVITE_USERS_ROLE_SELECT_PLACEHOLDER = () => `Select role`;
-export const INVITE_USERS_ROLE_SELECT_LABEL = () => `Role`;
-export const INVITE_USERS_EMAIL_LIST_LABEL = () => `User emails`;
-export const INVITE_USERS_ADD_EMAIL_LIST_FIELD = () => `Add more`;
-export const INVITE_USERS_MESSAGE = () => `Invite users`;
-export const INVITE_USERS_PLACEHOLDER = () => `Enter email address(es)`;
-export const INVITE_USERS_SUBMIT_BUTTON_TEXT = () => `Invite users`;
+  i18n.t("invite.emailListPlaceholder");
+export const INVITE_USERS_ROLE_SELECT_PLACEHOLDER = () =>
+  i18n.t("invite.rolePlaceholder");
+export const INVITE_USERS_ROLE_SELECT_LABEL = () => i18n.t("invite.roleLabel");
+export const INVITE_USERS_EMAIL_LIST_LABEL = () =>
+  i18n.t("invite.userEmailsLabel");
+export const INVITE_USERS_ADD_EMAIL_LIST_FIELD = () => i18n.t("invite.addMore");
+export const INVITE_USERS_MESSAGE = () => i18n.t("invite.message");
+export const INVITE_USERS_PLACEHOLDER = () => i18n.t("invite.emailPlaceholder");
+export const INVITE_USERS_SUBMIT_BUTTON_TEXT = () =>
+  i18n.t("invite.submitButton");
 export const INVITE_USERS_SUBMIT_SUCCESS = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cloudHosting?: boolean,
-) => `The users have been invited successfully`;
+) => i18n.t("invite.submitSuccess");
 export const INVITE_USER_SUBMIT_SUCCESS = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cloudHosting?: boolean,
-) => `The user has been invited successfully`;
+) => i18n.t("invite.userSubmitSuccess");
 export const INVITE_USERS_VALIDATION_EMAILS_EMPTY = () =>
-  `Please enter the user emails`;
+  i18n.t("invite.emailsRequired");
 export const INVITE_USER_RAMP_TEXT = () =>
   "Users will have access to all applications in the workspace. For application-level access, try out our ";
 export const CUSTOM_ROLES_RAMP_TEXT = () =>
@@ -230,7 +235,7 @@ export const USERS_HAVE_ACCESS_TO_ALL_APPS = () =>
   "Users will have access to all applications in this workspace";
 export const USERS_HAVE_ACCESS_TO_ONLY_THIS_APP = () =>
   "Users will only have access to this application";
-export const NO_USERS_INVITED = () => "You haven't invited any users yet";
+export const NO_USERS_INVITED = () => i18n.t("invite.noUsers");
 export const BUSINESS_EDITION_TEXT = () => "business plan";
 export const ENTERPRISE_EDITION_TEXT = () => "enterprise plan";
 export const PARTNER_PROGRAM_CALLOUT = (
@@ -342,8 +347,7 @@ export const DONT_SHOW_THIS_AGAIN = () => `Don't show this again`;
 export const TABLE_FILTER_COLUMN_TYPE_CALLOUT = () =>
   `Change column datatype to see filter operators`;
 
-export const SAVE_HOTKEY_TOASTER_MESSAGE = () =>
-  "Don't worry about saving, we've got you covered!";
+export const SAVE_HOTKEY_TOASTER_MESSAGE = () => i18n.t("toast.saveHotkey");
 
 export const WIDGET_SIDEBAR_TITLE = () => i18n.t("editor.widgets");
 export const WIDGET_SIDEBAR_CAPTION = () => i18n.t("editor.widgetCaption");
@@ -507,13 +511,13 @@ export const LOCAL_STORAGE_NO_SPACE_LEFT_ON_DEVICE_MESSAGE = () =>
 export const LOCAL_STORAGE_NOT_SUPPORTED_APP_MIGHT_NOT_WORK_AS_EXPECTED = () =>
   "LocalStorage is not supported on your device. Some features including the Appsmith store won't work.";
 
-export const OMNIBAR_PLACEHOLDER = () =>
-  `Search widgets, queries or create new`;
-export const OMNIBAR_PLACEHOLDER_NAV = () => "Search widgets and queries";
+export const OMNIBAR_PLACEHOLDER = () => i18n.t("search.globalPlaceholder");
+export const OMNIBAR_PLACEHOLDER_NAV = () =>
+  i18n.t("search.widgetsAndQueriesPlaceholder");
 export const CREATE_NEW_OMNIBAR_PLACEHOLDER = () =>
-  "Create a new query, API or JS Object";
+  i18n.t("search.createNewPlaceholder");
 export const HELPBAR_PLACEHOLDER = () => "Search";
-export const NO_SEARCH_DATA_TEXT = () => "No results found";
+export const NO_SEARCH_DATA_TEXT = () => i18n.t("search.noResults");
 
 export const WIDGET_BIND_HELP = () =>
   "Having trouble taking inputs from widgets?";
@@ -982,7 +986,8 @@ export const GIT_USER_UPDATED_SUCCESSFULLY = () =>
 export const REMOTE_URL_INPUT_PLACEHOLDER = () =>
   "git@example.com:user/repository.git";
 export const GIT_COMMIT_MESSAGE_PLACEHOLDER = () => "Your commit message here";
-export const INVALID_USER_DETAILS_MSG = () => "Please enter valid user details";
+export const INVALID_USER_DETAILS_MSG = () =>
+  i18n.t("common.invalidUserDetails");
 export const PASTE_SSH_URL_INFO = () =>
   "Please enter a valid SSH URL of your repository";
 export const GENERATE_KEY = () => "Generate key";
@@ -1534,7 +1539,7 @@ export const DELETE_TOOLTIP = () => "Delete";
 export const SETTINGS_TOOLTIP = () => "Settings";
 
 //settings
-export const ADMIN_SETTINGS = () => "Admin settings";
+export const ADMIN_SETTINGS = () => i18n.t("navigation.adminSettings");
 export const HELP = () => "Help";
 export const RESTART_BANNER_BODY = () =>
   "Hang in there. This should be done soon.";

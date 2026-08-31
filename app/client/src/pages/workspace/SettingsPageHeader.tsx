@@ -12,8 +12,8 @@ import {
 } from "@appsmith/ads";
 import { HeaderWrapper } from "pages/AdminSettings/components";
 import { SettingsHeader } from "components/utils/helperComponents";
-import { ARE_YOU_SURE, createMessage } from "ee/constants/messages";
 import { useMediaQuery } from "react-responsive";
+import { useTranslation } from "react-i18next";
 
 interface PageHeaderProps {
   buttonText?: string;
@@ -52,6 +52,7 @@ const ActionsWrapper = styled.div`
 `;
 
 export function SettingsPageHeader(props: PageHeaderProps) {
+  const { t } = useTranslation();
   const [showConfirmationText, setShowConfirmationText] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
 
@@ -165,7 +166,7 @@ export function SettingsPageHeader(props: PageHeaderProps) {
                       startIcon={menuItem.icon}
                     >
                       {showConfirmationText && menuItem.label === "delete"
-                        ? createMessage(ARE_YOU_SURE)
+                        ? t("dialog.confirmationTitle")
                         : menuItem.text}
                     </MenuItem>
                   ))}

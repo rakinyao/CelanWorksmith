@@ -2,7 +2,6 @@ import React from "react";
 import styled from "styled-components";
 import { useSelector } from "react-redux";
 import { getCurrentAppWorkspace } from "ee/selectors/selectedWorkspaceSelectors";
-import { createMessage, NO_USERS_INVITED } from "ee/constants/messages";
 import { isPermitted, PERMISSION_TYPE } from "ee/utils/permissionHelpers";
 import { Avatar, Icon, Spinner, Text, Tooltip } from "@appsmith/ads";
 import { getInitialsFromName } from "utils/AppsmithUtils";
@@ -23,6 +22,7 @@ import {
   selectedWorkspaceLoadingStates,
 } from "ee/selectors/selectedWorkspaceSelectors";
 import type { DefaultRootState } from "react-redux";
+import { useTranslation } from "react-i18next";
 
 const NoEmailConfigImage = importSvg(
   async () => import("assets/images/email-not-configured.svg"),
@@ -97,6 +97,7 @@ export const ManageUsersContainer = styled.div`
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function WorkspaceInviteUsers(props: any) {
+  const { t } = useTranslation();
   const isFeatureEnabled = useFeatureFlag(FEATURE_FLAG.license_gac_enabled);
   const userRef = React.createRef<HTMLDivElement>();
   const currentWorkspace = useSelector(getCurrentAppWorkspace);
@@ -149,7 +150,7 @@ function WorkspaceInviteUsers(props: any) {
           {allUsers.length === 0 && (
             <MailConfigContainer data-testid="t--no-users-content">
               <NoEmailConfigImage />
-              <Text kind="action-s">{createMessage(NO_USERS_INVITED)}</Text>
+              <Text kind="action-s">{t("invite.noUsers")}</Text>
             </MailConfigContainer>
           )}
           <UserList ref={userRef}>
