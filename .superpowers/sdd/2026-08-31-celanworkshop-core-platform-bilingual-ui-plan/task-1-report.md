@@ -52,7 +52,7 @@ Additional check: `git diff --check` passed.
 
 ## Commit
 
-Commit `9568cfd84c` (created with `--no-verify` because the repository's Husky hook is broken) uses `gavin <gavin@localhost>` and message:
+Implementation commit `fa6804c923` (created with `--no-verify` because the repository's Husky hook is broken) uses `gavin <gavin@localhost>` and message:
 
 ```text
 feat(i18n): add core platform resource foundation
