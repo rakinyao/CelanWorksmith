@@ -70,6 +70,11 @@ Scoped ESLint exits `0` with no errors. It reports the repository's existing hoo
 
 ### Corrective Verification
 
+RED: Before isolating the legacy suite's locale, QueryRender reported four
+English-hardcoded assertion failures (`New query / API` and Run-count checks)
+under the branch's Chinese default. The test-only `en-US` setup/teardown fixes
+those deterministic expectations without weakening the localized production UI.
+
 ```text
 npx jest --runInBand src/pages/AppIDE/layouts/routers/QueryEditor/QueryRender.test.tsx --silent
 1 suite passed, 16 tests passed, 0 failures
