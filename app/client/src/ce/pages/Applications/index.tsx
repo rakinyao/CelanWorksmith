@@ -160,6 +160,7 @@ import OrganizationDropdown from "components/OrganizationDropdown";
 import { fetchMyOrganizations } from "ee/actions/organizationActions";
 import type { Organization } from "ee/api/OrganizationApi";
 import { useIsCloudBillingEnabled } from "hooks";
+import { useTranslation } from "react-i18next";
 
 function GitModals() {
   const isGitModEnabled = useGitModEnabled();
@@ -465,6 +466,7 @@ export function WorkspaceMenuItem({
   workspace, // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any) {
+  const { t } = useTranslation();
   const history = useHistory();
   const location = useLocation();
   const [imageError, setImageError] = React.useState(false);
@@ -502,7 +504,10 @@ export function WorkspaceMenuItem({
         selected={selected}
       >
         <WorkspaceIconContainer>
-          <WorkspaceLogoImage alt="Favorites" src={HeartIconRed} />
+          <WorkspaceLogoImage
+            alt={t("workspace.favorites")}
+            src={HeartIconRed}
+          />
           <Text type={TextType.H5} weight={FontWeight.NORMAL}>
             {displayText}
           </Text>
@@ -701,6 +706,7 @@ export function ApplicationsSection(props: any) {
   const { activeWorkspaceId, applications, packages, workflows, workspaces } =
     props;
   const enableImportExport = true;
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const theme = useContext(ThemeContext);
   const isSavingWorkspaceInfo = useSelector(getIsSavingWorkspaceInfo);
@@ -903,7 +909,10 @@ export function ApplicationsSection(props: any) {
         <CreateNewLabel type={TextType.H4}>
           {createMessage(NO_APPS_FOUND)}
         </CreateNewLabel>
-        <NoSearchResultImg alt="No result found" src={NoSearchImage} />
+        <NoSearchResultImg
+          alt={t("application.noSearchResult")}
+          src={NoSearchImage}
+        />
       </CenteredWrapper>
     );
   } else {

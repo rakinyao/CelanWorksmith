@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { Button, Icon, Menu, MenuContent, MenuTrigger } from "@appsmith/ads";
 import {
@@ -77,6 +78,8 @@ function WorkspaceMenu({
   workspaceNameChange,
   workspaceToOpenMenu,
 }: WorkspaceMenuProps) {
+  const { t } = useTranslation();
+
   return (
     <Menu
       className="t--workspace-name"
@@ -126,7 +129,7 @@ function WorkspaceMenu({
                 onBlur={(value: string) => {
                   workspaceNameChange(value, workspace.id);
                 }}
-                placeholder="Workspace name"
+                placeholder={t("workspace.menu.renamePlaceholder")}
                 savingState={
                   isSavingWorkspaceInfo
                     ? SavingState.STARTED
@@ -145,7 +148,7 @@ function WorkspaceMenu({
               }
             >
               <Icon name="settings-v3" size="md" />
-              Settings
+              {t("workspace.menu.settings")}
             </CustomMenuItem>
           </>
         )}
@@ -159,7 +162,7 @@ function WorkspaceMenu({
             }
           >
             <Icon name="group-line" size="md" />
-            Members
+            {t("workspace.menu.members")}
           </CustomMenuItem>
         )}
         <ManageEnvironmentsMenu
@@ -176,7 +179,9 @@ function WorkspaceMenu({
             }}
           >
             <Icon name="logout" size="md" />
-            {!warnLeavingWorkspace ? "Leave workspace" : "Are you sure?"}
+            {!warnLeavingWorkspace
+              ? t("workspace.menu.leave")
+              : t("workspace.menu.confirm")}
           </CustomMenuItem>
         )}
         {canDeleteWorkspace && (
@@ -189,7 +194,9 @@ function WorkspaceMenu({
             }}
           >
             <Icon name="delete-bin-line" size="md" />
-            {!warnDeleteWorkspace ? "Delete workspace" : "Are you sure?"}
+            {!warnDeleteWorkspace
+              ? t("workspace.menu.delete")
+              : t("workspace.menu.confirm")}
           </CustomMenuItem>
         )}
       </MenuContent>

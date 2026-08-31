@@ -10,6 +10,7 @@ import configureStore from "redux-mock-store";
 import { lightTheme } from "selectors/themeSelectors";
 import { ThemeProvider } from "styled-components";
 import WorkspaceAction from "../WorkspaceAction";
+import { i18n } from "i18n";
 
 const mockStore = configureStore([]);
 const locators = {
@@ -47,6 +48,14 @@ const renderWorkspaceActionComponent = (
   );
 
 describe("WorkspaceAction", () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage("en-US");
+  });
+
+  afterEach(async () => {
+    await i18n.changeLanguage("en-US");
+  });
+
   const workspace = {
     id: "663a0815de1fdf7aa1618918",
     userPermissions: [
@@ -132,6 +141,37 @@ describe("WorkspaceAction", () => {
     // reset the changes
     workspace.userPermissions = existingPermissions;
   });
+
+  it.each([
+    [
+      "en-US",
+      "Create new",
+      "New application",
+      "Templates",
+      "Import application",
+    ],
+    ["zh-CN", "新建", "新建应用", "模板", "导入应用"],
+  ])(
+    "renders workspace actions in %s",
+    async (locale, action, application, templates, importLabel) => {
+      await i18n.changeLanguage(locale);
+      const { getByTestId, getByText } = renderWorkspaceActionComponent(
+        workspace,
+        workspace.id,
+      );
+
+      fireEvent.click(getByText(action));
+      expect(getByTestId(locators.testId.createNewApp)).toHaveTextContent(
+        application,
+      );
+      expect(
+        getByTestId(locators.testId.createAppFromTemplates),
+      ).toHaveTextContent(templates);
+      expect(getByTestId(locators.testId.importApp)).toHaveTextContent(
+        importLabel,
+      );
+    },
+  );
 });
 
 jest.mock("ee/utils/airgapHelpers", () => ({
@@ -166,7 +206,10 @@ describe("[Airgap] WorkspaceAction", () => {
     ],
   } as Workspace;
 
-  beforeEach(() => mockIsAirGapped(true));
+  beforeEach(async () => {
+    mockIsAirGapped(true);
+    await i18n.changeLanguage("en-US");
+  });
 
   it("1. [Airgap] should render the WorkspaceAction component", () => {
     const { getByText } = renderWorkspaceActionComponent(

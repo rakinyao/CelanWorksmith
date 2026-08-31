@@ -9,19 +9,13 @@ import {
 import React, { useCallback, useState } from "react";
 import { useSelector } from "react-redux";
 
-import {
-  IMPORT_BTN_LABEL,
-  NEW_APP,
-  NEW_APP_FROM_TEMPLATE,
-  WORKSPACE_ACTION_BUTTON,
-  createMessage,
-} from "ee/constants/messages";
 import type { Workspace } from "ee/constants/workspaceConstants";
 import type { LayoutSystemTypes } from "layoutSystems/types";
 import { getIsCreatingApplicationByWorkspaceId } from "ee/selectors/applicationSelectors";
 import { getIsFetchingApplications } from "ee/selectors/selectedWorkspaceSelectors";
 import { hasCreateNewAppPermission } from "ee/utils/permissionHelpers";
 import { isAirgapped } from "ee/utils/airgapHelpers";
+import { useTranslation } from "react-i18next";
 
 export interface WorkspaceActionProps {
   workspace: Workspace;
@@ -46,6 +40,7 @@ function WorkspaceAction({
   workspaceId,
 }: WorkspaceActionProps) {
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const { t } = useTranslation();
   const isFetchingApplications = useSelector(getIsFetchingApplications);
   const isCreatingApplication = Boolean(
     useSelector(getIsCreatingApplicationByWorkspaceId(workspace.id)),
@@ -81,7 +76,7 @@ function WorkspaceAction({
           onClick={openActionMenu}
           size="md"
         >
-          {createMessage(WORKSPACE_ACTION_BUTTON)}
+          {t("workspace.createNew")}
         </Button>
       </MenuTrigger>
       <MenuContent
@@ -95,7 +90,7 @@ function WorkspaceAction({
           onSelect={() => onCreateNewApplication(workspace.id)}
           startIcon="apps-line"
         >
-          {createMessage(NEW_APP)}
+          {t("workspace.actions.newApplication")}
         </MenuItem>
         {<Divider className="!block mb-[2px]" />}
 
@@ -106,7 +101,7 @@ function WorkspaceAction({
             onSelect={() => onStartFromTemplate(workspaceId)}
             startIcon="layout-2-line"
           >
-            {createMessage(NEW_APP_FROM_TEMPLATE)}
+            {t("workspace.actions.templates")}
           </MenuItem>
         )}
 
@@ -118,7 +113,7 @@ function WorkspaceAction({
             }
             startIcon="upload-cloud"
           >
-            {createMessage(IMPORT_BTN_LABEL)}
+            {t("workspace.actions.importApplication")}
           </MenuItem>
         )}
       </MenuContent>

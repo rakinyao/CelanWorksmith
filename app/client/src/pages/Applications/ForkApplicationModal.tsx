@@ -13,17 +13,10 @@ import {
   Option,
 } from "@appsmith/ads";
 import { ButtonWrapper, SpinnerWrapper } from "./ForkModalStyles";
-import {
-  CANCEL,
-  createMessage,
-  FORK,
-  FORK_APP_MODAL_EMPTY_TITLE,
-  FORK_APP_MODAL_LOADING_TITLE,
-  FORK_APP_MODAL_SUCCESS_TITLE,
-} from "ee/constants/messages";
 import { getFetchedWorkspaces } from "ee/selectors/workspaceSelectors";
 import { getIsFetchingApplications } from "ee/selectors/selectedWorkspaceSelectors";
 import { fetchAllWorkspaces } from "ee/actions/workspaceActions";
+import { useTranslation } from "react-i18next";
 
 interface ForkApplicationModalProps {
   applicationId: string;
@@ -38,6 +31,7 @@ interface ForkApplicationModalProps {
 
 function ForkApplicationModal(props: ForkApplicationModalProps) {
   const { handleClose, handleOpen, isModalOpen } = props;
+  const { t } = useTranslation();
   const [workspace, selectWorkspace] = useState<{
     label: string;
     value: string;
@@ -109,10 +103,10 @@ function ForkApplicationModal(props: ForkApplicationModalProps) {
   }, [workspaces]);
 
   const modalHeading = isFetchingApplications
-    ? createMessage(FORK_APP_MODAL_LOADING_TITLE)
+    ? t("application.forkModalLoading")
     : !workspaceList.length
-      ? createMessage(FORK_APP_MODAL_EMPTY_TITLE)
-      : createMessage(FORK_APP_MODAL_SUCCESS_TITLE);
+      ? t("application.forkModalEmpty")
+      : t("application.forkModalSuccess");
 
   const getApplicationsListAndOpenModal = () => {
     !workspaceList.length &&
@@ -166,7 +160,7 @@ function ForkApplicationModal(props: ForkApplicationModalProps) {
                   }}
                   size="md"
                 >
-                  {createMessage(CANCEL)}
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   className="t--fork-app-to-workspace-button"
@@ -174,7 +168,7 @@ function ForkApplicationModal(props: ForkApplicationModalProps) {
                   onClick={forkApplication}
                   size="md"
                 >
-                  {createMessage(FORK)}
+                  {t("application.forkAction")}
                 </Button>
               </ButtonWrapper>
             </>
