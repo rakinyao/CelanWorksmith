@@ -62,4 +62,4 @@ Fix-round verification:
 cd app/client && npx jest --runInBand src/components/editorComponents/GlobalSearch/GlobalSearch.i18n.test.tsx src/components/editorComponents/GlobalSearch/GlobalSearchHooks.test.ts src/pages/workspace/__tests__/SettingsPageHeader.test.tsx src/ce/constants/messages.i18n.test.ts src/pages/Editor/GlobalHotKeys/GlobalHotKeys.test.tsx
 ```
 
-Result: 5 suites passed, 27 tests passed. Targeted ESLint reported no errors (existing warnings only); `git diff --check` passed.
+Result: 5 suites passed, 27 tests passed (plus a live-switch GlobalSearch hotkey render test in the fix round). Targeted ESLint reported no errors (existing warnings only); `git diff --check` passed.
