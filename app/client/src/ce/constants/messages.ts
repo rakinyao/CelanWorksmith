@@ -22,11 +22,11 @@ export const ERROR_ADD_API_INVALID_URL = () =>
 export const ERROR_MESSAGE_NAME_EMPTY = () => `Please select a name`;
 export const ERROR_MESSAGE_CREATE_APPLICATION = () =>
   `We could not create the Application`;
-export const APPLICATION_NAME_UPDATE = () => `Application name updated`;
+export const APPLICATION_NAME_UPDATE = () => i18n.t("application.nameUpdated");
 export const ERROR_EMPTY_APPLICATION_NAME = () =>
   `Application name can't be empty`;
 export const API_PATH_START_WITH_SLASH_ERROR = () => `Path cannot start with /`;
-export const FIELD_REQUIRED_ERROR = () => `This field is required`;
+export const FIELD_REQUIRED_ERROR = () => i18n.t("common.fieldRequired");
 export const INPUT_DEFAULT_TEXT_MAX_CHAR_ERROR = (max: number) =>
   `Default text length must be less than or equal to ${max} characters`;
 export const INPUT_TEXT_MAX_CHAR_ERROR = (max: number) =>
@@ -231,9 +231,10 @@ export const PARTNER_PROGRAM_CALLOUT = (
 for someone else, you should check out our partner program.`;
 export const PARTNER_PROGRAM_CALLOUT_LINK = () =>
   `Learn about Appsmith Partner Program`;
-export const NEW_APPLICATION = () => `New application`;
-export const APPLICATIONS = () => `Applications`;
-export const FIXED_APPLICATIONS = () => `Classic Applications`;
+export const NEW_APPLICATION = () => i18n.t("application.new");
+export const APPLICATIONS = () => i18n.t("application.applications");
+export const FIXED_APPLICATIONS = () =>
+  i18n.t("application.classicApplications");
 export const AI_AGENTS_APPLICATIONS = () => `AI Agents`;
 export const AI_APPLICATION_CARD_LIST_ZERO_STATE = () =>
   `There are no AI Agents in this workspace.`;
@@ -252,10 +253,12 @@ export const USER_DISPLAY_PICTURE_FILE_INVALID = () =>
   "File content doesn't seem to be an image. Please verify.";
 export const USER_DISPLAY_NAME_CHAR_CHECK_FAILED = () =>
   "No special characters allowed except .'-";
-export const USER_DISPLAY_NAME_PLACEHOLDER = () => "Display name";
-export const USER_DISPLAY_PICTURE_PLACEHOLDER = () => "Display picture";
+export const USER_DISPLAY_NAME_PLACEHOLDER = () =>
+  i18n.t("profile.displayName");
+export const USER_DISPLAY_PICTURE_PLACEHOLDER = () =>
+  i18n.t("profile.displayPicture");
 export const USER_EMAIL_PLACEHOLDER = () => "Email";
-export const USER_RESET_PASSWORD = () => "Reset password";
+export const USER_RESET_PASSWORD = () => i18n.t("profile.resetPassword");
 
 export const CREATE_PASSWORD_RESET_SUCCESS = () => `Your password has been set`;
 export const CREATE_PASSWORD_RESET_SUCCESS_LOGIN_LINK = () => `Login`;
@@ -292,12 +295,12 @@ export const EDITOR_HEADER = {
 };
 
 // Homepage
-export const CREATE_NEW_APPLICATION = () => `Create new`;
-export const SEARCH_APPS = () => `Search for apps...`;
+export const CREATE_NEW_APPLICATION = () => i18n.t("application.createNew");
+export const SEARCH_APPS = () => i18n.t("application.searchPlaceholder");
 export const GETTING_STARTED = () => `Getting started`;
-export const WORKSPACES_HEADING = () => `Workspaces`;
-export const CREATE_A_NEW_WORKSPACE = () => `Create a new workspace`;
-export const WELCOME_TOUR = () => `Welcome tour`;
+export const WORKSPACES_HEADING = () => i18n.t("workspace.heading");
+export const CREATE_A_NEW_WORKSPACE = () => i18n.t("workspace.create");
+export const WELCOME_TOUR = () => i18n.t("workspace.welcomeTour");
 export const NO_APPS_FOUND = () =>
   `Whale! Whale! This name doesn't ring a bell!`;
 export const APPLICATION_CARD_LIST_ZERO_STATE = () =>
@@ -335,9 +338,8 @@ export const TABLE_FILTER_COLUMN_TYPE_CALLOUT = () =>
 export const SAVE_HOTKEY_TOASTER_MESSAGE = () =>
   "Don't worry about saving, we've got you covered!";
 
-export const WIDGET_SIDEBAR_TITLE = () => `Widgets`;
-export const WIDGET_SIDEBAR_CAPTION = () =>
-  `Drag a widget and drop it on the canvas`;
+export const WIDGET_SIDEBAR_TITLE = () => i18n.t("editor.widgets");
+export const WIDGET_SIDEBAR_CAPTION = () => i18n.t("editor.widgetCaption");
 export const GOOGLE_RECAPTCHA_KEY_ERROR = () =>
   `Google reCAPTCHA token generation failed! Please check the reCAPTCHA site key.`;
 export const GOOGLE_RECAPTCHA_DOMAIN_ERROR = () =>
@@ -640,7 +642,7 @@ export const DEBUGGER_APPSMITH_SUPPORT = () => "Get Appsmith support";
 
 //action creator menu
 export const NO_ACTION = () => `No action`;
-export const EXECUTE_A_QUERY = () => `Execute a query`;
+export const EXECUTE_A_QUERY = () => i18n.t("editor.executeQuery");
 export const NAVIGATE_TO = () => `Navigate to`;
 export const SHOW_ALERT = () => `Show alert`;
 export const SHOW_MODAL = () => `Show modal`;
@@ -750,7 +752,8 @@ export const SKIP_TO_APPLICATION_FOR_AGENTS = () => "Go to agent";
 export const SKIP_CONFIGURATION = () => "Skip configuration";
 export const SELECT_A_METHOD_TO_ADD_CREDENTIALS = () =>
   "Select a method to add credentials";
-export const DELETE_CONFIRMATION_MODAL_TITLE = () => `Are you sure?`;
+export const DELETE_CONFIRMATION_MODAL_TITLE = () =>
+  i18n.t("dialog.confirmationTitle");
 export const DELETE_CONFIRMATION_MODAL_SUBTITLE = (
   name?: string | null,
   entityType?: string,
