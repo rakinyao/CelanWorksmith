@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import styled from "styled-components";
 import TagListField from "components/editorComponents/form/fields/TagListField";
 import { formValueSelector, reduxForm, SubmissionError } from "redux-form";
@@ -319,19 +319,37 @@ function InviteUsersForm(props: any) {
     valid,
   } = props;
 
+  const formValuesRef = useRef({
+    change,
+    users: props.users,
+    role: props.role,
+  });
+  // eslint-disable-next-line padding-line-between-statements
+  formValuesRef.current = { change, users: props.users, role: props.role };
+
+  const previousLanguageRef = useRef(i18n.language);
+
   // redux-form caches validation errors in Redux. Re-run validation when the
   // locale changes so an already-visible error updates without clearing input.
-  useEffect(() => {
-    if (typeof change !== "function") return;
+  useEffect(
+    function revalidateInviteFormOnLocaleChange() {
+      if (previousLanguageRef.current === i18n.language) return;
 
-    if (typeof props.users !== "undefined") {
-      change("users", props.users);
-    }
+      previousLanguageRef.current = i18n.language;
+      const { change: changeField, role, users } = formValuesRef.current;
 
-    if (typeof props.role !== "undefined") {
-      change("role", props.role);
-    }
-  }, [change, i18n.language, props.role, props.users]);
+      if (typeof changeField !== "function") return;
+
+      if (typeof users !== "undefined") {
+        changeField("users", users);
+      }
+
+      if (typeof role !== "undefined") {
+        changeField("role", role);
+      }
+    },
+    [i18n.language],
+  );
 
   const { disableDropdown = false } = customProps;
 
