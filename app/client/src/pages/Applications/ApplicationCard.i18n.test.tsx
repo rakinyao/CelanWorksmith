@@ -9,6 +9,8 @@ import { i18n } from "i18n";
 import { unitTestBaseMockStore } from "layoutSystems/common/dropTarget/unitTestUtils";
 import ApplicationCard from "./ApplicationCard";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 jest.mock("@appsmith/ads", () => {
   const actual = jest.requireActual("@appsmith/ads");
 
@@ -19,6 +21,19 @@ jest.mock("@appsmith/ads", () => {
     MenuContent: ({ children }: any) => <div>{children}</div>,
     MenuItem: ({ children, ...props }: any) => <div {...props}>{children}</div>,
     Divider: () => <hr />,
+  };
+});
+
+jest.mock("@appsmith/ads-old", () => {
+  const actual = jest.requireActual("@appsmith/ads-old");
+
+  return {
+    ...actual,
+    EditableText: ({ isInvalid, placeholder }: any) => (
+      <div data-testid="t--application-name-validation">
+        {isInvalid?.("") || placeholder}
+      </div>
+    ),
   };
 });
 
@@ -143,5 +158,16 @@ describe("ApplicationCard localization", () => {
         expect(screen.getByText(label)).toBeInTheDocument(),
       );
     });
+  });
+
+  it.each([
+    ["en-US", "Application name can't be empty"],
+    ["zh-CN", "应用名称不能为空"],
+  ])("renders localized empty-name validation in %s", async (locale, label) => {
+    await i18n.changeLanguage(locale);
+    renderCard();
+    expect(
+      screen.getByTestId("t--application-name-validation"),
+    ).toHaveTextContent(label);
   });
 });

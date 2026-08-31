@@ -527,7 +527,7 @@ export function WorkspaceMenuItem({
       >
         <WorkspaceIconContainer>
           <WorkspaceLogoImage
-            alt={`${workspace.name} logo`}
+            alt={t("workspace.logoAlt", { name: workspace.name })}
             onError={handleImageError}
             src={workspace.logoUrl}
           />

@@ -301,8 +301,7 @@ export const GETTING_STARTED = () => `Getting started`;
 export const WORKSPACES_HEADING = () => i18n.t("workspace.heading");
 export const CREATE_A_NEW_WORKSPACE = () => i18n.t("workspace.create");
 export const WELCOME_TOUR = () => i18n.t("workspace.welcomeTour");
-export const NO_APPS_FOUND = () =>
-  `Whale! Whale! This name doesn't ring a bell!`;
+export const NO_APPS_FOUND = () => i18n.t("application.noAppsFoundHeading");
 export const APPLICATION_CARD_LIST_ZERO_STATE = () =>
   `There are no applications in this workspace.`;
 export const NEW_APPLICATION_CARD_LIST_ZERO_STATE = () =>
@@ -313,7 +312,7 @@ export const WHATS_NEW = () => `What's new?`;
 export const WORKSPACE_ACTION_BUTTON = () => "Create new";
 export const NEW_APP = () => "Application";
 export const NEW_APP_FROM_TEMPLATE = () => "Templates";
-export const NO_WORKSPACE_HEADING = () => "Oops! No workspace found";
+export const NO_WORKSPACE_HEADING = () => i18n.t("workspace.noWorkspace");
 export const NO_WORKSPACE_DESCRIPTION = () =>
   "You can find workspace list on the left sidebar, try selecting one of them to access a workspace.";
 

@@ -28,6 +28,7 @@ const enUS = {
     favorites: "Favorites",
     welcomeTour: "Welcome tour",
     noWorkspace: "Oops! No workspace found",
+    logoAlt: "{{name}} logo",
     noWorkspaceDescription:
       "You can find workspace list on the left sidebar, try selecting one of them to access a workspace.",
     actions: {
@@ -63,6 +64,7 @@ const enUS = {
     importSuccess: "Application imported successfully",
     importFailed: "We could not import the application",
     noSearchResult: "No result found",
+    noAppsFoundHeading: "Whale! Whale! This name doesn't ring a bell!",
     edit: "Edit",
     launch: "Launch",
     confirmDelete: "Are you sure?",

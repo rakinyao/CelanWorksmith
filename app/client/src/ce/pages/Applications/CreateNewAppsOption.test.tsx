@@ -8,6 +8,7 @@ import { ThemeProvider } from "styled-components";
 import CreateNewAppsOption from "./CreateNewAppsOption";
 import { BrowserRouter as Router } from "react-router-dom";
 import { unitTestBaseMockStore } from "layoutSystems/common/dropTarget/unitTestUtils";
+import { i18n } from "i18n";
 
 jest.mock("selectors/gitModSelectors", () => ({
   selectCombinedPreviewMode: jest.fn(() => false),
@@ -123,6 +124,34 @@ describe("CreateNewAppsOption", () => {
     // Check that the skip button to be present in the document
     expect(button).toHaveLength(1);
   });
+
+  it.each([
+    ["en-US", "Back", "Skip this step, I'll do it later"],
+    ["zh-CN", "返回", "跳过此步骤，我稍后处理"],
+  ])(
+    "renders onboarding controls in %s",
+    async (locale, backLabel, skipLabel) => {
+      await i18n.changeLanguage(locale);
+      store = mockStore(defaultStoreState);
+
+      render(
+        <Provider store={store}>
+          <ThemeProvider theme={lightTheme}>
+            <Router>
+              <CreateNewAppsOption currentApplicationIdForCreateNewApp="659d2e15d0cbfb0c5e0a7428" />
+            </Router>
+          </ThemeProvider>
+        </Provider>,
+      );
+
+      expect(
+        screen.getByTestId("t--create-new-app-option-goback"),
+      ).toHaveTextContent(backLabel);
+      expect(
+        screen.getByTestId("t--create-new-app-option-skip"),
+      ).toHaveTextContent(skipLabel);
+    },
+  );
 
   afterAll(() => {
     jest.clearAllMocks();

@@ -28,6 +28,7 @@ const zhCN = {
     favorites: "收藏",
     welcomeTour: "欢迎指南",
     noWorkspace: "糟糕！未找到工作区",
+    logoAlt: "{{name}} 标志",
     noWorkspaceDescription:
       "你可以在左侧边栏查看工作区列表，选择一个工作区即可访问。",
     actions: {
@@ -63,6 +64,7 @@ const zhCN = {
     importSuccess: "应用导入成功",
     importFailed: "无法导入应用",
     noSearchResult: "未找到结果",
+    noAppsFoundHeading: "哎呀！没有找到这个名称！",
     edit: "编辑",
     launch: "打开",
     confirmDelete: "确定吗？",

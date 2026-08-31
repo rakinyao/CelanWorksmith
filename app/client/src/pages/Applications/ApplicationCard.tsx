@@ -379,7 +379,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
                 isError={isErroredSavingName}
                 isInvalid={(value: string) => {
                   if (!value) {
-                    return "Name cannot be empty";
+                    return t("application.nameRequired");
                   } else {
                     return false;
                   }
