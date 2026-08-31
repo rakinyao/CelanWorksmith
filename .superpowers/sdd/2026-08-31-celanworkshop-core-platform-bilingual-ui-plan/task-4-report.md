@@ -49,3 +49,17 @@ Additional checks:
 - Targeted ESLint: no errors; repository emitted only existing performance/hook warnings and the stale Browserslist notice.
 - `git diff --check`: passed.
 
+## Review fix round 1
+
+- Added locale subscriptions to invite-dialog parents (`settings.tsx`, `AppInviteUsersForm.tsx`, viewer `ShareButton.tsx`, AppIDE `Header`) so titles, tabs, and placeholders update during an open dialog without changing form data.
+- Made GlobalSearch category title/description and hotkey labels resolve through i18n at render time while retaining existing category IDs and actions.
+- Re-ran redux-form invite validation on locale changes using the current `users` and `role` values, preserving entered data and refreshing visible errors. Workspace member no-results text now subscribes to locale changes.
+- Added locale subscriptions to Git deploy confirmation consumers and the admin settings header action.
+
+Fix-round verification:
+
+```bash
+cd app/client && npx jest --runInBand src/components/editorComponents/GlobalSearch/GlobalSearch.i18n.test.tsx src/components/editorComponents/GlobalSearch/GlobalSearchHooks.test.ts src/pages/workspace/__tests__/SettingsPageHeader.test.tsx src/ce/constants/messages.i18n.test.ts src/pages/Editor/GlobalHotKeys/GlobalHotKeys.test.tsx
+```
+
+Result: 5 suites passed, 27 tests passed. Targeted ESLint reported no errors (existing warnings only); `git diff --check` passed.
