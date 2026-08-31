@@ -127,6 +127,12 @@ const zhCN = {
     queryAddButton: "新建查询 / API",
     widgetBlankDescription: "拖放组件以创建你的应用",
     widgetsCreateTitle: "拖放组件",
+    noJsObjects: "暂无 JS 对象",
+    jsBlankDescription: "使用 JS 转换数据或编写业务逻辑",
+    newJsObject: "新建 JS 对象",
+    blankJsObject: "空白 JS 对象",
+    queryCreateTitle: "从以下内容新建查询",
+    jsCreateTitle: "从以下内容创建 JS 对象",
     context: {
       rename: "重命名",
       showBinding: "显示绑定",

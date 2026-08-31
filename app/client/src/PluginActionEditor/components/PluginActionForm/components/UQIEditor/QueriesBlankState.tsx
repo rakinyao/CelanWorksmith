@@ -1,10 +1,12 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Flex, Text } from "@appsmith/ads";
 import { importSvg } from "@appsmith/ads-old";
 
 import { createMessage, EDITOR_PANE_TEXTS } from "ee/constants/messages";
 
 const QueriesBlankState = () => {
+  useTranslation();
   const BlankStateIllustration = importSvg(
     async () => import("assets/images/no-query-min.svg"),
   );

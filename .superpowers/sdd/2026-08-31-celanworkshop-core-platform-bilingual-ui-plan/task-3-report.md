@@ -94,3 +94,32 @@ npx jest --runInBand \
 ```
 
 Scoped ESLint exits `0` with 0 errors and 11 existing warnings. `git diff --check` passes.
+
+## Corrective Review Round 2
+
+- Added live `react-i18next` subscriptions to SegmentSwitcher, UIList, QueryAddView, JSAddView, JS/Query blank states, DeployButton, datasource authentication, and the save/discard datasource modal.
+- Removed stale memoized labels by depending on locale/translation functions and resolving datasource blank-state title, description, CTA, widget add text, deploy text, and query blank-state text during reactive renders.
+- Expanded bilingual editor assertions for query/JS blank states, datasource Save, deploy, and live open request-confirmation/run controls.
+- Kept plugin-specific form fields, query definitions, datasource JSON/configuration, IDs, callbacks, routes, and execution behavior unchanged.
+
+### Review Round 2 Verification
+
+```text
+npx jest --runInBand src/pages/AppIDE/layouts/routers/QueryEditor/QueryRender.test.tsx --silent
+1 suite passed, 16 tests passed, 0 failures
+```
+
+```text
+npx jest --runInBand \
+  src/pages/Editor/Explorer/Actions/ActionEntityContextMenu.test.tsx \
+  src/pages/Editor/Explorer/CopyToApp/CopyEntityToAppModal.test.tsx \
+  src/pages/Editor/widgetSidebar/tests/UIEntitySidebar.test.tsx \
+  src/pages/Editor/EditorChrome.i18n.test.tsx \
+  src/pages/Editor/DataSidePane/DataSidePane.test.tsx \
+  src/PluginActionEditor/components/PluginActionResponse/components/Response/Response.test.tsx \
+  src/i18n/resources/resourceParity.test.ts \
+  src/ce/constants/messages.i18n.test.ts --silent
+8 suites passed, 42 tests passed, 0 failures
+```
+
+Additional focused coverage: `UIList.test.tsx` passed (17 tests). Scoped ESLint exits `0` with 0 errors; only existing hook/performance warnings and the stale Browserslist notice remain. `git diff --check` passes.

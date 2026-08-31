@@ -13,10 +13,12 @@ import {
   DATASOURCE_BLANK_STATE_MESSAGE,
   DEPLOY_MENU_OPTION,
   EDITOR_HEADER,
+  EDITOR_PANE_TEXTS,
   EDITOR_RUN_BUTTON,
   EDITOR_HEADER_SAVE_INDICATOR,
   QUERY_CONFIRMATION_MODAL_MESSAGE,
   QUERY_CONFIRMATION_MODAL_TITLE,
+  SAVE_BUTTON_TEXT,
   UI_ELEMENT_PANEL_SEARCH_TEXT,
   WIDGET_SIDEBAR_TITLE,
   createMessage,
@@ -48,6 +50,11 @@ describe("editor operational chrome translations", () => {
     expect(createMessage(QUERY_CONFIRMATION_MODAL_MESSAGE)).toBe("确定要运行 ");
     expect(createMessage(EDITOR_RUN_BUTTON)).toBe("运行");
     expect(createMessage(DEPLOY_MENU_OPTION)).toBe("发布");
+    expect(createMessage(EDITOR_PANE_TEXTS.query_blank_state)).toBe("暂无查询");
+    expect(createMessage(EDITOR_PANE_TEXTS.js_blank_state)).toBe(
+      "暂无 JS 对象",
+    );
+    expect(createMessage(SAVE_BUTTON_TEXT)).toBe("保存");
   });
 
   it("renders save status text in both locales", async () => {
@@ -64,6 +71,11 @@ describe("editor operational chrome translations", () => {
     expect(screen.getByText("Save failed")).toBeInTheDocument();
     expect(createMessage(EDITOR_HEADER_SAVE_INDICATOR)).toBe("Saved");
     expect(createMessage(EDITOR_HEADER.saving)).toBe("Saving");
+    expect(createMessage(DEPLOY_MENU_OPTION)).toBe("Deploy");
+    expect(createMessage(EDITOR_PANE_TEXTS.query_blank_state)).toBe(
+      "No queries to display",
+    );
+    expect(createMessage(SAVE_BUTTON_TEXT)).toBe("Save");
   });
 
   it("renders the query run command in both locales", async () => {

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   createMessage,
   DELETE_CONFIRMATION_MODAL_TITLE,
@@ -30,6 +31,7 @@ interface SaveOrDiscardModalProps {
 }
 
 function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
+  const { t } = useTranslation();
   const {
     datasourceId,
     datasourcePermissions,
@@ -72,7 +74,7 @@ function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
             onClick={onSave}
             size="md"
           >
-            {saveButtonText}
+            {t("editor.save") || saveButtonText}
           </Button>
         </ModalFooter>
       </ModalContent>

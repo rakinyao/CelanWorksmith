@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Flex } from "@appsmith/ads";
 import { useSelector } from "react-redux";
 
@@ -7,7 +8,6 @@ import { getPagePermissions } from "selectors/editorSelectors";
 import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import { getHasManagePagePermission } from "ee/utils/BusinessFeatures/permissionPageHelpers";
-import { createMessage, EDITOR_PANE_TEXTS } from "ee/constants/messages";
 import { EmptyState } from "@appsmith/ads";
 import history from "utils/history";
 import { builderURL } from "ee/RouteBuilder";
@@ -17,6 +17,7 @@ const ListWidgets = (props: {
   setFocusSearchInput: (focusSearchInput: boolean) => void;
 }) => {
   const { setFocusSearchInput } = props;
+  const { t } = useTranslation();
   const widgets = useSelector(selectWidgetsForCurrentPage);
   const pagePermissions = useSelector(getPagePermissions);
   const isFeatureEnabled = useFeatureFlag(FEATURE_FLAG.license_gac_enabled);
@@ -45,10 +46,10 @@ const ListWidgets = (props: {
     () => ({
       className: "t--add-item",
       testId: "t--add-item",
-      text: createMessage(EDITOR_PANE_TEXTS.widget_add_button),
+      text: t("editor.addWidget"),
       onClick: canManagePages ? addButtonClickHandler : undefined,
     }),
-    [addButtonClickHandler, canManagePages],
+    [addButtonClickHandler, canManagePages, t],
   );
 
   return (
@@ -57,9 +58,7 @@ const ListWidgets = (props: {
         /* If no widgets exist, show the blank state */
         <EmptyState
           button={blankStateButtonProps}
-          description={createMessage(
-            EDITOR_PANE_TEXTS.widget_blank_state_description,
-          )}
+          description={t("editor.widgetBlankDescription")}
           icon={"widgets-v3"}
         />
       ) : canManagePages ? (
@@ -73,7 +72,7 @@ const ListWidgets = (props: {
             size={"sm"}
             startIcon={"add-line"}
           >
-            {createMessage(EDITOR_PANE_TEXTS.widget_add_button)}
+            {t("editor.addWidget")}
           </Button>
         </Flex>
       ) : null}

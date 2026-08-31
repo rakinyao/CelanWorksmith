@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import SegmentAddHeader from "IDE/Components/SegmentAddHeader";
 import { EDITOR_PANE_TEXTS, createMessage } from "ee/constants/messages";
 import type { ListItemProps } from "@appsmith/ads";
@@ -21,6 +22,7 @@ import { filterEntityGroupsBySearchTerm } from "IDE/utils";
 import { createAddClassName, DEFAULT_GROUP_LIST_SIZE } from "../../constants";
 
 const JSAddView = () => {
+  useTranslation();
   const dispatch = useDispatch();
   const pageId = useSelector(getCurrentPageId);
   const [searchTerm, setSearchTerm] = useState("");

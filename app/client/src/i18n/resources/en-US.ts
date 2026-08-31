@@ -129,6 +129,12 @@ const enUS = {
     queryAddButton: "New query / API",
     widgetBlankDescription: "Drag & drop UI elements to create your app",
     widgetsCreateTitle: "Drag & drop UI elements",
+    noJsObjects: "No JS objects to display",
+    jsBlankDescription: "Use JS to transform your data or write business logic",
+    newJsObject: "New JS object",
+    blankJsObject: "Blank JS object",
+    queryCreateTitle: "Create new query from",
+    jsCreateTitle: "Create JS object from",
     context: {
       rename: "Rename",
       showBinding: "Show bindings",
