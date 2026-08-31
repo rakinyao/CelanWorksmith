@@ -123,3 +123,23 @@ npx jest --runInBand \
 ```
 
 Additional focused coverage: `UIList.test.tsx` passed (17 tests). Scoped ESLint exits `0` with 0 errors; only existing hook/performance warnings and the stale Browserslist notice remain. `git diff --check` passes.
+
+## Corrective Review Round 3
+
+- `SaveOrDiscardDatasourceModal` now renders the caller-provided `saveButtonText` directly, preserving SaaS Editor's `Save & Authorize` action while translating the modal warning and discard action through `dialog.*` resources.
+- `JSExplorer/BlankState` now subscribes to `react-i18next` and includes the active translation function in memo dependencies, so button and description text update on locale changes.
+- Added render-based bilingual/reactive coverage for SegmentSwitcher, UIList blank state, JS blank state, DeployButton, and the datasource modal. The modal test verifies the custom SaaS label remains `Save & Authorize` in both locales.
+
+### Review Round 3 Verification
+
+```text
+npx jest --runInBand \
+  src/pages/AppIDE/layouts/components/SegmentSwitcher/SegmentSwitcher.i18n.test.tsx \
+  src/pages/AppIDE/components/UIList/UIList.i18n.test.tsx \
+  src/pages/AppIDE/components/JSExplorer/BlankState.i18n.test.tsx \
+  src/pages/AppIDE/layouts/components/Header/DeployButton.i18n.test.tsx \
+  src/pages/Editor/DataSourceEditor/SaveOrDiscardDatasourceModal.test.tsx --silent
+5 suites passed, 5 tests passed, 0 failures
+```
+
+Scoped ESLint exits `0` with no errors (existing datasource JSX performance warning only). `git diff --check` passes. Commit identity: `gavin <gavin@localhost>`.

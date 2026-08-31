@@ -159,6 +159,8 @@ const enUS = {
     copyToApplication: "Application",
     queryConfirmationTitle: "Confirmation dialog",
     queryConfirmationMessage: "Are you sure you want to run",
+    unsavedDatasourceWarning:
+      "Unsaved changes will be lost if you exit this page. Save the changes before exiting.",
     copyEntityToApplicationTitle: "Copy to application",
     copyEntityToApplicationWorkspace: "Workspace",
     copyEntityToApplicationApplication: "Application",

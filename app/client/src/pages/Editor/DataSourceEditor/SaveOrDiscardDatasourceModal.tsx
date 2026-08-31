@@ -31,7 +31,7 @@ interface SaveOrDiscardModalProps {
 }
 
 function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
-  const { t } = useTranslation();
+  useTranslation();
   const {
     datasourceId,
     datasourcePermissions,
@@ -74,7 +74,7 @@ function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
             onClick={onSave}
             size="md"
           >
-            {t("editor.save") || saveButtonText}
+            {saveButtonText}
           </Button>
         </ModalFooter>
       </ModalContent>

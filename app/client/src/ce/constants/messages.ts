@@ -2034,7 +2034,7 @@ export const ADD_PAGE_FROM_TEMPLATE = () => "Add page from template";
 export const INVALID_URL = () =>
   "Please enter a valid URL, for example, https://example.com";
 export const SAVE_OR_DISCARD_DATASOURCE_WARNING = () =>
-  `Unsaved changes will be lost if you exit this page, save the changes before exiting.`;
+  i18n.t("dialog.unsavedDatasourceWarning");
 
 export const APP_SETTINGS_PANE_HEADER = () => "Settings";
 export const APP_SETTINGS_CLOSE_TOOLTIP = () => "Close settings panel";
@@ -2225,7 +2225,8 @@ export const SAVE_AND_AUTHORIZE_BUTTON_TEXT = () => "Save & Authorize";
 export const CONNECT_DATASOURCE_BUTTON_TEXT = () => "Connect Datasource";
 export const CONNECT_DATASOURCE_BUTTON_TEXT_FOR_AGENTS = () => "Connect";
 export const SAVE_AND_RE_AUTHORIZE_BUTTON_TEXT = () => "Save & Re-Authorize";
-export const DISCARD_POPUP_DONT_SAVE_BUTTON_TEXT = () => "Don't save";
+export const DISCARD_POPUP_DONT_SAVE_BUTTON_TEXT = () =>
+  i18n.t("dialog.discard");
 export const GSHEET_AUTHORISED_FILE_IDS_KEY = () => "userAuthorizedSheetIds";
 export const GOOGLE_SHEETS_INFO_BANNER_MESSAGE = () =>
   "Appsmith will require access to your google drive to access google sheets.";

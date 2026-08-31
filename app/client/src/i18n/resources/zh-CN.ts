@@ -157,6 +157,8 @@ const zhCN = {
     copyToApplication: "应用",
     queryConfirmationTitle: "确认对话框",
     queryConfirmationMessage: "确定要运行",
+    unsavedDatasourceWarning:
+      "如果退出此页面，未保存的更改将丢失。请在退出前保存更改。",
     copyEntityToApplicationTitle: "复制到应用",
     copyEntityToApplicationWorkspace: "工作区",
     copyEntityToApplicationApplication: "应用",
