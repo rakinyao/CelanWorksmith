@@ -16,6 +16,11 @@ export const INTERCOM_CONSENT_MESSAGE = () =>
   `Can we have your email for better support?`;
 export const YES = () => i18n.t("common.yes");
 export const NO = () => i18n.t("common.no");
+export const EDITOR_WIDGETS_TAB = () => i18n.t("editor.widgetsTab");
+export const EDITOR_MODULES_TAB = () => i18n.t("editor.modulesTab");
+export const EDITOR_QUERIES_JS = () => i18n.t("editor.queriesJs");
+export const EDITOR_RUN_BUTTON = () => i18n.t("editor.run");
+export const EDITOR_CLOSE_PANE = () => i18n.t("common.close");
 export const QUERY_CONFIRMATION_MODAL_TITLE = () =>
   i18n.t("dialog.queryConfirmationTitle");
 export const ARE_YOU_SURE = () => `Are you sure?`;
@@ -628,7 +633,7 @@ export const ACTION_CONFIGURATION_UPDATED = () => "Configuration updated";
 export const WIDGET_PROPERTIES_UPDATED = () => "Widget properties were updated";
 export const EMPTY_RESPONSE_FIRST_HALF = () => "🙌 Click on";
 export const EMPTY_RESPONSE_LAST_HALF = () => "to get a response";
-export const EMPTY_RESPONSE_RUN = () => "Click ‘Run’ to get a response";
+export const EMPTY_RESPONSE_RUN = () => i18n.t("editor.emptyResponseRun");
 export const EMPTY_JS_RESPONSE_LAST_HALF = () =>
   "to view response of selected function";
 export const INVALID_EMAIL = () => "Please enter a valid email";
@@ -1516,7 +1521,7 @@ export const ENTITY_MORE_ACTIONS_TOOLTIP = () => "More actions";
 export const NOTIFICATIONS_TOOLTIP = () => "Notifications";
 
 // Navigation Menu
-export const DEPLOY_MENU_OPTION = () => "Deploy";
+export const DEPLOY_MENU_OPTION = () => i18n.t("editor.deploy");
 export const REDEPLOY_MENU_OPTION = () => "Redeploy";
 export const CURRENT_DEPLOY_PREVIEW_OPTION = () => "Current deployed version";
 export const CONNECT_TO_GIT_OPTION = () => "Connect to Git repository";
@@ -1731,7 +1736,7 @@ export const API_PANE_DUPLICATE_HEADER = (headerName: string) =>
 export const TABLE_WIDGET_TOTAL_RECORD_TOOLTIP = () =>
   "It stores the total no. of rows in the table. Helps in calculating the no. of pages that further allows to enable or disable the next/previous control in pagination.";
 export const CREATE_DATASOURCE_TOOLTIP = () => "Add a new datasource";
-export const ADD_QUERY_JS_TOOLTIP = () => "Add a new query/JS Object";
+export const ADD_QUERY_JS_TOOLTIP = () => i18n.t("editor.addQueryJsTooltip");
 export const LIST_WIDGET_V2_TOTAL_RECORD_TOOLTIP = () =>
   "Count of all the records in the source data for the list. This helps us calculate the number of pages to be shown";
 
@@ -1879,7 +1884,7 @@ export const CONTEXT_DUPLICATE = () => i18n.t("editor.context.duplicate");
 export const CONTEXT_DELETE = () => i18n.t("editor.context.delete");
 export const CONFIRM_CONTEXT_DELETE = () =>
   i18n.t("editor.context.confirmDelete");
-export const CONFIRM_CONTEXT_DELETING = () => "Deleting";
+export const CONFIRM_CONTEXT_DELETING = () => i18n.t("editor.context.deleting");
 export const CONTEXT_NO_PAGE = () => i18n.t("editor.context.noPages");
 export const CONTEXT_REFRESH = () => "Refresh";
 export const CONTEXT_CLONE = () => "Clone";
@@ -1893,15 +1898,18 @@ export const PAGES = () => "Pages";
 
 // Entity explorer
 export const ADD_DATASOURCE_BUTTON = () => i18n.t("editor.addDatasource");
-export const ADD_WIDGET_BUTTON = () => "Add widget";
-export const ADD_QUERY_JS_BUTTON = () => "Add query/JS";
-export const EMPTY_WIDGET_MAIN_TEXT = () => "No widget to display";
-export const EMPTY_WIDGET_BUTTON_TEXT = () => "New widget";
-export const EMPTY_QUERY_JS_MAIN_TEXT = () => "No query/JS to display";
-export const EMPTY_QUERY_JS_BUTTON_TEXT = () => "New query/JS";
-export const EMPTY_DATASOURCE_MAIN_TEXT = () => "No datasource to display";
-export const EMPTY_DATASOURCE_BUTTON_TEXT = () => "New datasource";
-export const SEARCH_DATASOURCES = () => "Search datasources";
+export const ADD_WIDGET_BUTTON = () => i18n.t("editor.addWidgetCommand");
+export const ADD_QUERY_JS_BUTTON = () => i18n.t("editor.addQueryJs");
+export const EMPTY_WIDGET_MAIN_TEXT = () => i18n.t("editor.emptyWidget");
+export const EMPTY_WIDGET_BUTTON_TEXT = () =>
+  i18n.t("editor.emptyWidgetButton");
+export const EMPTY_QUERY_JS_MAIN_TEXT = () => i18n.t("editor.emptyQueryJs");
+export const EMPTY_QUERY_JS_BUTTON_TEXT = () => i18n.t("editor.newQueryJs");
+export const EMPTY_DATASOURCE_MAIN_TEXT = () =>
+  i18n.t("editor.emptyDatasource");
+export const EMPTY_DATASOURCE_BUTTON_TEXT = () =>
+  i18n.t("editor.newDatasource");
+export const SEARCH_DATASOURCES = () => i18n.t("editor.searchDatasources");
 
 // Templates
 export const MORE = () => "More";
@@ -2211,7 +2219,7 @@ export const NEW_API_BUTTON_TEXT = () => "New API";
 export const NEW_AI_BUTTON_TEXT = () => "New AI Query";
 export const GENERATE_NEW_PAGE_BUTTON_TEXT = () => "Generate new page";
 export const RECONNECT_BUTTON_TEXT = () => "Reconnect";
-export const SAVE_BUTTON_TEXT = () => "Save";
+export const SAVE_BUTTON_TEXT = () => i18n.t("editor.save");
 export const TEST_BUTTON_TEXT = () => "Test configuration";
 export const SAVE_AND_AUTHORIZE_BUTTON_TEXT = () => "Save & Authorize";
 export const CONNECT_DATASOURCE_BUTTON_TEXT = () => "Connect Datasource";
@@ -2520,10 +2528,11 @@ export const NO_ACCESS_MESSAGE_TEXT = () =>
 
 export const DATA_PANE_TITLE = () => i18n.t("editor.dataPaneTitle");
 export const DATASOURCE_LIST_BLANK_DESCRIPTION = () =>
-  "Connect a datasource to write your first query";
+  i18n.t("editor.datasourceBlankDescription");
 export const DATASOURCE_BLANK_STATE_MESSAGE = () =>
   i18n.t("editor.noDatasources");
-export const DATASOURCE_BLANK_STATE_CTA = () => "Bring your data";
+export const DATASOURCE_BLANK_STATE_CTA = () =>
+  i18n.t("editor.datasourceBlankCta");
 
 // Create New Apps Intermediary step
 export const CREATE_NEW_APPS_STEP_TITLE = () => "How would you like to start?";
@@ -2543,24 +2552,22 @@ export const START_WITH_TEMPLATE_CONNECT_SUBHEADING = () =>
   "Choose an option below to embark on your app-building adventure!";
 
 export const EDITOR_PANE_TEXTS = {
-  queries_tab: () => "Queries",
+  queries_tab: () => i18n.t("editor.queries"),
   js_tab: () => "JS",
   ui_tab: () => "UI",
   ontology_tab: () => "Ontology / 本体",
-  query_blank_state: () => "No queries to display",
+  query_blank_state: () => i18n.t("editor.noQueries"),
   js_blank_state: () => "No JS objects to display",
-  query_blank_state_description: () =>
-    "Write your first query or API to access data",
+  query_blank_state_description: () => i18n.t("editor.queryBlankDescription"),
   js_blank_state_description: () =>
     "Use JS to transform your data or write business logic",
-  widget_blank_state_description: () =>
-    "Drag & drop UI elements to create your app",
-  query_add_button: () => "New query / API",
+  widget_blank_state_description: () => i18n.t("editor.widgetBlankDescription"),
+  query_add_button: () => i18n.t("editor.queryAddButton"),
   js_add_button: () => "New JS object",
   js_blank_object_item: () => "Blank JS object",
   widget_add_button: () => "New UI element",
   query_create_tab_title: () => "Create new query from",
-  widgets_create_tab_title: () => "Drag & drop UI elements",
+  widgets_create_tab_title: () => i18n.t("editor.widgetsCreateTitle"),
   js_create_tab_title: () => "Create JS object from",
   js_create_modules: (isBeta: boolean) =>
     `JS modules ${isBeta ? "(Beta)" : ""}`,

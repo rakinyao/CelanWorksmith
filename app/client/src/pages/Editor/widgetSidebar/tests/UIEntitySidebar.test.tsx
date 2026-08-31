@@ -15,6 +15,7 @@ import { cards, groupedCards } from "./UIEntitySidebar.fixture";
 import { render } from "test/testUtils";
 import { getIDETestState } from "test/factories/AppIDEFactoryUtils";
 import type { WidgetCardProps } from "widgets/BaseWidget";
+import { changeLocale } from "i18n";
 
 jest.mock("utils/hooks/useFeatureFlag", () => ({
   useFeatureFlag: jest.fn(),
@@ -26,6 +27,10 @@ jest.mock("../hooks", () => ({
 }));
 
 describe("UIEntitySidebar", () => {
+  afterEach(async () => {
+    await changeLocale("zh-CN");
+  });
+
   const renderUIEntitySidebar = (
     isActive: boolean,
     focusSearchInput: boolean,
@@ -157,5 +162,19 @@ describe("UIEntitySidebar", () => {
     const { getByText } = renderUIEntitySidebar(true, true);
 
     expect(getByText(WIDGET_TAGS.SUGGESTED_WIDGETS)).toBeInTheDocument();
+  });
+
+  it("renders localized widget search copy", async () => {
+    await changeLocale("zh-CN");
+    mockUIExplorerItems();
+    const { getByPlaceholderText } = renderUIEntitySidebar(true, false);
+
+    expect(getByPlaceholderText("搜索组件")).toBeInTheDocument();
+
+    await changeLocale("en-US");
+    const { getByPlaceholderText: getEnglishPlaceholder } =
+      renderUIEntitySidebar(true, false);
+
+    expect(getEnglishPlaceholder("Search UI elements")).toBeInTheDocument();
   });
 });

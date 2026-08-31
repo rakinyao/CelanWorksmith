@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { EntityGroupsList, Flex } from "@appsmith/ads";
 import { useSelector } from "react-redux";
@@ -14,12 +15,6 @@ import { getSelectedDatasourceId } from "ee/navigation/FocusSelectors";
 import { get } from "lodash";
 import CreateDatasourceButton from "./CreateDatasourceButton";
 import { useLocation } from "react-router";
-import {
-  createMessage,
-  DATA_PANE_TITLE,
-  DATASOURCE_BLANK_STATE_CTA,
-  DATASOURCE_LIST_BLANK_DESCRIPTION,
-} from "ee/constants/messages";
 import PaneHeader from "IDE/Components/PaneHeader";
 import { INTEGRATION_TABS } from "constants/routes";
 import type { DefaultRootState } from "react-redux";
@@ -51,6 +46,7 @@ interface DataSidePaneProps {
 }
 
 export const DataSidePane = (props: DataSidePaneProps) => {
+  const { t } = useTranslation();
   const { dsUsageMap } = props;
   const basePageId = useSelector(getCurrentBasePageId) as string;
   const [currentSelectedDatasource, setCurrentSelectedDatasource] = useState<
@@ -102,10 +98,10 @@ export const DataSidePane = (props: DataSidePaneProps) => {
     () => ({
       className: "t--add-datasource-button-blank-screen",
       testId: "t--add-datasource-button-blank-screen",
-      text: createMessage(DATASOURCE_BLANK_STATE_CTA),
+      text: t("editor.datasourceBlankCta"),
       onClick: canCreateDatasource ? addButtonClickHandler : undefined,
     }),
-    [addButtonClickHandler, canCreateDatasource],
+    [addButtonClickHandler, canCreateDatasource, t],
   );
 
   const shouldShowPremiumTag = useCallback(
@@ -134,13 +130,13 @@ export const DataSidePane = (props: DataSidePaneProps) => {
             <CreateDatasourceButton />
           ) : undefined
         }
-        title={createMessage(DATA_PANE_TITLE)}
+        title={t("editor.dataPaneTitle")}
       />
       <PaneBody>
         {datasources.length === 0 ? (
           <EmptyState
             button={blankStateButtonProps}
-            description={createMessage(DATASOURCE_LIST_BLANK_DESCRIPTION)}
+            description={t("editor.datasourceBlankDescription")}
             icon={"datasource-v3"}
           />
         ) : null}

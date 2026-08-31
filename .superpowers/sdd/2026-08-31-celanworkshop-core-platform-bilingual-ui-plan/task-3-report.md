@@ -60,3 +60,32 @@ Scoped ESLint exits `0` with no errors. It reports the repository's existing hoo
 
 - Existing lint warnings in the touched editor files remain; none are new errors.
 - The worktree's Husky hook is incomplete, so the commit uses `--no-verify` with the required identity.
+
+## Corrective Review Round
+
+- Wired actual editor chrome call sites: WidgetAdd tabs/close label, WidgetsList search and empty text, Files `Queries/JS` heading and query/JS empty actions, query blank state, JS function Run, no-response Run, datasource blank-state title/description/CTA, and application deploy command.
+- Added live locale subscriptions to WidgetAdd/WidgetsList, Files, DataSidePane, query blank state, JSFunctionRun, NoResponse, UIEntitySidebar, and the request-confirmation modal wrapper. DataSidePane memoized blank-state props now depend on the active translation function.
+- Added bilingual resource leaves and compatibility mappings for query/widget/datasource empty states, run/deploy commands, and context deletion progress. Existing execution callbacks, request payloads, and authored entity names remain unchanged.
+- Isolated the legacy English QueryRender assertions with explicit `en-US` setup/teardown rather than weakening production localization.
+
+### Corrective Verification
+
+```text
+npx jest --runInBand src/pages/AppIDE/layouts/routers/QueryEditor/QueryRender.test.tsx --silent
+1 suite passed, 16 tests passed, 0 failures
+```
+
+```text
+npx jest --runInBand \
+  src/pages/Editor/Explorer/Actions/ActionEntityContextMenu.test.tsx \
+  src/pages/Editor/Explorer/CopyToApp/CopyEntityToAppModal.test.tsx \
+  src/pages/Editor/widgetSidebar/tests/UIEntitySidebar.test.tsx \
+  src/pages/Editor/EditorChrome.i18n.test.tsx \
+  src/pages/Editor/DataSidePane/DataSidePane.test.tsx \
+  src/PluginActionEditor/components/PluginActionResponse/components/Response/Response.test.tsx \
+  src/i18n/resources/resourceParity.test.ts \
+  src/ce/constants/messages.i18n.test.ts --silent
+8 suites passed, 42 tests passed, 0 failures
+```
+
+Scoped ESLint exits `0` with 0 errors and 11 existing warnings. `git diff --check` passes.

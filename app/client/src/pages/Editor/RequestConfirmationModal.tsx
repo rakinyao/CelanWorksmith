@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { Keys } from "@blueprintjs/core";
@@ -127,8 +128,14 @@ class RequestConfirmationModal extends React.Component<Props> {
   }
 }
 
+export const RequestConfirmationModalWithI18n = (props: Props) => {
+  useTranslation();
+
+  return <RequestConfirmationModal {...props} />;
+};
+
 const mapStateToProps = (state: DefaultRootState) => ({
   modals: state.ui.modalAction.modals,
 });
 
-export default connect(mapStateToProps)(RequestConfirmationModal);
+export default connect(mapStateToProps)(RequestConfirmationModalWithI18n);
