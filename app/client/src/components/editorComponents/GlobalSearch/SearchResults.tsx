@@ -9,6 +9,7 @@ import type { SearchItem, SearchCategory } from "./utils";
 import {
   getItemType,
   getItemTitle,
+  SEARCH_CATEGORY_ID,
   SEARCH_ITEM_TYPES,
   comboHelpText,
 } from "./utils";
@@ -27,6 +28,7 @@ import { getPageList } from "selectors/editorSelectors";
 import { PluginType } from "entities/Plugin";
 import WidgetIcon from "pages/Editor/Explorer/Widgets/WidgetIcon";
 import { Text } from "@appsmith/ads";
+import { useTranslation } from "react-i18next";
 
 const overflowCSS = css`
   overflow: hidden;
@@ -324,15 +326,25 @@ function CategoryItem({
   item: SearchCategory;
   isActiveItem: boolean;
 }) {
+  const { t } = useTranslation();
+  const title =
+    item.id === SEARCH_CATEGORY_ID.NAVIGATION
+      ? t("search.hotkeyNavigate")
+      : item.id === SEARCH_CATEGORY_ID.ACTION_OPERATION
+        ? t("search.hotkeyCreateNew")
+        : item.titleKey
+          ? t(item.titleKey)
+          : item.title;
+  const description = item.descKey ? t(item.descKey) : item.desc;
   return (
     <CategoryContainer>
       <CategoryListItem isActiveItem={isActiveItem}>
         <div className="content">
           <Text className="category-title" kind="heading-s">
-            {item.title}
+            {title}
           </Text>
           <Text className="category-desc" kind="body-s">
-            {item.desc}
+            {description}
           </Text>
         </div>
         <Text className="action-msg" kind="body-s">

@@ -45,6 +45,7 @@ import styled from "styled-components";
 import { getIsAiAgentInstanceEnabled } from "ee/selectors/aiAgentSelectors";
 import BetterbugsUtil from "utils/Analytics/betterbugs";
 import { useBetterbugsMetadata } from "utils/hooks/useBetterbugsMetadata";
+import { useTranslation } from "react-i18next";
 
 const { betterbugs, cloudHosting } = getAppsmithConfigs();
 
@@ -65,6 +66,7 @@ const HomepageHeaderAction = ({
   user: User;
   setIsProductUpdatesModalOpen: (val: boolean) => void;
 }) => {
+  useTranslation();
   const dispatch = useDispatch();
   const isFeatureEnabled = useFeatureFlag(FEATURE_FLAG.license_gac_enabled);
   const organizationPermissions = useSelector(getOrganizationPermissions);

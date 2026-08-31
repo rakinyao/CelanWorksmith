@@ -197,12 +197,18 @@ const enUS = {
     globalPlaceholder: "Search widgets, queries or create new",
     createNewPlaceholder: "Create a new query, API or JS Object",
     widgetsAndQueriesPlaceholder: "Search widgets and queries",
+    usersPlaceholder: "Search users",
+    navigateDescription:
+      "Navigate to any page, widget or file across this project.",
+    createNewDescription: "Create a new query, API or JS Object",
     noResults: "No results found",
     datasourcesPlaceholder: "Search for datasources",
     hotkeySearchEntities: "Search entities",
     hotkeyNavigate: "Navigate",
     hotkeyCreateNew: "Create new",
     hotkeyShowOmnibar: "Show omnibar",
+    moveUpList: "Move up the list",
+    moveDownList: "Move down the list",
   },
   invite: {
     title: "Invite users to {{name}}",

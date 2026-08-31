@@ -100,6 +100,12 @@ function SearchBox({ category, query, setCategory, setQuery }: SearchBoxProps) {
     (state: DefaultRootState) => state.ui.globalSearch,
   );
   const listenToChange = useListenToChange(modalOpen);
+  const categoryLabel =
+    category.id === SEARCH_CATEGORY_ID.NAVIGATION
+      ? t("search.hotkeyNavigate")
+      : category.id === SEARCH_CATEGORY_ID.ACTION_OPERATION
+        ? t("search.hotkeyCreateNew")
+        : category.title;
 
   const updateSearchQuery = useCallback(
     (query) => {
@@ -118,7 +124,7 @@ function SearchBox({ category, query, setCategory, setQuery }: SearchBoxProps) {
         {isMenu(category) && <Icon name="search" size="md" />}
         {category.title && (
           <CategoryDisplay className="t--global-search-category">
-            {category.id}
+            {categoryLabel}
             <Icon
               name="close"
               onClick={() => setCategory({ id: SEARCH_CATEGORY_ID.INIT })}

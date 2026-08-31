@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import styled from "styled-components";
 import TagListField from "components/editorComponents/form/fields/TagListField";
-import { reduxForm, SubmissionError } from "redux-form";
+import { formValueSelector, reduxForm, SubmissionError } from "redux-form";
 import { connect, useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { getRolesForField } from "ee/selectors/workspaceSelectors";
@@ -282,7 +282,7 @@ export function CustomRolesRamp() {
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function InviteUsersForm(props: any) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [emailError, setEmailError] = useState("");
   // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -302,6 +302,7 @@ function InviteUsersForm(props: any) {
 
   const {
     anyTouched,
+    change,
     customProps = {},
     error,
     fetchAllRoles,
@@ -317,6 +318,20 @@ function InviteUsersForm(props: any) {
     submitting,
     valid,
   } = props;
+
+  // redux-form caches validation errors in Redux. Re-run validation when the
+  // locale changes so an already-visible error updates without clearing input.
+  useEffect(() => {
+    if (typeof change !== "function") return;
+
+    if (typeof props.users !== "undefined") {
+      change("users", props.users);
+    }
+
+    if (typeof props.role !== "undefined") {
+      change("role", props.role);
+    }
+  }, [change, i18n.language, props.role, props.users]);
 
   const { disableDropdown = false } = customProps;
 
@@ -556,9 +571,17 @@ export const mapStateToProps = (
   state: DefaultRootState,
   { formName }: { formName?: string },
 ) => {
+  const form = formName || INVITE_USERS_TO_WORKSPACE_FORM;
+  const values = formValueSelector(form)(state) as {
+    users?: string;
+    role?: string;
+  };
+
   return {
     roles: getRolesForField(state),
-    form: formName || INVITE_USERS_TO_WORKSPACE_FORM,
+    form,
+    users: values?.users,
+    role: values?.role,
   };
 };
 

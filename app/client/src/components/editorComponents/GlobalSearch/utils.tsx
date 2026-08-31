@@ -122,6 +122,8 @@ export interface SearchCategory {
   kind?: SEARCH_ITEM_TYPES;
   title?: string;
   desc?: string;
+  titleKey?: string;
+  descKey?: string;
   show?: () => boolean;
 }
 
@@ -143,14 +145,18 @@ export function getOptionalFilters(optionalFilterMeta: any) {
 export const filterCategories: Record<SEARCH_CATEGORY_ID, SearchCategory> = {
   [SEARCH_CATEGORY_ID.NAVIGATION]: {
     title: "Navigate",
+    titleKey: "search.hotkeyNavigate",
     kind: SEARCH_ITEM_TYPES.category,
     id: SEARCH_CATEGORY_ID.NAVIGATION,
+    descKey: "search.navigateDescription",
     desc: createMessage(NAV_DESCRIPTION),
   },
   [SEARCH_CATEGORY_ID.ACTION_OPERATION]: {
     title: "Create new",
+    titleKey: "search.hotkeyCreateNew",
     kind: SEARCH_ITEM_TYPES.category,
     id: SEARCH_CATEGORY_ID.ACTION_OPERATION,
+    descKey: "search.createNewDescription",
     desc: createMessage(ACTION_OPERATION_DESCRIPTION),
   },
   [SEARCH_CATEGORY_ID.INIT]: {

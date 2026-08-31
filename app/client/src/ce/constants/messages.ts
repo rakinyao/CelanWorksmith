@@ -2031,7 +2031,7 @@ export const MEMBERS_TAB_TITLE = (
 export const SEARCH_USERS = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isFreeInstance?: boolean,
-) => `Search for users`;
+) => i18n.t("search.usersPlaceholder");
 
 export const CREATE_PAGE = () => "New blank page";
 export const CANVAS_NEW_PAGE_CARD = () => "Create new page";
