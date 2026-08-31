@@ -6,6 +6,7 @@ import {
 import { initExplorerEntityNameEdit } from "actions/explorerActions";
 import { noop } from "lodash";
 import React, { useCallback, useContext, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { getPageListAsOptions } from "ee/selectors/entitiesSelector";
 import history from "utils/history";
@@ -46,6 +47,7 @@ export interface EntityContextMenuProps {
 }
 
 export function ActionEntityContextMenu(props: EntityContextMenuProps) {
+  useTranslation();
   // Import the context
   const context = useContext(FilesContext);
   const { menuItems, parentEntityId, parentEntityType } = context;

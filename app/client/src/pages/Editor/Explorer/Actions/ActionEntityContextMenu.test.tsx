@@ -23,6 +23,7 @@ import {
 } from "ee/constants/messages";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import { type ReduxAction } from "actions/ReduxActionTypes";
+import { changeLocale } from "i18n";
 
 const mockStore = configureStore([]);
 
@@ -85,8 +86,13 @@ describe("ActionEntityContextMenu", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let store: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await changeLocale("en-US");
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await changeLocale("zh-CN");
   });
 
   it("renders context menu with correct options for application editor", async () => {
@@ -163,6 +169,29 @@ describe("ActionEntityContextMenu", () => {
       id: "test-action-id",
       name: "test-action",
     });
+  });
+
+  it("renders context actions in Simplified Chinese", async () => {
+    await changeLocale("zh-CN");
+    store = mockStore(defaultState);
+    const { findByText, getByRole } = render(
+      <Provider store={store}>
+        <ThemeProvider theme={lightTheme}>
+          <FilesContextProvider {...defaultContext}>
+            <ActionEntityContextMenu {...defaultProps} />
+          </FilesContextProvider>
+        </ThemeProvider>
+      </Provider>,
+    );
+
+    act(() => {
+      fireEvent.click(getByRole("button"));
+    });
+
+    expect(await findByText("重命名")).toBeInTheDocument();
+    expect(await findByText("显示绑定")).toBeInTheDocument();
+    expect(await findByText("移动到页面")).toBeInTheDocument();
+    expect(await findByText("删除")).toBeInTheDocument();
   });
   // TODO: add tests for all options rendered in the context menu
 });

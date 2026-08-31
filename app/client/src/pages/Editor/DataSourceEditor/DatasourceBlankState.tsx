@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { importSvg } from "@appsmith/ads-old";
 import { Text } from "@appsmith/ads";
@@ -30,6 +31,8 @@ const BlankStateIllustration = importSvg(
 );
 
 const DatasourceBlankState = () => {
+  useTranslation();
+
   return (
     <Container className="t--data-blank-state">
       <Content>

@@ -14,7 +14,10 @@ export const APPSMITH_DISPLAY_VERSION = (edition: string, version: string) =>
   i18n.t("brand.displayVersion", { edition, version });
 export const INTERCOM_CONSENT_MESSAGE = () =>
   `Can we have your email for better support?`;
-export const YES = () => `Yes`;
+export const YES = () => i18n.t("common.yes");
+export const NO = () => i18n.t("common.no");
+export const QUERY_CONFIRMATION_MODAL_TITLE = () =>
+  i18n.t("dialog.queryConfirmationTitle");
 export const ARE_YOU_SURE = () => `Are you sure?`;
 export const CHAT_WITH_US = () => `Chat with us`;
 export const ERROR_ADD_API_INVALID_URL = () =>
@@ -285,8 +288,8 @@ export const ALL_APPS = () => `All apps`;
 export const KNOW_MORE = () => "Know more";
 
 export const EDITOR_HEADER = {
-  saving: () => "Saving",
-  saveFailed: () => "Save failed",
+  saving: () => i18n.t("editor.saving"),
+  saveFailed: () => i18n.t("editor.saveFailed"),
   share: () => "Share",
   previewTooltip: {
     text: () => "Preview",
@@ -590,7 +593,7 @@ export const PAGE_SERVER_UNAVAILABLE_ERROR_MESSAGES = (
 
 // comments
 export const POST = () => "Post";
-export const CANCEL = () => "Cancel";
+export const CANCEL = () => i18n.t("common.cancel");
 export const REMOVE = () => "Remove";
 export const CREATE = () => "Create";
 
@@ -774,7 +777,7 @@ export const JS_OBJECT_BODY_INVALID = () => "JS Object could not be parsed";
 export const JS_ACTION_EXECUTION_ERROR = (jsFunctionName: string) =>
   `An error occured while trying to execute ${jsFunctionName}, please check error logs to debug`;
 //Editor Page
-export const EDITOR_HEADER_SAVE_INDICATOR = () => "Saved";
+export const EDITOR_HEADER_SAVE_INDICATOR = () => i18n.t("editor.saved");
 
 //Import Application Succesful
 export const IMPORT_APP_SUCCESSFUL = () => "Application imported successfully";
@@ -1664,7 +1667,7 @@ export const WELCOME_FORM_PASSWORDS_NOT_MATCHING_ERROR_MESSAGE = () =>
   "Passwords don't match.";
 
 export const QUERY_CONFIRMATION_MODAL_MESSAGE = () =>
-  `Are you sure you want to run `;
+  `${i18n.t("dialog.queryConfirmationMessage")} `;
 
 // Security feature disable confirmation modal
 export const DISABLE_PREPARED_STATEMENT_CONFIRMATION_HEADING = () =>
@@ -1866,16 +1869,18 @@ export const END_DESCRIPTION = () =>
   "Inspect properties of queries, components, etc.";
 export const END_BUTTON_TEXT = () => "Start building an app";
 
-export const CONTEXT_RENAME = () => "Rename";
-export const CONTEXT_SHOW_BINDING = () => "Show bindings";
-export const CONTEXT_MOVE = () => "Move to page";
-export const CONTEXT_COPY = () => "Copy to page";
-export const CONTEXT_COPY_TO_APP = () => "Copy to application";
-export const CONTEXT_DUPLICATE = () => "Duplicate";
-export const CONTEXT_DELETE = () => "Delete";
-export const CONFIRM_CONTEXT_DELETE = () => "Are you sure?";
+export const CONTEXT_RENAME = () => i18n.t("editor.context.rename");
+export const CONTEXT_SHOW_BINDING = () => i18n.t("editor.context.showBinding");
+export const CONTEXT_MOVE = () => i18n.t("editor.context.move");
+export const CONTEXT_COPY = () => i18n.t("editor.context.copy");
+export const CONTEXT_COPY_TO_APP = () =>
+  i18n.t("editor.context.copyToApplication");
+export const CONTEXT_DUPLICATE = () => i18n.t("editor.context.duplicate");
+export const CONTEXT_DELETE = () => i18n.t("editor.context.delete");
+export const CONFIRM_CONTEXT_DELETE = () =>
+  i18n.t("editor.context.confirmDelete");
 export const CONFIRM_CONTEXT_DELETING = () => "Deleting";
-export const CONTEXT_NO_PAGE = () => "No pages";
+export const CONTEXT_NO_PAGE = () => i18n.t("editor.context.noPages");
 export const CONTEXT_REFRESH = () => "Refresh";
 export const CONTEXT_CLONE = () => "Clone";
 export const CONTEXT_SETTINGS = () => "Settings";
@@ -1887,7 +1892,7 @@ export const PAGE = () => "Page";
 export const PAGES = () => "Pages";
 
 // Entity explorer
-export const ADD_DATASOURCE_BUTTON = () => "Add datasource";
+export const ADD_DATASOURCE_BUTTON = () => i18n.t("editor.addDatasource");
 export const ADD_WIDGET_BUTTON = () => "Add widget";
 export const ADD_QUERY_JS_BUTTON = () => "Add query/JS";
 export const EMPTY_WIDGET_MAIN_TEXT = () => "No widget to display";
@@ -1954,31 +1959,42 @@ export const FORK_APP_MODAL_SUCCESS_TITLE = () =>
   "Choose where to fork the app";
 export const FORK = () => `Fork`;
 
-export const COPY_ENTITY_TO_APP_MODAL_TITLE = () => "Copy to application";
-export const COPY_ENTITY_TO_APP_WORKSPACE_LABEL = () => "Workspace";
-export const COPY_ENTITY_TO_APP_APPLICATION_LABEL = () => "Application";
-export const COPY_ENTITY_TO_APP_PAGE_LABEL = () => "Page";
+export const COPY_ENTITY_TO_APP_MODAL_TITLE = () =>
+  i18n.t("dialog.copyEntityToApplicationTitle");
+export const COPY_ENTITY_TO_APP_WORKSPACE_LABEL = () =>
+  i18n.t("dialog.copyEntityToApplicationWorkspace");
+export const COPY_ENTITY_TO_APP_APPLICATION_LABEL = () =>
+  i18n.t("dialog.copyEntityToApplicationApplication");
+export const COPY_ENTITY_TO_APP_PAGE_LABEL = () =>
+  i18n.t("dialog.copyEntityToApplicationPage");
 export const COPY_ENTITY_TO_APP_WORKSPACE_PLACEHOLDER = () =>
-  "Select a workspace";
+  i18n.t("dialog.copyEntityToApplicationWorkspacePlaceholder");
 export const COPY_ENTITY_TO_APP_APPLICATION_PLACEHOLDER = () =>
-  "Select an application";
-export const COPY_ENTITY_TO_APP_PAGE_PLACEHOLDER = () => "Select a page";
-export const COPY_ENTITY_TO_APP_CONFIRM = () => "Copy";
+  i18n.t("dialog.copyEntityToApplicationApplicationPlaceholder");
+export const COPY_ENTITY_TO_APP_PAGE_PLACEHOLDER = () =>
+  i18n.t("dialog.copyEntityToApplicationPagePlaceholder");
+export const COPY_ENTITY_TO_APP_CONFIRM = () =>
+  i18n.t("dialog.copyEntityToApplicationConfirm");
 export const COPY_ENTITY_TO_APP_NO_WORKSPACES = () =>
-  "No workspaces available to copy to";
+  i18n.t("dialog.copyEntityToApplicationNoWorkspaces");
 export const COPY_ENTITY_TO_APP_NO_APPS = () =>
-  "No applications available in this workspace";
+  i18n.t("dialog.copyEntityToApplicationNoApplications");
 export const COPY_ENTITY_TO_APP_NO_PAGES = () =>
-  "No pages available in this application";
+  i18n.t("dialog.copyEntityToApplicationNoPages");
 export const COPY_ENTITY_TO_APP_SUCCESS = (
   entityName: string,
   appName: string,
   pageName: string,
-) => `Copied ${entityName} to ${appName} / ${pageName}`;
+) =>
+  i18n.t("toast.copyEntityToApplicationSuccess", {
+    entityName,
+    appName,
+    pageName,
+  });
 export const COPY_ENTITY_TO_APP_ERROR = () =>
-  "Failed to copy to the selected application";
+  i18n.t("toast.copyEntityToApplicationFailed");
 export const COPY_ENTITY_TO_APP_NOTE = () =>
-  "Datasource credentials and any referenced queries aren't copied. Datasources are set up during import, but you may need to re-enter credentials and recreate any referenced queries before the copied item will work in the target application.";
+  i18n.t("dialog.copyEntityToApplicationNote");
 
 export const CLEAN_URL_UPDATE = {
   name: () => "Update URLs",
@@ -2502,10 +2518,11 @@ export const NO_ACCESS_TITLE_TEXT = () =>
 export const NO_ACCESS_MESSAGE_TEXT = () =>
   "Please contact your workspace administrator to gain access";
 
-export const DATA_PANE_TITLE = () => "Datasources in your workspace";
+export const DATA_PANE_TITLE = () => i18n.t("editor.dataPaneTitle");
 export const DATASOURCE_LIST_BLANK_DESCRIPTION = () =>
   "Connect a datasource to write your first query";
-export const DATASOURCE_BLANK_STATE_MESSAGE = () => "No datasources to display";
+export const DATASOURCE_BLANK_STATE_MESSAGE = () =>
+  i18n.t("editor.noDatasources");
 export const DATASOURCE_BLANK_STATE_CTA = () => "Bring your data";
 
 // Create New Apps Intermediary step
@@ -2684,9 +2701,10 @@ export const CUSTOM_WIDGET_FEATURE = {
 };
 
 export const WIDGET_PANEL_EMPTY_MESSAGE = () =>
-  "We couldn’t find any UI elements called";
+  i18n.t("editor.widgetPanelEmpty");
 
-export const UI_ELEMENT_PANEL_SEARCH_TEXT = () => "Search UI elements";
+export const UI_ELEMENT_PANEL_SEARCH_TEXT = () =>
+  i18n.t("editor.searchWidgets");
 
 export const HTTP_PROTOCOL_INPUT_PLACEHOLDER = () => `Select HTTP Protocol`;
 

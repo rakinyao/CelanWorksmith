@@ -17,7 +17,10 @@ import {
 } from "@appsmith/ads";
 import {
   createMessage,
+  QUERY_CONFIRMATION_MODAL_TITLE,
   QUERY_CONFIRMATION_MODAL_MESSAGE,
+  YES,
+  NO,
 } from "ee/constants/messages";
 import type { ModalInfo } from "reducers/uiReducers/modalActionReducer";
 
@@ -90,7 +93,9 @@ class RequestConfirmationModal extends React.Component<Props> {
               data-testid="t--query-run-confirmation-modal"
               style={{ width: "600px" }}
             >
-              <ModalHeader>Confirmation dialog</ModalHeader>
+              <ModalHeader>
+                {createMessage(QUERY_CONFIRMATION_MODAL_TITLE)}
+              </ModalHeader>
               <ModalBody>
                 {createMessage(QUERY_CONFIRMATION_MODAL_MESSAGE)}{" "}
                 <b>{modalInfo.name}</b> ?
@@ -104,14 +109,14 @@ class RequestConfirmationModal extends React.Component<Props> {
                   }}
                   size="md"
                 >
-                  No
+                  {createMessage(NO)}
                 </Button>
                 <Button
                   kind="primary"
                   onClick={() => this.onConfirm(modalInfo)}
                   size="md"
                 >
-                  Yes
+                  {createMessage(YES)}
                 </Button>
               </ModalFooter>
             </ModalContent>

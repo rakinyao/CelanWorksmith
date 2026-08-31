@@ -8,8 +8,10 @@ import { getCurrentAppWorkspace } from "ee/selectors/selectedWorkspaceSelectors"
 import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import { getHasCreateDatasourcePermission } from "ee/utils/BusinessFeatures/permissionPageHelpers";
+import { useTranslation } from "react-i18next";
 
 const CreateDatasourceButton = () => {
+  const { t } = useTranslation();
   const userWorkspacePermissions = useSelector(
     (state: DefaultRootState) =>
       getCurrentAppWorkspace(state).userPermissions ?? [],
@@ -28,6 +30,7 @@ const CreateDatasourceButton = () => {
 
   return (
     <Button
+      aria-label={t("editor.createDatasource")}
       className={"t--add-datasource-button"}
       isIconButton
       kind="tertiary"
