@@ -102,6 +102,7 @@ const locales = [
 type LocaleCase = (typeof locales)[number];
 type CaptureOptions = {
   masks?: Locator[];
+  prepareMobile?: () => Promise<void>;
 };
 
 async function expectLocale(page: Page, locale: LocaleCase["id"]) {
@@ -143,7 +144,7 @@ async function captureViewports(
   page: Page,
   workflow: string,
   locale: LocaleCase["id"],
-  { masks = [] }: CaptureOptions = {},
+  { masks = [], prepareMobile }: CaptureOptions = {},
 ) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page).toHaveScreenshot(
@@ -159,6 +160,7 @@ async function captureViewports(
   );
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await prepareMobile?.();
   await expect(page).toHaveScreenshot(
     `${workflow}-${locale}-mobile-390x844.png`,
     {
