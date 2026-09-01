@@ -1,5 +1,10 @@
 import type { Locator, Page } from "@playwright/test";
-import { createApp, createWorkspace, deleteWorkspace } from "../../helpers/api";
+import {
+  createApp,
+  createWorkspace,
+  deleteApp,
+  deleteWorkspace,
+} from "../../helpers/api";
 import { expect, test as base } from "../../fixtures";
 
 const workflowWorkspaceName = "i18n-workflow-workspace";
@@ -27,6 +32,7 @@ const locales = [
       newApplication: "新建应用",
     },
     application: {
+      heading: "应用",
       delete: "删除",
       export: "导出",
       fork: "复制应用",
@@ -46,6 +52,7 @@ const locales = [
       language: "语言",
     },
     dialog: {
+      invite: "邀请",
       invitePrefix: "邀请用户加入 ",
       share: "分享",
     },
@@ -61,6 +68,7 @@ const locales = [
       newApplication: "New application",
     },
     application: {
+      heading: "Applications",
       delete: "Delete",
       export: "Export",
       fork: "Fork app",
@@ -80,6 +88,7 @@ const locales = [
       language: "Language",
     },
     dialog: {
+      invite: "Invite",
       invitePrefix: "Invite users to ",
       share: "Share",
     },
@@ -91,6 +100,12 @@ const locales = [
 ] as const;
 
 type LocaleCase = (typeof locales)[number];
+type CaptureOptions = {
+  masks?: Locator[];
+  mobileMasks?: Locator[];
+  mobileTarget?: Locator;
+  prepareMobile?: () => Promise<void>;
+};
 
 async function expectLocale(page: Page, locale: LocaleCase["id"]) {
   await expect(page.locator("html")).toHaveAttribute("lang", locale);
@@ -131,7 +146,12 @@ async function captureViewports(
   page: Page,
   workflow: string,
   locale: LocaleCase["id"],
-  masks: Locator[] = [],
+  {
+    masks = [],
+    mobileMasks = [],
+    mobileTarget,
+    prepareMobile,
+  }: CaptureOptions = {},
 ) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page).toHaveScreenshot(
@@ -147,17 +167,32 @@ async function captureViewports(
   );
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page).toHaveScreenshot(
+  await prepareMobile?.();
+  await expect(mobileTarget ?? page).toHaveScreenshot(
     `${workflow}-${locale}-mobile-390x844.png`,
     {
       animations: "disabled",
       caret: "hide",
-      mask: masks,
+      mask: [...masks, ...mobileMasks],
       maxDiffPixelRatio:
         workflow === "applications" && locale === "zh-CN" ? 0.0011 : 0,
       scale: "css",
     },
   );
+}
+
+async function assertGlobalSearch(page: Page, locale: LocaleCase) {
+  const globalSearch = page.getByTestId("t--global-search-modal");
+
+  await expect(globalSearch).toBeVisible();
+  await expect(globalSearch.locator("#global-search")).toHaveAttribute(
+    "placeholder",
+    locale.search.placeholder,
+  );
+  // SearchBox ignores input briefly after opening to avoid capturing the hotkey.
+  await page.waitForTimeout(150);
+  await globalSearch.locator("#global-search").fill("no-local-result");
+  await expect(globalSearch.getByText(locale.search.noResults)).toBeVisible();
 }
 
 test.describe("Core platform bilingual workflows", () => {
@@ -188,20 +223,22 @@ test.describe("Core platform bilingual workflows", () => {
       });
       const applicationCards = page.locator(".t--application-card");
 
-      await expect(applicationCard).toBeVisible();
-      await applicationCard
-        .getByTestId("t--application-card-context-menu")
-        .click();
-      await expect(page.getByTestId("t--fork-app")).toHaveText(
-        locale.application.fork,
-      );
-      await expect(page.getByTestId("t--delete-confirm")).toHaveText(
-        locale.application.delete,
-      );
-
       const exportAction = page.getByTestId("t--export-app");
+      const openApplicationCardMenu = async () => {
+        await expect(applicationCard).toBeVisible();
+        await applicationCard
+          .getByTestId("t--application-card-context-menu")
+          .click();
+        await expect(page.getByTestId("t--fork-app")).toHaveText(
+          locale.application.fork,
+        );
+        await expect(page.getByTestId("t--delete-confirm")).toHaveText(
+          locale.application.delete,
+        );
+        await expect(exportAction).toHaveText(locale.application.export);
+      };
 
-      await expect(exportAction).toHaveText(locale.application.export);
+      await openApplicationCardMenu();
 
       const workspaceHeader = page.locator(".t--workspace-name-text").first();
       const applicationMenuName = page.locator(
@@ -227,46 +264,58 @@ test.describe("Core platform bilingual workflows", () => {
       await anvilEmptyStateImage.evaluate((image) => {
         image.setAttribute("style", "display: none");
       });
-      await captureViewports(page, "applications", locale.id, [
-        applicationCard,
-        applicationCards,
-        workspaceHeader,
-        applicationMenuName,
-        applicationColorSelector,
-        applicationIconSelector,
-        workspaceListItems,
-        anvilEmptyState,
-      ]);
+      await captureViewports(page, "applications", locale.id, {
+        masks: [
+          applicationCard,
+          applicationCards,
+          workspaceHeader,
+          applicationMenuName,
+          applicationColorSelector,
+          applicationIconSelector,
+          workspaceListItems,
+          anvilEmptyState,
+        ],
+        prepareMobile: async () => {
+          await expect(
+            page.getByText(locale.application.heading, { exact: true }),
+          ).toBeVisible();
+          await expect(
+            page.getByTestId("t--app-card-name").filter({ hasText: app.name }),
+          ).toBeVisible();
+        },
+      });
       await page.keyboard.press("Escape");
     }
   });
 
   test("application editor sidebar and execution chrome", async ({
-    app,
+    api,
     page,
-    workspace,
   }) => {
-    let apiQueryCreated = false;
-
     for (const locale of locales) {
-      await selectLocale(page, workspace.id, locale.id);
-      await page.goto(app.url);
-      await expectLocale(page, locale.id);
-
-      await expect(
-        page.getByText(locale.editor.queries, { exact: true }),
-      ).toBeVisible();
-      await expect(page.locator(".t--application-publish-btn")).toHaveText(
-        locale.editor.deploy,
+      const editorWorkspace = await createWorkspace(
+        api,
+        `i18n-editor-${locale.id}-${crypto.randomUUID().slice(0, 8)}`,
       );
+      let editorApp: Awaited<ReturnType<typeof createApp>> | undefined;
 
-      if (apiQueryCreated) {
-        await page.getByText(locale.editor.queries, { exact: true }).click();
-        await page
-          .locator(".t--action-entity")
-          .filter({ hasText: "Api1" })
-          .click();
-      } else {
+      try {
+        editorApp = await createApp(
+          api,
+          editorWorkspace.id,
+          `${workflowAppName}-${locale.id}`,
+        );
+        await selectLocale(page, editorWorkspace.id, locale.id);
+        await page.goto(editorApp.url);
+        await expectLocale(page, locale.id);
+
+        await expect(
+          page.getByText(locale.editor.queries, { exact: true }),
+        ).toBeVisible();
+        await expect(page.locator(".t--application-publish-btn")).toHaveText(
+          locale.editor.deploy,
+        );
+
         await page.getByTestId("t--sidebar-Datasources").click();
         await expect(
           page.getByText(locale.editor.dataPaneTitle, { exact: true }),
@@ -307,40 +356,51 @@ test.describe("Core platform bilingual workflows", () => {
 
         await saveDatasource.click();
         await expect((await datasourceSaveResponse).ok()).toBe(true);
-        apiQueryCreated = true;
-      }
-      await expect(
-        page
+
+        const runButton = page
           .getByAltText("no-response-yet")
           .locator("..")
-          .getByRole("button", { name: locale.editor.run }),
-      ).toBeVisible();
-      // The embedded URL editor uses CodeMirror, whose cursor can be remounted
-      // by a viewport resize after Playwright hides native carets.
-      await page.addStyleTag({
-        content:
-          ".t--datasource-editor .CodeMirror-cursor { visibility: hidden !important; }",
-      });
+          .getByRole("button", { name: locale.editor.run });
+        await expect(runButton).toBeVisible();
+        // The embedded URL editor uses CodeMirror, whose cursor can be remounted
+        // by a viewport resize after Playwright hides native carets.
+        await page.addStyleTag({
+          content:
+            ".t--datasource-editor .CodeMirror-cursor { visibility: hidden !important; }",
+        });
 
-      const applicationName = page.getByText(app.name, { exact: true });
-      const editorBreadcrumb = page
-        .locator(".t--application-name")
-        .locator("xpath=../../../..");
-      const apiEditorTab = page.getByTestId("t--ide-tab-api1");
-      const apiEditorTabIcon = apiEditorTab.locator("img").first();
-      await expect(applicationName).toBeVisible();
-      await expect(editorBreadcrumb).toBeVisible();
-      await expect(apiEditorTab).toBeVisible();
-      await expect(apiEditorTabIcon).toBeVisible();
-      await apiEditorTab.locator("svg").evaluateAll((icons) => {
-        icons.forEach((icon) =>
-          icon.setAttribute("style", "visibility: hidden"),
-        );
-      });
-      await apiEditorTabIcon.evaluate((icon) => {
-        icon.setAttribute("style", "visibility: hidden");
-      });
-      await captureViewports(page, "editor", locale.id, [editorBreadcrumb]);
+        const applicationName = page.getByText(editorApp.name, {
+          exact: true,
+        });
+        const editorBreadcrumb = page
+          .locator(".t--application-name")
+          .locator("xpath=../../../..");
+        const apiEditorTab = page.getByTestId("t--ide-tab-api1");
+        const apiEditorTabIcon = apiEditorTab.locator("img").first();
+        await expect(applicationName).toBeVisible();
+        await expect(editorBreadcrumb).toBeVisible();
+        await expect(apiEditorTab).toBeVisible();
+        await expect(apiEditorTabIcon).toBeVisible();
+        await apiEditorTab.locator("svg").evaluateAll((icons) => {
+          icons.forEach((icon) =>
+            icon.setAttribute("style", "visibility: hidden"),
+          );
+        });
+        await apiEditorTabIcon.evaluate((icon) => {
+          icon.setAttribute("style", "visibility: hidden");
+        });
+        await captureViewports(page, "editor", locale.id, {
+          masks: [editorBreadcrumb],
+          prepareMobile: async () => {
+            await expect(runButton).toBeVisible();
+          },
+        });
+      } finally {
+        if (editorApp) {
+          await deleteApp(api, editorApp.id).catch(() => {});
+        }
+        await deleteWorkspace(api, editorWorkspace.id).catch(() => {});
+      }
     }
   });
 
@@ -364,18 +424,7 @@ test.describe("Core platform bilingual workflows", () => {
 
       await page.goto(app.url);
       await page.getByRole("button", { name: "Ctrl + K" }).click();
-      const globalSearch = page.getByTestId("t--global-search-modal");
-
-      await expect(globalSearch).toBeVisible();
-      await expect(globalSearch.locator("#global-search")).toHaveAttribute(
-        "placeholder",
-        locale.search.placeholder,
-      );
-      await page.waitForTimeout(150);
-      await globalSearch.locator("#global-search").fill("no-local-result");
-      await expect(
-        globalSearch.getByText(locale.search.noResults),
-      ).toBeVisible();
+      await assertGlobalSearch(page, locale);
 
       await page.keyboard.press("Escape");
       await page.goto(`/applications?workspaceId=${workspace.id}`);
@@ -385,6 +434,11 @@ test.describe("Core platform bilingual workflows", () => {
         { exact: true },
       );
       await expect(inviteHeading).toBeVisible();
+      const inviteDialog = page.getByRole("dialog");
+      const inviteButton = inviteDialog.getByRole("button", {
+        name: locale.dialog.invite,
+      });
+      await expect(inviteButton).toBeVisible();
 
       const workspaceListItems = page
         .getByTestId("t--left-panel")
@@ -393,18 +447,31 @@ test.describe("Core platform bilingual workflows", () => {
       const workspaceShareUsers = page.locator(
         ".t--workspace-share-user-icons",
       );
-      const dialogUserRows = page
-        .getByRole("dialog")
-        .locator('[aria-label*="@"]')
-        .locator("xpath=../../..");
+      const applicationCardIcons = page.getByTestId("t--application-card-icon");
+      const dialogUserRows = page.getByTestId("t--workspace-invite-user-row");
 
-      await captureViewports(page, "profile-search-dialog", locale.id, [
-        page.locator(".t--application-card"),
-        workspaceListItems,
-        profileMenuIcon,
-        workspaceShareUsers,
-        dialogUserRows,
-      ]);
+      await expect(applicationCardIcons).not.toHaveCount(0);
+      await expect(dialogUserRows).not.toHaveCount(0);
+
+      await captureViewports(page, "profile-search-dialog", locale.id, {
+        masks: [
+          applicationCardIcons,
+          page.getByTestId("t--app-card-name"),
+          workspaceListItems,
+          profileMenuIcon,
+          workspaceShareUsers,
+          dialogUserRows,
+        ],
+        mobileMasks: [
+          page.locator(".t--application-name").locator("xpath=../../../.."),
+        ],
+        mobileTarget: page.getByTestId("t--global-search-modal"),
+        prepareMobile: async () => {
+          await page.goto(app.url);
+          await page.getByTestId("global-search-modal-trigger").click();
+          await assertGlobalSearch(page, locale);
+        },
+      });
       await page.keyboard.press("Escape");
     }
   });

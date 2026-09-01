@@ -172,6 +172,7 @@ function WorkspaceInviteUsers(props: any) {
 
                 return showUser ? (
                   <User
+                    data-testid="t--workspace-invite-user-row"
                     key={user?.userGroupId ? user.userGroupId : user.username}
                   >
                     <UserInfo>
