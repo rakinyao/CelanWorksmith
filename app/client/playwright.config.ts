@@ -37,7 +37,8 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
     trace: "on",
     screenshot: "only-on-failure",
-    video: "on",
+    // This host lacks Playwright's bundled ffmpeg helper for system Chrome.
+    video: chromiumExecutablePath ? "off" : "on",
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
   },

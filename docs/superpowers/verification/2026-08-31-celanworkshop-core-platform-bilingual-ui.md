@@ -13,10 +13,10 @@ Date: 2026-09-01
 The Playwright configuration uses `launchOptions.executablePath` only when
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` is set. Without that environment
 variable, the pinned bundled-browser behavior remains unchanged. Video remains
-`on` for both the bundled browser and an executable override; this preserves
-Playwright's normal recording behavior. This host lacks the pinned `ffmpeg`
-helper, so a Chrome run can stop during context startup until Playwright's
-browser dependencies are installed.
+`on` for the bundled browser. When an executable override is set, video is
+conditionally `off`: this host lacks Playwright's pinned `ffmpeg` helper, and
+otherwise Chrome contexts fail before the workflows begin. Installing the
+matching Playwright browser dependencies removes that host-only limitation.
 
 ## Workflow Matrix
 
@@ -33,10 +33,15 @@ assertions. No workflow snapshot baseline or actual screenshot was produced in
 this environment because authenticated browser contexts could not be created.
 Each locale is selected through the authenticated profile menu and persisted by
 the normal `LanguageSwitcher` update; the suite does not accumulate
-`page.addInitScript` storage seeds. Snapshot masks cover only the dynamic app
-card, editor application header, and invite heading; translated controls remain
-visible. Generate baselines once with `--update-snapshots`, then run the same
-command without that flag for the non-update verification pass.
+`page.addInitScript` storage seeds. Because these writes update the authenticated
+user's durable profile locale, the describe runs serially even though the global
+configuration is fully parallel. The suite creates its own fixed-name workspace
+so the translated invite title remains visible without a mask. Snapshot masks
+cover the dynamic app card, its portal-rendered application-name field, the
+workspace header, and the editor application header; translated menu, editor,
+search, and dialog controls remain visible. Generate baselines once with
+`--update-snapshots`, then run the same command without that flag for the
+non-update verification pass.
 
 ## Commands And Results
 
@@ -71,10 +76,11 @@ Error: browserContext.newPage: Executable doesn't exist at
 /home/gavin/.cache/ms-playwright/ffmpeg-1011/ffmpeg-linux
 ```
 
-With video behavior preserved, the required command stops at the explicit
-credential check above. A non-mutating diagnostic run with `--no-deps` then
-selected all three smoke tests through Chrome and stopped before navigation
-because the configured local storage state is absent:
+With video conditionally disabled only for the executable-path override, the
+required command stops at the explicit credential check above. A non-mutating
+diagnostic run with `--no-deps` then selected all three smoke tests through
+Chrome and stopped before navigation because the configured local storage state
+is absent:
 
 ```text
 Running 3 tests using 3 workers
@@ -124,13 +130,13 @@ not by a product assertion. No external accounts were created or used.
   response, and verifies both the document language and persisted locale before
   navigating onward. This keeps authenticated `LocaleSync` and test state in
   the same path used by the product.
-- Restored `video: "on"` when `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` is set;
-  the environment variable remains an executable-path-only override.
-- Added narrow screenshot masks for the generated application card, workspace
-  name, editor application header, and invite heading. The translated menu,
-  editor, search, and dialog controls remain unmasked. Baselines must be
-  generated once with `--update-snapshots`, followed by a normal non-update
-  run.
+- Retained Playwright's default bundled-browser video capture, while disabling
+  video only when `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` selects host Chrome.
+  This is required on this host because its Playwright-pinned `ffmpeg` helper
+  is unavailable.
+- Added narrow screenshot masks for generated application content, including
+  the portal-rendered application-name field in its context menu. Translated
+  menu actions remain unmasked.
 
 Verification for this round:
 
@@ -149,3 +155,37 @@ The Playwright TypeScript check still reports only the pre-existing
 `playwright/fixtures/migration.setup.ts:132` `GiteaDeployKey.key_id` error.
 Browser execution remains credential-gated as described above; no external
 account or auth state was created in this round.
+
+## Fix Round 2
+
+- Serialized the workflow describe because all three tests persist the same
+  authenticated user's locale through the profile API.
+- Replaced the random workspace fixture with a suite-local fixed name. The
+  complete localized invite title is now visible in snapshots rather than
+  masking it.
+- Kept dynamic portal context-menu application text masked without masking its
+  localized actions, and documented the executable-override-only video
+  exception.
+
+Verification for this round:
+
+```text
+npx prettier --check playwright.config.ts playwright/tests/i18n/core-platform-bilingual-ui.spec.ts ../../docs/superpowers/verification/2026-08-31-celanworkshop-core-platform-bilingual-ui.md
+All matched files use Prettier code style!
+
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npx playwright test tests/i18n/core-platform-bilingual-ui.spec.ts --project=smoke --list
+Total: 5 tests in 3 files (setup dependencies plus the 3 serial workflow tests)
+
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npx playwright test tests/i18n/core-platform-bilingual-ui.spec.ts --project=smoke --no-deps
+Running 3 tests using 1 worker
+1 failed, 2 did not run
+Error reading storage state from playwright/auth/user.json:
+ENOENT: no such file or directory, open 'playwright/auth/user.json'
+
+git diff --check
+passed
+```
+
+`npx tsc --noEmit -p playwright/tsconfig.json` still reports only the existing
+`playwright/fixtures/migration.setup.ts:132` `GiteaDeployKey.key_id` error; the
+new suite and local fixture override add no TypeScript errors.

@@ -1,7 +1,18 @@
 import type { Locator, Page } from "@playwright/test";
-import { expect, test } from "../../fixtures";
+import { createWorkspace, deleteWorkspace } from "../../helpers/api";
+import { expect, test as base } from "../../fixtures";
 
 const localeStorageKey = "appsmith.locale";
+const workflowWorkspaceName = "i18n-workflow-workspace";
+
+const test = base.extend({
+  workspace: async ({ api }, use) => {
+    const workspace = await createWorkspace(api, workflowWorkspaceName);
+
+    await use(workspace);
+    await deleteWorkspace(api, workspace.id).catch(() => {});
+  },
+});
 
 const locales = [
   {
@@ -153,6 +164,9 @@ async function captureViewports(
 }
 
 test.describe("Core platform bilingual workflows", () => {
+  // All workflows update the same authenticated user's durable locale.
+  test.describe.configure({ mode: "serial" });
+
   test("applications workspace actions and application-card commands", async ({
     app,
     page,
@@ -193,10 +207,16 @@ test.describe("Core platform bilingual workflows", () => {
       await expect(exportAction).toHaveText(locale.application.export);
 
       const workspaceHeader = page.locator(".t--workspace-name-text").first();
+      const applicationMenuName = page.locator(
+        '[role="menu"] .t--application-name',
+      );
+
       await expect(workspaceHeader).toBeVisible();
+      await expect(applicationMenuName).toBeVisible();
       await captureViewports(page, "applications", locale.id, [
         applicationCard,
         workspaceHeader,
+        applicationMenuName,
       ]);
       await page.keyboard.press("Escape");
     }
@@ -272,14 +292,12 @@ test.describe("Core platform bilingual workflows", () => {
       await page.goto(`/applications?workspaceId=${workspace.id}`);
       await page.getByRole("button", { name: locale.dialog.share }).click();
       const inviteHeading = page.getByText(
-        `${locale.dialog.invitePrefix}${workspace.name}`,
+        `${locale.dialog.invitePrefix}${workflowWorkspaceName}`,
         { exact: true },
       );
       await expect(inviteHeading).toBeVisible();
 
-      await captureViewports(page, "profile-search-dialog", locale.id, [
-        inviteHeading,
-      ]);
+      await captureViewports(page, "profile-search-dialog", locale.id);
       await page.keyboard.press("Escape");
     }
   });
