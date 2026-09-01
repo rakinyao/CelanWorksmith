@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { truncate } from "lodash";
 
 import type { JSCollection } from "entities/JSCollection";
@@ -11,7 +12,7 @@ import {
   Tooltip,
 } from "@appsmith/ads";
 import type { JSActionDropdownOption } from "../types";
-import { RUN_BUTTON_DEFAULTS, testLocators } from "../constants";
+import { testLocators } from "../constants";
 import { createMessage, NO_JS_FUNCTION_TO_RUN } from "ee/constants/messages";
 import { JSFunctionItem } from "./JSFunctionItem";
 import { JS_FUNCTION_RUN_NAME_LENGTH } from "./constants";
@@ -34,6 +35,7 @@ interface Props {
  */
 export const JSFunctionRun = (props: Props) => {
   const { onSelect } = props;
+  const { t } = useTranslation();
 
   // Callback function to handle function selection from the dropdown menu
   const onFunctionSelect = useCallback(
@@ -88,7 +90,7 @@ export const JSFunctionRun = (props: Props) => {
           onClick={props.onButtonClick}
           size="sm"
         >
-          {RUN_BUTTON_DEFAULTS.CTA_TEXT}
+          {t("editor.run")}
         </Button>
       </Tooltip>
     </Flex>

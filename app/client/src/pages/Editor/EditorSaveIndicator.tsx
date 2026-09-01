@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { TextType, Text } from "@appsmith/ads-old";
 import { Colors } from "constants/Colors";
@@ -17,6 +18,7 @@ export function EditorSaveIndicator({
   isSaving: boolean;
   saveError: boolean;
 }) {
+  useTranslation();
   let saveStatusIcon: React.ReactNode;
   let saveStatusText = "";
 

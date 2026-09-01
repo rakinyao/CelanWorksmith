@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import { useTranslation } from "react-i18next";
 import styled, { ThemeContext } from "styled-components";
 import type { ApplicationPayload } from "entities/Application";
 import {
@@ -103,6 +104,7 @@ export interface ModifiedMenuItemProps extends MenuItemProps {
 
 export function ApplicationCard(props: ApplicationCardProps) {
   const { application, isFetchingApplications } = props;
+  const { t } = useTranslation();
   const theme = useContext(ThemeContext);
   const isSavingName = useSelector(getIsSavingAppName);
   const isErroredSavingName = useSelector(getIsErroredSavingAppName);
@@ -173,10 +175,12 @@ export function ApplicationCard(props: ApplicationCardProps) {
   }, [application.color]);
 
   useEffect(() => {
+    const actionItems: ModifiedMenuItemProps[] = [];
+
     if (props.share) {
-      moreActionItems.push({
+      actionItems.push({
         onSelect: shareApp,
-        children: "Share",
+        children: t("application.share"),
         key: "share",
         startIcon: "share",
         "data-testid": "t--share",
@@ -185,9 +189,9 @@ export function ApplicationCard(props: ApplicationCardProps) {
 
     // add fork app option to menu
     if (hasEditPermission) {
-      moreActionItems.push({
+      actionItems.push({
         onSelect: forkApplicationInitiate,
-        children: "Fork",
+        children: t("application.fork"),
         key: "fork",
         startIcon: "fork-2",
         "data-testid": "t--fork-app",
@@ -195,19 +199,28 @@ export function ApplicationCard(props: ApplicationCardProps) {
     }
 
     if (!!props.enableImportExport && hasExportPermission) {
-      moreActionItems.push({
+      actionItems.push({
         onSelect: exportApplicationAsJSONFile,
-        children: "Export",
+        children: t("application.export"),
         key: "export",
         startIcon: "download",
         "data-testid": "t--export-app",
       });
     }
 
-    setMoreActionItems(moreActionItems);
-    addDeleteOption();
+    if (props.delete && hasDeletePermission) {
+      actionItems.push({
+        onSelect: askForConfirmation,
+        children: t("application.delete"),
+        key: "delete",
+        startIcon: "delete-bin-line",
+        "data-testid": "t--delete-confirm",
+      });
+    }
+
+    setMoreActionItems(actionItems);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [t]);
 
   const appIcon = (application.icon ||
     getApplicationIcon(applicationId)) as AppIconName;
@@ -265,7 +278,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
     }
 
     setIsMenuOpen(false);
-    toast.show(`Successfully exported ${application.name}`, {
+    toast.show(t("application.exportSuccess", { name: application.name }), {
       kind: "success",
     });
   };
@@ -285,7 +298,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
     updatedActionItems.pop();
     updatedActionItems.push({
       onSelect: deleteApp,
-      children: "Are you sure?",
+      children: t("application.confirmDelete"),
       key: "areyousure",
       startIcon: "delete-bin-line",
       "data-testid": "t--delete",
@@ -304,7 +317,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
 
       moreActionItems.push({
         onSelect: askForConfirmation,
-        children: "Delete",
+        children: t("application.delete"),
         key: "delete",
         startIcon: "delete-bin-line",
         "data-testid": "t--delete-confirm",
@@ -366,7 +379,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
                 isError={isErroredSavingName}
                 isInvalid={(value: string) => {
                   if (!value) {
-                    return "Name cannot be empty";
+                    return t("application.nameRequired");
                   } else {
                     return false;
                   }
@@ -380,7 +393,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
                 onTextChanged={(value: string) => {
                   setLastUpdatedValue(value);
                 }}
-                placeholder={"Edit text input"}
+                placeholder={t("application.editPlaceholder")}
                 savingState={
                   isSavingName ? SavingState.STARTED : SavingState.NOT_STARTED
                 }
@@ -562,7 +575,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
           size="md"
           startIcon={"pencil-line"}
         >
-          Edit
+          {t("application.edit")}
         </Button>
       )}
       {!isMenuOpen && (
@@ -574,7 +587,7 @@ export function ApplicationCard(props: ApplicationCardProps) {
           size="md"
           startIcon={"rocket"}
         >
-          Launch
+          {t("application.launch")}
         </Button>
       )}
     </Card>

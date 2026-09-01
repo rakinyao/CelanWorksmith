@@ -14,19 +14,27 @@ export const APPSMITH_DISPLAY_VERSION = (edition: string, version: string) =>
   i18n.t("brand.displayVersion", { edition, version });
 export const INTERCOM_CONSENT_MESSAGE = () =>
   `Can we have your email for better support?`;
-export const YES = () => `Yes`;
-export const ARE_YOU_SURE = () => `Are you sure?`;
+export const YES = () => i18n.t("common.yes");
+export const NO = () => i18n.t("common.no");
+export const EDITOR_WIDGETS_TAB = () => i18n.t("editor.widgetsTab");
+export const EDITOR_MODULES_TAB = () => i18n.t("editor.modulesTab");
+export const EDITOR_QUERIES_JS = () => i18n.t("editor.queriesJs");
+export const EDITOR_RUN_BUTTON = () => i18n.t("editor.run");
+export const EDITOR_CLOSE_PANE = () => i18n.t("common.close");
+export const QUERY_CONFIRMATION_MODAL_TITLE = () =>
+  i18n.t("dialog.queryConfirmationTitle");
+export const ARE_YOU_SURE = () => i18n.t("dialog.confirmationTitle");
 export const CHAT_WITH_US = () => `Chat with us`;
 export const ERROR_ADD_API_INVALID_URL = () =>
   `Unable to create API. Try adding a URL to the datasource`;
 export const ERROR_MESSAGE_NAME_EMPTY = () => `Please select a name`;
 export const ERROR_MESSAGE_CREATE_APPLICATION = () =>
   `We could not create the Application`;
-export const APPLICATION_NAME_UPDATE = () => `Application name updated`;
+export const APPLICATION_NAME_UPDATE = () => i18n.t("application.nameUpdated");
 export const ERROR_EMPTY_APPLICATION_NAME = () =>
   `Application name can't be empty`;
 export const API_PATH_START_WITH_SLASH_ERROR = () => `Path cannot start with /`;
-export const FIELD_REQUIRED_ERROR = () => `This field is required`;
+export const FIELD_REQUIRED_ERROR = () => i18n.t("common.fieldRequired");
 export const INPUT_DEFAULT_TEXT_MAX_CHAR_ERROR = (max: number) =>
   `Default text length must be less than or equal to ${max} characters`;
 export const INPUT_TEXT_MAX_CHAR_ERROR = (max: number) =>
@@ -186,30 +194,35 @@ export const INVALID_NAME_ERROR = () => `Invalid name`;
 export const MAKE_APPLICATION_PUBLIC = () => "Make application public";
 export const MAKE_APPLICATION_PUBLIC_TOOLTIP = () =>
   "A public app is accessible to anyone who can access your instance of appsmith";
-export const INVITE_TAB = () => "Invite";
+export const INVITE_TAB = () => i18n.t("invite.tab");
 export const INVITE_USERS_VALIDATION_EMAIL_LIST = () =>
-  `Invalid email address(es) found`;
-export const INVITE_USERS_VALIDATION_ROLE_EMPTY = () => `Please select a role`;
-export const APPLICATION_INVITE = (name: string) => `Invite users to ${name}`;
+  i18n.t("invite.invalidEmail");
+export const INVITE_USERS_VALIDATION_ROLE_EMPTY = () =>
+  i18n.t("invite.roleRequired");
+export const APPLICATION_INVITE = (name: string) =>
+  i18n.t("invite.title", { name });
 export const INVITE_USERS_EMAIL_LIST_PLACEHOLDER = () =>
-  `Comma separated emails`;
-export const INVITE_USERS_ROLE_SELECT_PLACEHOLDER = () => `Select role`;
-export const INVITE_USERS_ROLE_SELECT_LABEL = () => `Role`;
-export const INVITE_USERS_EMAIL_LIST_LABEL = () => `User emails`;
-export const INVITE_USERS_ADD_EMAIL_LIST_FIELD = () => `Add more`;
-export const INVITE_USERS_MESSAGE = () => `Invite users`;
-export const INVITE_USERS_PLACEHOLDER = () => `Enter email address(es)`;
-export const INVITE_USERS_SUBMIT_BUTTON_TEXT = () => `Invite users`;
+  i18n.t("invite.emailListPlaceholder");
+export const INVITE_USERS_ROLE_SELECT_PLACEHOLDER = () =>
+  i18n.t("invite.rolePlaceholder");
+export const INVITE_USERS_ROLE_SELECT_LABEL = () => i18n.t("invite.roleLabel");
+export const INVITE_USERS_EMAIL_LIST_LABEL = () =>
+  i18n.t("invite.userEmailsLabel");
+export const INVITE_USERS_ADD_EMAIL_LIST_FIELD = () => i18n.t("invite.addMore");
+export const INVITE_USERS_MESSAGE = () => i18n.t("invite.message");
+export const INVITE_USERS_PLACEHOLDER = () => i18n.t("invite.emailPlaceholder");
+export const INVITE_USERS_SUBMIT_BUTTON_TEXT = () =>
+  i18n.t("invite.submitButton");
 export const INVITE_USERS_SUBMIT_SUCCESS = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cloudHosting?: boolean,
-) => `The users have been invited successfully`;
+) => i18n.t("invite.submitSuccess");
 export const INVITE_USER_SUBMIT_SUCCESS = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cloudHosting?: boolean,
-) => `The user has been invited successfully`;
+) => i18n.t("invite.userSubmitSuccess");
 export const INVITE_USERS_VALIDATION_EMAILS_EMPTY = () =>
-  `Please enter the user emails`;
+  i18n.t("invite.emailsRequired");
 export const INVITE_USER_RAMP_TEXT = () =>
   "Users will have access to all applications in the workspace. For application-level access, try out our ";
 export const CUSTOM_ROLES_RAMP_TEXT = () =>
@@ -222,7 +235,7 @@ export const USERS_HAVE_ACCESS_TO_ALL_APPS = () =>
   "Users will have access to all applications in this workspace";
 export const USERS_HAVE_ACCESS_TO_ONLY_THIS_APP = () =>
   "Users will only have access to this application";
-export const NO_USERS_INVITED = () => "You haven't invited any users yet";
+export const NO_USERS_INVITED = () => i18n.t("invite.noUsers");
 export const BUSINESS_EDITION_TEXT = () => "business plan";
 export const ENTERPRISE_EDITION_TEXT = () => "enterprise plan";
 export const PARTNER_PROGRAM_CALLOUT = (
@@ -231,9 +244,10 @@ export const PARTNER_PROGRAM_CALLOUT = (
 for someone else, you should check out our partner program.`;
 export const PARTNER_PROGRAM_CALLOUT_LINK = () =>
   `Learn about Appsmith Partner Program`;
-export const NEW_APPLICATION = () => `New application`;
-export const APPLICATIONS = () => `Applications`;
-export const FIXED_APPLICATIONS = () => `Classic Applications`;
+export const NEW_APPLICATION = () => i18n.t("application.new");
+export const APPLICATIONS = () => i18n.t("application.applications");
+export const FIXED_APPLICATIONS = () =>
+  i18n.t("application.classicApplications");
 export const AI_AGENTS_APPLICATIONS = () => `AI Agents`;
 export const AI_APPLICATION_CARD_LIST_ZERO_STATE = () =>
   `There are no AI Agents in this workspace.`;
@@ -252,10 +266,12 @@ export const USER_DISPLAY_PICTURE_FILE_INVALID = () =>
   "File content doesn't seem to be an image. Please verify.";
 export const USER_DISPLAY_NAME_CHAR_CHECK_FAILED = () =>
   "No special characters allowed except .'-";
-export const USER_DISPLAY_NAME_PLACEHOLDER = () => "Display name";
-export const USER_DISPLAY_PICTURE_PLACEHOLDER = () => "Display picture";
+export const USER_DISPLAY_NAME_PLACEHOLDER = () =>
+  i18n.t("profile.displayName");
+export const USER_DISPLAY_PICTURE_PLACEHOLDER = () =>
+  i18n.t("profile.displayPicture");
 export const USER_EMAIL_PLACEHOLDER = () => "Email";
-export const USER_RESET_PASSWORD = () => "Reset password";
+export const USER_RESET_PASSWORD = () => i18n.t("profile.resetPassword");
 
 export const CREATE_PASSWORD_RESET_SUCCESS = () => `Your password has been set`;
 export const CREATE_PASSWORD_RESET_SUCCESS_LOGIN_LINK = () => `Login`;
@@ -282,8 +298,8 @@ export const ALL_APPS = () => `All apps`;
 export const KNOW_MORE = () => "Know more";
 
 export const EDITOR_HEADER = {
-  saving: () => "Saving",
-  saveFailed: () => "Save failed",
+  saving: () => i18n.t("editor.saving"),
+  saveFailed: () => i18n.t("editor.saveFailed"),
   share: () => "Share",
   previewTooltip: {
     text: () => "Preview",
@@ -292,14 +308,13 @@ export const EDITOR_HEADER = {
 };
 
 // Homepage
-export const CREATE_NEW_APPLICATION = () => `Create new`;
-export const SEARCH_APPS = () => `Search for apps...`;
+export const CREATE_NEW_APPLICATION = () => i18n.t("application.createNew");
+export const SEARCH_APPS = () => i18n.t("application.searchPlaceholder");
 export const GETTING_STARTED = () => `Getting started`;
-export const WORKSPACES_HEADING = () => `Workspaces`;
-export const CREATE_A_NEW_WORKSPACE = () => `Create a new workspace`;
-export const WELCOME_TOUR = () => `Welcome tour`;
-export const NO_APPS_FOUND = () =>
-  `Whale! Whale! This name doesn't ring a bell!`;
+export const WORKSPACES_HEADING = () => i18n.t("workspace.heading");
+export const CREATE_A_NEW_WORKSPACE = () => i18n.t("workspace.create");
+export const WELCOME_TOUR = () => i18n.t("workspace.welcomeTour");
+export const NO_APPS_FOUND = () => i18n.t("application.noAppsFoundHeading");
 export const APPLICATION_CARD_LIST_ZERO_STATE = () =>
   `There are no applications in this workspace.`;
 export const NEW_APPLICATION_CARD_LIST_ZERO_STATE = () =>
@@ -310,7 +325,7 @@ export const WHATS_NEW = () => `What's new?`;
 export const WORKSPACE_ACTION_BUTTON = () => "Create new";
 export const NEW_APP = () => "Application";
 export const NEW_APP_FROM_TEMPLATE = () => "Templates";
-export const NO_WORKSPACE_HEADING = () => "Oops! No workspace found";
+export const NO_WORKSPACE_HEADING = () => i18n.t("workspace.noWorkspace");
 export const NO_WORKSPACE_DESCRIPTION = () =>
   "You can find workspace list on the left sidebar, try selecting one of them to access a workspace.";
 
@@ -332,12 +347,10 @@ export const DONT_SHOW_THIS_AGAIN = () => `Don't show this again`;
 export const TABLE_FILTER_COLUMN_TYPE_CALLOUT = () =>
   `Change column datatype to see filter operators`;
 
-export const SAVE_HOTKEY_TOASTER_MESSAGE = () =>
-  "Don't worry about saving, we've got you covered!";
+export const SAVE_HOTKEY_TOASTER_MESSAGE = () => i18n.t("toast.saveHotkey");
 
-export const WIDGET_SIDEBAR_TITLE = () => `Widgets`;
-export const WIDGET_SIDEBAR_CAPTION = () =>
-  `Drag a widget and drop it on the canvas`;
+export const WIDGET_SIDEBAR_TITLE = () => i18n.t("editor.widgets");
+export const WIDGET_SIDEBAR_CAPTION = () => i18n.t("editor.widgetCaption");
 export const GOOGLE_RECAPTCHA_KEY_ERROR = () =>
   `Google reCAPTCHA token generation failed! Please check the reCAPTCHA site key.`;
 export const GOOGLE_RECAPTCHA_DOMAIN_ERROR = () =>
@@ -395,14 +408,14 @@ export const DATASOURCE_UPDATE = (dsName: string) =>
   `${dsName} datasource updated successfully`;
 export const DATASOURCE_VALID = (dsName: string) =>
   `${dsName} datasource is valid`;
-export const EDIT_DATASOURCE = () => "Edit configuration";
-export const SAVE_DATASOURCE = () => "Save URL";
-export const EDIT_DATASOURCE_TOOLTIP = () => "Edit datasource";
-export const SAVE_DATASOURCE_TOOLTIP = () => "Save URL as a datasource";
-export const SAVE_DATASOURCE_MESSAGE = () =>
-  "Save the URL as a datasource to access authentication settings";
+export const EDIT_DATASOURCE = () => i18n.t("editor.editDatasource");
+export const SAVE_DATASOURCE = () => i18n.t("editor.saveUrl");
+export const EDIT_DATASOURCE_TOOLTIP = () =>
+  i18n.t("editor.editDatasourceTooltip");
+export const SAVE_DATASOURCE_TOOLTIP = () => i18n.t("editor.saveUrlTooltip");
+export const SAVE_DATASOURCE_MESSAGE = () => i18n.t("editor.saveUrlMessage");
 export const EDIT_DATASOURCE_MESSAGE = () =>
-  "Edit datasource to access authentication settings";
+  i18n.t("editor.editDatasourceMessage");
 export const OAUTH_ERROR = () => "OAuth Error";
 export const OAUTH_2_0 = () => "OAuth 2.0";
 export const ENABLE = () => "Enable";
@@ -498,13 +511,13 @@ export const LOCAL_STORAGE_NO_SPACE_LEFT_ON_DEVICE_MESSAGE = () =>
 export const LOCAL_STORAGE_NOT_SUPPORTED_APP_MIGHT_NOT_WORK_AS_EXPECTED = () =>
   "LocalStorage is not supported on your device. Some features including the Appsmith store won't work.";
 
-export const OMNIBAR_PLACEHOLDER = () =>
-  `Search widgets, queries or create new`;
-export const OMNIBAR_PLACEHOLDER_NAV = () => "Search widgets and queries";
+export const OMNIBAR_PLACEHOLDER = () => i18n.t("search.globalPlaceholder");
+export const OMNIBAR_PLACEHOLDER_NAV = () =>
+  i18n.t("search.widgetsAndQueriesPlaceholder");
 export const CREATE_NEW_OMNIBAR_PLACEHOLDER = () =>
-  "Create a new query, API or JS Object";
+  i18n.t("search.createNewPlaceholder");
 export const HELPBAR_PLACEHOLDER = () => "Search";
-export const NO_SEARCH_DATA_TEXT = () => "No results found";
+export const NO_SEARCH_DATA_TEXT = () => i18n.t("search.noResults");
 
 export const WIDGET_BIND_HELP = () =>
   "Having trouble taking inputs from widgets?";
@@ -589,7 +602,7 @@ export const PAGE_SERVER_UNAVAILABLE_ERROR_MESSAGES = (
 
 // comments
 export const POST = () => "Post";
-export const CANCEL = () => "Cancel";
+export const CANCEL = () => i18n.t("common.cancel");
 export const REMOVE = () => "Remove";
 export const CREATE = () => "Create";
 
@@ -624,7 +637,7 @@ export const ACTION_CONFIGURATION_UPDATED = () => "Configuration updated";
 export const WIDGET_PROPERTIES_UPDATED = () => "Widget properties were updated";
 export const EMPTY_RESPONSE_FIRST_HALF = () => "🙌 Click on";
 export const EMPTY_RESPONSE_LAST_HALF = () => "to get a response";
-export const EMPTY_RESPONSE_RUN = () => "Click ‘Run’ to get a response";
+export const EMPTY_RESPONSE_RUN = () => i18n.t("editor.emptyResponseRun");
 export const EMPTY_JS_RESPONSE_LAST_HALF = () =>
   "to view response of selected function";
 export const INVALID_EMAIL = () => "Please enter a valid email";
@@ -640,7 +653,7 @@ export const DEBUGGER_APPSMITH_SUPPORT = () => "Get Appsmith support";
 
 //action creator menu
 export const NO_ACTION = () => `No action`;
-export const EXECUTE_A_QUERY = () => `Execute a query`;
+export const EXECUTE_A_QUERY = () => i18n.t("editor.executeQuery");
 export const NAVIGATE_TO = () => `Navigate to`;
 export const SHOW_ALERT = () => `Show alert`;
 export const SHOW_MODAL = () => `Show modal`;
@@ -750,7 +763,8 @@ export const SKIP_TO_APPLICATION_FOR_AGENTS = () => "Go to agent";
 export const SKIP_CONFIGURATION = () => "Skip configuration";
 export const SELECT_A_METHOD_TO_ADD_CREDENTIALS = () =>
   "Select a method to add credentials";
-export const DELETE_CONFIRMATION_MODAL_TITLE = () => `Are you sure?`;
+export const DELETE_CONFIRMATION_MODAL_TITLE = () =>
+  i18n.t("dialog.confirmationTitle");
 export const DELETE_CONFIRMATION_MODAL_SUBTITLE = (
   name?: string | null,
   entityType?: string,
@@ -772,7 +786,7 @@ export const JS_OBJECT_BODY_INVALID = () => "JS Object could not be parsed";
 export const JS_ACTION_EXECUTION_ERROR = (jsFunctionName: string) =>
   `An error occured while trying to execute ${jsFunctionName}, please check error logs to debug`;
 //Editor Page
-export const EDITOR_HEADER_SAVE_INDICATOR = () => "Saved";
+export const EDITOR_HEADER_SAVE_INDICATOR = () => i18n.t("editor.saved");
 
 //Import Application Succesful
 export const IMPORT_APP_SUCCESSFUL = () => "Application imported successfully";
@@ -972,7 +986,8 @@ export const GIT_USER_UPDATED_SUCCESSFULLY = () =>
 export const REMOTE_URL_INPUT_PLACEHOLDER = () =>
   "git@example.com:user/repository.git";
 export const GIT_COMMIT_MESSAGE_PLACEHOLDER = () => "Your commit message here";
-export const INVALID_USER_DETAILS_MSG = () => "Please enter valid user details";
+export const INVALID_USER_DETAILS_MSG = () =>
+  i18n.t("common.invalidUserDetails");
 export const PASTE_SSH_URL_INFO = () =>
   "Please enter a valid SSH URL of your repository";
 export const GENERATE_KEY = () => "Generate key";
@@ -1511,7 +1526,7 @@ export const ENTITY_MORE_ACTIONS_TOOLTIP = () => "More actions";
 export const NOTIFICATIONS_TOOLTIP = () => "Notifications";
 
 // Navigation Menu
-export const DEPLOY_MENU_OPTION = () => "Deploy";
+export const DEPLOY_MENU_OPTION = () => i18n.t("editor.deploy");
 export const REDEPLOY_MENU_OPTION = () => "Redeploy";
 export const CURRENT_DEPLOY_PREVIEW_OPTION = () => "Current deployed version";
 export const CONNECT_TO_GIT_OPTION = () => "Connect to Git repository";
@@ -1524,7 +1539,7 @@ export const DELETE_TOOLTIP = () => "Delete";
 export const SETTINGS_TOOLTIP = () => "Settings";
 
 //settings
-export const ADMIN_SETTINGS = () => "Admin settings";
+export const ADMIN_SETTINGS = () => i18n.t("navigation.adminSettings");
 export const HELP = () => "Help";
 export const RESTART_BANNER_BODY = () =>
   "Hang in there. This should be done soon.";
@@ -1662,7 +1677,7 @@ export const WELCOME_FORM_PASSWORDS_NOT_MATCHING_ERROR_MESSAGE = () =>
   "Passwords don't match.";
 
 export const QUERY_CONFIRMATION_MODAL_MESSAGE = () =>
-  `Are you sure you want to run `;
+  `${i18n.t("dialog.queryConfirmationMessage")} `;
 
 // Security feature disable confirmation modal
 export const DISABLE_PREPARED_STATEMENT_CONFIRMATION_HEADING = () =>
@@ -1726,7 +1741,7 @@ export const API_PANE_DUPLICATE_HEADER = (headerName: string) =>
 export const TABLE_WIDGET_TOTAL_RECORD_TOOLTIP = () =>
   "It stores the total no. of rows in the table. Helps in calculating the no. of pages that further allows to enable or disable the next/previous control in pagination.";
 export const CREATE_DATASOURCE_TOOLTIP = () => "Add a new datasource";
-export const ADD_QUERY_JS_TOOLTIP = () => "Add a new query/JS Object";
+export const ADD_QUERY_JS_TOOLTIP = () => i18n.t("editor.addQueryJsTooltip");
 export const LIST_WIDGET_V2_TOTAL_RECORD_TOOLTIP = () =>
   "Count of all the records in the source data for the list. This helps us calculate the number of pages to be shown";
 
@@ -1864,16 +1879,18 @@ export const END_DESCRIPTION = () =>
   "Inspect properties of queries, components, etc.";
 export const END_BUTTON_TEXT = () => "Start building an app";
 
-export const CONTEXT_RENAME = () => "Rename";
-export const CONTEXT_SHOW_BINDING = () => "Show bindings";
-export const CONTEXT_MOVE = () => "Move to page";
-export const CONTEXT_COPY = () => "Copy to page";
-export const CONTEXT_COPY_TO_APP = () => "Copy to application";
-export const CONTEXT_DUPLICATE = () => "Duplicate";
-export const CONTEXT_DELETE = () => "Delete";
-export const CONFIRM_CONTEXT_DELETE = () => "Are you sure?";
-export const CONFIRM_CONTEXT_DELETING = () => "Deleting";
-export const CONTEXT_NO_PAGE = () => "No pages";
+export const CONTEXT_RENAME = () => i18n.t("editor.context.rename");
+export const CONTEXT_SHOW_BINDING = () => i18n.t("editor.context.showBinding");
+export const CONTEXT_MOVE = () => i18n.t("editor.context.move");
+export const CONTEXT_COPY = () => i18n.t("editor.context.copy");
+export const CONTEXT_COPY_TO_APP = () =>
+  i18n.t("editor.context.copyToApplication");
+export const CONTEXT_DUPLICATE = () => i18n.t("editor.context.duplicate");
+export const CONTEXT_DELETE = () => i18n.t("editor.context.delete");
+export const CONFIRM_CONTEXT_DELETE = () =>
+  i18n.t("editor.context.confirmDelete");
+export const CONFIRM_CONTEXT_DELETING = () => i18n.t("editor.context.deleting");
+export const CONTEXT_NO_PAGE = () => i18n.t("editor.context.noPages");
 export const CONTEXT_REFRESH = () => "Refresh";
 export const CONTEXT_CLONE = () => "Clone";
 export const CONTEXT_SETTINGS = () => "Settings";
@@ -1885,16 +1902,19 @@ export const PAGE = () => "Page";
 export const PAGES = () => "Pages";
 
 // Entity explorer
-export const ADD_DATASOURCE_BUTTON = () => "Add datasource";
-export const ADD_WIDGET_BUTTON = () => "Add widget";
-export const ADD_QUERY_JS_BUTTON = () => "Add query/JS";
-export const EMPTY_WIDGET_MAIN_TEXT = () => "No widget to display";
-export const EMPTY_WIDGET_BUTTON_TEXT = () => "New widget";
-export const EMPTY_QUERY_JS_MAIN_TEXT = () => "No query/JS to display";
-export const EMPTY_QUERY_JS_BUTTON_TEXT = () => "New query/JS";
-export const EMPTY_DATASOURCE_MAIN_TEXT = () => "No datasource to display";
-export const EMPTY_DATASOURCE_BUTTON_TEXT = () => "New datasource";
-export const SEARCH_DATASOURCES = () => "Search datasources";
+export const ADD_DATASOURCE_BUTTON = () => i18n.t("editor.addDatasource");
+export const ADD_WIDGET_BUTTON = () => i18n.t("editor.addWidgetCommand");
+export const ADD_QUERY_JS_BUTTON = () => i18n.t("editor.addQueryJs");
+export const EMPTY_WIDGET_MAIN_TEXT = () => i18n.t("editor.emptyWidget");
+export const EMPTY_WIDGET_BUTTON_TEXT = () =>
+  i18n.t("editor.emptyWidgetButton");
+export const EMPTY_QUERY_JS_MAIN_TEXT = () => i18n.t("editor.emptyQueryJs");
+export const EMPTY_QUERY_JS_BUTTON_TEXT = () => i18n.t("editor.newQueryJs");
+export const EMPTY_DATASOURCE_MAIN_TEXT = () =>
+  i18n.t("editor.emptyDatasource");
+export const EMPTY_DATASOURCE_BUTTON_TEXT = () =>
+  i18n.t("editor.newDatasource");
+export const SEARCH_DATASOURCES = () => i18n.t("editor.searchDatasources");
 
 // Templates
 export const MORE = () => "More";
@@ -1952,31 +1972,42 @@ export const FORK_APP_MODAL_SUCCESS_TITLE = () =>
   "Choose where to fork the app";
 export const FORK = () => `Fork`;
 
-export const COPY_ENTITY_TO_APP_MODAL_TITLE = () => "Copy to application";
-export const COPY_ENTITY_TO_APP_WORKSPACE_LABEL = () => "Workspace";
-export const COPY_ENTITY_TO_APP_APPLICATION_LABEL = () => "Application";
-export const COPY_ENTITY_TO_APP_PAGE_LABEL = () => "Page";
+export const COPY_ENTITY_TO_APP_MODAL_TITLE = () =>
+  i18n.t("dialog.copyEntityToApplicationTitle");
+export const COPY_ENTITY_TO_APP_WORKSPACE_LABEL = () =>
+  i18n.t("dialog.copyEntityToApplicationWorkspace");
+export const COPY_ENTITY_TO_APP_APPLICATION_LABEL = () =>
+  i18n.t("dialog.copyEntityToApplicationApplication");
+export const COPY_ENTITY_TO_APP_PAGE_LABEL = () =>
+  i18n.t("dialog.copyEntityToApplicationPage");
 export const COPY_ENTITY_TO_APP_WORKSPACE_PLACEHOLDER = () =>
-  "Select a workspace";
+  i18n.t("dialog.copyEntityToApplicationWorkspacePlaceholder");
 export const COPY_ENTITY_TO_APP_APPLICATION_PLACEHOLDER = () =>
-  "Select an application";
-export const COPY_ENTITY_TO_APP_PAGE_PLACEHOLDER = () => "Select a page";
-export const COPY_ENTITY_TO_APP_CONFIRM = () => "Copy";
+  i18n.t("dialog.copyEntityToApplicationApplicationPlaceholder");
+export const COPY_ENTITY_TO_APP_PAGE_PLACEHOLDER = () =>
+  i18n.t("dialog.copyEntityToApplicationPagePlaceholder");
+export const COPY_ENTITY_TO_APP_CONFIRM = () =>
+  i18n.t("dialog.copyEntityToApplicationConfirm");
 export const COPY_ENTITY_TO_APP_NO_WORKSPACES = () =>
-  "No workspaces available to copy to";
+  i18n.t("dialog.copyEntityToApplicationNoWorkspaces");
 export const COPY_ENTITY_TO_APP_NO_APPS = () =>
-  "No applications available in this workspace";
+  i18n.t("dialog.copyEntityToApplicationNoApplications");
 export const COPY_ENTITY_TO_APP_NO_PAGES = () =>
-  "No pages available in this application";
+  i18n.t("dialog.copyEntityToApplicationNoPages");
 export const COPY_ENTITY_TO_APP_SUCCESS = (
   entityName: string,
   appName: string,
   pageName: string,
-) => `Copied ${entityName} to ${appName} / ${pageName}`;
+) =>
+  i18n.t("toast.copyEntityToApplicationSuccess", {
+    entityName,
+    appName,
+    pageName,
+  });
 export const COPY_ENTITY_TO_APP_ERROR = () =>
-  "Failed to copy to the selected application";
+  i18n.t("toast.copyEntityToApplicationFailed");
 export const COPY_ENTITY_TO_APP_NOTE = () =>
-  "Datasource credentials and any referenced queries aren't copied. Datasources are set up during import, but you may need to re-enter credentials and recreate any referenced queries before the copied item will work in the target application.";
+  i18n.t("dialog.copyEntityToApplicationNote");
 
 export const CLEAN_URL_UPDATE = {
   name: () => "Update URLs",
@@ -2000,7 +2031,7 @@ export const MEMBERS_TAB_TITLE = (
 export const SEARCH_USERS = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isFreeInstance?: boolean,
-) => `Search for users`;
+) => i18n.t("search.usersPlaceholder");
 
 export const CREATE_PAGE = () => "New blank page";
 export const CANVAS_NEW_PAGE_CARD = () => "Create new page";
@@ -2008,7 +2039,7 @@ export const ADD_PAGE_FROM_TEMPLATE = () => "Add page from template";
 export const INVALID_URL = () =>
   "Please enter a valid URL, for example, https://example.com";
 export const SAVE_OR_DISCARD_DATASOURCE_WARNING = () =>
-  `Unsaved changes will be lost if you exit this page, save the changes before exiting.`;
+  i18n.t("dialog.unsavedDatasourceWarning");
 
 export const APP_SETTINGS_PANE_HEADER = () => "Settings";
 export const APP_SETTINGS_CLOSE_TOOLTIP = () => "Close settings panel";
@@ -2193,13 +2224,15 @@ export const NEW_API_BUTTON_TEXT = () => "New API";
 export const NEW_AI_BUTTON_TEXT = () => "New AI Query";
 export const GENERATE_NEW_PAGE_BUTTON_TEXT = () => "Generate new page";
 export const RECONNECT_BUTTON_TEXT = () => "Reconnect";
-export const SAVE_BUTTON_TEXT = () => "Save";
+export const SAVE_BUTTON_TEXT = () => i18n.t("editor.save");
 export const TEST_BUTTON_TEXT = () => "Test configuration";
-export const SAVE_AND_AUTHORIZE_BUTTON_TEXT = () => "Save & Authorize";
+export const SAVE_AND_AUTHORIZE_BUTTON_TEXT = () =>
+  i18n.t("editor.saveAndAuthorize");
 export const CONNECT_DATASOURCE_BUTTON_TEXT = () => "Connect Datasource";
 export const CONNECT_DATASOURCE_BUTTON_TEXT_FOR_AGENTS = () => "Connect";
 export const SAVE_AND_RE_AUTHORIZE_BUTTON_TEXT = () => "Save & Re-Authorize";
-export const DISCARD_POPUP_DONT_SAVE_BUTTON_TEXT = () => "Don't save";
+export const DISCARD_POPUP_DONT_SAVE_BUTTON_TEXT = () =>
+  i18n.t("dialog.discard");
 export const GSHEET_AUTHORISED_FILE_IDS_KEY = () => "userAuthorizedSheetIds";
 export const GOOGLE_SHEETS_INFO_BANNER_MESSAGE = () =>
   "Appsmith will require access to your google drive to access google sheets.";
@@ -2500,11 +2533,13 @@ export const NO_ACCESS_TITLE_TEXT = () =>
 export const NO_ACCESS_MESSAGE_TEXT = () =>
   "Please contact your workspace administrator to gain access";
 
-export const DATA_PANE_TITLE = () => "Datasources in your workspace";
+export const DATA_PANE_TITLE = () => i18n.t("editor.dataPaneTitle");
 export const DATASOURCE_LIST_BLANK_DESCRIPTION = () =>
-  "Connect a datasource to write your first query";
-export const DATASOURCE_BLANK_STATE_MESSAGE = () => "No datasources to display";
-export const DATASOURCE_BLANK_STATE_CTA = () => "Bring your data";
+  i18n.t("editor.datasourceBlankDescription");
+export const DATASOURCE_BLANK_STATE_MESSAGE = () =>
+  i18n.t("editor.noDatasources");
+export const DATASOURCE_BLANK_STATE_CTA = () =>
+  i18n.t("editor.datasourceBlankCta");
 
 // Create New Apps Intermediary step
 export const CREATE_NEW_APPS_STEP_TITLE = () => "How would you like to start?";
@@ -2524,25 +2559,22 @@ export const START_WITH_TEMPLATE_CONNECT_SUBHEADING = () =>
   "Choose an option below to embark on your app-building adventure!";
 
 export const EDITOR_PANE_TEXTS = {
-  queries_tab: () => "Queries",
+  queries_tab: () => i18n.t("editor.queries"),
   js_tab: () => "JS",
   ui_tab: () => "UI",
   ontology_tab: () => "Ontology / 本体",
-  query_blank_state: () => "No queries to display",
-  js_blank_state: () => "No JS objects to display",
-  query_blank_state_description: () =>
-    "Write your first query or API to access data",
-  js_blank_state_description: () =>
-    "Use JS to transform your data or write business logic",
-  widget_blank_state_description: () =>
-    "Drag & drop UI elements to create your app",
-  query_add_button: () => "New query / API",
-  js_add_button: () => "New JS object",
-  js_blank_object_item: () => "Blank JS object",
+  query_blank_state: () => i18n.t("editor.noQueries"),
+  js_blank_state: () => i18n.t("editor.noJsObjects"),
+  query_blank_state_description: () => i18n.t("editor.queryBlankDescription"),
+  js_blank_state_description: () => i18n.t("editor.jsBlankDescription"),
+  widget_blank_state_description: () => i18n.t("editor.widgetBlankDescription"),
+  query_add_button: () => i18n.t("editor.queryAddButton"),
+  js_add_button: () => i18n.t("editor.newJsObject"),
+  js_blank_object_item: () => i18n.t("editor.blankJsObject"),
   widget_add_button: () => "New UI element",
-  query_create_tab_title: () => "Create new query from",
-  widgets_create_tab_title: () => "Drag & drop UI elements",
-  js_create_tab_title: () => "Create JS object from",
+  query_create_tab_title: () => i18n.t("editor.queryCreateTitle"),
+  widgets_create_tab_title: () => i18n.t("editor.widgetsCreateTitle"),
+  js_create_tab_title: () => i18n.t("editor.jsCreateTitle"),
   js_create_modules: (isBeta: boolean) =>
     `JS modules ${isBeta ? "(Beta)" : ""}`,
   queries_create_from_existing: () => "Datasources",
@@ -2682,9 +2714,10 @@ export const CUSTOM_WIDGET_FEATURE = {
 };
 
 export const WIDGET_PANEL_EMPTY_MESSAGE = () =>
-  "We couldn’t find any UI elements called";
+  i18n.t("editor.widgetPanelEmpty");
 
-export const UI_ELEMENT_PANEL_SEARCH_TEXT = () => "Search UI elements";
+export const UI_ELEMENT_PANEL_SEARCH_TEXT = () =>
+  i18n.t("editor.searchWidgets");
 
 export const HTTP_PROTOCOL_INPUT_PLACEHOLDER = () => `Select HTTP Protocol`;
 

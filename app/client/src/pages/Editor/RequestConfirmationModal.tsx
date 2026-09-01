@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { Keys } from "@blueprintjs/core";
@@ -17,7 +18,10 @@ import {
 } from "@appsmith/ads";
 import {
   createMessage,
+  QUERY_CONFIRMATION_MODAL_TITLE,
   QUERY_CONFIRMATION_MODAL_MESSAGE,
+  YES,
+  NO,
 } from "ee/constants/messages";
 import type { ModalInfo } from "reducers/uiReducers/modalActionReducer";
 
@@ -90,7 +94,9 @@ class RequestConfirmationModal extends React.Component<Props> {
               data-testid="t--query-run-confirmation-modal"
               style={{ width: "600px" }}
             >
-              <ModalHeader>Confirmation dialog</ModalHeader>
+              <ModalHeader>
+                {createMessage(QUERY_CONFIRMATION_MODAL_TITLE)}
+              </ModalHeader>
               <ModalBody>
                 {createMessage(QUERY_CONFIRMATION_MODAL_MESSAGE)}{" "}
                 <b>{modalInfo.name}</b> ?
@@ -104,14 +110,14 @@ class RequestConfirmationModal extends React.Component<Props> {
                   }}
                   size="md"
                 >
-                  No
+                  {createMessage(NO)}
                 </Button>
                 <Button
                   kind="primary"
                   onClick={() => this.onConfirm(modalInfo)}
                   size="md"
                 >
-                  Yes
+                  {createMessage(YES)}
                 </Button>
               </ModalFooter>
             </ModalContent>
@@ -122,8 +128,14 @@ class RequestConfirmationModal extends React.Component<Props> {
   }
 }
 
+export const RequestConfirmationModalWithI18n = (props: Props) => {
+  useTranslation();
+
+  return <RequestConfirmationModal {...props} />;
+};
+
 const mapStateToProps = (state: DefaultRootState) => ({
   modals: state.ui.modalAction.modals,
 });
 
-export default connect(mapStateToProps)(RequestConfirmationModal);
+export default connect(mapStateToProps)(RequestConfirmationModalWithI18n);

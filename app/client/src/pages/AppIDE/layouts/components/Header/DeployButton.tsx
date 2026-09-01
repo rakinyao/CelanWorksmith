@@ -24,6 +24,7 @@ import {
   useGitModEnabled,
 } from "pages/Editor/gitSync/hooks/modHooks";
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getCurrentApplicationId,
@@ -40,6 +41,7 @@ const StyledTooltipTarget = styled.span`
 `;
 
 function DeployButton() {
+  const { i18n } = useTranslation();
   const [isReleasePanelOpen, setIsReleasePanelOpen] = useState(false);
   const applicationId = useSelector(getCurrentApplicationId);
   const isPackageUpgrading = useSelector(getIsPackageUpgrading);
@@ -71,7 +73,13 @@ function DeployButton() {
     }
 
     return createMessage(DEPLOY_BUTTON_TOOLTIP);
-  }, [isPackageUpgrading, isGitConnected, gitStatusState, redeployTrigger]);
+  }, [
+    isPackageUpgrading,
+    isGitConnected,
+    gitStatusState,
+    redeployTrigger,
+    i18n.language,
+  ]);
 
   const dispatch = useDispatch();
 

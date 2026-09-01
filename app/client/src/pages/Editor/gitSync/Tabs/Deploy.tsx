@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ARE_YOU_SURE,
   COMMIT_AND_PUSH,
@@ -98,6 +99,7 @@ function SubmitWrapper(props: {
 }
 
 function Deploy() {
+  useTranslation();
   const lastDeployedAt = useSelector(getApplicationLastDeployedAt);
   const isCommittingInProgress = useSelector(getIsCommittingInProgress);
   const isDiscardInProgress = useSelector(getIsDiscardInProgress) || false;

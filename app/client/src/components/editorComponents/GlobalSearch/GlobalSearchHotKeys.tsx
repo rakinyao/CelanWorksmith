@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useHotkeys, type HotkeyConfig } from "@blueprintjs/core";
 import type { SearchItem, SelectEvent } from "./utils";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   modalOpen: boolean;
@@ -22,6 +23,7 @@ const GlobalSearchHotKeys: React.FC<Props> = ({
   handleUpKey,
   modalOpen,
 }) => {
+  const { t } = useTranslation();
   const hotkeys: HotkeyConfig[] = useMemo(
     () =>
       [
@@ -31,7 +33,7 @@ const GlobalSearchHotKeys: React.FC<Props> = ({
           hideWhenModalClosed: true,
           allowInInput: true,
           group: "Omnibar",
-          label: "Move up the list",
+          label: t("search.moveUpList"),
           global: false,
         },
         {
@@ -40,7 +42,7 @@ const GlobalSearchHotKeys: React.FC<Props> = ({
           hideWhenModalClosed: true,
           allowInInput: true,
           group: "Omnibar",
-          label: "Move down the list",
+          label: t("search.moveDownList"),
           global: false,
         },
         {
@@ -56,14 +58,14 @@ const GlobalSearchHotKeys: React.FC<Props> = ({
           hideWhenModalClosed: true,
           allowInInput: true,
           group: "Omnibar",
-          label: "Navigate",
+          label: t("search.hotkeyNavigate"),
           global: false,
         },
       ].filter(
         ({ hideWhenModalClosed }) =>
           !hideWhenModalClosed || (hideWhenModalClosed && modalOpen),
       ),
-    [handleUpKey, handleDownKey, handleItemLinkClick, modalOpen],
+    [handleUpKey, handleDownKey, handleItemLinkClick, modalOpen, t],
   );
 
   const { handleKeyDown, handleKeyUp } = useHotkeys(hotkeys);

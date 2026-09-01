@@ -2,6 +2,7 @@ import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react";
 import CopyEntityToAppModal from "./CopyEntityToAppModal";
 import { fetchPagesForCopyTarget } from "actions/copyToAppActions";
+import { changeLocale } from "i18n";
 
 const mockDispatch = jest.fn();
 
@@ -60,9 +61,14 @@ function openApplicationOptions() {
 }
 
 describe("CopyEntityToAppModal", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await changeLocale("en-US");
     mockDispatch.mockClear();
     mockEntityType = "ACTION";
+  });
+
+  afterEach(async () => {
+    await changeLocale("zh-CN");
   });
 
   it("excludes the source application from the target application list", () => {

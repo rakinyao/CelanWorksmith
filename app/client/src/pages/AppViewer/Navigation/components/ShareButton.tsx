@@ -17,6 +17,7 @@ import FormDialogComponent from "components/editorComponents/form/FormDialogComp
 import { getCurrentAppWorkspace } from "ee/selectors/selectedWorkspaceSelectors";
 import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
+import { useTranslation } from "react-i18next";
 
 interface ShareButtonProps {
   currentApplicationDetails?: ApplicationPayload;
@@ -26,6 +27,7 @@ interface ShareButtonProps {
 }
 
 const ShareButton = (props: ShareButtonProps) => {
+  useTranslation();
   const [showModal, setShowModal] = useState(false);
   const {
     currentApplicationDetails,

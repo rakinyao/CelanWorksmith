@@ -66,6 +66,7 @@ import DeployButton from "./DeployButton";
 import { GitApplicationContextProvider } from "git-artifact-helpers/application/components";
 import ChevronMenu from "./ChevronMenu";
 import { ShowUpgradeMenuItem } from "ee/utils/licenseHelpers";
+import { useTranslation } from "react-i18next";
 
 const StyledDivider = styled(Divider)`
   height: 50%;
@@ -109,6 +110,7 @@ const HeaderTitleComponent = ({ appState }: HeaderTitleProps) => {
 };
 
 const Header = () => {
+  useTranslation();
   const dispatch = useDispatch();
 
   // selectors

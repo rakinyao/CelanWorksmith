@@ -24,11 +24,7 @@ import { useMediaQuery } from "react-responsive";
 import { Card } from "@blueprintjs/core";
 import { USER_PHOTO_ASSET_URL } from "constants/userConstants";
 import type { WorkspaceUser } from "ee/constants/workspaceConstants";
-import {
-  createMessage,
-  MEMBERS_TAB_TITLE,
-  NO_SEARCH_DATA_TEXT,
-} from "ee/constants/messages";
+import { createMessage, MEMBERS_TAB_TITLE } from "ee/constants/messages";
 import { APPLICATIONS_URL } from "constants/routes";
 import { isPermitted, PERMISSION_TYPE } from "ee/utils/permissionHelpers";
 import { getInitials } from "utils/AppsmithUtils";
@@ -41,6 +37,7 @@ import {
   getAllUsersOfWorkspace,
   selectedWorkspaceLoadingStates,
 } from "ee/selectors/selectedWorkspaceSelectors";
+import { useTranslation } from "react-i18next";
 
 export type PageProps = RouteComponentProps<{
   workspaceId: string;
@@ -190,6 +187,7 @@ export const StyledText = styled(Text)`
 `;
 
 export default function MemberSettings(props: PageProps) {
+  const { t } = useTranslation();
   const {
     match: {
       params: { workspaceId },
@@ -511,7 +509,7 @@ export default function MemberSettings(props: PageProps) {
             isLoading={isFetchingAllUsers && isFetchingAllRoles}
             noDataComponent={
               <NoResultsText kind="heading-s">
-                {createMessage(NO_SEARCH_DATA_TEXT)}
+                {t("search.noResults")}
               </NoResultsText>
             }
           />

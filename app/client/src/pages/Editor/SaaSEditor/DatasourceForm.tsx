@@ -739,7 +739,7 @@ class DatasourceSaaSEditor extends JSONtoForm<Props, State> {
           onClose={this.closeDialog}
           onDiscard={this.onDiscard}
           onSave={this.onSave}
-          saveButtonText={createMessage(SAVE_AND_AUTHORIZE_BUTTON_TEXT)}
+          saveButtonText={SAVE_AND_AUTHORIZE_BUTTON_TEXT}
         />
         {!!gsheetToken ? (
           <GoogleSheetFilePicker

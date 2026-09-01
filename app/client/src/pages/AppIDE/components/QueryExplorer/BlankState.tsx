@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 
-import { EDITOR_PANE_TEXTS, createMessage } from "ee/constants/messages";
 import { getHasCreateActionPermission } from "ee/utils/BusinessFeatures/permissionPageHelpers";
 import { getPagePermissions } from "selectors/editorSelectors";
 import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
@@ -10,6 +10,7 @@ import { EmptyState } from "@appsmith/ads";
 import { useQueryAdd } from "../QueryAdd";
 
 const BlankState: React.FC = () => {
+  const { t } = useTranslation();
   const pagePermissions = useSelector(getPagePermissions);
   const isFeatureEnabled = useFeatureFlag(FEATURE_FLAG.license_gac_enabled);
   const canCreateActions = getHasCreateActionPermission(
@@ -22,18 +23,16 @@ const BlankState: React.FC = () => {
     () => ({
       className: "t--add-item",
       testId: "t--add-item",
-      text: createMessage(EDITOR_PANE_TEXTS.query_add_button),
+      text: t("editor.queryAddButton"),
       onClick: canCreateActions ? openAddQuery : undefined,
     }),
-    [canCreateActions, openAddQuery],
+    [canCreateActions, openAddQuery, t],
   );
 
   return (
     <EmptyState
       button={buttonProps}
-      description={createMessage(
-        EDITOR_PANE_TEXTS.query_blank_state_description,
-      )}
+      description={t("editor.queryBlankDescription")}
       icon={"queries-v3"}
     />
   );

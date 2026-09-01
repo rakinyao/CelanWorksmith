@@ -2,15 +2,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components";
 import type { DefaultRootState } from "react-redux";
-import {
-  createMessage,
-  CREATE_NEW_OMNIBAR_PLACEHOLDER,
-  OMNIBAR_PLACEHOLDER,
-  OMNIBAR_PLACEHOLDER_NAV,
-} from "ee/constants/messages";
 import type { SearchCategory } from "./utils";
 import { isMenu, SEARCH_CATEGORY_ID } from "./utils";
 import { Button, Icon } from "@appsmith/ads";
+import { useTranslation } from "react-i18next";
 
 const Container = styled.div`
   background: var(--ads-v2-color-bg);
@@ -67,17 +62,6 @@ const CategoryDisplay = styled.div`
   }
 `;
 
-const getPlaceHolder = (categoryId: SEARCH_CATEGORY_ID) => {
-  switch (categoryId) {
-    case SEARCH_CATEGORY_ID.NAVIGATION:
-      return OMNIBAR_PLACEHOLDER_NAV;
-    case SEARCH_CATEGORY_ID.ACTION_OPERATION:
-      return CREATE_NEW_OMNIBAR_PLACEHOLDER;
-  }
-
-  return OMNIBAR_PLACEHOLDER;
-};
-
 const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
   if (e.keyCode === 38 || e.key === "ArrowUp") {
     e.preventDefault();
@@ -111,10 +95,17 @@ const useListenToChange = (modalOpen: boolean) => {
 };
 
 function SearchBox({ category, query, setCategory, setQuery }: SearchBoxProps) {
+  const { t } = useTranslation();
   const { modalOpen } = useSelector(
     (state: DefaultRootState) => state.ui.globalSearch,
   );
   const listenToChange = useListenToChange(modalOpen);
+  const categoryLabel =
+    category.id === SEARCH_CATEGORY_ID.NAVIGATION
+      ? t("search.hotkeyNavigate")
+      : category.id === SEARCH_CATEGORY_ID.ACTION_OPERATION
+        ? t("search.hotkeyCreateNew")
+        : category.title;
 
   const updateSearchQuery = useCallback(
     (query) => {
@@ -133,7 +124,7 @@ function SearchBox({ category, query, setCategory, setQuery }: SearchBoxProps) {
         {isMenu(category) && <Icon name="search" size="md" />}
         {category.title && (
           <CategoryDisplay className="t--global-search-category">
-            {category.id}
+            {categoryLabel}
             <Icon
               name="close"
               onClick={() => setCategory({ id: SEARCH_CATEGORY_ID.INIT })}
@@ -153,7 +144,13 @@ function SearchBox({ category, query, setCategory, setQuery }: SearchBoxProps) {
             if (e.key === "Backspace" && !query)
               setCategory({ id: SEARCH_CATEGORY_ID.INIT });
           }}
-          placeholder={createMessage(getPlaceHolder(category.id))}
+          placeholder={t(
+            category.id === SEARCH_CATEGORY_ID.NAVIGATION
+              ? "search.widgetsAndQueriesPlaceholder"
+              : category.id === SEARCH_CATEGORY_ID.ACTION_OPERATION
+                ? "search.createNewPlaceholder"
+                : "search.globalPlaceholder",
+          )}
           value={query}
         />
         {query && (

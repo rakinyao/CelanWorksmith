@@ -51,6 +51,7 @@ import {
   previewModeSelector,
   showTabOrderOverlaySelector,
 } from "selectors/editorSelectors";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   children: React.ReactNode;
@@ -60,6 +61,7 @@ interface Props {
 
 function GlobalHotKeys(props: Props) {
   const { children, getMousePosition, toggleDebugger } = props;
+  const { t } = useTranslation();
 
   const dispatch = useDispatch();
   const isGitModEnabled = useSelector(selectGitModEnabled);
@@ -196,7 +198,7 @@ function GlobalHotKeys(props: Props) {
         {
           combo: "mod + f",
           global: true,
-          label: "Search entities",
+          label: t("search.hotkeySearchEntities"),
           onKeyDown: (e: KeyboardEvent) => {
             const widgetSearchInput =
               document.getElementById(WIDGETS_SEARCH_ID);
@@ -212,14 +214,14 @@ function GlobalHotKeys(props: Props) {
           allowInInput: true,
           combo: "mod + p",
           global: true,
-          label: "Navigate",
+          label: t("search.hotkeyNavigate"),
           onKeyDown: (e: KeyboardEvent) => onOnmnibarHotKeyDown(e),
         },
         {
           allowInInput: true,
           combo: "mod + plus",
           global: true,
-          label: "Create new",
+          label: t("search.hotkeyCreateNew"),
           onKeyDown: (e: KeyboardEvent) =>
             onOnmnibarHotKeyDown(e, SEARCH_CATEGORY_ID.ACTION_OPERATION),
         },
@@ -227,7 +229,7 @@ function GlobalHotKeys(props: Props) {
           allowInInput: true,
           combo: "mod + k",
           global: true,
-          label: "Show omnibar",
+          label: t("search.hotkeyShowOmnibar"),
           onKeyDown: (e: KeyboardEvent) =>
             onOnmnibarHotKeyDown(e, SEARCH_CATEGORY_ID.INIT),
         },
@@ -445,6 +447,7 @@ function GlobalHotKeys(props: Props) {
     showTabOrderOverlay,
     onOnmnibarHotKeyDown,
     stopPropagationIfWidgetSelected,
+    t,
   ]);
 
   useHotkeys(hotkeys, { showDialogKeyCombo: "?" });

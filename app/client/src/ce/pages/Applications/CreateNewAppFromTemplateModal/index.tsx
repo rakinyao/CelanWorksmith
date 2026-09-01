@@ -1,10 +1,4 @@
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
-import {
-  GO_BACK,
-  START_WITH_TEMPLATE_CONNECT_HEADING,
-  START_WITH_TEMPLATE_CONNECT_SUBHEADING,
-  createMessage,
-} from "ee/constants/messages";
 import type { DefaultRootState } from "react-redux";
 import { fetchDefaultPlugins } from "actions/pluginActions";
 import {
@@ -25,6 +19,7 @@ import { isEmpty } from "lodash";
 import { TemplateView } from "pages/Templates/TemplateView";
 import TemplatesListLayoutSwitcher from "pages/Templates/TemplatesModal/TemplatesListLayoutSwitcher";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import {
   activeLoadingTemplateId,
@@ -47,6 +42,7 @@ function CreateNewAppFromTemplatesModal({
   handleClose,
   isOpen,
 }: CreateNewAppFromTemplatesModalProps) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const templatesCount = useSelector(templatesCountSelector);
   const pluginListLength = useSelector(
@@ -144,8 +140,8 @@ function CreateNewAppFromTemplatesModal({
           {!showTemplateDetails ? (
             <StartWithTemplatesHeader
               isModalLayout
-              subtitle={createMessage(START_WITH_TEMPLATE_CONNECT_SUBHEADING)}
-              title={createMessage(START_WITH_TEMPLATE_CONNECT_HEADING)}
+              subtitle={t("application.templateSubheading")}
+              title={t("application.templateHeading")}
             />
           ) : (
             <Link
@@ -153,7 +149,7 @@ function CreateNewAppFromTemplatesModal({
               onClick={() => setShowTemplateDetails("")}
               startIcon="arrow-left-line"
             >
-              {createMessage(GO_BACK)}
+              {t("application.goBack")}
             </Link>
           )}
         </ModalHeader>

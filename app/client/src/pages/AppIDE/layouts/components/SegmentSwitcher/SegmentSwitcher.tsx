@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { createMessage, EDITOR_PANE_TEXTS } from "ee/constants/messages";
 import { EditorEntityTab } from "IDE/Interfaces/EditorTypes";
 import { useSegmentNavigation } from "./useSegmentNavigation";
@@ -8,6 +9,7 @@ import { EditorSegments } from "@appsmith/ads";
 const SegmentSwitcher = () => {
   const { segment } = useCurrentEditorState();
   const { onSegmentChange } = useSegmentNavigation();
+  const { i18n } = useTranslation();
 
   const segmentOptions = useMemo(() => {
     return [
@@ -27,7 +29,7 @@ const SegmentSwitcher = () => {
         value: EditorEntityTab.UI,
       },
     ];
-  }, []);
+  }, [i18n.language]);
 
   return (
     <EditorSegments

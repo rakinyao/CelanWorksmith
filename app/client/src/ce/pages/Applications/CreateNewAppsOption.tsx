@@ -1,8 +1,3 @@
-import {
-  GO_BACK,
-  SKIP_START_WITH_USE_CASE_TEMPLATES,
-  createMessage,
-} from "ee/constants/messages";
 import urlBuilder from "ee/entities/URLRedirect/URLAssembly";
 import { getCurrentPluginIdForCreateNewApp } from "ee/selectors/applicationSelectors";
 import {
@@ -14,6 +9,7 @@ import { Flex, Link } from "@appsmith/ads";
 import CreateNewDatasourceTab from "pages/Editor/IntegrationEditor/CreateNewDatasourceTab";
 import { getApplicationsOfWorkspace } from "ee/selectors/selectedWorkspaceSelectors";
 import { default as React, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components";
 import AnalyticsUtil from "ee/utils/AnalyticsUtil";
@@ -72,6 +68,7 @@ const CreateNewAppsOption = ({
 }: {
   currentApplicationIdForCreateNewApp: string;
 }) => {
+  const { t } = useTranslation();
   const createNewAppPluginId = useSelector(getCurrentPluginIdForCreateNewApp);
   const applications = useSelector(getApplicationsOfWorkspace);
   const selectedPlugin: Plugin | undefined = useSelector((state) =>
@@ -201,7 +198,7 @@ const CreateNewAppsOption = ({
           onClick={onClickBackButton}
           startIcon="arrow-left-line"
         >
-          {createMessage(GO_BACK)}
+          {t("application.goBack")}
         </LinkWrapper>
         {application && (
           <LinkWrapper
@@ -210,7 +207,7 @@ const CreateNewAppsOption = ({
             endIcon="arrow-right-line"
             onClick={onClickSkipButton}
           >
-            {createMessage(SKIP_START_WITH_USE_CASE_TEMPLATES)}
+            {t("application.skipOnboarding")}
           </LinkWrapper>
         )}
       </BackWrapper>

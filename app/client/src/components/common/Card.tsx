@@ -429,7 +429,11 @@ function Card({
             </FavoriteIconWrapper>
           )}
           {/*@ts-expect-error fix this the next time the file is edited*/}
-          <CircleAppIcon name={icon} size={Size.large} />
+          <CircleAppIcon
+            data-testid="t--application-card-icon"
+            name={icon}
+            size={Size.large}
+          />
           <AppNameWrapper
             className={isFetching ? Classes.SKELETON : ""}
             isFetching={isFetching}

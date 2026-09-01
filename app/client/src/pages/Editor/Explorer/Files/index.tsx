@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useActiveActionBaseId } from "ee/pages/Editor/Explorer/hooks";
 import { Entity, EntityClassNames } from "../Entity/index";
 import {
@@ -13,6 +14,7 @@ import {
   EMPTY_QUERY_JS_BUTTON_TEXT,
   EMPTY_QUERY_JS_MAIN_TEXT,
   ADD_QUERY_JS_TOOLTIP,
+  EDITOR_QUERIES_JS,
 } from "ee/constants/messages";
 import { useDispatch, useSelector } from "react-redux";
 import { ExplorerActionEntity } from "../Actions/ActionEntity";
@@ -40,6 +42,7 @@ const StyledText = styled(Text)`
 `;
 
 function Files() {
+  useTranslation();
   // Import the context
   const context = useContext(FilesContext);
   const {
@@ -188,7 +191,7 @@ function Files() {
       }
       isSticky
       key={parentEntityId + "_actions"}
-      name="Queries/JS"
+      name={createMessage(EDITOR_QUERIES_JS)}
       onCreate={onCreate}
       onToggle={onFilesToggle}
       searchKeyword={""}

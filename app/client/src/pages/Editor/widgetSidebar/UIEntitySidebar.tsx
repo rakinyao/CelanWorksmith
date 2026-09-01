@@ -9,6 +9,7 @@ import { Flex, SearchInput, Text } from "@appsmith/ads";
 import Fuse from "fuse.js";
 import { debounce } from "lodash";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { groupWidgetCardsByTags } from "../utils";
 import UIEntityTagGroup from "./UIEntityTagGroup";
 import type { WidgetCardProps } from "widgets/BaseWidget";
@@ -31,6 +32,7 @@ function UIEntitySidebar({
   isActive,
   searchPlaceholderText,
 }: UIEntitySidebarProps) {
+  useTranslation();
   const [filteredCards, setFilteredCards] =
     useState<WidgetCardsGroupedByTags>(groupedCards);
   const searchInputRef = useRef<HTMLInputElement | null>(null);

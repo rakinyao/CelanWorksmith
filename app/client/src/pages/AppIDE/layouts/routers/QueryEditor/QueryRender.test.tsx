@@ -12,6 +12,7 @@ import { getIDETestState } from "test/factories/AppIDEFactoryUtils";
 import { PageFactory } from "test/factories/PageFactory";
 import { waitFor } from "@testing-library/react";
 import { GoogleSheetFactory } from "test/factories/Actions/GoogleSheetFactory";
+import { changeLocale } from "i18n";
 
 const basePageId = "0123456789abcdef00000000";
 
@@ -34,6 +35,14 @@ jest.mock(
 );
 
 describe("IDE URL rendering of Queries", () => {
+  beforeEach(async () => {
+    await changeLocale("en-US");
+  });
+
+  afterEach(async () => {
+    await changeLocale("zh-CN");
+  });
+
   describe("Query Blank State", () => {
     it("Renders Fullscreen Blank State", async () => {
       const { findByText, getByRole, getByText } = render(

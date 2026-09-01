@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   EntityGroupsList,
   Flex,
@@ -19,6 +20,7 @@ import { filterEntityGroupsBySearchTerm } from "IDE/utils";
 import { DEFAULT_GROUP_LIST_SIZE } from "../../constants";
 
 const AddQuery = () => {
+  useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const itemGroups = useGroupedAddQueryOperations();
   const { closeAddQuery } = useQueryAdd();

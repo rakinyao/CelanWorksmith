@@ -14,6 +14,7 @@ import {
   CONTEXT_DELETE,
   CONFIRM_CONTEXT_DELETE,
   CONTEXT_MOVE,
+  CONTEXT_NO_PAGE,
   createMessage,
 } from "ee/constants/messages";
 import {
@@ -28,6 +29,7 @@ import {
 } from "@appsmith/ads";
 import { useToggle } from "@mantine/hooks";
 import { convertToPageIdSelector } from "selectors/pageListSelectors";
+import { useTranslation } from "react-i18next";
 
 interface EntityContextMenuProps {
   id: string;
@@ -41,6 +43,7 @@ interface EntityContextMenuProps {
 }
 
 export function MoreActionsMenu(props: EntityContextMenuProps) {
+  useTranslation();
   const [isMenuOpen, toggleMenuOpen] = useToggle([false, true]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const propPageId = useSelector((state) =>
@@ -166,7 +169,9 @@ export function MoreActionsMenu(props: EntityContextMenuProps) {
                     );
                   })
               ) : (
-                <MenuItem key="no-pages">No pages</MenuItem>
+                <MenuItem key="no-pages">
+                  {createMessage(CONTEXT_NO_PAGE)}
+                </MenuItem>
               )}
             </MenuSubContent>
           </MenuSub>

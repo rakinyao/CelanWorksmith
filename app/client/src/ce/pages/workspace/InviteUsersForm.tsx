@@ -1,7 +1,12 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import styled from "styled-components";
 import TagListField from "components/editorComponents/form/fields/TagListField";
-import { reduxForm, SubmissionError } from "redux-form";
+import {
+  formValueSelector,
+  reduxForm,
+  SubmissionError,
+  updateSyncErrors,
+} from "redux-form";
 import { connect, useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { getRolesForField } from "ee/selectors/workspaceSelectors";
@@ -58,6 +63,7 @@ import type { DefaultOptionType } from "rc-select/lib/Select";
 import log from "loglevel";
 import { getAppsmithConfigs } from "ee/configs";
 import { AddScriptTo, ScriptStatus, useScript } from "utils/hooks/useScript";
+import { useTranslation } from "react-i18next";
 
 const featureFlags = selectFeatureFlags(store.getState());
 const isFeatureEnabled = isGACEnabled(featureFlags);
@@ -281,6 +287,7 @@ export function CustomRolesRamp() {
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function InviteUsersForm(props: any) {
+  const { i18n, t } = useTranslation();
   const [emailError, setEmailError] = useState("");
   // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -305,16 +312,41 @@ function InviteUsersForm(props: any) {
     fetchAllRoles,
     fetchCurrentWorkspace,
     fetchUsers,
+    form,
     handleSubmit,
     isAclFlow = false,
     isApplicationPage = false,
     isMultiSelectDropdown = false,
     placeholder = "",
+    refreshValidation,
+    role,
     submitFailed,
     submitSucceeded,
     submitting,
+    users,
     valid,
   } = props;
+
+  const previousLanguageRef = useRef(i18n.language);
+
+  // redux-form caches validation errors in Redux. Re-run validation when the
+  // locale changes so an already-visible error updates without clearing input.
+  useEffect(
+    function revalidateInviteFormOnLocaleChange() {
+      if (previousLanguageRef.current === i18n.language) return;
+
+      previousLanguageRef.current = i18n.language;
+      refreshValidation(
+        form,
+        {
+          role,
+          users,
+        },
+        error,
+      );
+    },
+    [error, form, i18n.language, refreshValidation, role, users],
+  );
 
   const { disableDropdown = false } = customProps;
 
@@ -465,9 +497,9 @@ function InviteUsersForm(props: any) {
             customError={(err: string) => errorHandler(err)}
             data-testid="t--invite-email-input"
             intent="success"
-            label="Emails"
+            label={t("invite.emailsLabel")}
             name="users"
-            placeholder={placeholder || "Enter email address(es)"}
+            placeholder={placeholder || t("invite.emailPlaceholder")}
             type="email"
           />
           {emailError && (
@@ -491,7 +523,7 @@ function InviteUsersForm(props: any) {
             onDeselect={onRemoveOptions}
             onSelect={onSelect}
             optionLabelProp="label"
-            placeholder="Select a role"
+            placeholder={t("invite.rolePlaceholder")}
             value={selectedOption}
           >
             {styledRoles.map((role: DefaultOptionType) => (
@@ -531,7 +563,7 @@ function InviteUsersForm(props: any) {
             size="md"
             type="submit"
           >
-            Invite
+            {t("invite.submit")}
           </Button>
         </div>
       </StyledInviteFieldGroup>
@@ -554,9 +586,17 @@ export const mapStateToProps = (
   state: DefaultRootState,
   { formName }: { formName?: string },
 ) => {
+  const form = formName || INVITE_USERS_TO_WORKSPACE_FORM;
+  const values = formValueSelector(form)(state, "users", "role") as {
+    users?: string;
+    role?: string;
+  };
+
   return {
     roles: getRolesForField(state),
-    form: formName || INVITE_USERS_TO_WORKSPACE_FORM,
+    form,
+    users: values?.users,
+    role: values?.role,
   };
 };
 
@@ -569,6 +609,11 @@ export const mapDispatchToProps = (dispatch: any) => ({
     dispatch(fetchWorkspace(workspaceId)),
   fetchUsers: (workspaceId: string) =>
     dispatch(fetchUsersForWorkspace(workspaceId)),
+  refreshValidation: (
+    form: string,
+    values: { users?: string; role?: string },
+    error?: string,
+  ) => dispatch(updateSyncErrors(form, validate(values), error)),
 });
 
 export default connect(

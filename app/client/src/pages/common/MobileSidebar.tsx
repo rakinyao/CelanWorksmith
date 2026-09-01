@@ -24,6 +24,7 @@ import { DISCORD_URL } from "constants/ThirdPartyConstants";
 import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import { getAdminSettingsPath } from "ee/utils/BusinessFeatures/adminSettingsHelpers";
+import { useTranslation } from "react-i18next";
 
 interface MobileSideBarProps {
   name: string;
@@ -84,6 +85,7 @@ const LeftPaneVersionData = styled.div`
 `;
 
 export default function MobileSideBar(props: MobileSideBarProps) {
+  const { t } = useTranslation();
   const user = useSelector(getCurrentUser);
   const organizationPermissions = useSelector(getOrganizationPermissions);
   const { appVersion } = getAppsmithConfigs();
@@ -106,7 +108,7 @@ export default function MobileSideBar(props: MobileSideBarProps) {
         </UserNameSection>
       </ProfileSection>
       <Section>
-        <Text kind="heading-s">Account</Text>
+        <Text kind="heading-s">{t("navigation.account")}</Text>
         {user?.isSuperUser && user?.isConfigurable && (
           <StyledMenuItem
             className="admin-settings-menu-option"
@@ -131,7 +133,7 @@ export default function MobileSideBar(props: MobileSideBarProps) {
               type: ReduxActionTypes.LOGOUT_USER_INIT,
             })
           }
-          text="Sign Out"
+          text={t("navigation.signOut")}
         />
       </Section>
       <Section>
@@ -159,7 +161,9 @@ export default function MobileSideBar(props: MobileSideBarProps) {
           )}
         </span>
         {howMuchTimeBefore !== "" && (
-          <span>Released {howMuchTimeBefore} ago</span>
+          <span>
+            {t("navigation.releasedAgo", { time: howMuchTimeBefore })}
+          </span>
         )}
       </LeftPaneVersionData>
     </MainContainer>

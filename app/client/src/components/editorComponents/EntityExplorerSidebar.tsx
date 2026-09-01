@@ -22,6 +22,7 @@ import { SIDEBAR_ID } from "constants/Explorer";
 import styled from "styled-components";
 import moment from "moment";
 import AnalyticsUtil from "ee/utils/AnalyticsUtil";
+import { useTranslation } from "react-i18next";
 
 const StyledResizer = styled.div<{ resizing: boolean }>`
   ${(props) =>
@@ -45,6 +46,7 @@ interface Props {
 export const EntityExplorerSidebar = memo(({ children }: Props) => {
   let tooltipTimeout: ReturnType<typeof setTimeout>;
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const width = useSelector(getExplorerWidth);
   const active = useSelector(getExplorerActive);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -157,7 +159,7 @@ export const EntityExplorerSidebar = memo(({ children }: Props) => {
           })}
         >
           <Tooltip
-            content="Drag to resize"
+            content={t("editor.dragToResize")}
             mouseEnterDelay={0.2}
             placement="right"
             visible={tooltipIsOpen && !resizer.resizing}

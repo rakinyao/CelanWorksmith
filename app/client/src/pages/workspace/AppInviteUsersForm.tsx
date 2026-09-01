@@ -22,6 +22,7 @@ import { Button, Icon, Switch, Tooltip } from "@appsmith/ads";
 import AnalyticsUtil from "ee/utils/AnalyticsUtil";
 import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
+import { useTranslation } from "react-i18next";
 
 const SwitchContainer = styled.div`
   flex-basis: 220px;
@@ -44,6 +45,7 @@ const BottomContainer = styled.div<{ canInviteToApplication?: boolean }>`
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function AppInviteUsersForm(props: any) {
+  useTranslation();
   const {
     applicationId,
     changeAppViewAccess,

@@ -20,6 +20,7 @@ import { WorkspaceSettingsTabs } from "ee/components/WorkspaceSettingsTabs";
 import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import { fetchAllWorkspaces } from "ee/actions/workspaceActions";
+import { useTranslation } from "react-i18next";
 
 const SettingsWrapper = styled.div<{
   isMobile?: boolean;
@@ -61,6 +62,7 @@ enum TABS {
 }
 
 export default function Settings() {
+  useTranslation();
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const currentWorkspace = useSelector(getFetchedWorkspaces).filter(
     (el) => el.id === workspaceId,

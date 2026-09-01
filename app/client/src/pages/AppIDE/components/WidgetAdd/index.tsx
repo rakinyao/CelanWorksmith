@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   Flex,
@@ -13,7 +14,13 @@ import styled from "styled-components";
 
 import history from "utils/history";
 import { widgetListURL } from "ee/RouteBuilder";
-import { EDITOR_PANE_TEXTS, createMessage } from "ee/constants/messages";
+import {
+  EDITOR_CLOSE_PANE,
+  EDITOR_MODULES_TAB,
+  EDITOR_PANE_TEXTS,
+  EDITOR_WIDGETS_TAB,
+  createMessage,
+} from "ee/constants/messages";
 import { getCurrentBasePageId } from "selectors/editorSelectors";
 import UIModulesList from "ee/pages/AppIDE/components/WidgetAdd/UIModulesList";
 import WidgetsList from "./WidgetsList";
@@ -25,6 +32,7 @@ const Container = styled(Flex)`
 `;
 
 const WidgetsAdd = (props: { focusSearchInput?: boolean }) => {
+  useTranslation();
   const basePageId = useSelector(getCurrentBasePageId) as string;
   const showUIModules = useSelector(showUIModulesList);
 
@@ -46,7 +54,7 @@ const WidgetsAdd = (props: { focusSearchInput?: boolean }) => {
           {createMessage(EDITOR_PANE_TEXTS.widgets_create_tab_title)}
         </Text>
         <Button
-          aria-label="Close pane"
+          aria-label={createMessage(EDITOR_CLOSE_PANE)}
           data-testid="t--add-pane-close-icon"
           isIconButton
           kind={"tertiary"}
@@ -59,8 +67,8 @@ const WidgetsAdd = (props: { focusSearchInput?: boolean }) => {
         {showUIModules && (
           <Tabs defaultValue="widgets">
             <TabsList>
-              <Tab value="widgets">Widgets</Tab>
-              <Tab value="modules">Modules</Tab>
+              <Tab value="widgets">{createMessage(EDITOR_WIDGETS_TAB)}</Tab>
+              <Tab value="modules">{createMessage(EDITOR_MODULES_TAB)}</Tab>
             </TabsList>
             <TabPanel className="TabsContent" value="widgets">
               <WidgetsList focusSearchInput={props.focusSearchInput} />

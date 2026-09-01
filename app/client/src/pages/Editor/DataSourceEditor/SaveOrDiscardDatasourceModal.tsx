@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   createMessage,
   DELETE_CONFIRMATION_MODAL_TITLE,
@@ -26,10 +27,11 @@ interface SaveOrDiscardModalProps {
   onClose(): void;
   datasourceId: string;
   datasourcePermissions: string[];
-  saveButtonText: string;
+  saveButtonText: () => string;
 }
 
 function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
+  useTranslation();
   const {
     datasourceId,
     datasourcePermissions,
@@ -72,7 +74,7 @@ function SaveOrDiscardDatasourceModal(props: SaveOrDiscardModalProps) {
             onClick={onSave}
             size="md"
           >
-            {saveButtonText}
+            {createMessage(saveButtonText)}
           </Button>
         </ModalFooter>
       </ModalContent>

@@ -6,6 +6,7 @@ import {
   ModalContent,
   ModalHeader,
 } from "@appsmith/ads";
+import { useTranslation } from "react-i18next";
 
 interface FormDialogComponentProps {
   isOpen?: boolean;
@@ -24,6 +25,7 @@ interface FormDialogComponentProps {
 }
 
 export function FormDialogComponent(props: FormDialogComponentProps) {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpenState] = useState(!!props.isOpen);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function FormDialogComponent(props: FormDialogComponentProps) {
           size="md"
           startIcon={"share-line"}
         >
-          Share
+          {t("common.share")}
         </Button>
       )}
       <Modal
@@ -60,7 +62,7 @@ export function FormDialogComponent(props: FormDialogComponentProps) {
         <ModalContent style={{ width: "640px" }}>
           <ModalHeader>
             <div className="text-ellipsis overflow-hidden whitespace-nowrap">
-              {props.title || `Invite users to ${props.workspace.name}`}
+              {props.title || t("invite.title", { name: props.workspace.name })}
             </div>
           </ModalHeader>
           <ModalBody>

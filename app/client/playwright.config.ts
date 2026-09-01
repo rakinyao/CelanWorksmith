@@ -6,6 +6,7 @@ dotenv.config({ path: path.resolve(__dirname, "playwright/.env") });
 
 const isCI = !!process.env.CI;
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || "https://dev.appsmith.com";
+const chromiumExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: "./playwright/tests",
@@ -30,10 +31,14 @@ export default defineConfig({
 
   use: {
     baseURL,
+    ...(chromiumExecutablePath
+      ? { launchOptions: { executablePath: chromiumExecutablePath } }
+      : {}),
     ignoreHTTPSErrors: true,
     trace: "on",
     screenshot: "only-on-failure",
-    video: "on",
+    // This host lacks Playwright's bundled ffmpeg helper for system Chrome.
+    video: chromiumExecutablePath ? "off" : "on",
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
   },
