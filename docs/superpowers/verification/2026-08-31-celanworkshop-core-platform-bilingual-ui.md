@@ -263,11 +263,12 @@ blocked and no green result is claimed.
 ## Final Local Chrome Evidence
 
 - The final branch webpack runtime was `http://127.0.0.1:3002`; the
-  project-native gateway at `http://127.0.0.1:3003` and
-  `http://127.0.0.1:3003/api/v1/health` both returned `200` before the final
-  browser runs. A fresh disposable local signup/auth session was used; its
-  credentials were only shell environment values and `playwright/auth/user.json`
-  remains ignored.
+  project-native gateway at `http://127.0.0.1:3001` and
+  `http://127.0.0.1:3001/api/v1/health` both returned `200` before the final
+  browser runs. This strict rerun reused the existing authenticated
+  `playwright/auth/user.json` state; the earlier signup-gated attempt and its
+  redacted disposable credentials remain documented in the Runtime Gate Attempt
+  section above.
 - D0 snapshot update and the subsequent no-flag verification each passed:
   `2 passed (29.0s)` and `2 passed (29.1s)`.
 - The core update run passed `3 passed (1.9m)`. It writes 12 baselines: three
