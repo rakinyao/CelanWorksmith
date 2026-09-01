@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import styled from "styled-components";
 import TagListField from "components/editorComponents/form/fields/TagListField";
-import { formValueSelector, reduxForm, SubmissionError } from "redux-form";
+import {
+  formValueSelector,
+  reduxForm,
+  SubmissionError,
+  updateSyncErrors,
+} from "redux-form";
 import { connect, useSelector } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { getRolesForField } from "ee/selectors/workspaceSelectors";
@@ -302,30 +307,25 @@ function InviteUsersForm(props: any) {
 
   const {
     anyTouched,
-    change,
     customProps = {},
     error,
     fetchAllRoles,
     fetchCurrentWorkspace,
     fetchUsers,
+    form,
     handleSubmit,
     isAclFlow = false,
     isApplicationPage = false,
     isMultiSelectDropdown = false,
     placeholder = "",
+    refreshValidation,
+    role,
     submitFailed,
     submitSucceeded,
     submitting,
+    users,
     valid,
   } = props;
-
-  const formValuesRef = useRef({
-    change,
-    users: props.users,
-    role: props.role,
-  });
-  // eslint-disable-next-line padding-line-between-statements
-  formValuesRef.current = { change, users: props.users, role: props.role };
 
   const previousLanguageRef = useRef(i18n.language);
 
@@ -336,19 +336,12 @@ function InviteUsersForm(props: any) {
       if (previousLanguageRef.current === i18n.language) return;
 
       previousLanguageRef.current = i18n.language;
-      const { change: changeField, role, users } = formValuesRef.current;
-
-      if (typeof changeField !== "function") return;
-
-      if (typeof users !== "undefined") {
-        changeField("users", users);
-      }
-
-      if (typeof role !== "undefined") {
-        changeField("role", role);
-      }
+      refreshValidation(form, {
+        role,
+        users,
+      });
     },
-    [i18n.language],
+    [form, i18n.language, refreshValidation, role, users],
   );
 
   const { disableDropdown = false } = customProps;
@@ -590,7 +583,7 @@ export const mapStateToProps = (
   { formName }: { formName?: string },
 ) => {
   const form = formName || INVITE_USERS_TO_WORKSPACE_FORM;
-  const values = formValueSelector(form)(state) as {
+  const values = formValueSelector(form)(state, "users", "role") as {
     users?: string;
     role?: string;
   };
@@ -612,6 +605,10 @@ export const mapDispatchToProps = (dispatch: any) => ({
     dispatch(fetchWorkspace(workspaceId)),
   fetchUsers: (workspaceId: string) =>
     dispatch(fetchUsersForWorkspace(workspaceId)),
+  refreshValidation: (
+    form: string,
+    values: { users?: string; role?: string },
+  ) => dispatch(updateSyncErrors(form, validate(values))),
 });
 
 export default connect(

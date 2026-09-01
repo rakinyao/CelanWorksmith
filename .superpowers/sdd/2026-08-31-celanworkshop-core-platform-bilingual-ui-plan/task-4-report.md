@@ -63,3 +63,18 @@ cd app/client && npx jest --runInBand src/components/editorComponents/GlobalSear
 ```
 
 Result: 5 suites passed, 27 tests passed (plus a live-switch GlobalSearch hotkey render test in the fix round). Targeted ESLint reported no errors (existing warnings only); `git diff --check` passed.
+
+## Review fix round 2
+
+- Corrected the invite form's redux-form selector to request `users` and `role`, preventing the connected form from throwing `No fields specified` during mount.
+- Replaced locale-change `change()` calls with redux-form `updateSyncErrors`, refreshing cached validation text for undefined/untouched fields without changing form values.
+- Subscribed the artifact Git OpsModal deploy view to i18n so the open discard confirmation, including `ARE_YOU_SURE`, updates on a locale switch.
+- Added connected invite-form mount and untouched-value validation regressions, plus a live-switch deploy confirmation regression.
+
+Verification:
+
+```bash
+cd app/client && npx jest --runInBand src/ce/pages/workspace/InviteUsersForm.i18n.test.tsx src/git/components/OpsModal/TabDeploy/TabDeployView.i18n.test.tsx src/components/editorComponents/GlobalSearch/GlobalSearch.i18n.test.tsx src/components/editorComponents/GlobalSearch/GlobalSearchHooks.test.ts src/pages/workspace/__tests__/SettingsPageHeader.test.tsx src/ce/constants/messages.i18n.test.ts src/pages/Editor/GlobalHotKeys/GlobalHotKeys.test.tsx --silent
+```
+
+Result: 7 suites passed, 31 tests passed. Targeted ESLint reported no errors (existing warnings only); `git diff --check` passed.
