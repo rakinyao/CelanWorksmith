@@ -408,14 +408,14 @@ export const DATASOURCE_UPDATE = (dsName: string) =>
   `${dsName} datasource updated successfully`;
 export const DATASOURCE_VALID = (dsName: string) =>
   `${dsName} datasource is valid`;
-export const EDIT_DATASOURCE = () => "Edit configuration";
-export const SAVE_DATASOURCE = () => "Save URL";
-export const EDIT_DATASOURCE_TOOLTIP = () => "Edit datasource";
-export const SAVE_DATASOURCE_TOOLTIP = () => "Save URL as a datasource";
-export const SAVE_DATASOURCE_MESSAGE = () =>
-  "Save the URL as a datasource to access authentication settings";
+export const EDIT_DATASOURCE = () => i18n.t("editor.editDatasource");
+export const SAVE_DATASOURCE = () => i18n.t("editor.saveUrl");
+export const EDIT_DATASOURCE_TOOLTIP = () =>
+  i18n.t("editor.editDatasourceTooltip");
+export const SAVE_DATASOURCE_TOOLTIP = () => i18n.t("editor.saveUrlTooltip");
+export const SAVE_DATASOURCE_MESSAGE = () => i18n.t("editor.saveUrlMessage");
 export const EDIT_DATASOURCE_MESSAGE = () =>
-  "Edit datasource to access authentication settings";
+  i18n.t("editor.editDatasourceMessage");
 export const OAUTH_ERROR = () => "OAuth Error";
 export const OAUTH_2_0 = () => "OAuth 2.0";
 export const ENABLE = () => "Enable";

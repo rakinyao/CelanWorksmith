@@ -89,6 +89,13 @@ const enUS = {
     queries: "Queries",
     createDatasource: "Create datasource",
     save: "Save",
+    saveUrl: "Save URL",
+    saveUrlTooltip: "Save URL as a datasource",
+    saveUrlMessage:
+      "Save the URL as a datasource to access authentication settings",
+    editDatasource: "Edit configuration",
+    editDatasourceTooltip: "Edit datasource",
+    editDatasourceMessage: "Edit datasource to access authentication settings",
     saveAndAuthorize: "Save & Authorize",
     saving: "Saving",
     saved: "Saved",

@@ -287,3 +287,59 @@ blocked and no green result is claimed.
   header and Search text, with no layout or product-content difference. Its
   Chinese mobile counterpart permits `0.0011` (363 pixels): the observed
   332-pixel difference was confined to the static `appsmith_` header glyphs.
+
+## Final Strict Verification
+
+- Host Chrome rendered the Chinese workflow with the installed Noto CJK fonts.
+  The final snapshots visibly contain Chinese workspace, editor, run, publish,
+  search, and dialog text with no missing-glyph fallback.
+- The editor workflow follows the native datasource path: `Datasources` ->
+  localized blank-state CTA -> `REST API` -> persisted API route reload ->
+  `Api1` -> URL entry -> localized `Save URL` -> localized `Save`. It waits for
+  the native `POST /api/v1/datasources` response and requires a successful
+  status before continuing.
+- The route reload is intentional. Creating a REST action before the editor's
+  initial `PAGE_LOAD` can leave the URL at an API route while the UI canvas is
+  still mounted; reloading the persisted action route initializes the API
+  editor from durable state.
+- Editor snapshots mask only the center application/workspace breadcrumb via
+  `.t--application-name >> xpath=../../../..`. The app-card, workspace, avatar,
+  and dialog-user masks cover generated account data only. Localized controls,
+  including `Save URL`, `Save`, `Run`, and `Publish`, remain visible and are
+  asserted. A scoped test stylesheet hides the remounting CodeMirror URL caret;
+  it does not mask the URL field or any localized control.
+- Baselines were refreshed with the Chrome executable override. The final
+  editor refresh used:
+
+```text
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 \
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome \
+npx playwright test tests/i18n/core-platform-bilingual-ui.spec.ts \
+  --project=smoke --no-deps --workers=1 \
+  --grep 'application editor sidebar and execution chrome' --update-snapshots
+```
+
+- Strict verification completed without snapshot updates:
+
+```text
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 \
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome \
+npx playwright test tests/i18n/core-platform-bilingual-ui.spec.ts \
+  --project=smoke --no-deps --workers=1
+
+Running 3 tests using 1 worker
+3 passed
+```
+
+The serial describe has a scoped 120-second per-test budget. The editor case
+creates a datasource, changes the persisted locale twice, and takes four
+snapshots; it completed in 55.2 seconds in isolation. The global 60-second
+limit left no teardown margin and caused an intermittent Playwright trace
+artifact `ENOENT`, not a product or screenshot failure. The strict no-flag
+rerun above completed `3 passed (2.3m)` with the scoped budget.
+
+The branch-local Nginx gateway required a development-only `/static/` proxy
+override that clears websocket upgrade headers. Without it, the local webpack
+server crashed while serving an icon font and Playwright correctly timed out
+waiting for `document.fonts`. That ignored configuration is not a source change
+and is not staged.

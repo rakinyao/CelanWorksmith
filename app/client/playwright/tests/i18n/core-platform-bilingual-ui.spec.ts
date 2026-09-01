@@ -1,8 +1,9 @@
 import type { Locator, Page } from "@playwright/test";
-import { createWorkspace, deleteWorkspace } from "../../helpers/api";
+import { createApp, createWorkspace, deleteWorkspace } from "../../helpers/api";
 import { expect, test as base } from "../../fixtures";
 
 const workflowWorkspaceName = "i18n-workflow-workspace";
+const workflowAppName = "i18n-workflow-app";
 
 const test = base.extend({
   workspace: async ({ api }, use) => {
@@ -10,6 +11,11 @@ const test = base.extend({
 
     await use(workspace);
     await deleteWorkspace(api, workspace.id).catch(() => {});
+  },
+  app: async ({ api, workspace }, use) => {
+    const app = await createApp(api, workspace.id, workflowAppName);
+
+    await use(app);
   },
 });
 
@@ -26,10 +32,13 @@ const locales = [
       fork: "复制应用",
     },
     editor: {
+      datasourceBlankCta: "导入你的数据",
+      dataPaneTitle: "工作区中的数据源",
       deploy: "发布",
       queries: "查询",
-      newQueryApi: "新建查询 / API",
       run: "运行",
+      save: "保存",
+      saveUrl: "保存 URL",
       saved: "已保存",
     },
     profile: {
@@ -57,10 +66,13 @@ const locales = [
       fork: "Fork app",
     },
     editor: {
+      datasourceBlankCta: "Bring your data",
+      dataPaneTitle: "Datasources in your workspace",
       deploy: "Deploy",
       queries: "Queries",
-      newQueryApi: "New query / API",
       run: "Run",
+      save: "Save",
+      saveUrl: "Save URL",
       saved: "Saved",
     },
     profile: {
@@ -150,7 +162,7 @@ async function captureViewports(
 
 test.describe("Core platform bilingual workflows", () => {
   // All workflows update the same authenticated user's durable locale.
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "serial", timeout: 120_000 });
 
   test("applications workspace actions and application-card commands", async ({
     app,
@@ -199,9 +211,9 @@ test.describe("Core platform bilingual workflows", () => {
         .locator(".t--color-selected")
         .locator("..");
       const applicationIconSelector = page.locator(".icon-selector");
-      const workspaceListItems = page.locator(
-        'a[data-testid="t--"], a[data-testid="t--selected-workspace"]',
-      );
+      const workspaceListItems = page
+        .getByTestId("t--left-panel")
+        .locator("a[data-testid]");
       const anvilEmptyState = page.getByText(
         "There are no Anvil apps in this workspace yet.",
       );
@@ -248,18 +260,53 @@ test.describe("Core platform bilingual workflows", () => {
         locale.editor.deploy,
       );
 
-      await page.getByText(locale.editor.queries, { exact: true }).click();
       if (apiQueryCreated) {
+        await page.getByText(locale.editor.queries, { exact: true }).click();
         await page
           .locator(".t--action-entity")
           .filter({ hasText: "Api1" })
           .click();
       } else {
-        await page
-          .getByRole("button", { name: locale.editor.newQueryApi })
-          .click();
-        await page.getByText("REST API", { exact: true }).click();
-        await page.waitForURL(/\/queries\/add$/);
+        await page.getByTestId("t--sidebar-Datasources").click();
+        await expect(
+          page.getByText(locale.editor.dataPaneTitle, { exact: true }),
+        ).toBeVisible();
+        const addDatasourceButton = page.getByTestId(
+          "t--add-datasource-button-blank-screen",
+        );
+
+        await expect(addDatasourceButton).toHaveText(
+          locale.editor.datasourceBlankCta,
+        );
+        await addDatasourceButton.click();
+        await page.getByText("REST API", { exact: true }).first().click();
+        await expect(page).toHaveURL(/\/api\//);
+        await page.reload();
+        const apiAction = page
+          .locator(".t--action-entity")
+          .filter({ hasText: "Api1" });
+        const datasourceUrl = page.locator(".t--datasource-editor textarea");
+
+        await expect(apiAction).toBeVisible();
+        await apiAction.click();
+        await expect(datasourceUrl).toBeVisible();
+        await datasourceUrl.fill("http://127.0.0.1:8081/api/v1/health");
+        const saveAsDatasource = page.getByTestId("t--store-as-datasource");
+
+        await expect(saveAsDatasource).toHaveText(locale.editor.saveUrl);
+        await saveAsDatasource.click();
+        const saveDatasource = page.locator(".t--save-datasource");
+
+        await expect(saveDatasource).toHaveText(locale.editor.save);
+        const datasourceSaveResponse = page.waitForResponse((response) => {
+          return (
+            response.request().method() === "POST" &&
+            /\/api\/v1\/datasources\/?$/.test(response.url())
+          );
+        });
+
+        await saveDatasource.click();
+        await expect((await datasourceSaveResponse).ok()).toBe(true);
         apiQueryCreated = true;
       }
       await expect(
@@ -268,13 +315,21 @@ test.describe("Core platform bilingual workflows", () => {
           .locator("..")
           .getByRole("button", { name: locale.editor.run }),
       ).toBeVisible();
+      // The embedded URL editor uses CodeMirror, whose cursor can be remounted
+      // by a viewport resize after Playwright hides native carets.
+      await page.addStyleTag({
+        content:
+          ".t--datasource-editor .CodeMirror-cursor { visibility: hidden !important; }",
+      });
 
-      const applicationHeader = page.locator(".t--application-name").first();
-      const editorHeader = page.locator(".t--editor-header");
+      const applicationName = page.getByText(app.name, { exact: true });
+      const editorBreadcrumb = page
+        .locator(".t--application-name")
+        .locator("xpath=../../../..");
       const apiEditorTab = page.getByTestId("t--ide-tab-api1");
       const apiEditorTabIcon = apiEditorTab.locator("img").first();
-      await expect(applicationHeader).toBeVisible();
-      await expect(editorHeader).toBeVisible();
+      await expect(applicationName).toBeVisible();
+      await expect(editorBreadcrumb).toBeVisible();
       await expect(apiEditorTab).toBeVisible();
       await expect(apiEditorTabIcon).toBeVisible();
       await apiEditorTab.locator("svg").evaluateAll((icons) => {
@@ -285,7 +340,7 @@ test.describe("Core platform bilingual workflows", () => {
       await apiEditorTabIcon.evaluate((icon) => {
         icon.setAttribute("style", "visibility: hidden");
       });
-      await captureViewports(page, "editor", locale.id, [editorHeader]);
+      await captureViewports(page, "editor", locale.id, [editorBreadcrumb]);
     }
   });
 
@@ -331,8 +386,24 @@ test.describe("Core platform bilingual workflows", () => {
       );
       await expect(inviteHeading).toBeVisible();
 
+      const workspaceListItems = page
+        .getByTestId("t--left-panel")
+        .locator("a[data-testid]");
+      const profileMenuIcon = page.locator(".t--profile-menu-icon");
+      const workspaceShareUsers = page.locator(
+        ".t--workspace-share-user-icons",
+      );
+      const dialogUserRows = page
+        .getByRole("dialog")
+        .locator('[aria-label*="@"]')
+        .locator("xpath=../../..");
+
       await captureViewports(page, "profile-search-dialog", locale.id, [
         page.locator(".t--application-card"),
+        workspaceListItems,
+        profileMenuIcon,
+        workspaceShareUsers,
+        dialogUserRows,
       ]);
       await page.keyboard.press("Escape");
     }

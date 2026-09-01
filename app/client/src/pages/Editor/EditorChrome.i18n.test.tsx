@@ -18,6 +18,7 @@ import {
   EDITOR_HEADER_SAVE_INDICATOR,
   QUERY_CONFIRMATION_MODAL_MESSAGE,
   QUERY_CONFIRMATION_MODAL_TITLE,
+  SAVE_DATASOURCE,
   SAVE_BUTTON_TEXT,
   UI_ELEMENT_PANEL_SEARCH_TEXT,
   WIDGET_SIDEBAR_TITLE,
@@ -55,6 +56,7 @@ describe("editor operational chrome translations", () => {
       "暂无 JS 对象",
     );
     expect(createMessage(SAVE_BUTTON_TEXT)).toBe("保存");
+    expect(createMessage(SAVE_DATASOURCE)).toBe("保存 URL");
   });
 
   it("renders save status text in both locales", async () => {
@@ -76,6 +78,7 @@ describe("editor operational chrome translations", () => {
       "No queries to display",
     );
     expect(createMessage(SAVE_BUTTON_TEXT)).toBe("Save");
+    expect(createMessage(SAVE_DATASOURCE)).toBe("Save URL");
   });
 
   it("renders the query run command in both locales", async () => {
