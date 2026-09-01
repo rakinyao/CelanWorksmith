@@ -14,9 +14,10 @@ setup("authenticate", async ({ page }) => {
   }
 
   await page.goto(ROUTES.login);
-  await page.getByPlaceholder("Enter your email").fill(username);
-  await page.getByPlaceholder("Enter your password").fill(password);
-  await page.getByRole("button", { name: /sign in/i }).click();
+  const loginForm = page.locator(".t--login-container form");
+  await loginForm.locator('input[name="email"]').fill(username);
+  await loginForm.locator('input[name="password"]').fill(password);
+  await loginForm.locator('button[type="submit"]').click();
 
   await page.waitForURL((url) => !url.pathname.includes("/login"));
   await expect(page).not.toHaveURL(/\/login/);
