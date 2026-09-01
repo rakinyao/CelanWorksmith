@@ -22,8 +22,12 @@ setup("sign up with configured credentials", async ({ page }) => {
 
   await page.goto(ROUTES.signup);
 
-  const emptyInstanceFirstName = page.getByTestId("firstName");
-  const legacySignupEmail = page.getByPlaceholder("Enter your email");
+  const emptyInstanceForm = page.locator("#super-user-form");
+  const emptyInstanceFirstName = emptyInstanceForm.locator(
+    '[data-testid="firstName"]',
+  );
+  const legacySignupForm = page.locator("#signup-form");
+  const legacySignupEmail = legacySignupForm.locator('input[name="email"]');
 
   await expect(emptyInstanceFirstName.or(legacySignupEmail)).toBeVisible({
     timeout: 60_000,
@@ -33,15 +37,19 @@ setup("sign up with configured credentials", async ({ page }) => {
 
   if (isEmptyInstanceSetup) {
     await emptyInstanceFirstName.fill("Playwright");
-    await page.getByTestId("lastName").fill("User");
-    await page.getByTestId("email").fill(username);
-    await page.getByTestId("password").fill(password);
-    await page.getByTestId("verifyPassword").fill(password);
-    await page.getByRole("button", { name: "Continue" }).click();
+    await emptyInstanceForm.locator('[data-testid="lastName"]').fill("User");
+    await emptyInstanceForm.locator('[data-testid="email"]').fill(username);
+    await emptyInstanceForm.locator('[data-testid="password"]').fill(password);
+    await emptyInstanceForm
+      .locator('[data-testid="verifyPassword"]')
+      .fill(password);
+    await emptyInstanceForm
+      .locator("button.t--welcome-form-continue-button")
+      .click();
   } else {
     await legacySignupEmail.fill(username);
-    await page.getByPlaceholder("Enter your password").fill(password);
-    await page.getByRole("button", { name: "Sign up" }).click();
+    await legacySignupForm.locator('input[name="password"]').fill(password);
+    await legacySignupForm.locator('button[type="submit"]').click();
 
     await page.waitForURL(
       (url) => {
@@ -92,7 +100,7 @@ setup("sign up with configured credentials", async ({ page }) => {
     .first()
     .click();
   await page.getByTestId("t--user-use-case").getByRole("radio").first().click();
-  await page.getByRole("button", { name: "Get started" }).click();
+  await page.locator("button.t--welcome-form-submit-button").click();
 
   await expect(page).toHaveURL(/\/applications/, { timeout: 60_000 });
 });
