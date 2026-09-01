@@ -259,3 +259,30 @@ started after this confirmed baseline failure. Changing the fixture selectors
 or seeding its locale would be a source change and is outside this runtime-gate
 attempt's explicit constraint. Consequently, the Chrome workflow gate remains
 blocked and no green result is claimed.
+
+## Final Local Chrome Evidence
+
+- The final branch webpack runtime was `http://127.0.0.1:3002`; the
+  project-native gateway at `http://127.0.0.1:3003` and
+  `http://127.0.0.1:3003/api/v1/health` both returned `200` before the final
+  browser runs. A fresh disposable local signup/auth session was used; its
+  credentials were only shell environment values and `playwright/auth/user.json`
+  remains ignored.
+- D0 snapshot update and the subsequent no-flag verification each passed:
+  `2 passed (29.0s)` and `2 passed (29.1s)`.
+- The core update run passed `3 passed (1.9m)`. It writes 12 baselines: three
+  workflows, two locales, and desktop/mobile viewports. The no-flag core run is
+  the strict stability check for those same files.
+- A blank REST API query exposes localized Publish and blank-response Run
+  controls, but no save-status DOM because `EditorSaveIndicator` renders only
+  while saving or on save error. The browser suite therefore does not assert
+  an invisible Save state; Save localization remains covered by
+  `src/pages/Editor/EditorChrome.i18n.test.tsx`.
+- Screenshots mask generated application content, the feature-flagged Anvil
+  CDN empty-state illustration, and volatile editor header/tab chrome. Localized
+  controls remain explicit browser assertions. Only the Chinese desktop
+  applications screenshot permits `maxDiffPixelRatio: 0.0004` (518 pixels):
+  the observed 456-pixel delta was static Chrome anti-aliasing in the Appsmith
+  header and Search text, with no layout or product-content difference. Its
+  Chinese mobile counterpart permits `0.0011` (363 pixels): the observed
+  332-pixel difference was confined to the static `appsmith_` header glyphs.

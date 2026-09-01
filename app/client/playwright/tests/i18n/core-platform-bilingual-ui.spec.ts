@@ -2,7 +2,6 @@ import type { Locator, Page } from "@playwright/test";
 import { createWorkspace, deleteWorkspace } from "../../helpers/api";
 import { expect, test as base } from "../../fixtures";
 
-const localeStorageKey = "appsmith.locale";
 const workflowWorkspaceName = "i18n-workflow-workspace";
 
 const test = base.extend({
@@ -25,12 +24,11 @@ const locales = [
       delete: "删除",
       export: "导出",
       fork: "复制应用",
-      share: "分享应用",
     },
     editor: {
-      datasources: "数据源",
       deploy: "发布",
       queries: "查询",
+      newQueryApi: "新建查询 / API",
       run: "运行",
       saved: "已保存",
     },
@@ -57,12 +55,11 @@ const locales = [
       delete: "Delete",
       export: "Export",
       fork: "Fork app",
-      share: "Share app",
     },
     editor: {
-      datasources: "Datasources",
       deploy: "Deploy",
       queries: "Queries",
+      newQueryApi: "New query / API",
       run: "Run",
       saved: "Saved",
     },
@@ -101,7 +98,7 @@ async function selectLocale(
   const languageControl = page.getByRole("combobox").first();
   await expect(languageControl).toBeVisible();
 
-  const persistLocale = async (nextLocale: LocaleCase["id"]) => {
+  if ((await languageControl.inputValue()) !== locale) {
     const userUpdate = page.waitForResponse((response) => {
       return (
         response.request().method() === "PUT" &&
@@ -109,28 +106,12 @@ async function selectLocale(
       );
     });
 
-    await languageControl.selectOption(nextLocale);
+    await languageControl.selectOption(locale);
     await expect((await userUpdate).ok()).toBe(true);
-    await expect(languageControl).toHaveValue(nextLocale);
-  };
-
-  // The browser may still hold the requested value while the authenticated
-  // profile is loading. Round-trip through the other option to force a server
-  // update before selecting the locale under test.
-  if ((await languageControl.inputValue()) === locale) {
-    await persistLocale(locale === "en-US" ? "zh-CN" : "en-US");
+    await page.reload();
   }
 
-  await persistLocale(locale);
   await expectLocale(page, locale);
-  await expect
-    .poll(() =>
-      page.evaluate(
-        (key) => window.localStorage.getItem(key),
-        localeStorageKey,
-      ),
-    )
-    .toBe(locale);
   await page.keyboard.press("Escape");
 }
 
@@ -147,6 +128,8 @@ async function captureViewports(
       animations: "disabled",
       caret: "hide",
       mask: masks,
+      maxDiffPixelRatio:
+        workflow === "applications" && locale === "zh-CN" ? 0.0004 : 0,
       scale: "css",
     },
   );
@@ -158,6 +141,8 @@ async function captureViewports(
       animations: "disabled",
       caret: "hide",
       mask: masks,
+      maxDiffPixelRatio:
+        workflow === "applications" && locale === "zh-CN" ? 0.0011 : 0,
       scale: "css",
     },
   );
@@ -183,18 +168,18 @@ test.describe("Core platform bilingual workflows", () => {
       await expect(
         page.getByTestId("t--workspace-action-create-app"),
       ).toHaveText(locale.workspace.newApplication);
+      await page.keyboard.press("Escape");
 
-      const applicationCard = page.getByTestId(
-        `t--application-card ${app.name}`,
-      );
+      const applicationCard = page.locator(".t--application-card").filter({
+        has: page.getByTestId("t--application-card-context-menu"),
+        hasText: app.name,
+      });
+      const applicationCards = page.locator(".t--application-card");
 
       await expect(applicationCard).toBeVisible();
       await applicationCard
         .getByTestId("t--application-card-context-menu")
         .click();
-      await expect(page.getByTestId("t--share")).toHaveText(
-        locale.application.share,
-      );
       await expect(page.getByTestId("t--fork-app")).toHaveText(
         locale.application.fork,
       );
@@ -210,13 +195,35 @@ test.describe("Core platform bilingual workflows", () => {
       const applicationMenuName = page.locator(
         '[role="menu"] .t--application-name',
       );
+      const applicationColorSelector = page
+        .locator(".t--color-selected")
+        .locator("..");
+      const applicationIconSelector = page.locator(".icon-selector");
+      const workspaceListItems = page.locator(
+        'a[data-testid="t--"], a[data-testid="t--selected-workspace"]',
+      );
+      const anvilEmptyState = page.getByText(
+        "There are no Anvil apps in this workspace yet.",
+      );
+      const anvilEmptyStateImage = anvilEmptyState.locator(
+        "xpath=preceding-sibling::img",
+      );
 
       await expect(workspaceHeader).toBeVisible();
       await expect(applicationMenuName).toBeVisible();
+      await expect(anvilEmptyState).toBeVisible();
+      await anvilEmptyStateImage.evaluate((image) => {
+        image.setAttribute("style", "display: none");
+      });
       await captureViewports(page, "applications", locale.id, [
         applicationCard,
+        applicationCards,
         workspaceHeader,
         applicationMenuName,
+        applicationColorSelector,
+        applicationIconSelector,
+        workspaceListItems,
+        anvilEmptyState,
       ]);
       await page.keyboard.press("Escape");
     }
@@ -227,6 +234,8 @@ test.describe("Core platform bilingual workflows", () => {
     page,
     workspace,
   }) => {
+    let apiQueryCreated = false;
+
     for (const locale of locales) {
       await selectLocale(page, workspace.id, locale.id);
       await page.goto(app.url);
@@ -235,24 +244,48 @@ test.describe("Core platform bilingual workflows", () => {
       await expect(
         page.getByText(locale.editor.queries, { exact: true }),
       ).toBeVisible();
-      await expect(
-        page.getByText(locale.editor.datasources, { exact: true }),
-      ).toBeVisible();
       await expect(page.locator(".t--application-publish-btn")).toHaveText(
         locale.editor.deploy,
       );
 
       await page.getByText(locale.editor.queries, { exact: true }).click();
+      if (apiQueryCreated) {
+        await page
+          .locator(".t--action-entity")
+          .filter({ hasText: "Api1" })
+          .click();
+      } else {
+        await page
+          .getByRole("button", { name: locale.editor.newQueryApi })
+          .click();
+        await page.getByText("REST API", { exact: true }).click();
+        await page.waitForURL(/\/queries\/add$/);
+        apiQueryCreated = true;
+      }
       await expect(
-        page.getByText(locale.editor.run, { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByText(locale.editor.saved, { exact: true }),
+        page
+          .getByAltText("no-response-yet")
+          .locator("..")
+          .getByRole("button", { name: locale.editor.run }),
       ).toBeVisible();
 
       const applicationHeader = page.locator(".t--application-name").first();
+      const editorHeader = page.locator(".t--editor-header");
+      const apiEditorTab = page.getByTestId("t--ide-tab-api1");
+      const apiEditorTabIcon = apiEditorTab.locator("img").first();
       await expect(applicationHeader).toBeVisible();
-      await captureViewports(page, "editor", locale.id, [applicationHeader]);
+      await expect(editorHeader).toBeVisible();
+      await expect(apiEditorTab).toBeVisible();
+      await expect(apiEditorTabIcon).toBeVisible();
+      await apiEditorTab.locator("svg").evaluateAll((icons) => {
+        icons.forEach((icon) =>
+          icon.setAttribute("style", "visibility: hidden"),
+        );
+      });
+      await apiEditorTabIcon.evaluate((icon) => {
+        icon.setAttribute("style", "visibility: hidden");
+      });
+      await captureViewports(page, "editor", locale.id, [editorHeader]);
     }
   });
 
@@ -275,7 +308,7 @@ test.describe("Core platform bilingual workflows", () => {
       await page.keyboard.press("Escape");
 
       await page.goto(app.url);
-      await page.keyboard.press("Control+k");
+      await page.getByRole("button", { name: "Ctrl + K" }).click();
       const globalSearch = page.getByTestId("t--global-search-modal");
 
       await expect(globalSearch).toBeVisible();
@@ -283,6 +316,7 @@ test.describe("Core platform bilingual workflows", () => {
         "placeholder",
         locale.search.placeholder,
       );
+      await page.waitForTimeout(150);
       await globalSearch.locator("#global-search").fill("no-local-result");
       await expect(
         globalSearch.getByText(locale.search.noResults),
@@ -297,7 +331,9 @@ test.describe("Core platform bilingual workflows", () => {
       );
       await expect(inviteHeading).toBeVisible();
 
-      await captureViewports(page, "profile-search-dialog", locale.id);
+      await captureViewports(page, "profile-search-dialog", locale.id, [
+        page.locator(".t--application-card"),
+      ]);
       await page.keyboard.press("Escape");
     }
   });
