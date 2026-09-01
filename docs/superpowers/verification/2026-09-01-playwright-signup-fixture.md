@@ -50,8 +50,8 @@ The required disposable-credential setup command was attempted against the
 branch gateway:
 
 ```bash
-USERNAME="pw-signup-$(date +%s)@example.com" \
-PASSWORD='Playwright!2026Strong' \
+USERNAME=[REDACTED] \
+PASSWORD=[REDACTED] \
 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 \
 npx playwright test --project=signup-setup --reporter=line
 ```
@@ -68,4 +68,25 @@ installed Playwright release reports `ubuntu26.04-x64` as unsupported. A
 follow-up check against `http://127.0.0.1:3001/user/signup` returned `502`
 consistently; nginx reported `connect() failed (111: Connection refused)` to
 upstream `127.0.0.1:3002`. Therefore no account was created and
-`playwright/auth/user.json` was not generated in this run.
+`playwright/auth/user.json` was not generated during that initial attempt.
+
+## Authenticated D0 Retry
+
+A later retry used a fresh disposable account created through the fixed,
+locale-independent setup fixtures. The account credentials, workspace ID, and
+saved browser session were held only for the running test command and were not
+recorded in the repository.
+
+- The branch client ran on `127.0.0.1:3002` behind a temporary project-native
+  gateway on `127.0.0.1:3003`.
+- The disposable Chrome configuration used `/usr/bin/google-chrome` with video
+  disabled; it is outside the repository.
+- Signup and authentication setup passed: `2 passed` in `21.8s`.
+- `playwright/tests/d0/ontology-native-path.spec.ts` passed with
+  `--update-snapshots`, then passed again unchanged with `--no-deps`.
+- The final Playwright run recorded `status: passed` and `failedTests: []`.
+
+The authenticated retry verified the current app editor route, datasource
+selection, generated query creation, plugin-form readiness, and selection of
+`Purchase Order`. Failure traces created while diagnosing the retry were
+removed from the working results directory and were not committed.
