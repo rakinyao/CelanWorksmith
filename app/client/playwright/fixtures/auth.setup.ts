@@ -15,7 +15,7 @@ setup("authenticate", async ({ page }) => {
 
   await page.goto(ROUTES.login);
   const loginForm = page.locator(".t--login-container form");
-  await loginForm.locator('input[name="email"]').fill(username);
+  await loginForm.locator('input[name="username"]').fill(username);
   await loginForm.locator('input[name="password"]').fill(password);
   await loginForm.locator('button[type="submit"]').click();
 

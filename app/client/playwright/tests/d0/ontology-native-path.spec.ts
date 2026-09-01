@@ -3,6 +3,15 @@ import { createApp, deleteApp } from "../../helpers/api";
 
 const importPath = "/api/v1/celanworksmith/ontology/datasources";
 
+const login = async (page: Page, username: string, password: string) => {
+  await page.goto("/user/login");
+  const loginForm = page.locator(".t--login-container form");
+  await loginForm.locator('input[name="username"]').fill(username);
+  await loginForm.locator('input[name="password"]').fill(password);
+  await loginForm.locator('button[type="submit"]').click();
+  await page.waitForURL(/\/applications/);
+};
+
 const requestHeaders = (page: Page) => ({
   Origin: new URL(page.url()).origin,
   "X-Requested-By": "Appsmith",
@@ -61,11 +70,7 @@ test("imports and persists the Demo Ontology Datasource through the browser sess
     );
   }
 
-  await page.goto("/user/login");
-  await page.getByPlaceholder("Enter your email").fill(username);
-  await page.getByPlaceholder("Enter your password").fill(password);
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForURL(/\/applications/);
+  await login(page, username, password);
 
   const datasourceName = `D0 Playwright ${Date.now()}`;
   const importResponse = await page.request.post(importPath, {
@@ -123,11 +128,7 @@ test("opens a generated PurchaseOrder query after its plugin form loads", async 
   }
 
   const datasourceName = `P1 Query Editor ${Date.now()}`;
-  await page.goto("/user/login");
-  await page.getByPlaceholder("Enter your email").fill(username);
-  await page.getByPlaceholder("Enter your password").fill(password);
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForURL(/\/applications/);
+  await login(page, username, password);
 
   const app = await createApp(
     page.request,

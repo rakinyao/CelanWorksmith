@@ -100,7 +100,11 @@ setup("sign up with configured credentials", async ({ page }) => {
     .first()
     .click();
   await page.getByTestId("t--user-use-case").getByRole("radio").first().click();
-  await page.locator("button.t--welcome-form-submit-button").click();
+  await page
+    .locator(
+      "button.t--welcome-form-submit-button, button.t--get-started-button",
+    )
+    .click();
 
   await expect(page).toHaveURL(/\/applications/, { timeout: 60_000 });
 });
