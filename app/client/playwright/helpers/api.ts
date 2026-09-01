@@ -1,5 +1,6 @@
 import type { APIRequestContext } from "@playwright/test";
 import { API } from "../constants/api-routes";
+import { editorUrl } from "./url";
 
 export interface WorkspaceInfo {
   id: string;
@@ -62,20 +63,44 @@ export async function createApp(
 
   const body = await response.json();
   const app = body.data;
+  const defaultPage = app.pages.find(
+    (page: { isDefault?: boolean }) => page.isDefault,
+  );
+
+  if (!defaultPage) {
+    throw new Error(`Created app "${name}" did not include a default page`);
+  }
+
+  const pageResponse = await api.get(`${API.pages}/${defaultPage.id}`);
+
+  if (!pageResponse.ok()) {
+    throw new Error(
+      `Failed to fetch default page for app "${name}": ${pageResponse.status()} ${await pageResponse.text()}`,
+    );
+  }
+
+  const page = (await pageResponse.json()).data;
 
   return {
     id: app.id,
     name: app.name,
     slug: app.slug,
-    url: `/app/${app.slug}/${app.id}`,
+    url: editorUrl({
+      appSlug: app.slug,
+      pageId: page.baseId,
+      pageSlug: page.slug,
+    }),
   };
 }
 
 export async function deleteApp(
   api: APIRequestContext,
   appId: string,
+  headers?: Record<string, string>,
 ): Promise<void> {
-  const response = await api.delete(`${API.applications}/${appId}`);
+  const response = await api.delete(`${API.applications}/${appId}`, {
+    headers,
+  });
 
   if (!response.ok()) {
     throw new Error(`Failed to delete app "${appId}": ${response.status()}`);

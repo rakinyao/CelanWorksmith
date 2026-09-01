@@ -168,9 +168,9 @@ test("opens a generated PurchaseOrder query after its plugin form loads", async 
       await stopDatasource(page, datasourceId);
     } finally {
       try {
-        await deleteDatasource(page, datasourceId);
+        await deleteApp(page.request, app.id, requestHeaders(page));
       } finally {
-        await deleteApp(page.request, app.id);
+        await deleteDatasource(page, datasourceId);
       }
     }
   }
