@@ -336,12 +336,16 @@ function InviteUsersForm(props: any) {
       if (previousLanguageRef.current === i18n.language) return;
 
       previousLanguageRef.current = i18n.language;
-      refreshValidation(form, {
-        role,
-        users,
-      });
+      refreshValidation(
+        form,
+        {
+          role,
+          users,
+        },
+        error,
+      );
     },
-    [form, i18n.language, refreshValidation, role, users],
+    [error, form, i18n.language, refreshValidation, role, users],
   );
 
   const { disableDropdown = false } = customProps;
@@ -608,7 +612,8 @@ export const mapDispatchToProps = (dispatch: any) => ({
   refreshValidation: (
     form: string,
     values: { users?: string; role?: string },
-  ) => dispatch(updateSyncErrors(form, validate(values))),
+    error?: string,
+  ) => dispatch(updateSyncErrors(form, validate(values), error)),
 });
 
 export default connect(

@@ -78,3 +78,18 @@ cd app/client && npx jest --runInBand src/ce/pages/workspace/InviteUsersForm.i18
 ```
 
 Result: 7 suites passed, 31 tests passed. Targeted ESLint reported no errors (existing warnings only); `git diff --check` passed.
+
+## Review fix round 3
+
+- Preserved an existing server `SubmissionError._error` when refreshing invite-form sync validation on locale changes by passing the current form error through `updateSyncErrors`.
+- Added a regression that seeds an invalid email and server error, switches English to Chinese while the form is mounted, and verifies the server callout remains visible, the field error localizes, and the entered value is unchanged.
+
+Verification:
+
+```bash
+cd app/client && npx jest --runInBand src/ce/pages/workspace/InviteUsersForm.i18n.test.tsx --silent
+npx eslint src/ce/pages/workspace/InviteUsersForm.tsx src/ce/pages/workspace/InviteUsersForm.i18n.test.tsx
+git diff --check
+```
+
+Result: 3 tests passed; targeted ESLint reported 0 errors (11 existing warnings); `git diff --check` passed.

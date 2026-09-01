@@ -3,7 +3,13 @@ import React from "react";
 import { render, screen, waitFor } from "test/testUtils";
 import { changeLocale } from "i18n";
 import { INVITE_USERS_TO_WORKSPACE_FORM } from "ee/constants/forms";
-import { getFormSyncErrors, getFormValues } from "redux-form";
+import {
+  getFormError,
+  getFormSyncErrors,
+  getFormValues,
+  change,
+  stopSubmit,
+} from "redux-form";
 import store from "store";
 import InviteUsersForm from "./InviteUsersForm";
 
@@ -44,5 +50,44 @@ describe("InviteUsersForm translations", () => {
     expect(
       getFormValues(INVITE_USERS_TO_WORKSPACE_FORM)(store.getState()),
     ).toBeUndefined();
+  });
+
+  it("preserves a server error while refreshing validation after a locale switch", async () => {
+    await changeLocale("en-US");
+    render(<InviteUsersForm workspaceId="workspace-id" />);
+
+    store.dispatch(
+      change(INVITE_USERS_TO_WORKSPACE_FORM, "users", "not-an-email"),
+    );
+    store.dispatch(
+      stopSubmit(INVITE_USERS_TO_WORKSPACE_FORM, {
+        _error: "Unable to invite users",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Unable to invite users")).toBeInTheDocument();
+    });
+    expect(
+      getFormSyncErrors(INVITE_USERS_TO_WORKSPACE_FORM)(store.getState()).users,
+    ).toBe("Invalid email address(es) found");
+    expect(
+      getFormValues(INVITE_USERS_TO_WORKSPACE_FORM)(store.getState()),
+    ).toEqual({ users: "not-an-email" });
+
+    await changeLocale("zh-CN");
+
+    await waitFor(() =>
+      expect(
+        getFormError(INVITE_USERS_TO_WORKSPACE_FORM)(store.getState()),
+      ).toBe("Unable to invite users"),
+    );
+    expect(screen.getByText("Unable to invite users")).toBeInTheDocument();
+    expect(
+      getFormSyncErrors(INVITE_USERS_TO_WORKSPACE_FORM)(store.getState()).users,
+    ).toBe("发现无效的邮箱地址");
+    expect(
+      getFormValues(INVITE_USERS_TO_WORKSPACE_FORM)(store.getState()),
+    ).toEqual({ users: "not-an-email" });
   });
 });
