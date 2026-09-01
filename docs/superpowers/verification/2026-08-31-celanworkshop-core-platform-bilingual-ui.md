@@ -189,3 +189,73 @@ passed
 `npx tsc --noEmit -p playwright/tsconfig.json` still reports only the existing
 `playwright/fixtures/migration.setup.ts:132` `GiteaDeployKey.key_id` error; the
 new suite and local fixture override add no TypeScript errors.
+
+## Runtime Gate Attempt
+
+Date: 2026-09-01
+
+The branch UI was initially absent from port `3001`. Its first worktree start
+also exposed a local dependency-provenance problem: `app/client/node_modules`
+was a symlink into the main checkout, so workspace imports resolved outside
+this worktree while webpack transpiled only this worktree's `packages/` tree.
+The symlink was replaced with a local `yarn install --immutable` dependency
+tree; no tracked source files or main-checkout services were changed.
+
+The resulting local integration topology was verified before signup:
+
+- Branch webpack process: `http://127.0.0.1:3002`, working directory
+  `/home/gavin/workspace/projects/CelanWorksmith/.worktrees/celanworkshop-core-platform-bilingual-ui/app/client`.
+- Project-native ignored Nginx development configuration: `http://127.0.0.1:3001`,
+  forwarding UI requests to `3002`, `/api`, `/oauth2`, and `/login` to the
+  healthy local backend on `8081`, and `/rts` to local port `8091`.
+- Backend: `http://127.0.0.1:8081/api/v1/health` returned `200`; its existing
+  process remained in the main checkout's `app/server/dist` directory.
+- Provenance checks: `GET /` through `3001` returned the branch UI (`200`), and
+  `GET /api/v1/users/current-user` through `3001` returned the backend's
+  expected unauthenticated `401`. The same API request sent directly to the
+  raw webpack port returned the frontend history fallback, confirming that the
+  integration gateway is required for browser authentication.
+
+A uniquely named disposable development credential pair was generated in the
+shell only. It was not written to `.env`, source, or a tracked file. The
+baseline command used the required local Chrome override:
+
+```text
+USERNAME=<redacted-disposable-local-address> \
+PASSWORD=<redacted-disposable-password> \
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3001 \
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome \
+npx playwright test tests/i18n/core-platform-bilingual-ui.spec.ts --project=smoke --update-snapshots
+
+Running 5 tests using 1 worker
+[1/5] playwright/fixtures/signup.setup.ts:13:6 > sign up with configured credentials
+Test timeout of 60000ms exceeded.
+expect(locator).toBeVisible() failed
+Locator: getByTestId('firstName').or(getByPlaceholder('Enter your email'))
+Expected: visible
+Error: element(s) not found
+```
+
+This is a fixture-localization blocker, not a backend signup rejection. The
+actual Chrome error context shows the unauthenticated signup page in its
+intentional default Chinese locale: `创建你的账户`, `请输入邮箱`, `请输入密码`, and
+`注册`. The existing `signup.setup.ts` fixture only searches for English
+`Enter your email`, `Enter your password`, and `Sign up`; it therefore never
+submits the disposable credentials. `src/i18n/types.ts` defines `zh-CN` as the
+default, and the `signup-setup` Playwright project has neither a locale
+override nor a storage state from which it could read `appsmith.locale`.
+
+The captured ignored local failure artifacts are:
+
+```text
+playwright/results/signup.setup.ts-sign-up-with-configured-credentials-signup-setup/test-failed-1.png
+playwright/results/signup.setup.ts-sign-up-with-configured-credentials-signup-setup/error-context.md
+playwright/results/signup.setup.ts-sign-up-with-configured-credentials-signup-setup/trace.zip
+```
+
+No account was created, `playwright/auth/user.json` was not produced, no
+workflow screenshot baseline was written, and the non-update command was not
+started after this confirmed baseline failure. Changing the fixture selectors
+or seeding its locale would be a source change and is outside this runtime-gate
+attempt's explicit constraint. Consequently, the Chrome workflow gate remains
+blocked and no green result is claimed.
