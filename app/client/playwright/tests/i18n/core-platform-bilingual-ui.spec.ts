@@ -102,9 +102,6 @@ const locales = [
 type LocaleCase = (typeof locales)[number];
 type CaptureOptions = {
   masks?: Locator[];
-  mobileMasks?: Locator[];
-  mobileTarget?: Locator;
-  prepareMobile?: () => Promise<void>;
 };
 
 async function expectLocale(page: Page, locale: LocaleCase["id"]) {
@@ -146,12 +143,7 @@ async function captureViewports(
   page: Page,
   workflow: string,
   locale: LocaleCase["id"],
-  {
-    masks = [],
-    mobileMasks = [],
-    mobileTarget,
-    prepareMobile,
-  }: CaptureOptions = {},
+  { masks = [] }: CaptureOptions = {},
 ) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page).toHaveScreenshot(
@@ -167,15 +159,18 @@ async function captureViewports(
   );
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await prepareMobile?.();
-  await expect(mobileTarget ?? page).toHaveScreenshot(
+  await expect(page).toHaveScreenshot(
     `${workflow}-${locale}-mobile-390x844.png`,
     {
       animations: "disabled",
       caret: "hide",
-      mask: [...masks, ...mobileMasks],
+      mask: masks,
       maxDiffPixelRatio:
-        workflow === "applications" && locale === "zh-CN" ? 0.0011 : 0,
+        workflow === "applications" && locale === "zh-CN"
+          ? 0.0011
+          : workflow === "profile-search-dialog"
+            ? 0.001
+            : 0,
       scale: "css",
     },
   );
@@ -193,6 +188,18 @@ async function assertGlobalSearch(page: Page, locale: LocaleCase) {
   await page.waitForTimeout(150);
   await globalSearch.locator("#global-search").fill("no-local-result");
   await expect(globalSearch.getByText(locale.search.noResults)).toBeVisible();
+}
+
+async function captureGlobalSearchMobile(page: Page, locale: LocaleCase) {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByTestId("t--global-search-modal")).toHaveScreenshot(
+    `global-search-${locale.id}-mobile-390x844.png`,
+    {
+      animations: "disabled",
+      caret: "hide",
+      scale: "css",
+    },
+  );
 }
 
 test.describe("Core platform bilingual workflows", () => {
@@ -462,16 +469,12 @@ test.describe("Core platform bilingual workflows", () => {
           workspaceShareUsers,
           dialogUserRows,
         ],
-        mobileMasks: [
-          page.locator(".t--application-name").locator("xpath=../../../.."),
-        ],
-        mobileTarget: page.getByTestId("t--global-search-modal"),
-        prepareMobile: async () => {
-          await page.goto(app.url);
-          await page.getByTestId("global-search-modal-trigger").click();
-          await assertGlobalSearch(page, locale);
-        },
       });
+      await page.keyboard.press("Escape");
+      await page.goto(app.url);
+      await page.getByTestId("global-search-modal-trigger").click();
+      await assertGlobalSearch(page, locale);
+      await captureGlobalSearchMobile(page, locale);
       await page.keyboard.press("Escape");
     }
   });

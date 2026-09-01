@@ -287,6 +287,11 @@ blocked and no green result is claimed.
   header and Search text, with no layout or product-content difference. Its
   Chinese mobile counterpart permits `0.0011` (363 pixels): the observed
   332-pixel difference was confined to the static `appsmith_` header glyphs.
+- The mobile profile/shared-dialog viewport retains a full invite-dialog
+  screenshot. It permits `maxDiffPixelRatio: 0.001` for static Chrome
+  anti-aliasing. The mobile global-search dialog is captured separately as
+  `global-search-<locale>-mobile-390x844.png`; its locator screenshot keeps a
+  strict zero-diff threshold and does not purport to be a full viewport.
 
 ## Final Strict Verification
 
