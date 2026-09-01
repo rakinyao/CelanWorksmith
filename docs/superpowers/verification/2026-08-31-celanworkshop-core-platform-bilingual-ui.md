@@ -12,10 +12,11 @@ Date: 2026-09-01
 
 The Playwright configuration uses `launchOptions.executablePath` only when
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` is set. Without that environment
-variable, the pinned bundled-browser behavior and video capture remain
-unchanged. Chrome-mode video is disabled because this host does not have the
-Playwright-pinned `ffmpeg` helper; this prevents an unrelated video-recording
-startup failure while preserving the default behavior.
+variable, the pinned bundled-browser behavior remains unchanged. Video remains
+`on` for both the bundled browser and an executable override; this preserves
+Playwright's normal recording behavior. This host lacks the pinned `ffmpeg`
+helper, so a Chrome run can stop during context startup until Playwright's
+browser dependencies are installed.
 
 ## Workflow Matrix
 
@@ -30,6 +31,12 @@ The suite asserts deterministic Playwright snapshots named
 `<workflow>-<locale>-mobile-390x844.png` after each workflow reaches its
 assertions. No workflow snapshot baseline or actual screenshot was produced in
 this environment because authenticated browser contexts could not be created.
+Each locale is selected through the authenticated profile menu and persisted by
+the normal `LanguageSwitcher` update; the suite does not accumulate
+`page.addInitScript` storage seeds. Snapshot masks cover only the dynamic app
+card, editor application header, and invite heading; translated controls remain
+visible. Generate baselines once with `--update-snapshots`, then run the same
+command without that flag for the non-update verification pass.
 
 ## Commands And Results
 
@@ -48,19 +55,26 @@ Running 5 tests using 3 workers
 Error: USERNAME and PASSWORD environment variables are required for signup setup
 ```
 
+The normal `--project=smoke` command runs the `signup-setup` and `setup`
+dependencies first. It therefore requires `USERNAME` and `PASSWORD` and
+creates `playwright/auth/user.json`; no credentials are committed. When an
+existing `playwright/auth/user.json` is already available, `--no-deps` can be
+used to skip those setup projects and run only the smoke tests. `--no-deps`
+does not create, refresh, or repair the auth state.
+
 An initial Chrome run also established that the environment override reaches
-the installed browser, but Playwright attempted to enable video and stopped on
-the missing pinned helper:
+the installed browser, but Playwright's normal video setup stopped on the
+missing pinned helper:
 
 ```text
 Error: browserContext.newPage: Executable doesn't exist at
 /home/gavin/.cache/ms-playwright/ffmpeg-1011/ffmpeg-linux
 ```
 
-After the conditional Chrome-only video configuration, the required command
-advanced to the explicit credential check above. A non-mutating diagnostic run
-with `--no-deps` then loaded all three smoke tests through Chrome and stopped
-before navigation because the configured local storage state is absent:
+With video behavior preserved, the required command stops at the explicit
+credential check above. A non-mutating diagnostic run with `--no-deps` then
+selected all three smoke tests through Chrome and stopped before navigation
+because the configured local storage state is absent:
 
 ```text
 Running 3 tests using 3 workers
@@ -92,11 +106,46 @@ not by a product assertion. No external accounts were created or used.
 
 - The smoke project continues to discover `playwright/tests/i18n/**`; no `d0`
   or `t9` credential-dependent project was added.
-- Local credentials are gated by missing `USERNAME`, `PASSWORD`, and
-  `playwright/auth/user.json`; setup therefore could not authenticate.
+- Local credentials are gated by missing `USERNAME` and `PASSWORD`; setup
+  therefore could not authenticate or create `playwright/auth/user.json`. A
+  future run with an existing auth state may use `--no-deps` as described above.
 - The suite uses the existing authenticated API fixtures to create and clean up
   only local test workspaces/applications once that storage state is supplied.
 - The suite does not submit invitations, publish or delete applications, export
   applications, configure data sources, connect Git, or open external links.
 - Discord/help/documentation destinations remain excluded and unchanged;
   credential-dependent `d0` and `t9` suites are not exercised.
+
+## Fix Round 1
+
+- Removed the accumulating `page.addInitScript` locale seed. Each workflow now
+  loads the authenticated applications route, selects the requested locale in
+  the real profile `LanguageSwitcher`, waits for the `PUT /api/v1/users`
+  response, and verifies both the document language and persisted locale before
+  navigating onward. This keeps authenticated `LocaleSync` and test state in
+  the same path used by the product.
+- Restored `video: "on"` when `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` is set;
+  the environment variable remains an executable-path-only override.
+- Added narrow screenshot masks for the generated application card, workspace
+  name, editor application header, and invite heading. The translated menu,
+  editor, search, and dialog controls remain unmasked. Baselines must be
+  generated once with `--update-snapshots`, followed by a normal non-update
+  run.
+
+Verification for this round:
+
+```text
+npx prettier --check playwright.config.ts playwright/tests/i18n/core-platform-bilingual-ui.spec.ts
+All matched files use Prettier code style!
+
+npx playwright test tests/i18n/core-platform-bilingual-ui.spec.ts --project=smoke --list
+Total: 5 tests in 3 files (3 workflow tests plus the existing setup dependencies)
+
+git diff --check
+passed
+```
+
+The Playwright TypeScript check still reports only the pre-existing
+`playwright/fixtures/migration.setup.ts:132` `GiteaDeployKey.key_id` error.
+Browser execution remains credential-gated as described above; no external
+account or auth state was created in this round.

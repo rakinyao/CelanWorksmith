@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../../fixtures";
 
 const localeStorageKey = "appsmith.locale";
@@ -72,24 +72,62 @@ const locales = [
 
 type LocaleCase = (typeof locales)[number];
 
-async function isolateLocale(page: Page, locale: LocaleCase["id"]) {
-  await page.addInitScript(
-    ({ key, value }) => {
-      window.localStorage.removeItem(key);
-      window.localStorage.setItem(key, value);
-    },
-    { key: localeStorageKey, value: locale },
-  );
-}
-
 async function expectLocale(page: Page, locale: LocaleCase["id"]) {
   await expect(page.locator("html")).toHaveAttribute("lang", locale);
+}
+
+async function selectLocale(
+  page: Page,
+  workspaceId: string,
+  locale: LocaleCase["id"],
+) {
+  // Set locale through the authenticated profile so LocaleSync and the next
+  // navigation use the same persisted value.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/applications?workspaceId=${workspaceId}`);
+  await page.locator(".t--profile-menu-icon").first().click();
+
+  const languageControl = page.getByRole("combobox").first();
+  await expect(languageControl).toBeVisible();
+
+  const persistLocale = async (nextLocale: LocaleCase["id"]) => {
+    const userUpdate = page.waitForResponse((response) => {
+      return (
+        response.request().method() === "PUT" &&
+        /\/api\/v1\/users\/?$/.test(response.url())
+      );
+    });
+
+    await languageControl.selectOption(nextLocale);
+    await expect((await userUpdate).ok()).toBe(true);
+    await expect(languageControl).toHaveValue(nextLocale);
+  };
+
+  // The browser may still hold the requested value while the authenticated
+  // profile is loading. Round-trip through the other option to force a server
+  // update before selecting the locale under test.
+  if ((await languageControl.inputValue()) === locale) {
+    await persistLocale(locale === "en-US" ? "zh-CN" : "en-US");
+  }
+
+  await persistLocale(locale);
+  await expectLocale(page, locale);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (key) => window.localStorage.getItem(key),
+        localeStorageKey,
+      ),
+    )
+    .toBe(locale);
+  await page.keyboard.press("Escape");
 }
 
 async function captureViewports(
   page: Page,
   workflow: string,
   locale: LocaleCase["id"],
+  masks: Locator[] = [],
 ) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page).toHaveScreenshot(
@@ -97,6 +135,7 @@ async function captureViewports(
     {
       animations: "disabled",
       caret: "hide",
+      mask: masks,
       scale: "css",
     },
   );
@@ -107,6 +146,7 @@ async function captureViewports(
     {
       animations: "disabled",
       caret: "hide",
+      mask: masks,
       scale: "css",
     },
   );
@@ -119,8 +159,7 @@ test.describe("Core platform bilingual workflows", () => {
     workspace,
   }) => {
     for (const locale of locales) {
-      await isolateLocale(page, locale.id);
-      await page.goto(`/applications?workspaceId=${workspace.id}`);
+      await selectLocale(page, workspace.id, locale.id);
       await expectLocale(page, locale.id);
 
       const newMenu = page.locator(".t--new-button");
@@ -153,7 +192,12 @@ test.describe("Core platform bilingual workflows", () => {
 
       await expect(exportAction).toHaveText(locale.application.export);
 
-      await captureViewports(page, "applications", locale.id);
+      const workspaceHeader = page.locator(".t--workspace-name-text").first();
+      await expect(workspaceHeader).toBeVisible();
+      await captureViewports(page, "applications", locale.id, [
+        applicationCard,
+        workspaceHeader,
+      ]);
       await page.keyboard.press("Escape");
     }
   });
@@ -161,9 +205,10 @@ test.describe("Core platform bilingual workflows", () => {
   test("application editor sidebar and execution chrome", async ({
     app,
     page,
+    workspace,
   }) => {
     for (const locale of locales) {
-      await isolateLocale(page, locale.id);
+      await selectLocale(page, workspace.id, locale.id);
       await page.goto(app.url);
       await expectLocale(page, locale.id);
 
@@ -185,7 +230,9 @@ test.describe("Core platform bilingual workflows", () => {
         page.getByText(locale.editor.saved, { exact: true }),
       ).toBeVisible();
 
-      await captureViewports(page, "editor", locale.id);
+      const applicationHeader = page.locator(".t--application-name").first();
+      await expect(applicationHeader).toBeVisible();
+      await captureViewports(page, "editor", locale.id, [applicationHeader]);
     }
   });
 
@@ -195,8 +242,7 @@ test.describe("Core platform bilingual workflows", () => {
     workspace,
   }) => {
     for (const locale of locales) {
-      await isolateLocale(page, locale.id);
-      await page.goto(`/applications?workspaceId=${workspace.id}`);
+      await selectLocale(page, workspace.id, locale.id);
       await expectLocale(page, locale.id);
 
       await page.locator(".t--profile-menu-icon").first().click();
@@ -225,13 +271,15 @@ test.describe("Core platform bilingual workflows", () => {
       await page.keyboard.press("Escape");
       await page.goto(`/applications?workspaceId=${workspace.id}`);
       await page.getByRole("button", { name: locale.dialog.share }).click();
-      await expect(
-        page.getByText(`${locale.dialog.invitePrefix}${workspace.name}`, {
-          exact: true,
-        }),
-      ).toBeVisible();
+      const inviteHeading = page.getByText(
+        `${locale.dialog.invitePrefix}${workspace.name}`,
+        { exact: true },
+      );
+      await expect(inviteHeading).toBeVisible();
 
-      await captureViewports(page, "profile-search-dialog", locale.id);
+      await captureViewports(page, "profile-search-dialog", locale.id, [
+        inviteHeading,
+      ]);
       await page.keyboard.press("Escape");
     }
   });
