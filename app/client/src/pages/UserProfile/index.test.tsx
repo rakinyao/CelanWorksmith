@@ -14,6 +14,7 @@ import {
 } from "ee/constants/ReduxActionConstants";
 import { fetchGlobalGitConfigInit } from "actions/gitSyncActions";
 import Login from "pages/UserAuth/Login";
+import { changeLocale } from "i18n";
 
 const defaultStoreState = {
   ...unitTestBaseMockStore,
@@ -94,6 +95,10 @@ describe("Git config ", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let store: any;
 
+  beforeEach(async () => {
+    await changeLocale("en-US");
+  });
+
   it("Should render UserProfile component for logged in user", () => {
     store = mockStore(defaultStoreState);
     (fetchGlobalGitConfigInit as jest.Mock).mockReturnValue({
@@ -109,7 +114,7 @@ describe("Git config ", () => {
       </Provider>,
     );
 
-    expect(getAllByText("Upload display picture")).toBeInTheDocument;
+    expect(getAllByText("Upload display picture")).toHaveLength(1);
     const input = getByTestId("t--display-name");
 
     expect(input.getAttribute("value")).toBe("mockUser");
@@ -130,10 +135,11 @@ describe("Git config ", () => {
       </Provider>,
     );
 
-    expect(getAllByText("Sign in to your account")).toBeInTheDocument;
+    expect(getAllByText("Sign in to your account")).toHaveLength(1);
   });
 
-  afterAll(() => {
+  afterAll(async () => {
+    await changeLocale("zh-CN");
     jest.clearAllMocks();
     store.clearActions();
   });

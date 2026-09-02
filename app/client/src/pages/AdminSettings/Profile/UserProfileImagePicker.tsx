@@ -10,8 +10,10 @@ import type Uppy from "@uppy/core";
 import { ReduxActionErrorTypes } from "ee/constants/ReduxActionConstants";
 import type { ErrorActionPayload } from "sagas/ErrorSagas";
 import { USER_DISPLAY_PICTURE_FILE_INVALID } from "ee/constants/messages";
+import { useTranslation } from "react-i18next";
 
 function FormDisplayImage() {
+  const { t } = useTranslation();
   // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [file, setFile] = useState<any>();
@@ -74,6 +76,7 @@ function FormDisplayImage() {
 
   return (
     <DisplayImageUpload
+      label={t("profile.uploadDisplayPicture")}
       onChange={onSelectFile}
       onInvalidFileContent={onFileTypeInvalid}
       onRemove={removeProfileImage}

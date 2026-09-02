@@ -24,6 +24,7 @@ import { useFeatureFlag } from "utils/hooks/useFeatureFlag";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import { getHasAuditLogsReadPermission } from "ee/utils/BusinessFeatures/permissionPageHelpers";
 import { getShowAdminSettings } from "ee/utils/BusinessFeatures/adminSettingsHelpers";
+import { useTranslation } from "react-i18next";
 
 export const Wrapper = styled.div`
   flex-basis: ${(props) => props.theme.sidebarWidth};
@@ -115,6 +116,7 @@ export function Categories({
   currentSubCategory?: string;
   showSubCategory?: boolean;
 }) {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
 
   const triggerAnalytics = (page: string) => {
@@ -173,7 +175,11 @@ export function Categories({
                     })
               }
             >
-              <SettingName active={active}>{config.title}</SettingName>
+              <SettingName active={active}>
+                {config.slug === "profile"
+                  ? t("profile.account")
+                  : config.title}
+              </SettingName>
               {showUpgradeTag &&
                 (config?.isEnterprise ? <EnterpriseTag /> : <BusinessTag />)}
             </StyledLink>
@@ -193,6 +199,7 @@ export function Categories({
 }
 
 export default function LeftPane() {
+  const { t } = useTranslation();
   const profileCategories = getSettingsCategory(CategoryType.PROFILE);
   const organizationCategories = getSettingsCategory(CategoryType.ORGANIZATION);
   const userManagementCategories = getSettingsCategory(
@@ -234,7 +241,7 @@ export default function LeftPane() {
       {profileCategories.length > 0 && (
         <HeaderContainer>
           <StyledHeader kind="heading-s" renderAs="p">
-            Profile
+            {t("profile.section")}
           </StyledHeader>
           <Categories
             categories={profileCategories}

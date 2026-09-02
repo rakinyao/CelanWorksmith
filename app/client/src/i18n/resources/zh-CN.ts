@@ -275,6 +275,9 @@ const zhCN = {
     signOut: "退出登录",
     displayName: "显示名称",
     displayPicture: "头像",
+    accountDescription: "设置你的个人资料和 Git 设置",
+    section: "个人资料",
+    uploadDisplayPicture: "上传头像",
     resetPassword: "重置密码",
   },
   ontologyQuery: {

@@ -71,6 +71,13 @@ describe("core compatibility messages", () => {
     expect(createMessage(CREATE_NEW_SAAS_SECTION_HEADER)).toBe(
       "SaaS Integrations",
     );
+    expect(i18n.t("profile.accountDescription")).toBe(
+      "Set your profile and git settings",
+    );
+    expect(i18n.t("profile.section")).toBe("Profile");
+    expect(i18n.t("profile.uploadDisplayPicture")).toBe(
+      "Upload display picture",
+    );
   });
 
   it("resolves core compatibility exports in Simplified Chinese", async () => {
@@ -101,6 +108,11 @@ describe("core compatibility messages", () => {
     expect(createMessage(CREATE_NEW_AI_SECTION_HEADER)).toBe("AI 集成");
     expect(createMessage(CREATE_NEW_DATASOURCE_DATABASE_HEADER)).toBe("数据库");
     expect(createMessage(CREATE_NEW_SAAS_SECTION_HEADER)).toBe("SaaS 集成");
+    expect(i18n.t("profile.accountDescription")).toBe(
+      "设置你的个人资料和 Git 设置",
+    );
+    expect(i18n.t("profile.section")).toBe("个人资料");
+    expect(i18n.t("profile.uploadDisplayPicture")).toBe("上传头像");
   });
 
   it("keeps technical compatibility values unchanged", () => {

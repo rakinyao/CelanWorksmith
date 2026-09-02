@@ -51,6 +51,7 @@ import { Classes } from "@blueprintjs/core";
 import { useGitModEnabled } from "pages/Editor/gitSync/hooks/modHooks";
 import useGlobalProfile from "git/hooks/useGlobalProfile";
 import { getIsAiAgentInstanceEnabled } from "ee/selectors/aiAgentSelectors";
+import { useTranslation } from "react-i18next";
 
 const nameValidator = (
   value: string,
@@ -78,6 +79,7 @@ const nameValidator = (
 };
 
 export const Profile = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const user = useSelector(getCurrentUser);
   const isFormLoginEnabled = useSelector(getIsFormLoginEnabled);
@@ -210,18 +212,18 @@ export const Profile = () => {
             kind="heading-l"
             renderAs="h1"
           >
-            Account
+            {t("profile.account")}
           </SettingsHeader>
           <SettingsSubHeader
             color="var(--ads-v2-color-fg-emphasis)"
             kind="body-m"
             renderAs="h2"
           >
-            Set your profile and git settings
+            {t("profile.accountDescription")}
           </SettingsSubHeader>
         </HeaderWrapper>
         <SubCategory kind="heading-s" renderAs="p">
-          Profile
+          {t("profile.section")}
         </SubCategory>
         <Flex flexDirection="column" gap="spaces-5">
           <FieldWrapper>

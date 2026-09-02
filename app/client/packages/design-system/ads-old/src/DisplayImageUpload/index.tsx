@@ -184,6 +184,7 @@ const DashboardLazy = React.lazy(async () => {
 
 export default function DisplayImageUpload({
   disableUppyInformer,
+  label,
   onChange,
   onInvalidFileContent,
   onRemove,
@@ -221,7 +222,7 @@ export default function DisplayImageUpload({
             </div>
             {(!value || loadError) && (
               <span className="label">
-                {createMessage(DISPLAY_IMAGE_UPLOAD_LABEL)}
+                {label ?? createMessage(DISPLAY_IMAGE_UPLOAD_LABEL)}
               </span>
             )}
             {value && !loadError && (

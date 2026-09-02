@@ -280,6 +280,9 @@ const enUS = {
     signOut: "Sign out",
     displayName: "Display name",
     displayPicture: "Display picture",
+    accountDescription: "Set your profile and git settings",
+    section: "Profile",
+    uploadDisplayPicture: "Upload display picture",
     resetPassword: "Reset password",
   },
   ontologyQuery: {
