@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -82,4 +83,32 @@ test("rejects duplicated element identities before accepting a release", () => {
   release.elements.push(structuredClone(release.elements[0]));
 
   assert.throws(() => validateRelease(release), /Duplicate element/);
+});
+
+test("accepts the source-faithful business Demo release fixture", async () => {
+  const fixture = JSON.parse(
+    await readFile(
+      new URL("../docs/superpowers/fixtures/ontology-model-release-demo.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const elements = fixture.elements;
+
+  assert.doesNotThrow(() => validateRelease(fixture));
+  assert.deepEqual(
+    elements
+      .filter((element) => element.kind === "entity_set")
+      .map((element) => element.name)
+      .sort(),
+    ["contract", "customer", "purchase_order", "supplier"],
+  );
+  assert.equal(elements.filter((element) => element.kind === "runtime_binding").length, 4);
+  const links = elements.filter((element) => element.kind === "entity_set_link");
+  assert.equal(links.length, 4);
+  assert.ok(links.every((link) => link.spec.mapping_status === "VERIFIED"));
+  assert.equal(fixture.release.change_set.compatibility, "INITIAL");
+  assert.equal(
+    elements.some((element) => element.kind === "function" || element.kind === "action"),
+    false,
+  );
 });
