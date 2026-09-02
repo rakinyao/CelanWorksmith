@@ -8,6 +8,7 @@ import { lightTheme } from "selectors/themeSelectors";
 import { i18n } from "i18n";
 import { unitTestBaseMockStore } from "layoutSystems/common/dropTarget/unitTestUtils";
 import ApplicationCard from "./ApplicationCard";
+import { generateEditedByText } from "./helpers";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -169,5 +170,16 @@ describe("ApplicationCard localization", () => {
     expect(
       screen.getByTestId("t--application-name-validation"),
     ).toHaveTextContent(label);
+  });
+
+  it("renders the editor attribution in Chinese", async () => {
+    await i18n.changeLanguage("zh-CN");
+
+    expect(
+      generateEditedByText({
+        modifiedAt: new Date().toISOString(),
+        modifiedBy: "gavin@example.com",
+      }),
+    ).toContain("gavin 编辑于");
   });
 });

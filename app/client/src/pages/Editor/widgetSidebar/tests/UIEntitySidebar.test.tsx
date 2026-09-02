@@ -4,7 +4,7 @@ import {
   createMessage,
 } from "ee/constants/messages";
 import "@testing-library/jest-dom";
-import { fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import {
   WIDGET_TAGS,
   type WidgetCardsGroupedByTags,
@@ -27,6 +27,10 @@ jest.mock("../hooks", () => ({
 }));
 
 describe("UIEntitySidebar", () => {
+  beforeEach(async () => {
+    await changeLocale("en-US");
+  });
+
   afterEach(async () => {
     await changeLocale("zh-CN");
   });
@@ -176,5 +180,14 @@ describe("UIEntitySidebar", () => {
       renderUIEntitySidebar(true, false);
 
     expect(getEnglishPlaceholder("Search UI elements")).toBeInTheDocument();
+  });
+
+  it("renders widget categories in Chinese without changing their grouping", async () => {
+    await changeLocale("zh-CN");
+    mockUIExplorerItems();
+    renderUIEntitySidebar(true, false);
+
+    expect(screen.getByText("输入")).toBeInTheDocument();
+    expect(screen.getByText("按钮")).toBeInTheDocument();
   });
 });

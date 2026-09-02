@@ -13,6 +13,7 @@ import {
 } from "@appsmith/ads";
 import { sortBy } from "lodash";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { WidgetCardProps } from "widgets/BaseWidget";
 import SeeMoreButton from "./SeeMoreButton";
 import styled from "styled-components";
@@ -39,7 +40,23 @@ interface Props {
   isLoading: boolean;
 }
 
+const widgetCategoryKeys: Partial<Record<WidgetTags, string>> = {
+  [WIDGET_TAGS.SUGGESTED_WIDGETS]: "suggested",
+  [WIDGET_TAGS.INPUTS]: "inputs",
+  [WIDGET_TAGS.BUTTONS]: "buttons",
+  [WIDGET_TAGS.SELECT]: "select",
+  [WIDGET_TAGS.DISPLAY]: "display",
+  [WIDGET_TAGS.LAYOUT]: "layout",
+  [WIDGET_TAGS.MEDIA]: "media",
+  [WIDGET_TAGS.TOGGLES]: "toggles",
+  [WIDGET_TAGS.SLIDERS]: "sliders",
+  [WIDGET_TAGS.CONTENT]: "content",
+  [WIDGET_TAGS.EXTERNAL]: "external",
+  [WIDGET_TAGS.BUILDING_BLOCKS]: "buildingBlocks",
+};
+
 const UIEntityTagGroup = (props: Props) => {
+  const { t } = useTranslation();
   const [showFullItems, setShowFullItems] = React.useState(false);
   const toggleShowFullItems = () => {
     setShowFullItems(!showFullItems);
@@ -48,6 +65,11 @@ const UIEntityTagGroup = (props: Props) => {
     ? props.cards.length
     : initialEntityCountForExplorerTag[props.tag as WidgetTags] ||
       props.cards.length;
+  const tagLabel = widgetCategoryKeys[props.tag as WidgetTags]
+    ? t(
+        `editor.widgetCategories.${widgetCategoryKeys[props.tag as WidgetTags]}`,
+      )
+    : props.tag;
 
   if (props.isLoading) {
     return (
@@ -58,7 +80,7 @@ const UIEntityTagGroup = (props: Props) => {
             color="var(--ads-v2-color-gray-600)"
             kind="heading-xs"
           >
-            {props.tag}
+            {tagLabel}
           </Text>
         </CollapsibleHeader>
         <LoadingContainer>
@@ -89,7 +111,7 @@ const UIEntityTagGroup = (props: Props) => {
           color="var(--ads-v2-color-gray-600)"
           kind="heading-xs"
         >
-          {props.tag}
+          {tagLabel}
         </Text>
       </CollapsibleHeader>
       <CollapsibleContent>

@@ -2729,7 +2729,7 @@ export const ADD_PAGE_FROM_TEMPLATE_MODAL = {
 export const HEADER_TITLES = {
   DATA: () => "Data",
   PAGES: () => "Pages",
-  EDITOR: () => "Editor",
+  EDITOR: () => i18n.t("editor.editorSidebar"),
   SETTINGS: () => "Settings",
   LIBRARIES: () => "Libraries",
 };
@@ -2751,7 +2751,7 @@ export const CANVAS_VIEW_MODE_TOOLTIP = (shortcutKey: string) =>
   `💡 ${shortcutKey} click a widget to navigate to UI mode.`;
 
 export const EMPTY_CANVAS_HINTS = {
-  DRAG_DROP_WIDGET_HINT: () => "Drag and drop a widget here",
+  DRAG_DROP_WIDGET_HINT: () => i18n.t("editor.emptyCanvasHint"),
   DRAG_DROP_BUILDING_BLOCK_HINT: {
     TITLE: () => "Drag & drop a building block",
     DESCRIPTION: () => "Make a working app in seconds using functional blocks",

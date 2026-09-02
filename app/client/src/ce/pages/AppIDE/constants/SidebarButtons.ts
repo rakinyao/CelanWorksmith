@@ -9,6 +9,7 @@ import { Condition, type IDESidebarButton } from "@appsmith/ads";
 import {
   createMessage,
   EMPTY_DATASOURCE_TOOLTIP_SIDEBUTTON,
+  HEADER_TITLES,
 } from "ee/constants/messages";
 
 const DataButtonWithWarning: IDESidebarButton = {
@@ -35,4 +36,6 @@ export const BottomButtons = (
 
   return buttons;
 };
-export const TopButtons = [EditorButton("")];
+export const getTopButtons = () => [
+  { ...EditorButton(""), title: createMessage(HEADER_TITLES.EDITOR) },
+];

@@ -11,6 +11,7 @@ import { lightTheme } from "selectors/themeSelectors";
 import { ThemeProvider } from "styled-components";
 import Onboarding from ".";
 import { unitTestBaseMockStore } from "../unitTestUtils";
+import { changeLocale } from "i18n";
 
 jest.mock("IDE/hooks/useCurrentAppState", () => ({
   useCurrentAppState: jest.fn().mockReturnValue(EditorState.EDITOR),
@@ -52,6 +53,18 @@ const BaseComponentRender = (storeToUse = baseStoreForSpec) => (
 );
 
 describe("OnBoarding - Non-AirGap Edition", () => {
+  afterEach(async () => {
+    await changeLocale("zh-CN");
+  });
+
+  it("renders the empty-canvas prompt in Chinese", async () => {
+    await changeLocale("zh-CN");
+    mockUseCurrentEditorStatePerTestCase(EditorEntityTab.UI);
+    render(BaseComponentRender());
+
+    expect(screen.getByText("拖放组件到此处")).toBeInTheDocument();
+  });
+
   it("1. renders the onboarding component with starter building blocks on canvas", () => {
     mockUseCurrentEditorStatePerTestCase(EditorEntityTab.UI);
     render(BaseComponentRender(storeToUseWithStarterBuildingBlocksEnabled));

@@ -10,9 +10,10 @@ import { IDESidebar } from "@appsmith/ads";
 import { getDatasources } from "ee/selectors/entitiesSelector";
 import {
   BottomButtons,
-  TopButtons,
+  getTopButtons,
 } from "ee/pages/AppIDE/constants/SidebarButtons";
 import { getIsAiAgentApp } from "ee/selectors/aiAgentSelectors";
+import { useTranslation } from "react-i18next";
 
 function Sidebar() {
   const dispatch = useDispatch();
@@ -22,6 +23,9 @@ function Sidebar() {
   const datasources = useSelector(getDatasources);
   const datasourcesExist = datasources.length > 0;
   const isAgentApp = useSelector(getIsAiAgentApp);
+
+  useTranslation();
+  const topButtons = getTopButtons();
 
   // Updates the bottom button config based on datasource existence
   const bottomButtons = React.useMemo(() => {
@@ -53,7 +57,7 @@ function Sidebar() {
       editorState={appState}
       id={"t--app-sidebar"}
       onClick={onClick}
-      topButtons={TopButtons}
+      topButtons={topButtons}
     />
   );
 }
