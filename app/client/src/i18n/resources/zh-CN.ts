@@ -82,6 +82,12 @@ const zhCN = {
     forkModalSuccess: "选择要复制应用到的工作区",
     forkAction: "复制",
     editedBy: "{{user}} 编辑于 {{time}}",
+    menu: {
+      rename: "重命名",
+      fork: "复制应用",
+      export: "导出应用",
+      delete: "删除应用",
+    },
   },
   datasource: {
     connect: {
@@ -158,6 +164,7 @@ const zhCN = {
     widgetsCreateTitle: "拖放组件",
     editorSidebar: "编辑器",
     emptyCanvasHint: "拖放组件到此处",
+    preview: "预览",
     widgetCategories: {
       suggested: "推荐",
       inputs: "输入",

@@ -302,7 +302,7 @@ export const EDITOR_HEADER = {
   saveFailed: () => i18n.t("editor.saveFailed"),
   share: () => "Share",
   previewTooltip: {
-    text: () => "Preview",
+    text: () => i18n.t("editor.preview"),
     shortcut: () => "P",
   },
 };

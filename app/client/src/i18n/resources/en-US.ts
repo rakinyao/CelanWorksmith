@@ -83,6 +83,12 @@ const enUS = {
     forkModalSuccess: "Choose where to fork the app",
     forkAction: "Fork",
     editedBy: "{{user}} edited {{time}}",
+    menu: {
+      rename: "Rename",
+      fork: "Fork application",
+      export: "Export application",
+      delete: "Delete application",
+    },
   },
   datasource: {
     connect: {
@@ -161,6 +167,7 @@ const enUS = {
     widgetsCreateTitle: "Drag & drop UI elements",
     editorSidebar: "Editor",
     emptyCanvasHint: "Drag and drop a widget here",
+    preview: "Preview",
     widgetCategories: {
       suggested: "Suggested",
       inputs: "Inputs",

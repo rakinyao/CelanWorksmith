@@ -15,6 +15,7 @@ import {
   EXECUTE_A_QUERY,
   FIELD_REQUIRED_ERROR,
   HEADER_TITLES,
+  EDITOR_HEADER,
   NEW_APPLICATION,
   NEW_QUERY_BUTTON_TEXT,
   NO_APPS_FOUND,
@@ -78,6 +79,11 @@ describe("core compatibility messages", () => {
     expect(i18n.t("profile.uploadDisplayPicture")).toBe(
       "Upload display picture",
     );
+    expect(createMessage(EDITOR_HEADER.previewTooltip.text)).toBe("Preview");
+    expect(i18n.t("application.menu.rename")).toBe("Rename");
+    expect(i18n.t("application.menu.fork")).toBe("Fork application");
+    expect(i18n.t("application.menu.export")).toBe("Export application");
+    expect(i18n.t("application.menu.delete")).toBe("Delete application");
   });
 
   it("resolves core compatibility exports in Simplified Chinese", async () => {
@@ -113,6 +119,11 @@ describe("core compatibility messages", () => {
     );
     expect(i18n.t("profile.section")).toBe("个人资料");
     expect(i18n.t("profile.uploadDisplayPicture")).toBe("上传头像");
+    expect(createMessage(EDITOR_HEADER.previewTooltip.text)).toBe("预览");
+    expect(i18n.t("application.menu.rename")).toBe("重命名");
+    expect(i18n.t("application.menu.fork")).toBe("复制应用");
+    expect(i18n.t("application.menu.export")).toBe("导出应用");
+    expect(i18n.t("application.menu.delete")).toBe("删除应用");
   });
 
   it("keeps technical compatibility values unchanged", () => {

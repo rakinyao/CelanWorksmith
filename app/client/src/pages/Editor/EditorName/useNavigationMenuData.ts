@@ -26,6 +26,7 @@ import { getAppsmithConfigs } from "ee/configs";
 import { isPylonChatAvailable } from "utils/bootPylon";
 import { getCurrentUser } from "selectors/usersSelectors";
 import { getIsAiAgentApp } from "ee/selectors/aiAgentSelectors";
+import { useTranslation } from "react-i18next";
 
 const { cloudHosting } = getAppsmithConfigs();
 
@@ -38,6 +39,7 @@ export const useNavigationMenuData = ({
   editMode,
   setForkApplicationModalOpen,
 }: NavigationMenuDataProps): MenuItemData[] => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const history = useHistory();
 
@@ -115,26 +117,26 @@ export const useNavigationMenuData = ({
     () =>
       [
         {
-          text: "Rename",
+          text: t("application.menu.rename"),
           onClick: editMode,
           type: MenuTypes.MENU,
           isVisible: true,
         },
         {
-          text: "Fork application",
+          text: t("application.menu.fork"),
           onClick: () => setForkApplicationModalOpen(true),
           type: MenuTypes.MENU,
           isVisible: isApplicationIdPresent && hasEditPermission,
         },
         {
-          text: "Export application",
+          text: t("application.menu.export"),
           onClick: exportAppAsJSON,
           type: MenuTypes.MENU,
           isVisible: isApplicationIdPresent && hasExportPermission,
         },
         hasDeletePermission && {
-          text: "Delete application",
-          confirmText: "Are you sure?",
+          text: t("application.menu.delete"),
+          confirmText: t("application.confirmDelete"),
           onClick: deleteApplication,
           type: MenuTypes.RECONFIRM,
           isVisible: isApplicationIdPresent,
@@ -194,6 +196,7 @@ export const useNavigationMenuData = ({
       setForkApplicationModalOpen,
       isIntercomConsentGiven,
       dispatch,
+      t,
     ],
   );
 };

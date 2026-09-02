@@ -11,8 +11,10 @@ import { previewModeSelector } from "selectors/editorSelectors";
 
 import { createMessage, EDITOR_HEADER } from "ee/constants/messages";
 import { altText } from "../../utils/helpers";
+import { useTranslation } from "react-i18next";
 
 function ToggleModeButton() {
+  useTranslation();
   const dispatch = useDispatch();
   const isPreviewMode = useSelector(previewModeSelector);
   const appMode = useSelector(getAppMode);
