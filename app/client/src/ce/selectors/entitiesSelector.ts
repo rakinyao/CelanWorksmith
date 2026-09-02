@@ -5,6 +5,7 @@ import type {
 } from "ee/reducers/entityReducers/actionsReducer";
 import type { ActionResponse } from "api/ActionAPI";
 import { createSelector } from "reselect";
+import { objectKeys } from "@appsmith/utils";
 import type {
   Datasource,
   DatasourceStructure,
@@ -1772,14 +1773,13 @@ export const getDatasourceUsageCountForApp = createSelector(
   (state: DefaultRootState, ideType: IDEType) => ideType,
   (actions, datasources, ideType) => {
     const actionCount = countBy(actions, "config.datasource.id");
-    const actionDsMap: Record<string, string> = {};
+    const actionDsMap: Record<string, number> = {};
 
     datasources.forEach((ds) => {
-      actionDsMap[ds.id] = `No queries in this ${ideType.toLowerCase()}`;
+      actionDsMap[ds.id] = 0;
     });
-    Object.keys(actionCount).forEach((dsId) => {
-      actionDsMap[dsId] =
-        `${actionCount[dsId]} queries in this ${ideType.toLowerCase()}`;
+    objectKeys(actionCount).forEach((dsId) => {
+      actionDsMap[dsId] = actionCount[dsId];
     });
 
     return actionDsMap;

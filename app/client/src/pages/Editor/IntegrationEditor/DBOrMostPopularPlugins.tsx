@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import { initialize } from "redux-form";
 import {
@@ -255,6 +256,8 @@ class DBOrMostPopularPlugins extends React.Component<Props> {
 }
 
 function CreateDBOrMostPopularPlugins(props: CreateDBOrMostPopularPluginsType) {
+  useTranslation();
+
   const ideType = getIDETypeByUrl(location.pathname);
   const { editorId, parentEntityId, parentEntityType } =
     useParentEntityInfo(ideType);

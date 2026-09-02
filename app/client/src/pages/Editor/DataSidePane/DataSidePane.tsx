@@ -8,6 +8,7 @@ import {
   getDatasourcesGroupedByPluginCategory,
   getPluginImages,
   getPlugins,
+  PluginCategory,
 } from "ee/selectors/entitiesSelector";
 import history from "utils/history";
 import { datasourcesEditorIdURL, integrationEditorURL } from "ee/RouteBuilder";
@@ -42,8 +43,16 @@ const DatasourceIcon = styled.img`
 `;
 
 interface DataSidePaneProps {
-  dsUsageMap: Record<string, string>;
+  dsUsageMap: Record<string, number>;
 }
+
+const datasourceCategoryKeys: Record<PluginCategory, string> = {
+  [PluginCategory.SAAS]: "saasIntegrations",
+  [PluginCategory.AI]: "aiIntegrations",
+  [PluginCategory.Databases]: "databases",
+  [PluginCategory.APIs]: "apis",
+  [PluginCategory.Others]: "others",
+};
 
 export const DataSidePane = (props: DataSidePaneProps) => {
   const { t } = useTranslation();
@@ -144,7 +153,6 @@ export const DataSidePane = (props: DataSidePaneProps) => {
           flexProps={{ px: "spaces-3" }}
           groups={Object.entries(groupedDatasources).map(([key, value]) => {
             return {
-              groupTitle: key,
               items: value.map((data) => {
                 return {
                   id: data.id,
@@ -154,7 +162,9 @@ export const DataSidePane = (props: DataSidePaneProps) => {
                       src={getAssetUrl(pluginImages[data.pluginId])}
                     />
                   ),
-                  description: get(dsUsageMap, data.id, ""),
+                  description: t("editor.datasourceUsage", {
+                    count: get(dsUsageMap, data.id, 0),
+                  }),
                   descriptionType: "block",
                   className: "t--datasource",
                   isSelected: currentSelectedDatasource === data.id,
@@ -164,6 +174,11 @@ export const DataSidePane = (props: DataSidePaneProps) => {
                   ),
                 };
               }),
+              groupTitle: t(
+                `datasource.categories.${
+                  datasourceCategoryKeys[key as PluginCategory]
+                }`,
+              ),
               className: "",
             };
           })}

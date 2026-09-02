@@ -29,6 +29,7 @@ import { useLocation } from "react-router";
 import { useHeaderActions } from "ee/hooks/datasourceEditorHooks";
 import { getIDETypeByUrl } from "ee/entities/IDE/utils";
 import { getPlugin } from "ee/selectors/entitiesSelector";
+import { useTranslation } from "react-i18next";
 
 export const ActionWrapper = styled.div`
   display: flex;
@@ -99,6 +100,8 @@ interface DSFormHeaderProps {
 }
 
 export const DSFormHeader = (props: DSFormHeaderProps) => {
+  useTranslation();
+
   const {
     canDeleteDatasource,
     canManageDatasource,

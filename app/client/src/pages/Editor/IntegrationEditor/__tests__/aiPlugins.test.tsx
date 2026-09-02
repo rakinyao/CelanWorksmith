@@ -1,9 +1,10 @@
 import React from "react";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import store from "store";
-import { render } from "test/testUtils";
+import { render, screen } from "test/testUtils";
 import { PluginPackageName } from "entities/Plugin";
 import AIPlugins from "../AIPlugins";
+import { changeLocale } from "i18n";
 
 const aiPlugins = [
   {
@@ -23,6 +24,10 @@ const aiPlugins = [
 ];
 
 describe("AIPlugins create-new list", () => {
+  afterEach(async () => {
+    await changeLocale("zh-CN");
+  });
+
   it("hides deprecated Appsmith AI but keeps other AI plugins", () => {
     store.dispatch({
       type: ReduxActionTypes.FETCH_PLUGINS_SUCCESS,
@@ -43,5 +48,21 @@ describe("AIPlugins create-new list", () => {
         `.t--createBlankApi-${PluginPackageName.APPSMITH_AI}`,
       ),
     ).toBeNull();
+  });
+
+  it("updates the section heading when the locale changes", async () => {
+    await changeLocale("en-US");
+    store.dispatch({
+      type: ReduxActionTypes.FETCH_PLUGINS_SUCCESS,
+      payload: aiPlugins,
+    });
+
+    render(
+      <AIPlugins pageId="pageId" showUnsupportedPluginDialog={() => {}} />,
+    );
+    expect(screen.getByText("AI Integrations")).toBeTruthy();
+
+    await changeLocale("zh-CN");
+    expect(screen.getByText("AI 集成")).toBeTruthy();
   });
 });

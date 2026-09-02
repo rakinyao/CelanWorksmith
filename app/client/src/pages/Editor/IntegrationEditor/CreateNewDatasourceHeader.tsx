@@ -7,6 +7,7 @@ import {
   SEARCH_FOR_DATASOURCES,
 } from "ee/constants/messages";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import styled from "styled-components";
 import { Field, formValueSelector, reduxForm } from "redux-form";
@@ -37,6 +38,8 @@ interface HeaderProps {
 }
 
 const CreateNewDatasourceHeader = () => {
+  useTranslation();
+
   return (
     <Flex alignItems="flex-end" gap="spaces-5">
       <HeaderText flexDirection="column" flexGrow="1">

@@ -51,7 +51,7 @@ describe.skip(
         dataSources
           .getDatasourceListItemDescription(mockDBName)
           .then(($queryCount) =>
-            expect($queryCount).to.eq("1 queries in this app"),
+            expect($queryCount).to.eq("1 query in this app"),
           );
 
         entityExplorer.CreateNewDsQuery(mockDBName);

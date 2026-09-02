@@ -9,6 +9,7 @@ import type { DefaultRootState } from "react-redux";
 import { render } from "test/testUtils";
 import { getDatasourceUsageCountForApp } from "ee/selectors/entitiesSelector";
 import { IDE_TYPE } from "ee/IDE/Interfaces/IDETypes";
+import { changeLocale } from "i18n";
 
 const productsDS = datasourceFactory().build({
   name: "Products",
@@ -36,6 +37,14 @@ const ordersAction1 = PostgresFactory.build({
 });
 
 describe("DataSidePane", () => {
+  beforeEach(async () => {
+    await changeLocale("en-US");
+  });
+
+  afterEach(async () => {
+    await changeLocale("zh-CN");
+  });
+
   it("renders the ds and count by using the dsUsageMap passed as props", () => {
     const state = getIDETestState({
       actions: [usersAction1, usersAction2, ordersAction1],
@@ -67,7 +76,18 @@ describe("DataSidePane", () => {
 
     expect(screen.getAllByRole("listitem")[2].textContent).toContain("Orders");
     expect(screen.getAllByRole("listitem")[2].textContent).toContain(
-      "1 queries in this app",
+      "1 query in this app",
     );
+  });
+
+  it("renders datasource group titles in Chinese", async () => {
+    await changeLocale("zh-CN");
+    const state = getIDETestState({
+      datasources: [usersDS],
+    }) as DefaultRootState;
+
+    render(<DataSidePane dsUsageMap={{}} />, { initialState: state });
+
+    expect(screen.getByText("数据库")).toBeInTheDocument();
   });
 });

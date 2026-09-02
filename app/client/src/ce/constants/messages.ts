@@ -420,7 +420,7 @@ export const OAUTH_ERROR = () => "OAuth Error";
 export const OAUTH_2_0 = () => "OAuth 2.0";
 export const ENABLE = () => "Enable";
 export const UPGRADE = () => "Upgrade";
-export const EDIT = () => "Edit";
+export const EDIT = () => i18n.t("common.edit");
 export const CONFIGURE = () => "Configure";
 export const UNEXPECTED_ERROR = () => "An unexpected error occurred";
 export const EXPECTED_ERROR = () => "An error occurred";
@@ -432,8 +432,10 @@ export const ACTION_RUN_BUTTON_MESSAGE_FIRST_HALF = () => "🙌 Click on";
 export const ACTION_RUN_BUTTON_MESSAGE_SECOND_HALF = () =>
   "after adding your query";
 export const CREATE_NEW_DATASOURCE = () => "Create datasource";
-export const CREATE_NEW_DATASOURCE_DATABASE_HEADER = () => "Databases";
-export const CREATE_NEW_DATASOURCE_MOST_POPULAR_HEADER = () => "Most Popular";
+export const CREATE_NEW_DATASOURCE_DATABASE_HEADER = () =>
+  i18n.t("datasource.categories.databases");
+export const CREATE_NEW_DATASOURCE_MOST_POPULAR_HEADER = () =>
+  i18n.t("datasource.categories.mostPopular");
 export const CREATE_NEW_DATASOURCE_REST_API = () => "REST API";
 export const SAMPLE_DATASOURCES = () => "Sample Datasources";
 export const SAMPLE_DATASOURCE_SUBHEADING = () =>
@@ -443,18 +445,22 @@ export const NOT_FOUND = () => "Not found";
 export const CREATE_NEW_DATASOURCE_AUTHENTICATED_REST_API = () =>
   "Authenticated API";
 export const CREATE_NEW_DATASOURCE_GRAPHQL_API = () => "GraphQL API";
-export const CREATE_NEW_API_SECTION_HEADER = () => "APIs";
-export const CREATE_NEW_SAAS_SECTION_HEADER = () => "SaaS Integrations";
-export const CREATE_NEW_AI_SECTION_HEADER = () => "AI Integrations";
+export const CREATE_NEW_API_SECTION_HEADER = () =>
+  i18n.t("datasource.categories.apis");
+export const CREATE_NEW_SAAS_SECTION_HEADER = () =>
+  i18n.t("datasource.categories.saasIntegrations");
+export const CREATE_NEW_AI_SECTION_HEADER = () =>
+  i18n.t("datasource.categories.aiIntegrations");
 // Appsmith AI deprecation (release 2.3): update this date if the shutdown date moves
 export const APPSMITH_AI_KILL_DATE = "September 30, 2026";
 export const APPSMITH_AI_DEPRECATION_MESSAGE = () =>
   `Appsmith AI is deprecated and will stop working on ${APPSMITH_AI_KILL_DATE}. Migrate to OpenAI, Anthropic, or Google AI with your own API key. Uploaded files (file context) will not be available after this date.`;
 export const APPSMITH_AI_DEPRECATION_LEARN_MORE = () => "Learn how to migrate";
-export const CONNECT_A_DATASOURCE_HEADING = () => "Connect a datasource";
+export const CONNECT_A_DATASOURCE_HEADING = () =>
+  i18n.t("datasource.connect.heading");
 export const CONNECT_A_DATASOURCE_SUBHEADING = () =>
-  "Select a sample datasource or connect your own";
-export const SEARCH_FOR_DATASOURCES = () => "Search for datasources";
+  i18n.t("datasource.connect.subheading");
+export const SEARCH_FOR_DATASOURCES = () => i18n.t("editor.searchDatasources");
 export const EMPTY_SEARCH_DATASOURCES_TITLE = () => "No results found";
 export const EMPTY_SEARCH_DATASOURCES_DESCRIPTION = () =>
   "Please try again with a different search";
@@ -2219,7 +2225,7 @@ export const LOCK_SIDEBAR_MESSAGE = () => `Lock sidebar open`;
 export const CLOSE_SIDEBAR_MESSAGE = () => `Close sidebar`;
 
 // Datasource/New query
-export const NEW_QUERY_BUTTON_TEXT = () => "New query";
+export const NEW_QUERY_BUTTON_TEXT = () => i18n.t("editor.newQuery");
 export const NEW_API_BUTTON_TEXT = () => "New API";
 export const NEW_AI_BUTTON_TEXT = () => "New AI Query";
 export const GENERATE_NEW_PAGE_BUTTON_TEXT = () => "Generate new page";
@@ -2727,7 +2733,7 @@ export const ADD_PAGE_FROM_TEMPLATE_MODAL = {
 };
 
 export const HEADER_TITLES = {
-  DATA: () => "Data",
+  DATA: () => i18n.t("editor.data"),
   PAGES: () => "Pages",
   EDITOR: () => i18n.t("editor.editorSidebar"),
   SETTINGS: () => "Settings",

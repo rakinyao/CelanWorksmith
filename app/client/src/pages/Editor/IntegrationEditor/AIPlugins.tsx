@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { connect } from "react-redux";
 import { createTempDatasourceFromForm } from "actions/datasourceActions";
 import type { DefaultRootState } from "react-redux";
@@ -62,6 +63,8 @@ function AIDataSources(props: CreateAIPluginsProps) {
 }
 
 function CreateAIPlugins(props: CreateAIPluginsProps) {
+  useTranslation();
+
   const isAirgappedInstance = isAirgapped();
 
   if (isAirgappedInstance || props.plugins.length === 0) return null;

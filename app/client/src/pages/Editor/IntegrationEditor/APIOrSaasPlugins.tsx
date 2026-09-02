@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { connect, useSelector } from "react-redux";
 import {
   createDatasourceFromForm,
@@ -240,6 +241,8 @@ function APIOrSaasPlugins(props: CreateAPIOrSaasPluginsProps) {
 }
 
 function CreateAPIOrSaasPlugins(props: CreateAPIOrSaasPluginsProps) {
+  useTranslation();
+
   const newAPIRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(false);
   const isAirgappedInstance = isAirgapped();
