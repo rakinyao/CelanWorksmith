@@ -626,9 +626,13 @@ export const extractConditionalOutput = (
   // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   section: any,
-  formEvaluationState: FormEvalOutput,
+  formEvaluationState?: FormEvalOutput,
 ): ConditionalOutput => {
   let conditionalOutput: ConditionalOutput = {};
+
+  if (!section || !formEvaluationState) {
+    return conditionalOutput;
+  }
 
   if (
     section.hasOwnProperty("propertyName") &&

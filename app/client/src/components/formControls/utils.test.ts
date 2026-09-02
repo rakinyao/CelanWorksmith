@@ -815,6 +815,21 @@ describe("UQI form render methods", () => {
     });
   });
 
+  it("returns an empty output when form evaluation state is unavailable", () => {
+    const output = extractConditionalOutput(
+      { identifier: "identifier" },
+      undefined,
+    );
+
+    expect(output).toEqual({});
+  });
+
+  it("returns an empty output when form configuration is unavailable", () => {
+    const output = extractConditionalOutput(undefined, formEvaluation);
+
+    expect(output).toEqual({});
+  });
+
   it("section render test", () => {
     const testCases = [
       {
