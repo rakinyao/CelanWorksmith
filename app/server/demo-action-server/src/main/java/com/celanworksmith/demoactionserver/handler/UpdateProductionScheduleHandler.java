@@ -46,7 +46,8 @@ public class UpdateProductionScheduleHandler implements DemoActionHandler {
         if (!ACTION_ID.equals(request.actionId())) {
             return invalidRequest(auditId, "Action must be UpdateProductionSchedule.");
         }
-        if (!TARGET_OBJECT_TYPE.equals(request.targets().objectTypeId()) || request.targets().objectIds().size() != 1) {
+        if (!TARGET_OBJECT_TYPE.equals(request.targets().objectTypeId())
+                || request.targets().objectIds().size() != 1) {
             return invalidRequest(auditId, "UpdateProductionSchedule requires a PurchaseOrder target.");
         }
         String targetObjectId = request.targets().objectIds().getFirst();

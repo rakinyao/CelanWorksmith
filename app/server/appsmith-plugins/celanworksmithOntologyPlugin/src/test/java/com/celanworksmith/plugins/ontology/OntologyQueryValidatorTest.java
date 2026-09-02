@@ -106,18 +106,25 @@ class OntologyQueryValidatorTest {
     private OntologyActionConfiguration configuration(
             String operation, String capabilityField, String capabilityId, Map<String, Object> target) {
         return OntologyActionConfiguration.from(action(Map.of(
-                "operation", operation,
-                "queryMode", "BUILDER",
-                "objectTypeId", "PurchaseOrder",
-                capabilityField, capabilityId,
-                "target", target)));
+                "operation",
+                operation,
+                "queryMode",
+                "BUILDER",
+                "objectTypeId",
+                "PurchaseOrder",
+                capabilityField,
+                capabilityId,
+                "target",
+                target)));
     }
 
     private Snapshot snapshot() {
         return new Snapshot(
                 "snapshot",
                 "digest",
-                List.of(new ObjectTypeMetadata("PurchaseOrder", List.of()), new ObjectTypeMetadata("Supplier", List.of())),
+                List.of(
+                        new ObjectTypeMetadata("PurchaseOrder", List.of()),
+                        new ObjectTypeMetadata("Supplier", List.of())),
                 List.of(new FunctionMetadata("CalculateDelayDays", "number", List.of("PurchaseOrder"), List.of())),
                 List.of(),
                 List.of(new ActionMetadata("UpdatePurchaseOrder", List.of("PurchaseOrder"), true, List.of())));

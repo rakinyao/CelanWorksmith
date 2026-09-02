@@ -137,8 +137,7 @@ class MongoRuntimeDataProviderTest {
         StepVerifier.create(provider.executeFunction(
                         RuntimeProviderTestFixtures.binding().project(),
                         "CalculateDelayDays",
-                        new FunctionExecutionRequest(
-                                new OntologyObjectSet("Supplier", List.of("SUP001")), Map.of())))
+                        new FunctionExecutionRequest(new OntologyObjectSet("Supplier", List.of("SUP001")), Map.of())))
                 .expectErrorMessage("Function CalculateDelayDays does not apply to object type: Supplier")
                 .verify();
         verify(template, never()).findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders"));

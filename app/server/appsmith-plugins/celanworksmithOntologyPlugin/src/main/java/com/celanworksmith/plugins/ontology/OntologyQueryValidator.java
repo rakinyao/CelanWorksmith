@@ -1,5 +1,6 @@
 package com.celanworksmith.plugins.ontology;
 
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ActionMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.FunctionMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.LinkMetadata;
@@ -7,7 +8,6 @@ import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectQuery
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectTypeMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.PropertyMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
-import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;

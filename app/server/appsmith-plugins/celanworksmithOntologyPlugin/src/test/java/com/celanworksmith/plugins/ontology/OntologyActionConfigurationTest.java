@@ -181,19 +181,29 @@ class OntologyActionConfigurationTest {
         OntologyActionConfiguration configuration = configuration(
                 "FUNCTION_QUERY",
                 Map.of(
-                        "queryMode", "BUILDER",
-                        "objectTypeId", "PurchaseOrder",
-                        "functionId", "selectedFunction",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("delayDays", 5),
-                        "definition", Map.of("functionId", "definitionFunction")));
+                        "queryMode",
+                        "BUILDER",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "functionId",
+                        "selectedFunction",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("delayDays", 5),
+                        "definition",
+                        Map.of("functionId", "definitionFunction")));
 
         assertEquals(
                 Map.of(
-                        "functionId", "selectedFunction",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("delayDays", 5)),
+                        "functionId",
+                        "selectedFunction",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("delayDays", 5)),
                 configuration.definition());
     }
 
@@ -230,10 +240,14 @@ class OntologyActionConfigurationTest {
     void builderFunctionQueryParsesDynamicJsonParametersIntoTheCanonicalDefinition() {
         assertEquals(
                 Map.of(
-                        "functionId", "delayScore",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("delayDays", 5)),
+                        "functionId",
+                        "delayScore",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("delayDays", 5)),
                 OntologyActionConfiguration.from(action(Map.of(
                                 "operation", uqi("FUNCTION_QUERY"),
                                 "queryMode", uqi("BUILDER"),
@@ -263,10 +277,14 @@ class OntologyActionConfigurationTest {
     void builderFunctionQueryUsesEmptyParametersWhenAbsent() {
         assertEquals(
                 Map.of(
-                        "functionId", "delayScore",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of()),
+                        "functionId",
+                        "delayScore",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of()),
                 OntologyActionConfiguration.from(action(Map.of(
                                 "operation", "FUNCTION_QUERY",
                                 "queryMode", "BUILDER",
@@ -298,15 +316,20 @@ class OntologyActionConfigurationTest {
                 "queryMode", "ADVANCED",
                 "objectTypeId", "PurchaseOrder",
                 "functionId", "delayScore",
-                "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
-                        + "\"parameters\":{\"delayDays\":5}}")));
+                "definition",
+                        "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                + "\"parameters\":{\"delayDays\":5}}")));
 
         assertEquals(
                 Map.of(
-                        "functionId", "delayScore",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("delayDays", 5)),
+                        "functionId",
+                        "delayScore",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("delayDays", 5)),
                 configuration.definition());
     }
 
@@ -317,8 +340,9 @@ class OntologyActionConfigurationTest {
                 "queryMode", uqi("ADVANCED"),
                 "objectTypeId", uqi("PurchaseOrder"),
                 "functionId", uqi("delayScore"),
-                "definition", uqi("{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
-                        + "\"parameters\":{\"delayDays\":null}}"))));
+                "definition",
+                        uqi("{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                + "\"parameters\":{\"delayDays\":null}}"))));
 
         Map<?, ?> parameters = (Map<?, ?>) configuration.definition().get("parameters");
         assertTrue(parameters.containsKey("delayDays"));
@@ -332,15 +356,20 @@ class OntologyActionConfigurationTest {
                 "queryMode", "ADVANCED",
                 "objectTypeId", "PurchaseOrder",
                 "functionId", "delayScore",
-                "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
-                        + "\"parameters\":{\"functionId\":\"nested\"}}")));
+                "definition",
+                        "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                + "\"parameters\":{\"functionId\":\"nested\"}}")));
 
         assertEquals(
                 Map.of(
-                        "functionId", "delayScore",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("functionId", "nested")),
+                        "functionId",
+                        "delayScore",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("functionId", "nested")),
                 configuration.definition());
     }
 
@@ -375,8 +404,9 @@ class OntologyActionConfigurationTest {
                         "operation", "FUNCTION_QUERY",
                         "queryMode", "ADVANCED",
                         "objectTypeId", "PurchaseOrder",
-                        "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
-                                + "\"parameters\":{}}"))));
+                        "definition",
+                                "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                        + "\"parameters\":{}}"))));
 
         assertEquals("Ontology operation definition requires: functionId", exception.getMessage());
     }
@@ -388,15 +418,20 @@ class OntologyActionConfigurationTest {
                 "queryMode", "ADVANCED",
                 "objectTypeId", "PurchaseOrder",
                 "functionId", "unknownFunction",
-                "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
-                        + "\"parameters\":{\"poId\":\"missing\"}}")));
+                "definition",
+                        "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                + "\"parameters\":{\"poId\":\"missing\"}}")));
 
         assertEquals(
                 Map.of(
-                        "functionId", "unknownFunction",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("poId", "missing")),
+                        "functionId",
+                        "unknownFunction",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("poId", "missing")),
                 configuration.definition());
     }
 
@@ -405,20 +440,29 @@ class OntologyActionConfigurationTest {
         OntologyActionConfiguration configuration = configuration(
                 "ACTION_QUERY",
                 Map.of(
-                        "queryMode", "BUILDER",
-                        "objectTypeId", "PurchaseOrder",
+                        "queryMode",
+                        "BUILDER",
+                        "objectTypeId",
+                        "PurchaseOrder",
                         "actionId",
                         "selectedAction",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("newScheduleDate", "2026-08-27"),
-                        "definition", Map.of("actionId", "definitionAction")));
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("newScheduleDate", "2026-08-27"),
+                        "definition",
+                        Map.of("actionId", "definitionAction")));
 
         assertEquals(
                 Map.of(
-                        "actionId", "selectedAction",
-                        "objectTypeId", "PurchaseOrder",
-                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                        "parameters", Map.of("newScheduleDate", "2026-08-27")),
+                        "actionId",
+                        "selectedAction",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of("newScheduleDate", "2026-08-27")),
                 configuration.definition());
     }
 
@@ -433,8 +477,9 @@ class OntologyActionConfigurationTest {
                                     "queryMode", "ADVANCED",
                                     "objectTypeId", "PurchaseOrder",
                                     "functionId", "delayScore",
-                                    "definition", "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
-                                            + "\"parameters\":{},\"" + protectedField + "\":\"forged\"}")));
+                                    "definition",
+                                            "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO002\"},"
+                                                    + "\"parameters\":{},\"" + protectedField + "\":\"forged\"}")));
 
             assertTrue(exception.getMessage().contains(protectedField));
         }

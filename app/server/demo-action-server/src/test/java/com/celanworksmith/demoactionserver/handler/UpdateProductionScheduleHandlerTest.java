@@ -40,7 +40,8 @@ class UpdateProductionScheduleHandlerTest {
         StepVerifier.create(handler.execute(request("PO001", "2026-09-01T00:00:00Z"), "audit-1"))
                 .assertNext(result -> {
                     assertThat(result.outcomes()).hasSize(1);
-                    assertThat(result.outcomes().getFirst().target()).isEqualTo(new ChangedObject("PurchaseOrder", "PO001"));
+                    assertThat(result.outcomes().getFirst().target())
+                            .isEqualTo(new ChangedObject("PurchaseOrder", "PO001"));
                     assertThat(result.outcomes().getFirst().changedObjects())
                             .containsExactly(new ChangedObject("ProductionOrder", "PR001"));
                     assertThat(result.outcomes().getFirst().changedProperties())

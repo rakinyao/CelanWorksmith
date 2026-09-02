@@ -1,7 +1,6 @@
 package com.celanworksmith.ontology.actionserver;
 
 import com.celanworksmith.CelanWorksmithConfiguration;
-import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.WorkspaceActionServerConfigurationResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -12,12 +11,13 @@ import reactor.test.StepVerifier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class WorkspaceActionServerPropertiesTest {
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withUserConfiguration(PropertiesConfiguration.class);
+    private final ApplicationContextRunner contextRunner =
+            new ApplicationContextRunner().withUserConfiguration(PropertiesConfiguration.class);
 
     @Test
     void bindsConfiguredWorkspaceEndpoint() {
-        contextRunner.withPropertyValues(
+        contextRunner
+                .withPropertyValues(
                         "celanworksmith.action-server.workspaces.workspace-1.url=http://localhost:8089",
                         "celanworksmith.action-server.workspaces.workspace-1.timeout-millis=3000")
                 .run(context -> {
@@ -32,7 +32,8 @@ class WorkspaceActionServerPropertiesTest {
 
     @Test
     void rejectsBlankUrl() {
-        contextRunner.withPropertyValues(
+        contextRunner
+                .withPropertyValues(
                         "celanworksmith.action-server.workspaces.workspace-1.url=",
                         "celanworksmith.action-server.workspaces.workspace-1.timeout-millis=3000")
                 .run(context -> assertThat(context.getStartupFailure()).isNotNull());
@@ -40,7 +41,8 @@ class WorkspaceActionServerPropertiesTest {
 
     @Test
     void rejectsNonPositiveTimeout() {
-        contextRunner.withPropertyValues(
+        contextRunner
+                .withPropertyValues(
                         "celanworksmith.action-server.workspaces.workspace-1.url=http://localhost:8089",
                         "celanworksmith.action-server.workspaces.workspace-1.timeout-millis=0")
                 .run(context -> assertThat(context.getStartupFailure()).isNotNull());
@@ -49,11 +51,11 @@ class WorkspaceActionServerPropertiesTest {
     @Test
     void resolverReturnsClientForConfiguredWorkspaceAndFailsUnknownWorkspace() {
         var properties = new WorkspaceActionServerProperties();
-        properties.getWorkspaces().put(
-                        "workspace-1", new WorkspaceActionServerProperties.Endpoint("http://localhost:8089", 3000));
+        properties
+                .getWorkspaces()
+                .put("workspace-1", new WorkspaceActionServerProperties.Endpoint("http://localhost:8089", 3000));
         WorkspaceActionServerConfigurationResolver resolver =
-                new CelanWorksmithConfiguration().workspaceActionServerConfigurationResolver(
-                        properties);
+                new CelanWorksmithConfiguration().workspaceActionServerConfigurationResolver(properties);
 
         StepVerifier.create(resolver.resolveRequired("workspace-1"))
                 .assertNext(client -> assertThat(client).isInstanceOf(HttpOntologyActionServerClient.class))

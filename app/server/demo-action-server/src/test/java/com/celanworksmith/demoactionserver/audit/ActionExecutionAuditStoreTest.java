@@ -1,7 +1,5 @@
 package com.celanworksmith.demoactionserver.audit;
 
-import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject;
-import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -26,24 +24,40 @@ class ActionExecutionAuditStoreTest {
         ReactiveMongoTemplate mongoTemplate = mock(ReactiveMongoTemplate.class);
         ActionExecutionAuditStore store = new ActionExecutionAuditStore(mongoTemplate);
         ActionExecutionAuditDocument audit = new ActionExecutionAuditDocument(
-                "audit-1", "key-1", "workspace-1", "project-1", "1.0.0",
-                "datasource-1", "UpdateProductionSchedule", "PurchaseOrder", "PO001",
-                Instant.parse("2026-08-22T00:00:00Z"), null, "RUNNING", null, List.of(), List.of());
+                "audit-1",
+                "key-1",
+                "workspace-1",
+                "project-1",
+                "1.0.0",
+                "datasource-1",
+                "UpdateProductionSchedule",
+                "PurchaseOrder",
+                "PO001",
+                Instant.parse("2026-08-22T00:00:00Z"),
+                null,
+                "RUNNING",
+                null,
+                List.of(),
+                List.of());
 
         when(mongoTemplate.findOne(
-                        any(Query.class), eq(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION)))
+                        any(Query.class),
+                        eq(ActionExecutionAuditDocument.class),
+                        eq(ActionExecutionAuditStore.COLLECTION)))
                 .thenReturn(Mono.empty());
         when(mongoTemplate.insert(any(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION)))
                 .thenReturn(Mono.just(audit));
 
-        StepVerifier.create(store.createIfAbsent(audit))
-                .expectNext(audit)
-                .verifyComplete();
+        StepVerifier.create(store.createIfAbsent(audit)).expectNext(audit).verifyComplete();
 
-        ArgumentCaptor<ActionExecutionAuditDocument> inserted = ArgumentCaptor.forClass(ActionExecutionAuditDocument.class);
+        ArgumentCaptor<ActionExecutionAuditDocument> inserted =
+                ArgumentCaptor.forClass(ActionExecutionAuditDocument.class);
         InOrder calls = inOrder(mongoTemplate);
         calls.verify(mongoTemplate)
-                .findOne(any(Query.class), eq(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION));
+                .findOne(
+                        any(Query.class),
+                        eq(ActionExecutionAuditDocument.class),
+                        eq(ActionExecutionAuditStore.COLLECTION));
         calls.verify(mongoTemplate).insert(inserted.capture(), eq(ActionExecutionAuditStore.COLLECTION));
         assertThat(inserted.getValue()).isEqualTo(audit);
     }

@@ -96,7 +96,8 @@ public class OntologyProjectBackedProvider implements OntologyProvider {
                         .map(definition -> objectTypeId == null || objectTypeId.isBlank()
                                 ? definition.actions()
                                 : definition.actions().stream()
-                                        .filter(value -> value.ownerObjectTypeIds().contains(objectTypeId))
+                                        .filter(value ->
+                                                value.ownerObjectTypeIds().contains(objectTypeId))
                                         .toList());
     }
 }

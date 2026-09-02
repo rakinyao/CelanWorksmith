@@ -124,11 +124,13 @@ class OntologyProjectImportTest {
                                     "actualDeliveryDate",
                                     "amount",
                                     "delayDays");
-                    assertThat(snapshot.definition().functions()).singleElement().satisfies(function -> {
-                        assertThat(function.id()).isEqualTo("CalculateDelayDays");
-                        assertThat(function.ownerObjectTypeIds()).containsExactly("PurchaseOrder");
-                        assertThat(function.parameters()).isEmpty();
-                    });
+                    assertThat(snapshot.definition().functions())
+                            .singleElement()
+                            .satisfies(function -> {
+                                assertThat(function.id()).isEqualTo("CalculateDelayDays");
+                                assertThat(function.ownerObjectTypeIds()).containsExactly("PurchaseOrder");
+                                assertThat(function.parameters()).isEmpty();
+                            });
                     assertThat(snapshot.definition().actions()).singleElement().satisfies(action -> {
                         assertThat(action.id()).isEqualTo("UpdateProductionSchedule");
                         assertThat(action.ownerObjectTypeIds()).containsExactly("PurchaseOrder");

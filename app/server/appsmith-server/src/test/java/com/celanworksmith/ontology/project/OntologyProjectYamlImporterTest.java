@@ -145,7 +145,9 @@ class OntologyProjectYamlImporterTest {
         entries.put(
                 "functions/CalculateDelayDays.yaml",
                 entries.get("functions/CalculateDelayDays.yaml")
-                        .replace("ownerObjectTypeIds: [PurchaseOrder]", "ownerObjectTypeIds: [PurchaseOrder, PurchaseOrder]"));
+                        .replace(
+                                "ownerObjectTypeIds: [PurchaseOrder]",
+                                "ownerObjectTypeIds: [PurchaseOrder, PurchaseOrder]"));
         assertError(entries, "PROJECT_VALIDATION_FAILED");
     }
 

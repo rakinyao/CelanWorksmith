@@ -76,19 +76,9 @@ public class MockOntologyProvider implements OntologyProvider {
 
     private static final List<FunctionDTO> FUNCTIONS = List.of(
             new FunctionDTO(
-                    "CalculateDelayDays",
-                    "Calculate Delay Days",
-                    "INTEGER",
-                    List.of("PurchaseOrder"),
-                    List.of(),
-                    true),
+                    "CalculateDelayDays", "Calculate Delay Days", "INTEGER", List.of("PurchaseOrder"), List.of(), true),
             new FunctionDTO(
-                    "CalculatePenalty",
-                    "Calculate Penalty",
-                    "DECIMAL",
-                    List.of("PurchaseOrder"),
-                    List.of(),
-                    true),
+                    "CalculatePenalty", "Calculate Penalty", "DECIMAL", List.of("PurchaseOrder"), List.of(), true),
             new FunctionDTO(
                     "CalculateAdjustedProfit",
                     "Calculate Adjusted Profit",

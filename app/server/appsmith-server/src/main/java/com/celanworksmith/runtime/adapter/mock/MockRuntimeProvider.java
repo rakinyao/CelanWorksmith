@@ -129,11 +129,13 @@ public class MockRuntimeProvider implements RuntimeProvider {
         if (!parameters.isEmpty()) {
             throw new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT,
-                    "Unknown function parameter: " + parameters.keySet().iterator().next());
+                    "Unknown function parameter: "
+                            + parameters.keySet().iterator().next());
         }
         OntologyObjectSet targets = request == null ? null : request.targets();
         if (targets == null) {
-            throw new CelanWorksmithException(CelanWorksmithErrorCode.INVALID_ARGUMENT, "Function targets are required");
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Function targets are required");
         }
         List<Object> results = targets.objectIds().stream()
                 .map(objectId -> executeFunctionForTarget(functionId, targets.objectTypeId(), objectId))
@@ -151,8 +153,9 @@ public class MockRuntimeProvider implements RuntimeProvider {
                 requireTargetType(functionId, objectTypeId, "Supplier");
                 yield calculateSupplierGrade(objectId);
             }
-            default -> throw new CelanWorksmithException(
-                    CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId);
+            default ->
+                throw new CelanWorksmithException(
+                        CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId);
         };
     }
 

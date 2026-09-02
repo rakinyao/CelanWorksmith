@@ -15,12 +15,12 @@ public class DemoActionHandlerRegistry {
     private final Map<String, DemoActionHandler> handlers;
 
     public DemoActionHandlerRegistry(List<DemoActionHandler> actionHandlers) {
-        this.handlers = actionHandlers.stream().collect(Collectors.toUnmodifiableMap(
-                DemoActionHandler::actionId,
-                Function.identity(),
-                (first, duplicate) -> {
-                    throw new IllegalStateException("More than one handler is registered for action " + first.actionId());
-                }));
+        this.handlers = actionHandlers.stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        DemoActionHandler::actionId, Function.identity(), (first, duplicate) -> {
+                            throw new IllegalStateException(
+                                    "More than one handler is registered for action " + first.actionId());
+                        }));
     }
 
     public Mono<DemoActionHandler> resolve(String actionId, String auditId) {

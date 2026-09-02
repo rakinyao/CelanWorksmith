@@ -167,11 +167,8 @@ class MockRuntimeProviderTest {
 
     @Test
     void functionMetadataUsesTargetsInsteadOfBusinessIdentifierParameters() {
-        assertTrue(new MockOntologyProvider()
-                .getFunctions()
-                .block()
-                .stream()
-                .allMatch(function -> function.parameters().isEmpty()));
+        assertTrue(new MockOntologyProvider().getFunctions().block().stream().allMatch(function -> function.parameters()
+                .isEmpty()));
     }
 
     @Test

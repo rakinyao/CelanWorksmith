@@ -71,7 +71,8 @@ public class ActionExecutionAuditStore {
     }
 
     private Mono<ActionExecutionAuditDocument> terminalAuditUpdate(String auditId, Update update) {
-        return mongoTemplate.findAndModify(runningAuditQuery(auditId), update, ActionExecutionAuditDocument.class, COLLECTION)
+        return mongoTemplate
+                .findAndModify(runningAuditQuery(auditId), update, ActionExecutionAuditDocument.class, COLLECTION)
                 .switchIfEmpty(Mono.error(new IllegalStateException("Audit " + auditId + " is not RUNNING.")));
     }
 

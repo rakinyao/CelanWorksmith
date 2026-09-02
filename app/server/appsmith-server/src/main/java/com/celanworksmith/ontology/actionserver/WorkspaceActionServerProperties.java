@@ -14,8 +14,7 @@ import java.util.Map;
 @Validated
 @ConfigurationProperties(prefix = "celanworksmith.action-server")
 public class WorkspaceActionServerProperties {
-    @Valid
-    private Map<String, Endpoint> workspaces = new LinkedHashMap<>();
+    @Valid private Map<String, Endpoint> workspaces = new LinkedHashMap<>();
 
     public Map<String, Endpoint> getWorkspaces() {
         return workspaces;
@@ -26,11 +25,9 @@ public class WorkspaceActionServerProperties {
     }
 
     public static class Endpoint {
-        @NotBlank
-        private String url;
+        @NotBlank private String url;
 
-        @Positive
-        private long timeoutMillis;
+        @Positive private long timeoutMillis;
 
         public Endpoint() {}
 
@@ -55,8 +52,7 @@ public class WorkspaceActionServerProperties {
             this.timeoutMillis = timeoutMillis;
         }
 
-        @AssertTrue(message = "url must be an absolute URI")
-        public boolean isAbsoluteUrl() {
+        @AssertTrue(message = "url must be an absolute URI") public boolean isAbsoluteUrl() {
             if (url == null || url.isBlank()) {
                 return true;
             }

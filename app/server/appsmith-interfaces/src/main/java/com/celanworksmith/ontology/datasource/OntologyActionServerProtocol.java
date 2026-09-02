@@ -39,8 +39,7 @@ public final class OntologyActionServerProtocol {
 
     public record ChangedObject(String objectTypeId, String objectId) {}
 
-    public record ChangedProperty(String objectTypeId, String objectId,
-                                  String propertyId, Object newValue) {}
+    public record ChangedProperty(String objectTypeId, String objectId, String propertyId, Object newValue) {}
 
     public record TargetOutcome(
             ChangedObject target,
@@ -67,8 +66,7 @@ public final class OntologyActionServerProtocol {
         }
     }
 
-    public record DomainFailure(String contractVersion, String auditId,
-                                String code, String message) {
+    public record DomainFailure(String contractVersion, String auditId, String code, String message) {
         public DomainFailure {
             requireNonBlank("contractVersion", contractVersion);
         }
