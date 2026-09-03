@@ -38,3 +38,30 @@ test('generates a deterministic Chinese dataset from the release', async () => {
   assert.ok(signedCompleted2026 >= 110000000 && signedCompleted2026 <= 120000000, `2026 signed/completed was ${signedCompleted2026}`);
   validateRuntimeData({ release, scenario, data: first });
 });
+
+test('rejects a contract with an unknown customer relationship', async () => {
+  const release = await readJson(releasePath);
+  const scenario = await loadScenario(scenarioPath);
+  const data = generateRuntimeData({ release, scenario });
+  data.ont_contract[0].customer_code = 'CUS-2024-999';
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /customer_code/);
+});
+
+test('rejects a purchase order whose payment total is inconsistent', async () => {
+  const release = await readJson(releasePath);
+  const scenario = await loadScenario(scenarioPath);
+  const data = generateRuntimeData({ release, scenario });
+  data.ont_purchase_order[0].unpaid_amount += 1;
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /paid_amount/);
+});
+
+test('rejects a future timestamp and an English contract state', async () => {
+  const release = await readJson(releasePath);
+  const scenario = await loadScenario(scenarioPath);
+  const data = generateRuntimeData({ release, scenario });
+  data.ont_contract[0].latest_change_at = '2026-09-01T00:00:00+08:00';
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /snapshot/);
+  data.ont_contract[0].latest_change_at = '2026-08-01T00:00:00+08:00';
+  data.ont_contract[0].state = 'active';
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /state/);
+});

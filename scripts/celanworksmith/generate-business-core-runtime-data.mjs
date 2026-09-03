@@ -77,16 +77,38 @@ export function generateRuntimeData({ release, scenario }) {
   normalizeSignedTotal(contracts2026.filter(row => ['已完成', '执行中'].includes(row.state)), Math.round(scenario.contract_targets['2026'] * 0.6666666667 * 100));
   normalizeSignedTotal(contracts2026.filter(row => !['已完成', '执行中'].includes(row.state)), Math.round(scenario.contract_targets['2026'] * 0.3333333333 * 100));
   const poInfo = schema(release, 'purchase_order'); ctx.entity = 'purchase_order';
-  const purchase_orders = Array.from({ length: scenario.counts.purchase_orders }, (_, i) => { const c = contracts[i % contracts.length]; const amount = Math.floor(c.current_amount * 100 * (0.04 + rng() * 0.2)); const paid = Math.floor(amount * (0.2 + rng() * 0.8)); return makeRow(poInfo, i, ctx, { order_no: `PO-${2024 + i % 3}-${String(i + 1).padStart(3, '0')}`, supplier_code: c.supplier_code, contract_no: c.contract_no, project_code: c.project_code, order_amount: money(amount), paid_amount: money(paid), unpaid_amount: money(amount - paid), currency: 'CNY', created_at: c.signed_at, updated_at: c.signed_at, arrived_at: i % 3 ? c.signed_at : null, source_system: pick(rng, scenario.source_systems) }); });
+  const purchase_orders = Array.from({ length: scenario.counts.purchase_orders }, (_, i) => { const c = contracts[i % contracts.length]; const amount = Math.floor(c.current_amount * 100 * (0.04 + rng() * 0.2)); const paid = Math.floor(amount * (0.2 + rng() * 0.8)); const arrivedAt = i % 3 ? c.signed_at : null; return makeRow(poInfo, i, ctx, { order_no: `PO-${2024 + i % 3}-${String(i + 1).padStart(3, '0')}`, supplier_code: c.supplier_code, contract_no: c.contract_no, project_code: c.project_code, order_amount: money(amount), paid_amount: money(paid), unpaid_amount: money(amount - paid), currency: 'CNY', created_at: c.signed_at, updated_at: c.signed_at, arrived_at: arrivedAt, receipt_state: arrivedAt ? pick(rng, ['部分收货', '已收货']) : '未收货', source_system: pick(rng, scenario.source_systems) }); });
   const data = { ont_supplier: suppliers, ont_customer: customers, ont_contract: contracts, ont_purchase_order: purchase_orders };
   validateRuntimeData({ release, scenario, data }); return data;
 }
 
 export function validateRuntimeData({ release, scenario, data }) {
-  for (const [name, rows] of Object.entries(data)) { const entity = name.replace(/^ont_/, ''); const { fields, primary } = schema(release, entity); const keys = new Set(); for (const row of rows) { if (keys.has(row[primary])) throw new Error(`${name}: duplicate primary key ${row[primary]}`); keys.add(row[primary]); for (const f of fields) { if (!(f.name in row)) throw new Error(`${name}: missing field ${f.name}`); if (f.type === 'decimal' && typeof row[f.name] !== 'number') throw new Error(`${name}.${f.name}: expected decimal`); } for (const n of Object.keys(row).filter(k => /_at$/.test(k))) if (row[n] && new Date(row[n]) > new Date(scenario.snapshot_at)) throw new Error(`${name}.${n}: exceeds snapshot`); } }
+  const expectedCounts = { supplier: scenario.counts.suppliers, customer: scenario.counts.customers, contract: scenario.counts.contracts, purchase_order: scenario.counts.purchase_orders };
+  for (const [entity, count] of Object.entries(expectedCounts)) {
+    const name = `ont_${entity}`; const rows = data[name];
+    if (!Array.isArray(rows) || rows.length !== count) throw new Error(`${name}: expected ${count} rows`);
+    const { fields, primary } = schema(release, entity); const keys = new Set();
+    for (const row of rows) {
+      if (keys.has(row[primary])) throw new Error(`${name}: duplicate primary key ${row[primary]}`); keys.add(row[primary]);
+      for (const f of fields) {
+        if (!(f.name in row)) throw new Error(`${name}: missing field ${f.name}`);
+        const value = row[f.name];
+        if (value === null && f.name === 'arrived_at') continue;
+        const valid = f.type === 'decimal' ? typeof value === 'number' && Number.isFinite(value)
+          : f.type === 'integer' ? Number.isInteger(value)
+            : f.type === 'boolean' ? typeof value === 'boolean'
+              : f.type === 'timestamp' ? typeof value === 'string' && !Number.isNaN(Date.parse(value))
+                : typeof value === 'string';
+        if (!valid) throw new Error(`${name}.${f.name}: expected ${f.type}`);
+        if (f.type === 'timestamp' && new Date(value) > new Date(scenario.snapshot_at)) throw new Error(`${name}.${f.name}: exceeds snapshot`);
+      }
+      if ('source_system' in row && !scenario.source_systems.includes(row.source_system)) throw new Error(`${name}.source_system: undeclared value ${row.source_system}`);
+    }
+  }
   const suppliers = new Set(data.ont_supplier.map(r => r.supplier_code)); const customers = new Set(data.ont_customer.map(r => r.customer_code)); const contracts = new Map(data.ont_contract.map(r => [r.contract_no, r]));
-  for (const c of data.ont_contract) { if (!customers.has(c.customer_code)) throw new Error(`contract.customer_code: unknown ${c.customer_code}`); if (!suppliers.has(c.supplier_code)) throw new Error(`contract.supplier_code: unknown ${c.supplier_code}`); if (c.state !== '已取消' && c.current_amount !== Number((c.original_amount + c.change_amount).toFixed(2))) throw new Error(`contract.current_amount invariant violated`); if (!scenario.contract_states.includes(c.state)) throw new Error(`contract.state: undeclared value ${c.state}`); }
-  for (const p of data.ont_purchase_order) { if (!contracts.has(p.contract_no)) throw new Error(`purchase_order.contract_no: unknown ${p.contract_no}`); if (!suppliers.has(p.supplier_code)) throw new Error(`purchase_order.supplier_code: unknown ${p.supplier_code}`); if (Number((p.paid_amount + p.unpaid_amount).toFixed(2)) !== Number(p.order_amount.toFixed(2))) throw new Error('purchase_order payment invariant violated'); }
+  for (const c of data.ont_contract) { if (!customers.has(c.customer_code)) throw new Error(`contract.customer_code: unknown ${c.customer_code}`); if (!suppliers.has(c.supplier_code)) throw new Error(`contract.supplier_code: unknown ${c.supplier_code}`); if (c.state !== '已取消' && c.current_amount !== Number((c.original_amount + c.change_amount).toFixed(2))) throw new Error(`contract.current_amount invariant violated`); if (!scenario.contract_states.includes(c.state)) throw new Error(`contract.state: undeclared value ${c.state}`); if (new Date(c.signed_at) > new Date(c.latest_change_at)) throw new Error('contract date order invariant violated'); }
+  for (const p of data.ont_purchase_order) { if (!contracts.has(p.contract_no)) throw new Error(`purchase_order.contract_no: unknown ${p.contract_no}`); if (!suppliers.has(p.supplier_code)) throw new Error(`purchase_order.supplier_code: unknown ${p.supplier_code}`); if (Number((p.paid_amount + p.unpaid_amount).toFixed(2)) !== Number(p.order_amount.toFixed(2))) throw new Error('purchase_order paid_amount invariant violated'); if (p.arrived_at === null && p.receipt_state !== '未收货') throw new Error('purchase_order arrived_at invariant violated'); if (p.arrived_at !== null && new Date(p.created_at) > new Date(p.arrived_at)) throw new Error('purchase_order date order invariant violated'); if (new Date(p.created_at) > new Date(p.updated_at)) throw new Error('purchase_order updated_at invariant violated'); }
+  for (const [year, target] of Object.entries(scenario.contract_targets)) { const total = data.ont_contract.filter(c => c.contract_no.startsWith(`CON-${year}-`)).reduce((sum, c) => sum + Math.round(c.signed_amount * 100), 0); const tolerance = year === '2026' ? 1 : Math.round(target * 0.1 * 100); if (Math.abs(total - Math.round(target * 100)) > tolerance) throw new Error(`contract ${year} annual target invariant violated`); if (year === '2026') { const active = data.ont_contract.filter(c => c.contract_no.startsWith('CON-2026-') && ['已完成', '执行中'].includes(c.state)).reduce((sum, c) => sum + Math.round(c.signed_amount * 100), 0); if (active < 11000000000 || active > 12000000000) throw new Error('contract 2026 active annual band invariant violated'); } }
 }
 
 export async function writeRuntimeData({ data, outputDirectory }) { await mkdir(outputDirectory, { recursive: true }); for (const [name, rows] of Object.entries(data)) await writeFile(join(outputDirectory, `${name}.json`), `${JSON.stringify(rows, null, 2)}\n`, 'utf8'); }
