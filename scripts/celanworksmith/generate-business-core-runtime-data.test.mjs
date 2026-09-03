@@ -88,3 +88,31 @@ test('rejects inconsistent and undeclared purchase-order receipt states', async 
   received.receipt_state = '未知状态';
   assert.throws(() => validateRuntimeData({ release, scenario, data }), /receipt_state/);
 });
+
+test('generates release-prescribed match states and rejects invalid values', async () => {
+  const release = await readJson(releasePath);
+  const scenario = await loadScenario(scenarioPath);
+  const data = generateRuntimeData({ release, scenario });
+  const allowed = new Set(['matched', 'pending', 'ambiguous']);
+  for (const name of ['ont_contract', 'ont_supplier', 'ont_purchase_order']) {
+    for (const row of data[name]) assert.ok(allowed.has(row.match_state), `${name} emitted ${row.match_state}`);
+  }
+
+  data.ont_contract[0].match_state = '已匹配';
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /match_state/);
+});
+
+test('rejects inverted supplier and customer audit timestamps', async () => {
+  const release = await readJson(releasePath);
+  const scenario = await loadScenario(scenarioPath);
+
+  const supplierData = generateRuntimeData({ release, scenario });
+  const supplier = supplierData.ont_supplier[0];
+  [supplier.created_at, supplier.updated_at] = [supplier.updated_at, supplier.created_at];
+  assert.throws(() => validateRuntimeData({ release, scenario, data: supplierData }), /supplier.*created_at.*updated_at|updated_at.*invariant/i);
+
+  const customerData = generateRuntimeData({ release, scenario });
+  const customer = customerData.ont_customer[0];
+  [customer.source_created_at, customer.source_updated_at] = [customer.source_updated_at, customer.source_created_at];
+  assert.throws(() => validateRuntimeData({ release, scenario, data: customerData }), /customer.*source_created_at.*source_updated_at|source_updated_at.*invariant/i);
+});

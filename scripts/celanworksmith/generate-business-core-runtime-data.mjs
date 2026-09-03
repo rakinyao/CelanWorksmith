@@ -10,6 +10,13 @@ function mulberry32(seed) { return () => { let t = seed += 0x6D2B79F5; t = Math.
 const pick = (rng, values) => values[Math.floor(rng() * values.length) % values.length];
 const money = fen => Number((fen / 100).toFixed(2));
 const dateFor = (year, rng, snapshot) => { const day = 1 + Math.floor(rng() * (year === 2026 ? 243 : 365)); const d = new Date(Date.UTC(year, 0, day, 2 + Math.floor(rng() * 16), Math.floor(rng() * 60))); const max = new Date(snapshot); return (d > max ? max : d).toISOString(); };
+function orderedTimestampPair(year, rng, snapshot) {
+  const createdAt = dateFor(year, rng, snapshot);
+  const createdMs = new Date(createdAt).getTime();
+  const maxMs = new Date(snapshot).getTime();
+  const updatedMs = createdMs + Math.floor(rng() * (Math.max(0, maxMs - createdMs) + 1));
+  return [createdAt, new Date(updatedMs).toISOString()];
+}
 function validTimestamp(value) {
   if (typeof value !== 'string') return false;
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/.exec(value);
@@ -52,9 +59,9 @@ function makeRow(info, index, ctx, custom) {
     else if (type === 'decimal') row[n] = money(Math.floor(ctx.rng() * 90000000) + 10000);
     else if (type === 'timestamp') row[n] = dateFor(2024 + (index % 3), ctx.rng, ctx.snapshot);
     else if (/source_system/.test(n)) row[n] = pick(ctx.rng, ctx.scenario.source_systems);
+    else if (/match_state/.test(n)) row[n] = pick(ctx.rng, ['matched', 'pending', 'ambiguous']);
     else if (/state$/.test(n) && ctx.entity === 'contract') row[n] = pick(ctx.rng, ctx.scenario.contract_states);
     else if (/receipt_state/.test(n)) row[n] = pick(ctx.rng, ['未收货', '部分收货', '已收货']);
-    else if (/match_state/.test(n)) row[n] = pick(ctx.rng, ['已匹配', '待匹配', '无需匹配']);
     else if (/state$/.test(n)) row[n] = pick(ctx.rng, ['启用', '停用']);
     else if (/province_name/.test(n)) row[n] = pick(ctx.rng, ctx.scenario.provinces);
     else if (/type/.test(n) && ctx.entity === 'supplier') row[n] = pick(ctx.rng, ctx.scenario.supplier_types);
@@ -71,9 +78,15 @@ export function generateRuntimeData({ release, scenario }) {
   const rng = mulberry32(hashSeed(scenario.seed)); const snapshot = scenario.snapshot_at;
   const ctx = { rng, scenario, snapshot, entity: '' };
   const supplierInfo = schema(release, 'supplier'); ctx.entity = 'supplier';
-  const suppliers = Array.from({ length: scenario.counts.suppliers }, (_, i) => makeRow(supplierInfo, i, ctx, { supplier_code: `SUP-${String(i + 1).padStart(3, '0')}`, supplier_name: `${pick(rng, ['云启', '华数', '智联', '远景'])}供应商${i + 1}` }));
+  const suppliers = Array.from({ length: scenario.counts.suppliers }, (_, i) => {
+    const [createdAt, updatedAt] = orderedTimestampPair(2024 + (i % 3), rng, snapshot);
+    return makeRow(supplierInfo, i, ctx, { supplier_code: `SUP-${String(i + 1).padStart(3, '0')}`, supplier_name: `${pick(rng, ['云启', '华数', '智联', '远景'])}供应商${i + 1}`, created_at: createdAt, updated_at: updatedAt });
+  });
   const customerInfo = schema(release, 'customer'); ctx.entity = 'customer';
-  const customers = Array.from({ length: scenario.counts.customers }, (_, i) => makeRow(customerInfo, i, ctx, { customer_code: `CUS-${2024 + i % 3}-${String(i + 1).padStart(3, '0')}`, customer_name: `${pick(rng, ['华夏', '中科', '东辰', '新城', '明远'])}${pick(rng, ['科技', '信息', '数据', '软件'])}客户${i + 1}`, short_name: `客户${i + 1}`, source_customer_id: i + 1 }));
+  const customers = Array.from({ length: scenario.counts.customers }, (_, i) => {
+    const [sourceCreatedAt, sourceUpdatedAt] = orderedTimestampPair(2024 + (i % 3), rng, snapshot);
+    return makeRow(customerInfo, i, ctx, { customer_code: `CUS-${2024 + i % 3}-${String(i + 1).padStart(3, '0')}`, customer_name: `${pick(rng, ['华夏', '中科', '东辰', '新城', '明远'])}${pick(rng, ['科技', '信息', '数据', '软件'])}客户${i + 1}`, short_name: `客户${i + 1}`, source_customer_id: i + 1, source_created_at: sourceCreatedAt, source_updated_at: sourceUpdatedAt });
+  });
   const contractInfo = schema(release, 'contract'); ctx.entity = 'contract';
   const contracts = Array.from({ length: scenario.counts.contracts }, (_, i) => {
     const year = 2024 + (i % 3); const no = `CON-${year}-${String(i + 1).padStart(3, '0')}`; const customer = customers[i % customers.length]; const supplier = suppliers[i % suppliers.length];
@@ -115,9 +128,17 @@ export function validateRuntimeData({ release, scenario, data }) {
     }
   }
   const suppliers = new Set(data.ont_supplier.map(r => r.supplier_code)); const customers = new Set(data.ont_customer.map(r => r.customer_code)); const contracts = new Map(data.ont_contract.map(r => [r.contract_no, r]));
-  for (const c of data.ont_contract) { if (!customers.has(c.customer_code)) throw new Error(`contract.customer_code: unknown ${c.customer_code}`); if (!suppliers.has(c.supplier_code)) throw new Error(`contract.supplier_code: unknown ${c.supplier_code}`); if (c.current_amount !== Number((c.original_amount + c.change_amount).toFixed(2))) throw new Error(`contract.current_amount invariant violated`); if (!scenario.contract_states.includes(c.state)) throw new Error(`contract.state: undeclared value ${c.state}`); if (new Date(c.signed_at) > new Date(c.latest_change_at)) throw new Error('contract date order invariant violated'); }
+  const matchStates = new Set(['matched', 'pending', 'ambiguous']);
+  for (const s of data.ont_supplier) {
+    if (!matchStates.has(s.match_state)) throw new Error(`supplier.match_state: undeclared value ${s.match_state}`);
+    if (new Date(s.created_at) > new Date(s.updated_at)) throw new Error('supplier created_at <= updated_at invariant violated');
+  }
+  for (const cst of data.ont_customer) {
+    if (new Date(cst.source_created_at) > new Date(cst.source_updated_at)) throw new Error('customer source_created_at <= source_updated_at invariant violated');
+  }
+  for (const c of data.ont_contract) { if (!customers.has(c.customer_code)) throw new Error(`contract.customer_code: unknown ${c.customer_code}`); if (!suppliers.has(c.supplier_code)) throw new Error(`contract.supplier_code: unknown ${c.supplier_code}`); if (!matchStates.has(c.match_state)) throw new Error(`contract.match_state: undeclared value ${c.match_state}`); if (c.current_amount !== Number((c.original_amount + c.change_amount).toFixed(2))) throw new Error(`contract.current_amount invariant violated`); if (!scenario.contract_states.includes(c.state)) throw new Error(`contract.state: undeclared value ${c.state}`); if (new Date(c.signed_at) > new Date(c.latest_change_at)) throw new Error('contract date order invariant violated'); }
   const receiptStates = new Set(['未收货', '部分收货', '已收货', '拒收']);
-  for (const p of data.ont_purchase_order) { if (!contracts.has(p.contract_no)) throw new Error(`purchase_order.contract_no: unknown ${p.contract_no}`); if (!suppliers.has(p.supplier_code)) throw new Error(`purchase_order.supplier_code: unknown ${p.supplier_code}`); if (Number((p.paid_amount + p.unpaid_amount).toFixed(2)) !== Number(p.order_amount.toFixed(2))) throw new Error('purchase_order paid_amount invariant violated'); if (!receiptStates.has(p.receipt_state)) throw new Error(`purchase_order.receipt_state: undeclared value ${p.receipt_state}`); if (p.arrived_at === null && p.receipt_state !== '未收货') throw new Error('purchase_order arrived_at invariant violated'); if (p.arrived_at !== null && p.receipt_state === '未收货') throw new Error('purchase_order receipt_state requires null arrived_at'); if (p.arrived_at !== null && new Date(p.created_at) > new Date(p.arrived_at)) throw new Error('purchase_order date order invariant violated'); if (new Date(p.created_at) > new Date(p.updated_at)) throw new Error('purchase_order updated_at invariant violated'); }
+  for (const p of data.ont_purchase_order) { if (!contracts.has(p.contract_no)) throw new Error(`purchase_order.contract_no: unknown ${p.contract_no}`); if (!suppliers.has(p.supplier_code)) throw new Error(`purchase_order.supplier_code: unknown ${p.supplier_code}`); if (!matchStates.has(p.match_state)) throw new Error(`purchase_order.match_state: undeclared value ${p.match_state}`); if (Number((p.paid_amount + p.unpaid_amount).toFixed(2)) !== Number(p.order_amount.toFixed(2))) throw new Error('purchase_order paid_amount invariant violated'); if (!receiptStates.has(p.receipt_state)) throw new Error(`purchase_order.receipt_state: undeclared value ${p.receipt_state}`); if (p.arrived_at === null && p.receipt_state !== '未收货') throw new Error('purchase_order arrived_at invariant violated'); if (p.arrived_at !== null && p.receipt_state === '未收货') throw new Error('purchase_order receipt_state requires null arrived_at'); if (p.arrived_at !== null && new Date(p.created_at) > new Date(p.arrived_at)) throw new Error('purchase_order date order invariant violated'); if (new Date(p.created_at) > new Date(p.updated_at)) throw new Error('purchase_order updated_at invariant violated'); }
   for (const [year, target] of Object.entries(scenario.contract_targets)) { const total = data.ont_contract.filter(c => c.contract_no.startsWith(`CON-${year}-`)).reduce((sum, c) => sum + Math.round(c.signed_amount * 100), 0); const tolerance = year === '2026' ? 1 : Math.round(target * 0.1 * 100); if (Math.abs(total - Math.round(target * 100)) > tolerance) throw new Error(`contract ${year} annual target invariant violated`); if (year === '2026') { const active = data.ont_contract.filter(c => c.contract_no.startsWith('CON-2026-') && ['已完成', '执行中'].includes(c.state)).reduce((sum, c) => sum + Math.round(c.signed_amount * 100), 0); if (active < 11000000000 || active > 12000000000) throw new Error('contract 2026 active annual band invariant violated'); } }
 }
 
