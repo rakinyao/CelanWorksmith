@@ -118,6 +118,7 @@ public class OntologySnapshotService {
                         .sorted(Comparator.comparing(ActionTypeDTO::id))
                         .map(this::canonicalAction)
                         .toList());
+        canonical.put("runtimeMappings", canonicalRuntimeMappings(definition.runtimeMappings()));
         return canonical;
     }
 
@@ -127,6 +128,19 @@ public class OntologySnapshotService {
         canonical.put("displayName", objectType.displayName());
         canonical.put("runtimeTable", objectType.runtimeTable());
         canonical.put("primaryKey", objectType.primaryKey());
+        canonical.put(
+                "runtimePropertyMappings",
+                objectType.runtimePropertyMappings().entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .map(entry -> {
+                            Map<String, Object> mapping = new LinkedHashMap<>();
+                            mapping.put("propertyId", entry.getKey());
+                            mapping.put("column", entry.getValue().column());
+                            mapping.put("expression", entry.getValue().expression());
+                            mapping.put("status", entry.getValue().status());
+                            return mapping;
+                        })
+                        .toList());
         canonical.put("properties", canonicalProperties(objectType.properties()));
         return canonical;
     }
@@ -138,6 +152,45 @@ public class OntologySnapshotService {
         canonical.put("sourceTypeId", linkType.sourceTypeId());
         canonical.put("targetTypeId", linkType.targetTypeId());
         canonical.put("cardinality", linkType.cardinality());
+        canonical.put(
+                "fieldMappings",
+                linkType.fieldMappings().stream()
+                        .map(mapping -> Map.of(
+                                "sourceField", mapping.sourceField(), "targetField", mapping.targetField()))
+                        .toList());
+        return canonical;
+    }
+
+    private Map<String, Object> canonicalRuntimeMappings(OntologyProjectDefinition.RuntimeMappings mappings) {
+        Map<String, Object> canonical = new LinkedHashMap<>();
+        canonical.put(
+                "objectMappings",
+                mappings.objectMappings().stream()
+                        .sorted(Comparator.comparing(OntologyProjectDefinition.ObjectRuntimeMapping::objectTypeId))
+                        .map(mapping -> {
+                            Map<String, Object> objectMapping = new LinkedHashMap<>();
+                            objectMapping.put("objectTypeId", mapping.objectTypeId());
+                            objectMapping.put("assetRef", mapping.assetRef());
+                            objectMapping.put("primaryKeyMappings", new java.util.TreeMap<>(mapping.primaryKeyMappings()));
+                            return objectMapping;
+                        })
+                        .toList());
+        canonical.put(
+                "linkMappings",
+                mappings.linkMappings().stream()
+                        .sorted(Comparator.comparing(OntologyProjectDefinition.LinkRuntimeMapping::linkTypeId))
+                        .map(mapping -> {
+                            Map<String, Object> linkMapping = new LinkedHashMap<>();
+                            linkMapping.put("linkTypeId", mapping.linkTypeId());
+                            linkMapping.put(
+                                    "fieldMappings",
+                                    mapping.fieldMappings().stream()
+                                            .map(field -> Map.of(
+                                                    "sourceField", field.sourceField(), "targetField", field.targetField()))
+                                            .toList());
+                            return linkMapping;
+                        })
+                        .toList());
         return canonical;
     }
 

@@ -44,6 +44,8 @@ public final class OntologyRuntimeSnapshotProjection {
     }
 
     private static OntologyRuntimeGateway.ObjectTypeMetadata objectTypeMetadata(ObjectTypeDTO objectType) {
+        // Runtime asset and column mappings remain on the immutable snapshot definition;
+        // the existing gateway contract needs only logical object/property metadata here.
         return new OntologyRuntimeGateway.ObjectTypeMetadata(
                 objectType.id(),
                 objectType.displayName(),
