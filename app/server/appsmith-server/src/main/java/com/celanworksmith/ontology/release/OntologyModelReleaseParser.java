@@ -2,6 +2,7 @@ package com.celanworksmith.ontology.release;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.erdtman.jcs.JsonCanonicalizer;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -39,12 +40,27 @@ public final class OntologyModelReleaseParser {
 
     public OntologyModelRelease parse(byte[] metadata) {
         try {
+            // JCS parsing rejects duplicate JSON member names before Jackson can collapse them.
+            new JsonCanonicalizer(metadata);
             JsonNode document = objectMapper.readTree(metadata);
             if (document == null || !document.isObject()) fail("Release JSON must be an object");
+            requireOnlyKeys(document, Set.of("format", "format_version", "release", "elements"), "Release envelope");
             require("ontology-model".equals(text(document, "format")), "Release format is unsupported");
             require(document.path("format_version").isInt() && document.path("format_version").intValue() == 2,
                     "Release format version is unsupported");
             JsonNode releaseNode = object(document, "release", "Release metadata is required");
+            requireOnlyKeys(
+                    releaseNode,
+                    Set.of(
+                            "domain",
+                            "model_id",
+                            "version",
+                            "previous_release_digest",
+                            "released_at",
+                            "release_digest",
+                            "change_set"),
+                    "Release metadata");
+            validateChangeSet(object(releaseNode, "change_set", "Release change set is required"));
             OntologyModelRelease.Release release = new OntologyModelRelease.Release(
                     nonblank(releaseNode, "domain", "Release domain is required"),
                     nonblank(releaseNode, "model_id", "Release model ID is required"),
@@ -52,8 +68,7 @@ public final class OntologyModelReleaseParser {
                     nonblank(releaseNode, "release_digest", "Release digest is required"));
             JsonNode elementsNode = array(document, "elements", "Release elements are required");
 
-            String digest = "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(
-                    canonicalWithoutDigest(document).getBytes(StandardCharsets.UTF_8)));
+            String digest = "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(canonicalWithoutDigest(document)));
             require(digest.equals(release.releaseDigest()), "Release digest does not match content");
 
             Set<String> identities = new HashSet<>();
@@ -65,6 +80,8 @@ public final class OntologyModelReleaseParser {
                 String kind = nonblank(elementObject, "kind", "Release element kind is required");
                 String name = nonblank(elementObject, "name", "Release element name is required");
                 String version = semver(elementObject, "version", "Release element version must be strict SemVer");
+                requireOnlyKeys(elementObject, Set.of("domain", "kind", "name", "version", "spec"), "Release element");
+                require(release.domain().equals(domain), "Release element domain must match the release domain");
                 require(KNOWN_KINDS.contains(kind), "Release contains an unsupported element kind");
                 require(identities.add(domain + '\u0000' + kind + '\u0000' + name), "Release has duplicate element identity");
                 OntologyModelRelease.Element element = parseElement(elementObject, domain, kind, name, version);
@@ -86,7 +103,7 @@ public final class OntologyModelReleaseParser {
             case "entity_set" -> parseEntity(node, domain, name, version);
             case "runtime_binding" -> parseRuntimeBinding(node, domain, name, version);
             case "entity_set_link" -> parseLink(node, domain, name, version);
-            case "entity_source", "entity_source_link" -> new OntologyModelRelease.LineageElement(domain, kind, name, version);
+            case "entity_source", "entity_source_link" -> parseLineage(node, domain, kind, name, version);
             default -> {
                 fail("Release contains unsupported capabilities");
                 yield null;
@@ -96,11 +113,35 @@ public final class OntologyModelReleaseParser {
 
     private OntologyModelRelease.EntitySet parseEntity(JsonNode node, String domain, String name, String version) {
         JsonNode spec = object(node, "spec", "Release entity spec is required");
+        requireOnlyKeys(
+                spec,
+                Set.of("display_name", "description", "fields", "primary_key_fields", "properties", "source_table"),
+                "Release entity spec");
+        validateProperties(spec.path("properties"), Set.of(
+                "semantic_description", "semantic_description_source", "semantic_display_name"), "Release entity properties");
         Map<String, String> displayName = localized(object(spec, "display_name", "Release entity display name is required"));
         List<OntologyModelRelease.Field> fields = new ArrayList<>();
         Set<String> fieldNames = new HashSet<>();
         for (JsonNode fieldNode : array(spec, "fields", "Release entity fields are required")) {
             JsonNode field = requireObject(fieldNode, "Release field is invalid");
+            requireOnlyKeys(
+                    field,
+                    Set.of(
+                            "name",
+                            "type",
+                            "display_name",
+                            "description",
+                            "properties",
+                            "nullable",
+                            "read_only",
+                            "derived",
+                            "enum_values",
+                            "reference_target"),
+                    "Release field");
+            validateProperties(
+                    field.path("properties"),
+                    Set.of("semantic_description_source", "semantic_role", "source", "source_column"),
+                    "Release field properties");
             String fieldName = nonblank(field, "name", "Release field name is required");
             String type = nonblank(field, "type", "Release field type is required");
             require(FIELD_TYPES.contains(type), "Release field type is unsupported");
@@ -117,12 +158,17 @@ public final class OntologyModelReleaseParser {
         }
         List<String> primaryKeys = strings(array(spec, "primary_key_fields", "Release primary key is required"), "Release primary key is invalid");
         require(!primaryKeys.isEmpty() && new HashSet<>(primaryKeys).size() == primaryKeys.size(), "Release primary key is invalid");
+        require(primaryKeys.size() == 1, "Release composite primary keys are unsupported");
         for (String primaryKey : primaryKeys) require(fieldNames.contains(primaryKey), "Release primary key references an unknown field");
         return new OntologyModelRelease.EntitySet(domain, name, version, displayName, fields, primaryKeys);
     }
 
     private OntologyModelRelease.RuntimeBinding parseRuntimeBinding(JsonNode node, String domain, String name, String version) {
         JsonNode spec = object(node, "spec", "Release runtime binding spec is required");
+        requireOnlyKeys(
+                spec,
+                Set.of("entity_set", "provider_kind", "asset_ref", "access_mode", "primary_key_mapping", "field_mappings"),
+                "Release runtime binding");
         Map<String, String> primaryKeys = stringMap(spec.path("primary_key_mapping"), "Release runtime primary key mapping is invalid");
         Map<String, OntologyModelRelease.RuntimeFieldMapping> mappings = new LinkedHashMap<>();
         JsonNode mappingNode = object(spec, "field_mappings", "Release runtime field mappings are required");
@@ -130,6 +176,7 @@ public final class OntologyModelReleaseParser {
         while (iterator.hasNext()) {
             Map.Entry<String, JsonNode> entry = iterator.next();
             JsonNode mapping = requireObject(entry.getValue(), "Release runtime field mapping is invalid");
+            requireOnlyKeys(mapping, Set.of("column", "expression", "status"), "Release runtime field mapping");
             mappings.put(entry.getKey(), new OntologyModelRelease.RuntimeFieldMapping(
                     nonblank(mapping, "column", "Release runtime column is required"),
                     optionalText(mapping, "expression"),
@@ -147,13 +194,29 @@ public final class OntologyModelReleaseParser {
 
     private OntologyModelRelease.EntitySetLink parseLink(JsonNode node, String domain, String name, String version) {
         JsonNode spec = object(node, "spec", "Release link spec is required");
+        requireOnlyKeys(
+                spec,
+                Set.of(
+                        "source_entity_set",
+                        "destination_entity_set",
+                        "cardinality",
+                        "mapping_status",
+                        "confidence",
+                        "entity_link_type",
+                        "source_fields_mapping",
+                        "field_mappings"),
+                "Release entity link");
         String cardinality = nonblank(spec, "cardinality", "Release link cardinality is required");
         String status = nonblank(spec, "mapping_status", "Release link mapping status is required");
         require(CARDINALITIES.contains(cardinality), "Release link cardinality is invalid");
         require(MAPPING_STATUSES.contains(status), "Release link mapping status is invalid");
+        if (!spec.path("source_fields_mapping").isMissingNode()) {
+            stringMap(spec.path("source_fields_mapping"), "Release link source field mappings are invalid");
+        }
         List<OntologyModelRelease.LinkFieldMapping> mappings = new ArrayList<>();
         for (JsonNode mapping : array(spec, "field_mappings", "Release link field mappings are required")) {
             JsonNode fieldMapping = requireObject(mapping, "Release link field mapping is invalid");
+            requireOnlyKeys(fieldMapping, Set.of("source_field", "destination_field"), "Release link field mapping");
             mappings.add(new OntologyModelRelease.LinkFieldMapping(
                     nonblank(fieldMapping, "source_field", "Release link source field is required"),
                     nonblank(fieldMapping, "destination_field", "Release link destination field is required")));
@@ -168,6 +231,50 @@ public final class OntologyModelReleaseParser {
                 cardinality,
                 status,
                 mappings);
+    }
+
+    private OntologyModelRelease.LineageElement parseLineage(
+            JsonNode node, String domain, String kind, String name, String version) {
+        JsonNode spec = object(node, "spec", "Release lineage spec is required");
+        if ("entity_source".equals(kind)) validateEntitySourceSpec(spec);
+        else validateEntitySourceLinkSpec(spec);
+        return new OntologyModelRelease.LineageElement(domain, kind, name, version);
+    }
+
+    private static void validateEntitySourceSpec(JsonNode spec) {
+        requireOnlyKeys(spec, Set.of("constructor", "storages"), "Release entity source");
+        JsonNode constructor = object(spec, "constructor", "Release entity source constructor is required");
+        requireOnlyKeys(constructor, Set.of("dataset", "mode", "source_id", "type"), "Release entity source constructor");
+        for (JsonNode storageNode : array(spec, "storages", "Release entity source storages are required")) {
+            JsonNode storage = requireObject(storageNode, "Release entity source storage is invalid");
+            requireOnlyKeys(storage, Set.of("dataset", "field_mappings", "schema", "source_id", "table"), "Release entity source storage");
+            JsonNode mappings = object(storage, "field_mappings", "Release entity source mappings are required");
+            Iterator<Map.Entry<String, JsonNode>> entityMappings = mappings.fields();
+            while (entityMappings.hasNext()) {
+                Map.Entry<String, JsonNode> entityMapping = entityMappings.next();
+                JsonNode fields = requireObject(entityMapping.getValue(), "Release entity source mappings are invalid");
+                Iterator<Map.Entry<String, JsonNode>> fieldMappings = fields.fields();
+                while (fieldMappings.hasNext()) {
+                    JsonNode fieldMapping = requireObject(fieldMappings.next().getValue(), "Release entity source field mapping is invalid");
+                    requireOnlyKeys(fieldMapping, Set.of("column", "expression", "status"), "Release entity source field mapping");
+                }
+            }
+        }
+    }
+
+    private static void validateEntitySourceLinkSpec(JsonNode spec) {
+        requireOnlyKeys(spec, Set.of("src", "dest", "field_mappings", "mapping_status"), "Release entity source link");
+        validateReference(object(spec, "src", "Release entity source link source is required"));
+        validateReference(object(spec, "dest", "Release entity source link destination is required"));
+        stringMap(object(spec, "field_mappings", "Release entity source link mappings are required"), "Release entity source link mappings are invalid");
+        nonblank(spec, "mapping_status", "Release entity source link status is required");
+    }
+
+    private static void validateReference(JsonNode reference) {
+        requireOnlyKeys(reference, Set.of("domain", "kind", "name"), "Release lineage reference");
+        nonblank(reference, "domain", "Release lineage reference domain is required");
+        nonblank(reference, "kind", "Release lineage reference kind is required");
+        nonblank(reference, "name", "Release lineage reference name is required");
     }
 
     private static void validateReferences(
@@ -206,43 +313,30 @@ public final class OntologyModelReleaseParser {
         return fields;
     }
 
-    private static String canonicalWithoutDigest(JsonNode document) {
+    private void validateChangeSet(JsonNode changeSet) {
+        requireOnlyKeys(changeSet, Set.of("compatibility", "changes"), "Release change set");
+        String compatibility = nonblank(changeSet, "compatibility", "Release compatibility is required");
+        require(Set.of("INITIAL", "BACKWARD_COMPATIBLE", "BREAKING").contains(compatibility), "Release compatibility is invalid");
+        array(changeSet, "changes", "Release changes are required");
+    }
+
+    private static byte[] canonicalWithoutDigest(JsonNode document) throws java.io.IOException {
         JsonNode copy = document.deepCopy();
         ((com.fasterxml.jackson.databind.node.ObjectNode) copy.path("release")).remove("release_digest");
-        return canonical(copy);
+        return new JsonCanonicalizer(CANONICAL_OBJECT_MAPPER.writeValueAsBytes(copy)).getEncodedUTF8();
     }
 
-    private static String canonical(JsonNode node) {
-        if (node.isObject()) {
-            List<String> names = new ArrayList<>();
-            node.fieldNames().forEachRemaining(names::add);
-            names.sort(String::compareTo);
-            StringBuilder result = new StringBuilder("{");
-            for (int index = 0; index < names.size(); index++) {
-                if (index > 0) result.append(',');
-                String name = names.get(index);
-                result.append(quote(name)).append(':').append(canonical(node.get(name)));
-            }
-            return result.append('}').toString();
+    private static void requireOnlyKeys(JsonNode object, Set<String> allowedKeys, String context) {
+        Iterator<String> fields = object.fieldNames();
+        while (fields.hasNext()) {
+            if (!allowedKeys.contains(fields.next())) fail(context + " contains an unknown field");
         }
-        if (node.isArray()) {
-            StringBuilder result = new StringBuilder("[");
-            for (int index = 0; index < node.size(); index++) {
-                if (index > 0) result.append(',');
-                result.append(canonical(node.get(index)));
-            }
-            return result.append(']').toString();
-        }
-        if (node.isTextual()) return quote(node.textValue());
-        return node.toString();
     }
 
-    private static String quote(String value) {
-        try {
-            return CANONICAL_OBJECT_MAPPER.writeValueAsString(value);
-        } catch (Exception exception) {
-            throw new IllegalStateException(exception);
-        }
+    private static void validateProperties(JsonNode properties, Set<String> allowedKeys, String context) {
+        if (properties.isMissingNode() || properties.isNull()) return;
+        require(properties.isObject(), context + " is invalid");
+        requireOnlyKeys(properties, allowedKeys, context);
     }
 
     private static String hex(byte[] bytes) {

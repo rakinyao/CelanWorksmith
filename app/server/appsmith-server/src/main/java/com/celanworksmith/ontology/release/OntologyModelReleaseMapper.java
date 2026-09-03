@@ -33,6 +33,9 @@ public final class OntologyModelReleaseMapper {
         List<ObjectTypeDTO> objectTypes = new ArrayList<>();
         List<OntologyProjectDefinition.ObjectRuntimeMapping> objectMappings = new ArrayList<>();
         for (OntologyModelRelease.EntitySet entity : entities) {
+            if (entity.primaryKeyFields().size() != 1) {
+                throw new IllegalArgumentException("Release composite primary keys are unsupported");
+            }
             OntologyModelRelease.RuntimeBinding binding = bindings.get(entity.name());
             if (binding == null) throw new IllegalArgumentException("Release entity has no runtime binding");
             Map<String, ObjectTypeDTO.RuntimePropertyMapping> propertyMappings = new HashMap<>();
@@ -55,7 +58,7 @@ public final class OntologyModelReleaseMapper {
                         field.enumValues(),
                         field.referenceTarget()));
             }
-            String primaryKey = entity.primaryKeyFields().size() == 1 ? entity.primaryKeyFields().getFirst() : "id";
+            String primaryKey = entity.primaryKeyFields().getFirst();
             objectTypes.add(new ObjectTypeDTO(
                     entity.name(), localized(entity.displayName()), binding.assetRef(), primaryKey, properties, propertyMappings));
             objectMappings.add(new OntologyProjectDefinition.ObjectRuntimeMapping(
