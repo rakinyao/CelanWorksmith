@@ -12,3 +12,7 @@ function seed(collectionName, fileName) {
 
 seed("suppliers", "suppliers.json");
 seed("purchase_orders", "purchase_orders.json");
+seed("ont_supplier", "ont_supplier.json");
+seed("ont_customer", "ont_customer.json");
+seed("ont_contract", "ont_contract.json");
+seed("ont_purchase_order", "ont_purchase_order.json");
