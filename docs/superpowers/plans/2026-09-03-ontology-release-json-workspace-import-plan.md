@@ -169,7 +169,7 @@ Run:
 
 ```bash
 cd app/server
-./mvnw -pl appsmith-server -Dtest=OntologyModelReleaseParserTest,OntologyModelReleaseMapperTest test
+mvn -pl appsmith-server -am -Dtest=OntologyModelReleaseParserTest,OntologyModelReleaseMapperTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 Expected: FAIL because parser and mapper classes do not exist.
@@ -295,7 +295,7 @@ Run:
 
 ```bash
 cd app/server
-./mvnw -pl appsmith-server -Dtest=WorkspaceDomainRuntimeBindingResolverTest,LocalReleaseJsonOntologyProjectImporterTest test
+mvn -pl appsmith-server -am -Dtest=WorkspaceDomainRuntimeBindingResolverTest,LocalReleaseJsonOntologyProjectImporterTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 Expected: FAIL because the binding resolver and JSON importer do not exist.
@@ -413,7 +413,7 @@ Run:
 
 ```bash
 cd app/server
-./mvnw -pl appsmith-server -Dtest=OntologyDatasourceServiceTest,OntologyDatasourceControllerTest test
+mvn -pl appsmith-server -am -Dtest=OntologyDatasourceServiceTest,OntologyDatasourceControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 Expected: FAIL because datasource configuration still always exposes
@@ -511,7 +511,7 @@ Run:
 
 ```bash
 cd app/server
-./mvnw -pl appsmith-server -Dtest=ReleaseMappedMongoRuntimeAdapterTest,MongoRuntimeDataProviderTest test
+mvn -pl appsmith-server -am -Dtest=ReleaseMappedMongoRuntimeAdapterTest,MongoRuntimeDataProviderTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 Expected: FAIL because the provider uses legacy `properties.*` paths and
@@ -679,7 +679,7 @@ Run:
 
 ```bash
 cd app/server
-./mvnw -pl appsmith-server -Dtest=ReleaseJsonDatasourceIntegrationTest test
+mvn -pl appsmith-server -am -Dtest=ReleaseJsonDatasourceIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 Expected: FAIL until parser, binding, datasource, and Release-mapped runtime
@@ -715,7 +715,7 @@ Run:
 node scripts/celanworksmith/generate-business-core-runtime-data.mjs
 node --test scripts/celanworksmith/generate-business-core-runtime-data.test.mjs
 node --test scripts/celanworksmith/seed-runtime-mongodb.test.mjs
-cd app/server && ./mvnw -pl appsmith-server -Dtest=OntologyModelReleaseParserTest,OntologyModelReleaseMapperTest,WorkspaceDomainRuntimeBindingResolverTest,LocalReleaseJsonOntologyProjectImporterTest,OntologyDatasourceServiceTest,OntologyDatasourceControllerTest,ReleaseMappedMongoRuntimeAdapterTest,MongoRuntimeDataProviderTest,ReleaseJsonDatasourceIntegrationTest test
+cd app/server && mvn -pl appsmith-server -am -Dtest=OntologyModelReleaseParserTest,OntologyModelReleaseMapperTest,WorkspaceDomainRuntimeBindingResolverTest,LocalReleaseJsonOntologyProjectImporterTest,OntologyDatasourceServiceTest,OntologyDatasourceControllerTest,ReleaseMappedMongoRuntimeAdapterTest,MongoRuntimeDataProviderTest,ReleaseJsonDatasourceIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
 cd ../../app/client && pnpm test OntologyDatasourceImport.test.tsx --runInBand
 cd ../.. && npx playwright test app/client/playwright/tests/d0/ontology-release-json-import.spec.ts
 git diff --check
