@@ -37,3 +37,23 @@ The generator does not read production/reference data, alter the release, or mod
 ## Concerns
 
 The release has many legacy string fields without controlled vocabularies; those receive deterministic Chinese placeholders. The focused test covers deterministic counts and representative values; dedicated negative tests for each validator invariant can be added in a later task.
+
+## Fix Round 1
+
+Added explicit test coverage for the 2026 annual signing target and snapshot signed/completed band. The generator now deterministically normalizes 2026 signed amounts into two groups: exactly CNY 172.5M overall and CNY 115M for completed/executing contracts, with the balance in draft contracts.
+
+RED command/output after adding assertions:
+
+```text
+node --test scripts/celanworksmith/generate-business-core-runtime-data.test.mjs
+AssertionError: 2026 total was 145013690.71000007
+```
+
+GREEN command/output after implementation:
+
+```text
+node --test scripts/celanworksmith/generate-business-core-runtime-data.test.mjs
+1 test passed, 0 failed
+```
+
+Changed files: `scripts/celanworksmith/generate-business-core-runtime-data.mjs`, `scripts/celanworksmith/generate-business-core-runtime-data.test.mjs`, and this report.

@@ -31,5 +31,10 @@ test('generates a deterministic Chinese dataset from the release', async () => {
   });
   assert.match(first.ont_customer[0].customer_name, /[\u3400-\u9fff]/);
   assert.match(first.ont_contract[0].contract_no, /^CON-20(24|25|26)-\d{3}$/);
+  const contracts2026 = first.ont_contract.filter(row => row.contract_no.startsWith('CON-2026-'));
+  const total2026 = contracts2026.reduce((sum, row) => sum + row.signed_amount, 0);
+  const signedCompleted2026 = contracts2026.filter(row => ['已完成', '执行中'].includes(row.state)).reduce((sum, row) => sum + row.signed_amount, 0);
+  assert.ok(Math.abs(total2026 - 172500000) < 1, `2026 total was ${total2026}`);
+  assert.ok(signedCompleted2026 >= 110000000 && signedCompleted2026 <= 120000000, `2026 signed/completed was ${signedCompleted2026}`);
   validateRuntimeData({ release, scenario, data: first });
 });

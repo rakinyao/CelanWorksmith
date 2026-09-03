@@ -10,6 +10,16 @@ function mulberry32(seed) { return () => { let t = seed += 0x6D2B79F5; t = Math.
 const pick = (rng, values) => values[Math.floor(rng() * values.length) % values.length];
 const money = fen => Number((fen / 100).toFixed(2));
 const dateFor = (year, rng, snapshot) => { const day = 1 + Math.floor(rng() * (year === 2026 ? 243 : 365)); const d = new Date(Date.UTC(year, 0, day, 2 + Math.floor(rng() * 16), Math.floor(rng() * 60))); const max = new Date(snapshot); return (d > max ? max : d).toISOString(); };
+function normalizeSignedTotal(rows, targetFen) {
+  const source = rows.reduce((sum, row) => sum + Math.round(row.signed_amount * 100), 0);
+  let allocated = 0;
+  rows.forEach((row, index) => {
+    const signedFen = index === rows.length - 1 ? targetFen - allocated : Math.max(1, Math.round(Math.round(row.signed_amount * 100) * targetFen / source));
+    allocated += signedFen;
+    const changeFen = Math.round(Number(row.change_amount || 0) * 100);
+    row.signed_amount = money(signedFen); row.original_amount = money(signedFen); row.change_amount = money(changeFen); row.current_amount = money(signedFen + changeFen);
+  });
+}
 
 function bindingsFor(release) {
   return Object.fromEntries(release.elements.filter(e => e.kind === 'runtime_binding').map(b => [b.spec.entity_set, b]));
@@ -63,6 +73,9 @@ export function generateRuntimeData({ release, scenario }) {
     const signedAt = dateFor(year, rng, snapshot);
     return makeRow(contractInfo, i, ctx, { id: `CTR-${i + 1}`, contract_no: no, contract_name: `${pick(rng, scenario.project_names)}合同${i + 1}`, contract_category: pick(rng, scenario.contract_categories), original_amount: money(amountFen), change_amount: money(changeFen), current_amount: money(amountFen + changeFen), signed_amount: money(amountFen), state, customer_code: customer.customer_code, supplier_code: supplier.supplier_code, project_code: `PRJ-${year}-${String(i + 1).padStart(3, '0')}`, signed_at: signedAt, latest_change_at: signedAt, currency: 'CNY', product_line: pick(rng, scenario.project_names) });
   });
+  const contracts2026 = contracts.filter(row => row.contract_no.startsWith('CON-2026-'));
+  normalizeSignedTotal(contracts2026.filter(row => ['已完成', '执行中'].includes(row.state)), Math.round(scenario.contract_targets['2026'] * 0.6666666667 * 100));
+  normalizeSignedTotal(contracts2026.filter(row => !['已完成', '执行中'].includes(row.state)), Math.round(scenario.contract_targets['2026'] * 0.3333333333 * 100));
   const poInfo = schema(release, 'purchase_order'); ctx.entity = 'purchase_order';
   const purchase_orders = Array.from({ length: scenario.counts.purchase_orders }, (_, i) => { const c = contracts[i % contracts.length]; const amount = Math.floor(c.current_amount * 100 * (0.04 + rng() * 0.2)); const paid = Math.floor(amount * (0.2 + rng() * 0.8)); return makeRow(poInfo, i, ctx, { order_no: `PO-${2024 + i % 3}-${String(i + 1).padStart(3, '0')}`, supplier_code: c.supplier_code, contract_no: c.contract_no, project_code: c.project_code, order_amount: money(amount), paid_amount: money(paid), unpaid_amount: money(amount - paid), currency: 'CNY', created_at: c.signed_at, updated_at: c.signed_at, arrived_at: i % 3 ? c.signed_at : null, source_system: pick(rng, scenario.source_systems) }); });
   const data = { ont_supplier: suppliers, ont_customer: customers, ont_contract: contracts, ont_purchase_order: purchase_orders };
