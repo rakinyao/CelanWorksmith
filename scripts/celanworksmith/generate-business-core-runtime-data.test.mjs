@@ -65,3 +65,26 @@ test('rejects a future timestamp and an English contract state', async () => {
   data.ont_contract[0].state = 'active';
   assert.throws(() => validateRuntimeData({ release, scenario, data }), /state/);
 });
+
+test('rejects cancelled amount changes and impossible timestamps', async () => {
+  const release = await readJson(releasePath);
+  const scenario = await loadScenario(scenarioPath);
+  const data = generateRuntimeData({ release, scenario });
+  const cancelled = data.ont_contract.find(row => row.state === '已取消');
+  cancelled.current_amount += 1;
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /current_amount/);
+  cancelled.current_amount -= 1;
+  cancelled.latest_change_at = '2026-02-30T00:00:00+08:00';
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /latest_change_at/);
+});
+
+test('rejects inconsistent and undeclared purchase-order receipt states', async () => {
+  const release = await readJson(releasePath);
+  const scenario = await loadScenario(scenarioPath);
+  const data = generateRuntimeData({ release, scenario });
+  const received = data.ont_purchase_order.find(row => row.arrived_at !== null);
+  received.receipt_state = '未收货';
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /receipt_state/);
+  received.receipt_state = '未知状态';
+  assert.throws(() => validateRuntimeData({ release, scenario, data }), /receipt_state/);
+});

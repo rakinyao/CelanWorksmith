@@ -43,3 +43,18 @@ Annual bands for 2024 and 2025 use a 10% tolerance around scenario targets,
 while 2026 is exact to one cent and its completed/executing subset is required
 to remain within CNY 110-120m. Existing unrelated worktree files were left
 untouched.
+
+## Review Round 1 Fix Evidence
+
+Removed the cancelled-contract exception from the current-amount equation.
+Timestamp fields now require strict ISO-8601 syntax with valid calendar/time
+components before parsing. Purchase-order receipt states are restricted to
+`未收货`, `部分收货`, `已收货`, or `拒收`, with both arrival/state directions
+validated. Added regression tests covering each review finding.
+
+Exact verification command:
+
+`node --test scripts/celanworksmith/generate-business-core-runtime-data.test.mjs`
+
+Result: `6` tests passed, `0` failed. Regeneration verification also passed:
+all four fixture SHA-256 checks returned `OK` after a second CLI run.

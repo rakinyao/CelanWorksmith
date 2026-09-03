@@ -10,6 +10,15 @@ function mulberry32(seed) { return () => { let t = seed += 0x6D2B79F5; t = Math.
 const pick = (rng, values) => values[Math.floor(rng() * values.length) % values.length];
 const money = fen => Number((fen / 100).toFixed(2));
 const dateFor = (year, rng, snapshot) => { const day = 1 + Math.floor(rng() * (year === 2026 ? 243 : 365)); const d = new Date(Date.UTC(year, 0, day, 2 + Math.floor(rng() * 16), Math.floor(rng() * 60))); const max = new Date(snapshot); return (d > max ? max : d).toISOString(); };
+function validTimestamp(value) {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!match) return false;
+  const [, year, month, day, hour, minute, second, zone] = match;
+  if (Number(month) < 1 || Number(month) > 12 || Number(day) < 1 || Number(day) > new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate() || Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return false;
+  if (zone !== 'Z' && (Number(zone.slice(1, 3)) > 23 || Number(zone.slice(4)) > 59)) return false;
+  return !Number.isNaN(Date.parse(value));
+}
 function normalizeSignedTotal(rows, targetFen) {
   const source = rows.reduce((sum, row) => sum + Math.round(row.signed_amount * 100), 0);
   let allocated = 0;
@@ -97,7 +106,7 @@ export function validateRuntimeData({ release, scenario, data }) {
         const valid = f.type === 'decimal' ? typeof value === 'number' && Number.isFinite(value)
           : f.type === 'integer' ? Number.isInteger(value)
             : f.type === 'boolean' ? typeof value === 'boolean'
-              : f.type === 'timestamp' ? typeof value === 'string' && !Number.isNaN(Date.parse(value))
+              : f.type === 'timestamp' ? validTimestamp(value)
                 : typeof value === 'string';
         if (!valid) throw new Error(`${name}.${f.name}: expected ${f.type}`);
         if (f.type === 'timestamp' && new Date(value) > new Date(scenario.snapshot_at)) throw new Error(`${name}.${f.name}: exceeds snapshot`);
@@ -106,8 +115,9 @@ export function validateRuntimeData({ release, scenario, data }) {
     }
   }
   const suppliers = new Set(data.ont_supplier.map(r => r.supplier_code)); const customers = new Set(data.ont_customer.map(r => r.customer_code)); const contracts = new Map(data.ont_contract.map(r => [r.contract_no, r]));
-  for (const c of data.ont_contract) { if (!customers.has(c.customer_code)) throw new Error(`contract.customer_code: unknown ${c.customer_code}`); if (!suppliers.has(c.supplier_code)) throw new Error(`contract.supplier_code: unknown ${c.supplier_code}`); if (c.state !== '已取消' && c.current_amount !== Number((c.original_amount + c.change_amount).toFixed(2))) throw new Error(`contract.current_amount invariant violated`); if (!scenario.contract_states.includes(c.state)) throw new Error(`contract.state: undeclared value ${c.state}`); if (new Date(c.signed_at) > new Date(c.latest_change_at)) throw new Error('contract date order invariant violated'); }
-  for (const p of data.ont_purchase_order) { if (!contracts.has(p.contract_no)) throw new Error(`purchase_order.contract_no: unknown ${p.contract_no}`); if (!suppliers.has(p.supplier_code)) throw new Error(`purchase_order.supplier_code: unknown ${p.supplier_code}`); if (Number((p.paid_amount + p.unpaid_amount).toFixed(2)) !== Number(p.order_amount.toFixed(2))) throw new Error('purchase_order paid_amount invariant violated'); if (p.arrived_at === null && p.receipt_state !== '未收货') throw new Error('purchase_order arrived_at invariant violated'); if (p.arrived_at !== null && new Date(p.created_at) > new Date(p.arrived_at)) throw new Error('purchase_order date order invariant violated'); if (new Date(p.created_at) > new Date(p.updated_at)) throw new Error('purchase_order updated_at invariant violated'); }
+  for (const c of data.ont_contract) { if (!customers.has(c.customer_code)) throw new Error(`contract.customer_code: unknown ${c.customer_code}`); if (!suppliers.has(c.supplier_code)) throw new Error(`contract.supplier_code: unknown ${c.supplier_code}`); if (c.current_amount !== Number((c.original_amount + c.change_amount).toFixed(2))) throw new Error(`contract.current_amount invariant violated`); if (!scenario.contract_states.includes(c.state)) throw new Error(`contract.state: undeclared value ${c.state}`); if (new Date(c.signed_at) > new Date(c.latest_change_at)) throw new Error('contract date order invariant violated'); }
+  const receiptStates = new Set(['未收货', '部分收货', '已收货', '拒收']);
+  for (const p of data.ont_purchase_order) { if (!contracts.has(p.contract_no)) throw new Error(`purchase_order.contract_no: unknown ${p.contract_no}`); if (!suppliers.has(p.supplier_code)) throw new Error(`purchase_order.supplier_code: unknown ${p.supplier_code}`); if (Number((p.paid_amount + p.unpaid_amount).toFixed(2)) !== Number(p.order_amount.toFixed(2))) throw new Error('purchase_order paid_amount invariant violated'); if (!receiptStates.has(p.receipt_state)) throw new Error(`purchase_order.receipt_state: undeclared value ${p.receipt_state}`); if (p.arrived_at === null && p.receipt_state !== '未收货') throw new Error('purchase_order arrived_at invariant violated'); if (p.arrived_at !== null && p.receipt_state === '未收货') throw new Error('purchase_order receipt_state requires null arrived_at'); if (p.arrived_at !== null && new Date(p.created_at) > new Date(p.arrived_at)) throw new Error('purchase_order date order invariant violated'); if (new Date(p.created_at) > new Date(p.updated_at)) throw new Error('purchase_order updated_at invariant violated'); }
   for (const [year, target] of Object.entries(scenario.contract_targets)) { const total = data.ont_contract.filter(c => c.contract_no.startsWith(`CON-${year}-`)).reduce((sum, c) => sum + Math.round(c.signed_amount * 100), 0); const tolerance = year === '2026' ? 1 : Math.round(target * 0.1 * 100); if (Math.abs(total - Math.round(target * 100)) > tolerance) throw new Error(`contract ${year} annual target invariant violated`); if (year === '2026') { const active = data.ont_contract.filter(c => c.contract_no.startsWith('CON-2026-') && ['已完成', '执行中'].includes(c.state)).reduce((sum, c) => sum + Math.round(c.signed_amount * 100), 0); if (active < 11000000000 || active > 12000000000) throw new Error('contract 2026 active annual band invariant violated'); } }
 }
 
