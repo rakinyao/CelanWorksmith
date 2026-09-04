@@ -30,6 +30,18 @@ public class ReleaseDatasourcePinExtractor {
     private final OntologySnapshotService snapshotService;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
+    /**
+     * Compatibility path for persisted legacy configurations that still contain
+     * a runtime provider property. Provider-free configurations require the
+     * snapshot-backed constructor.
+     */
+    @Deprecated(forRemoval = false)
+    public ReleaseDatasourcePinExtractor(NewActionRepository actionRepository, PluginService pluginService) {
+        this.actionRepository = actionRepository;
+        this.pluginService = pluginService;
+        this.snapshotService = null;
+    }
+
     public ReleaseDatasourcePinExtractor(
             NewActionRepository actionRepository, PluginService pluginService, OntologySnapshotService snapshotService) {
         this.actionRepository = actionRepository;
@@ -155,6 +167,7 @@ public class ReleaseDatasourcePinExtractor {
         String snapshotId = required(properties, "metadataSnapshotId");
         String digest = required(properties, "metadataDigest");
         String contractVersion = required(properties, "providerContractVersion");
+        String providerId = snapshotService == null ? legacyProviderId(properties) : null;
         if (projectId.isBlank() || projectVersion.isBlank()) {
             throw new IllegalArgumentException("project identity must not be blank");
         }
@@ -162,7 +175,7 @@ public class ReleaseDatasourcePinExtractor {
                 datasource.getId(),
                 datasource.getPluginId(),
                 "ONTOLOGY",
-                null,
+                providerId,
                 snapshotId,
                 digest,
                 contractVersion,
@@ -172,6 +185,9 @@ public class ReleaseDatasourcePinExtractor {
 
     private Mono<ReleaseDatasourcePinExtractionResult> resolvePinnedProviders(
             ReleaseDatasourcePinExtractionResult extraction) {
+        if (snapshotService == null) {
+            return Mono.just(extraction);
+        }
         return reactor.core.publisher.Flux.fromIterable(extraction.pins())
                 .concatMap(pin -> "ONTOLOGY".equals(pin.kind())
                         ? snapshotService
@@ -190,6 +206,15 @@ public class ReleaseDatasourcePinExtractor {
                         : Mono.just(pin))
                 .collectList()
                 .map(pins -> new ReleaseDatasourcePinExtractionResult(pins, extraction.diagnostics()));
+    }
+
+    private String legacyProviderId(Map<String, String> properties) {
+        String providerId = properties.get("runtimeProviderId");
+        if (providerId == null || providerId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Provider-free ontology datasources require snapshot-backed release extraction");
+        }
+        return providerId;
     }
 
     private Datasource resolve(Datasource reference, List<Datasource> usedDatasources) {

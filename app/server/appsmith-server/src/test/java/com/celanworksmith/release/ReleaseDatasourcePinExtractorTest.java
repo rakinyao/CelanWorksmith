@@ -31,9 +31,9 @@ import static org.mockito.ArgumentMatchers.eq;
 
 class ReleaseDatasourcePinExtractorTest {
     @Test
-    void doesNotExposeProviderPropertyFallbackConstructor() {
+    void exposesLegacyCompatibilityConstructor() {
         assertThat(ReleaseDatasourcePinExtractor.class.getConstructors())
-                .noneMatch(constructor -> Arrays.equals(
+                .anyMatch(constructor -> Arrays.equals(
                         constructor.getParameterTypes(), new Class<?>[] {NewActionRepository.class, PluginService.class}));
     }
 
@@ -112,6 +112,40 @@ class ReleaseDatasourcePinExtractorTest {
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.pins()).singleElement().satisfies(pin ->
                 assertThat(pin.providerId()).isEqualTo("provider-from-snapshot"));
+    }
+
+    @Test
+    void extractsLegacyDatasourceWithTheCompatibilityConstructor() {
+        NewActionRepository repository = Mockito.mock(NewActionRepository.class);
+        PluginService pluginService = ontologyPluginService("opaque-plugin-id");
+        Datasource ontology = datasource("ontology-1", "opaque-plugin-id", ontologyProperties("2026-01"));
+        Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
+                .thenReturn(Flux.just(action("action-1", ontology)));
+
+        ReleaseDatasourcePinExtractionResult result =
+                new ReleaseDatasourcePinExtractor(repository, pluginService).extract(candidate()).block();
+
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.pins()).singleElement().satisfies(pin ->
+                assertThat(pin.providerId()).isEqualTo("provider-1"));
+    }
+
+    @Test
+    void reportsProviderFreeDatasourceWhenUsingTheCompatibilityConstructor() {
+        NewActionRepository repository = Mockito.mock(NewActionRepository.class);
+        PluginService pluginService = ontologyPluginService("opaque-plugin-id");
+        Datasource ontology =
+                datasource("ontology-1", "opaque-plugin-id", providerFreeOntologyProperties("2026-01"));
+        Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
+                .thenReturn(Flux.just(action("action-1", ontology)));
+
+        ReleaseDatasourcePinExtractionResult result =
+                new ReleaseDatasourcePinExtractor(repository, pluginService).extract(candidate()).block();
+
+        assertThat(result.pins()).isEmpty();
+        assertThat(result.diagnostics()).extracting("code", "message").containsExactly(tuple(
+                "RELEASE_DATASOURCE_CONFIGURATION_MALFORMED",
+                "Provider-free ontology datasources require snapshot-backed release extraction"));
     }
 
     @Test
