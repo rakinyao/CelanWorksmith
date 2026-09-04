@@ -170,7 +170,7 @@ public class OntologySnapshotRuntimeGateway implements OntologyRuntimeGateway {
                 .filter(datasource -> workspaceId.equals(datasource.getWorkspaceId()))
                 .switchIfEmpty(Mono.error(
                         new IllegalArgumentException("Ontology datasource is unavailable for this workspace")))
-                .then(snapshotService.getRequiredSnapshot(snapshotId, digest, workspaceId));
+                .then(Mono.defer(() -> snapshotService.getRequiredSnapshot(snapshotId, digest, workspaceId)));
     }
 
     private static boolean isBlank(String value) {

@@ -283,7 +283,7 @@ class LocalReleaseJsonOntologyProjectImporterTest {
             for (var element : document.withArray("elements")) {
                 if ("entity_set_link".equals(element.path("kind").asText())
                         && "contract_customer".equals(element.path("name").asText())) {
-                    ((ObjectNode) element.at("/spec/field_mappings/0")).put("source_field", "private_salary");
+                    ((ObjectNode) element.at("/spec/field_mappings/0")).put("destination_field", "customer_name");
                     return signed(document, objectMapper);
                 }
             }
