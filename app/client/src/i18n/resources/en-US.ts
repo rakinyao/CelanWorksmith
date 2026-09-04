@@ -329,8 +329,11 @@ const enUS = {
     yamlRequired: "Select a YAML file.",
     releaseJsonFile: "Release JSON file",
     releaseJsonRequired: "Select a Release JSON file.",
-    releaseJsonBindingUnavailable: "The workspace release binding is unavailable.",
-    releaseJsonAssetUnavailable: "Release runtime assets are unavailable in this workspace.",
+    releaseJsonBindingUnavailable:
+      "The workspace release binding is unavailable.",
+    releaseJsonAssetUnavailable:
+      "Release runtime assets are unavailable in this workspace.",
+    releaseJsonInvalid: "Release JSON is invalid or its digest does not match.",
     runtimeProvider: "Runtime provider ID",
     runtimeProviderRequired: "Enter a runtime provider ID.",
     releaseId: "Release ID",

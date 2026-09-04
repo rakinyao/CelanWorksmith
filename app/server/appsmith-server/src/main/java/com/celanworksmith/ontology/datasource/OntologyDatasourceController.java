@@ -23,6 +23,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/celanworksmith/ontology/datasources")
 public class OntologyDatasourceController {
+    private static final String RELEASE_IMPORT_INVALID_MESSAGE =
+            "Release JSON is invalid or its digest does not match.";
     private final OntologyDatasourceService service;
     private final SessionUserService sessionUserService;
 
@@ -38,10 +40,17 @@ public class OntologyDatasourceController {
         return sessionUserService
                 .getCurrentUser()
                 .map(user -> withAuthenticatedImportActor(request, user.getEmail()))
-                .flatMap(authenticated -> service.importDatasource(authenticated)
-                        .onErrorMap(error -> isReleaseImport(authenticated) && !isSafeReleaseImportError(error)
-                                ? new IllegalArgumentException("Ontology release import could not be completed")
-                                : error))
+                .flatMap(
+                        authenticated -> service.importDatasource(authenticated).onErrorMap(error -> {
+                            if (!isReleaseImport(authenticated) || isSafeReleaseImportError(error)) {
+                                return error;
+                            }
+                            if (isReleaseJsonValidationError(error)) {
+                                return new CelanWorksmithException(
+                                        CelanWorksmithErrorCode.RELEASE_IMPORT_INVALID, RELEASE_IMPORT_INVALID_MESSAGE);
+                            }
+                            return new IllegalArgumentException("Ontology release import could not be completed");
+                        }))
                 .map(summary -> new ResponseDTO<>(HttpStatus.CREATED, summary));
     }
 
@@ -55,6 +64,19 @@ public class OntologyDatasourceController {
         if (!(error instanceof CelanWorksmithException exception)) return false;
         return exception.code() == CelanWorksmithErrorCode.RELEASE_IMPORT_BINDING_UNAVAILABLE
                 || exception.code() == CelanWorksmithErrorCode.RELEASE_IMPORT_ASSETS_UNAVAILABLE;
+    }
+
+    private boolean isReleaseJsonValidationError(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof IllegalArgumentException
+                    && current.getMessage() != null
+                    && current.getMessage().startsWith("Release")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private ImportOntologyDatasourceRequest withAuthenticatedImportActor(

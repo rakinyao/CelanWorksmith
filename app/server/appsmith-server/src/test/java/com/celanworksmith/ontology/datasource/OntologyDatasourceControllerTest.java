@@ -210,4 +210,65 @@ class OntologyDatasourceControllerTest {
                 .jsonPath("$.message")
                 .isEqualTo("Release runtime assets are unavailable in this workspace.");
     }
+
+    @Test
+    void classifiesReleaseJsonDigestFailuresWithAStableSafeErrorCode() {
+        User user = new User();
+        user.setEmail("trusted@example.com");
+        when(sessionUserService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(service.importDatasource(any()))
+                .thenReturn(Mono.error(new IllegalArgumentException("Release digest does not match content")));
+
+        client.post()
+                .uri("/api/v1/celanworksmith/ontology/datasources")
+                .bodyValue(new ImportOntologyDatasourceRequest(
+                        "workspace-1",
+                        "Business",
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                "metadata".getBytes(),
+                                "release-1",
+                                null,
+                                "forged@example.com"),
+                        null))
+                .exchange()
+                .expectStatus()
+                .isBadRequest()
+                .expectBody()
+                .jsonPath("$.code")
+                .isEqualTo("RELEASE_IMPORT_INVALID")
+                .jsonPath("$.message")
+                .isEqualTo("Release JSON is invalid or its digest does not match.");
+    }
+
+    @Test
+    void classifiesReleaseJsonParserFailuresWithoutReflectingParserDetails() {
+        User user = new User();
+        user.setEmail("trusted@example.com");
+        when(sessionUserService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(service.importDatasource(any()))
+                .thenReturn(Mono.error(new IllegalArgumentException(
+                        "Release JSON is invalid: unexpected token with provider secret")));
+
+        client.post()
+                .uri("/api/v1/celanworksmith/ontology/datasources")
+                .bodyValue(new ImportOntologyDatasourceRequest(
+                        "workspace-1",
+                        "Business",
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                "metadata".getBytes(),
+                                "release-1",
+                                null,
+                                "forged@example.com"),
+                        null))
+                .exchange()
+                .expectStatus()
+                .isBadRequest()
+                .expectBody()
+                .jsonPath("$.code")
+                .isEqualTo("RELEASE_IMPORT_INVALID")
+                .jsonPath("$.message")
+                .isEqualTo("Release JSON is invalid or its digest does not match.");
+    }
 }

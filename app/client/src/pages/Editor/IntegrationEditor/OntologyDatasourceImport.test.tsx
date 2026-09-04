@@ -219,6 +219,49 @@ describe("OntologyDatasourceImport", () => {
     },
   );
 
+  it.each([
+    [
+      "en-US",
+      "Release JSON is invalid or its digest does not match.",
+      /Datasource name/,
+      /Import ontology/,
+    ],
+    ["zh-CN", "发布 JSON 无效或其摘要与内容不匹配。", /数据源名称/, /导入本体/],
+  ])(
+    "renders a localized safe message for invalid Release JSON in %s",
+    async (locale, message, datasourceNameLabel, importButtonLabel) => {
+      await changeLocale(locale as "en-US" | "zh-CN");
+      (OntologyDatasourceApi.importDatasource as jest.Mock).mockRejectedValue({
+        response: {
+          data: {
+            code: "RELEASE_IMPORT_INVALID",
+            message: "Release digest includes provider secret",
+          },
+        },
+      });
+
+      render(
+        <OntologyDatasourceImport
+          onImported={jest.fn()}
+          workspaceId="workspace-1"
+        />,
+      );
+
+      fireEvent.change(
+        screen.getByRole("textbox", { name: datasourceNameLabel }),
+        {
+          target: { value: "Release Ontology" },
+        },
+      );
+      fireEvent.click(screen.getByRole("button", { name: importButtonLabel }));
+
+      const alert = await screen.findByRole("alert");
+
+      expect(alert.textContent).toBe(message);
+      expect(alert.textContent).not.toContain("provider secret");
+    },
+  );
+
   it("announces the empty and loading import states", async () => {
     let resolveImport: (() => void) | undefined;
 

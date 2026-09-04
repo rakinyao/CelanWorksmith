@@ -116,6 +116,10 @@ const releaseImportErrorKey = (code: string | undefined) => {
     return "ontologyDatasource.releaseJsonAssetUnavailable";
   }
 
+  if (code === "RELEASE_IMPORT_INVALID") {
+    return "ontologyDatasource.releaseJsonInvalid";
+  }
+
   return undefined;
 };
 

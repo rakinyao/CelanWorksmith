@@ -325,6 +325,7 @@ const zhCN = {
     releaseJsonRequired: "请选择发布 JSON 文件。",
     releaseJsonBindingUnavailable: "工作区发布绑定不可用。",
     releaseJsonAssetUnavailable: "当前工作区中没有可用的发布运行时资产。",
+    releaseJsonInvalid: "发布 JSON 无效或其摘要与内容不匹配。",
     runtimeProvider: "运行时提供方 ID",
     runtimeProviderRequired: "请输入运行时提供方 ID。",
     releaseId: "发布版本 ID",
