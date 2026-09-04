@@ -19,10 +19,12 @@ public interface OntologyProjectImportSource {
 
     default Mono<OntologyMetadataSnapshot> importProject(OntologyProjectImportRequest request) {
         if (request != null && request.sourceKind() == Kind.LOCAL_RELEASE_JSON) {
-            return Mono.error(new IllegalArgumentException(
-                    "Local Release JSON import requires an authorized import context"));
+            return Mono.error(
+                    new IllegalArgumentException("Local Release JSON import requires an authorized import context"));
         }
-        String actor = request == null || request.importedBy() == null || request.importedBy().isBlank()
+        String actor = request == null
+                        || request.importedBy() == null
+                        || request.importedBy().isBlank()
                 ? "legacy-import"
                 : request.importedBy();
         String workspace = "legacy-import";

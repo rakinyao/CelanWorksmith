@@ -52,10 +52,31 @@ public record OntologyMetadataSnapshot(
     }
 
     public OntologyMetadataSnapshot(
-            String id, String projectId, String projectVersion, String sourceKind, String sourceReleaseId,
-            String runtimeProviderId, String createdBy, Instant createdAt, String metadataDigest,
-            OntologyProjectDefinition definition, boolean deprecated) {
-        this(id, projectId, projectVersion, sourceKind, sourceReleaseId, runtimeProviderId, createdBy, createdAt,
-                metadataDigest, definition, deprecated, null, null, null);
+            String id,
+            String projectId,
+            String projectVersion,
+            String sourceKind,
+            String sourceReleaseId,
+            String runtimeProviderId,
+            String createdBy,
+            Instant createdAt,
+            String metadataDigest,
+            OntologyProjectDefinition definition,
+            boolean deprecated) {
+        this(
+                id,
+                projectId,
+                projectVersion,
+                sourceKind,
+                sourceReleaseId,
+                runtimeProviderId,
+                createdBy,
+                createdAt,
+                metadataDigest,
+                definition,
+                deprecated,
+                null,
+                null,
+                null);
     }
 }

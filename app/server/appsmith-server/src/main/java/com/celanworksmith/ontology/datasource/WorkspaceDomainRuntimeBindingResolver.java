@@ -14,8 +14,11 @@ public class WorkspaceDomainRuntimeBindingResolver {
             for (ReleaseRuntimeBindingProperties.Binding configured : properties.getBindings()) {
                 if (configured == null) continue;
                 WorkspaceDomainRuntimeBinding binding = new WorkspaceDomainRuntimeBinding(
-                        configured.getWorkspaceId(), configured.getDomain(), configured.getManagedBindingId(),
-                        configured.getRuntimeProviderId(), configured.getAllowedAssetRefs());
+                        configured.getWorkspaceId(),
+                        configured.getDomain(),
+                        configured.getManagedBindingId(),
+                        configured.getRuntimeProviderId(),
+                        configured.getAllowedAssetRefs());
                 validate(binding);
                 String key = key(binding.workspaceId(), binding.domain());
                 if (indexed.putIfAbsent(key, binding) != null) {
@@ -35,17 +38,25 @@ public class WorkspaceDomainRuntimeBindingResolver {
         return Mono.just(binding);
     }
 
-    private static String key(String workspaceId, String domain) { return String.valueOf(workspaceId) + "\u0000" + domain; }
+    private static String key(String workspaceId, String domain) {
+        return String.valueOf(workspaceId) + "\u0000" + domain;
+    }
 
     private static void validate(WorkspaceDomainRuntimeBinding binding) {
-        if (blank(binding.workspaceId()) || blank(binding.domain()) || blank(binding.managedBindingId())
-                || blank(binding.runtimeProviderId()) || binding.allowedAssetRefs().stream().anyMatch(WorkspaceDomainRuntimeBindingResolver::blank)) {
+        if (blank(binding.workspaceId())
+                || blank(binding.domain())
+                || blank(binding.managedBindingId())
+                || blank(binding.runtimeProviderId())
+                || binding.allowedAssetRefs().stream().anyMatch(WorkspaceDomainRuntimeBindingResolver::blank)) {
             throw new IllegalArgumentException("Ontology release runtime binding is incomplete");
         }
-        if (binding.allowedAssetRefs().stream().distinct().count() != binding.allowedAssetRefs().size()) {
+        if (binding.allowedAssetRefs().stream().distinct().count()
+                != binding.allowedAssetRefs().size()) {
             throw new IllegalArgumentException("Ontology release runtime binding asset refs are duplicated");
         }
     }
 
-    private static boolean blank(String value) { return value == null || value.isBlank(); }
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
 }

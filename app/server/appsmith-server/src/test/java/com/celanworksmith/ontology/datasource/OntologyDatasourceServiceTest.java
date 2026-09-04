@@ -10,18 +10,18 @@ import com.appsmith.server.domains.Plugin;
 import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.services.WorkspaceService;
 import com.celanworksmith.ontology.datasource.dto.ImportOntologyDatasourceRequest;
+import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.ontology.release.OntologyModelReleaseMapper;
 import com.celanworksmith.ontology.release.OntologyModelReleaseParser;
-import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,22 +49,36 @@ class OntologyDatasourceServiceTest {
         when(repository.deleteById(any())).thenReturn(Mono.empty());
         when(validator.validate(any(), eq("demo-mongo-readonly")))
                 .thenReturn(Mono.just(new ProviderValidationResult(false, List.of("asset unavailable"))));
-        byte[] fixture = Files.readAllBytes(Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo.json"));
+        byte[] fixture =
+                Files.readAllBytes(Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo.json"));
         OntologyProjectImportSource importer = new LocalReleaseJsonOntologyProjectImporter(
                 new OntologySnapshotService(repository, Clock.systemUTC()),
-                new WorkspaceDomainRuntimeBindingResolver(new ReleaseRuntimeBindingProperties(List.of(
-                        new ReleaseRuntimeBindingProperties.Binding("workspace-a", "business", "managed", "demo-mongo-readonly", List.of(
-                                "${source_dataset_id}:public.ont_supplier",
-                                "${source_dataset_id}:public.ont_customer",
-                                "${source_dataset_id}:public.ont_contract",
-                                "${source_dataset_id}:public.ont_purchase_order"))))),
-                new OntologyModelReleaseParser(), new OntologyModelReleaseMapper());
+                new WorkspaceDomainRuntimeBindingResolver(
+                        new ReleaseRuntimeBindingProperties(List.of(new ReleaseRuntimeBindingProperties.Binding(
+                                "workspace-a",
+                                "business",
+                                "managed",
+                                "demo-mongo-readonly",
+                                List.of(
+                                        "${source_dataset_id}:public.ont_supplier",
+                                        "${source_dataset_id}:public.ont_customer",
+                                        "${source_dataset_id}:public.ont_contract",
+                                        "${source_dataset_id}:public.ont_purchase_order"))))),
+                new OntologyModelReleaseParser(),
+                new OntologyModelReleaseMapper());
         OntologyDatasourceService service = new OntologyDatasourceService(
                 workspaceService, datasourceService, pluginService, List.of(importer), validator);
 
         StepVerifier.create(service.importDatasource(new ImportOntologyDatasourceRequest(
-                        "workspace-a", "Business", new OntologyProjectImportRequest(
-                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON, fixture, "release", "forged", "admin"), null)))
+                        "workspace-a",
+                        "Business",
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                fixture,
+                                "release",
+                                "forged",
+                                "admin"),
+                        null)))
                 .expectErrorMatches(error -> error.getMessage().contains("Runtime Provider is incompatible"))
                 .verify();
         verify(repository).deleteById(any());

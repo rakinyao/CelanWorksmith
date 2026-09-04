@@ -172,7 +172,9 @@ class OntologyModelReleaseParserTest {
             ObjectNode release = (ObjectNode) document.path("release");
             release.remove("release_digest");
             byte[] canonical = new JsonCanonicalizer(objectMapper.writeValueAsBytes(document)).getEncodedUTF8();
-            release.put("release_digest", "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(canonical)));
+            release.put(
+                    "release_digest",
+                    "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(canonical)));
             return objectMapper.writeValueAsBytes(document);
         } catch (Exception exception) {
             throw new IllegalStateException(exception);

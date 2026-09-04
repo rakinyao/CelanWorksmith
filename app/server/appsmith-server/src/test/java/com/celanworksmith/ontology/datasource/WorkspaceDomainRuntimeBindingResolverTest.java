@@ -1,7 +1,6 @@
 package com.celanworksmith.ontology.datasource;
 
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.List;
@@ -11,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WorkspaceDomainRuntimeBindingResolverTest {
     @Test
     void resolvesOnlyTheExactWorkspaceAndDomainBinding() {
-        ReleaseRuntimeBindingProperties properties = new ReleaseRuntimeBindingProperties(List.of(
-                new ReleaseRuntimeBindingProperties.Binding(
+        ReleaseRuntimeBindingProperties properties =
+                new ReleaseRuntimeBindingProperties(List.of(new ReleaseRuntimeBindingProperties.Binding(
                         "workspace-a",
                         "business",
                         "managed-business",

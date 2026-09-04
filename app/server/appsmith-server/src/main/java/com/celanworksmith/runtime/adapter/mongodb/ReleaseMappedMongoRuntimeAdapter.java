@@ -74,8 +74,8 @@ public final class ReleaseMappedMongoRuntimeAdapter {
 
     public Mono<ObjectInstanceDTO> getObject(OntologyProjectDefinition definition, String typeId, String instanceId) {
         ObjectTypeDTO type = resolveType(definition, typeId);
-        Query query = Query.query(
-                Criteria.where(primaryKeyColumn(definition, type)).is(primaryKeyValue(type, instanceId)));
+        Query query =
+                Query.query(Criteria.where(primaryKeyColumn(definition, type)).is(primaryKeyValue(type, instanceId)));
         return template.findOne(query, Document.class, collection(type))
                 .switchIfEmpty(Mono.error(new CelanWorksmithException(
                         CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: " + typeId + "/" + instanceId)))
@@ -97,8 +97,8 @@ public final class ReleaseMappedMongoRuntimeAdapter {
                         CelanWorksmithErrorCode.LINK_TYPE_NOT_FOUND,
                         "Link type is not valid for source type: " + typeId + "/" + linkTypeId));
         List<LinkTypeDTO.FieldMapping> mappings = linkMappings(definition, link);
-        Query sourceQuery = Query.query(Criteria.where(primaryKeyColumn(definition, sourceType))
-                .is(primaryKeyValue(sourceType, instanceId)));
+        Query sourceQuery = Query.query(
+                Criteria.where(primaryKeyColumn(definition, sourceType)).is(primaryKeyValue(sourceType, instanceId)));
         return template.findOne(sourceQuery, Document.class, collection(sourceType))
                 .switchIfEmpty(Mono.error(new CelanWorksmithException(
                         CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: " + typeId + "/" + instanceId)))
@@ -185,8 +185,8 @@ public final class ReleaseMappedMongoRuntimeAdapter {
                 java.util.regex.Pattern.quote(searchText.trim()), java.util.regex.Pattern.CASE_INSENSITIVE);
         List<Criteria> fields = new ArrayList<>();
         type.properties()
-                .forEach(property ->
-                        fields.add(Criteria.where(column(definition, type, property.id())).regex(pattern)));
+                .forEach(property -> fields.add(
+                        Criteria.where(column(definition, type, property.id())).regex(pattern)));
         return new Criteria().orOperator(fields.toArray(new Criteria[0]));
     }
 
@@ -200,7 +200,11 @@ public final class ReleaseMappedMongoRuntimeAdapter {
     }
 
     private Criteria condition(
-            OntologyProjectDefinition definition, ObjectTypeDTO type, String property, String operator, JsonNode value) {
+            OntologyProjectDefinition definition,
+            ObjectTypeDTO type,
+            String property,
+            String operator,
+            JsonNode value) {
         requireProperty(type, property, "filter");
         String field = column(definition, type, property);
         Criteria criteria = Criteria.where(field);
@@ -299,8 +303,9 @@ public final class ReleaseMappedMongoRuntimeAdapter {
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "Release object has no mapped primary key: " + type.id());
         }
         Map<String, Object> properties = new LinkedHashMap<>();
-        type.properties().forEach(
-                property -> properties.put(property.id(), document.get(column(definition, type, property.id()))));
+        type.properties()
+                .forEach(property ->
+                        properties.put(property.id(), document.get(column(definition, type, property.id()))));
         return new ObjectInstanceDTO(String.valueOf(primaryKey), type.id(), properties);
     }
 
@@ -322,7 +327,7 @@ public final class ReleaseMappedMongoRuntimeAdapter {
                 .filter(column -> column != null && !column.isBlank())
                 .orElseThrow(() -> new CelanWorksmithException(
                         CelanWorksmithErrorCode.INVALID_ARGUMENT,
-                "Release object type has no primary key mapping: " + type.id()));
+                        "Release object type has no primary key mapping: " + type.id()));
     }
 
     private Object primaryKeyValue(ObjectTypeDTO type, String instanceId) {

@@ -761,17 +761,13 @@ class OntologyFunctionLinkActionExecutorTest {
         }
 
         @Override
-        public Mono<ObjectQueryResult> queryObjects(
-                Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+        public Mono<ObjectQueryResult> queryObjects(Snapshot snapshot, String objectTypeId, ObjectQuery query) {
             return Mono.error(new UnsupportedOperationException());
         }
 
         @Override
         public Mono<Object> executeFunction(
-                Snapshot snapshot,
-                String functionId,
-                OntologyObjectSet targets,
-                Map<String, Object> parameters) {
+                Snapshot snapshot, String functionId, OntologyObjectSet targets, Map<String, Object> parameters) {
             functionCalls++;
             functionTargets = targets;
             functionParameters = parameters;

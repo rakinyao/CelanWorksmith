@@ -128,7 +128,8 @@ public interface OntologyRuntimeGateway {
     Mono<ObjectQueryResult> queryObjects(Snapshot snapshot, String objectTypeId, ObjectQuery query);
 
     @Deprecated
-    default Mono<ObjectQueryResult> queryObjects(String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+    default Mono<ObjectQueryResult> queryObjects(
+            String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
         return queryObjects(snapshot, objectTypeId, query);
     }
 
@@ -145,8 +146,7 @@ public interface OntologyRuntimeGateway {
         return executeFunction(snapshot, functionId, targets, parameters);
     }
 
-    Mono<List<Map<String, Object>>> resolveLink(
-            Snapshot snapshot, String sourceTypeId, String sourceId, String linkId);
+    Mono<List<Map<String, Object>>> resolveLink(Snapshot snapshot, String sourceTypeId, String sourceId, String linkId);
 
     @Deprecated
     default Mono<List<Map<String, Object>>> resolveLink(

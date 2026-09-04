@@ -27,8 +27,7 @@ public class OntologySnapshotRuntimeGateway implements OntologyRuntimeGateway {
     }
 
     @Override
-    public Mono<ObjectQueryResult> queryObjects(
-            Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+    public Mono<ObjectQueryResult> queryObjects(Snapshot snapshot, String objectTypeId, ObjectQuery query) {
         ObjectSetQuery providerQuery = new ObjectSetQuery(
                 query.filter(), query.sortBy(), query.sortDirection(), query.offset(), query.limit());
         return requiredSnapshot(snapshot)
@@ -51,10 +50,7 @@ public class OntologySnapshotRuntimeGateway implements OntologyRuntimeGateway {
 
     @Override
     public Mono<Object> executeFunction(
-            Snapshot snapshot,
-            String functionId,
-            OntologyObjectSet targets,
-            Map<String, Object> parameters) {
+            Snapshot snapshot, String functionId, OntologyObjectSet targets, Map<String, Object> parameters) {
         return requiredSnapshot(snapshot).flatMap(persistedSnapshot -> runtimeProviderRegistry
                 .resolveRequired(persistedSnapshot.runtimeProviderId())
                 .executeFunction(

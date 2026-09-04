@@ -14,12 +14,8 @@ import com.celanworksmith.ontology.adapter.mock.MockOntologyProvider;
 import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider;
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
 import com.celanworksmith.ontology.datasource.DemoOntologyProjectBootstrap;
-import com.celanworksmith.ontology.datasource.LocalYamlOntologyProjectImporter;
 import com.celanworksmith.ontology.datasource.LocalReleaseJsonOntologyProjectImporter;
-import com.celanworksmith.ontology.datasource.ReleaseRuntimeBindingProperties;
-import com.celanworksmith.ontology.datasource.WorkspaceDomainRuntimeBindingResolver;
-import com.celanworksmith.ontology.release.OntologyModelReleaseMapper;
-import com.celanworksmith.ontology.release.OntologyModelReleaseParser;
+import com.celanworksmith.ontology.datasource.LocalYamlOntologyProjectImporter;
 import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceCompatibilityService;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
@@ -30,12 +26,16 @@ import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import com.celanworksmith.ontology.datasource.OntologySnapshotRuntimeGateway;
 import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.ontology.datasource.PlatformOntologyProjectImporter;
+import com.celanworksmith.ontology.datasource.ReleaseRuntimeBindingProperties;
 import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
 import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
 import com.celanworksmith.ontology.datasource.WorkspaceActionServerConfigurationResolver;
+import com.celanworksmith.ontology.datasource.WorkspaceDomainRuntimeBindingResolver;
 import com.celanworksmith.ontology.persistence.OntologyProjectRegistry;
 import com.celanworksmith.ontology.port.OntologyProvider;
 import com.celanworksmith.ontology.project.OntologyProjectYamlImporter;
+import com.celanworksmith.ontology.release.OntologyModelReleaseMapper;
+import com.celanworksmith.ontology.release.OntologyModelReleaseParser;
 import com.celanworksmith.ontology.service.OntologyProjectService;
 import com.celanworksmith.release.ActionServerAdapterConfigurationValidator;
 import com.celanworksmith.release.ApplicationReleaseProviderHealthGate;
@@ -65,7 +65,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Configuration
-@EnableConfigurationProperties({MongoRuntimeProperties.class, WorkspaceActionServerProperties.class, ReleaseRuntimeBindingProperties.class})
+@EnableConfigurationProperties({
+    MongoRuntimeProperties.class,
+    WorkspaceActionServerProperties.class,
+    ReleaseRuntimeBindingProperties.class
+})
 public class CelanWorksmithConfiguration {
     @Bean
     public OntologyProjectYamlImporter ontologyProjectYamlImporter() {
@@ -140,7 +144,9 @@ public class CelanWorksmithConfiguration {
 
     @Bean
     public ReleaseDatasourcePinExtractor releaseDatasourcePinExtractor(
-            NewActionRepository actionRepository, PluginService pluginService, OntologySnapshotService snapshotService) {
+            NewActionRepository actionRepository,
+            PluginService pluginService,
+            OntologySnapshotService snapshotService) {
         return new ReleaseDatasourcePinExtractor(actionRepository, pluginService, snapshotService);
     }
 

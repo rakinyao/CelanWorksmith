@@ -23,16 +23,33 @@ public record ImportedOntologyProject(
     }
 
     public ImportedOntologyProject(
-            OntologyProjectDefinition definition, String sourceKind, String sourceReleaseId,
-            String runtimeProviderId, String importedBy, boolean deprecated) {
+            OntologyProjectDefinition definition,
+            String sourceKind,
+            String sourceReleaseId,
+            String runtimeProviderId,
+            String importedBy,
+            boolean deprecated) {
         this(definition, sourceKind, sourceReleaseId, runtimeProviderId, importedBy, deprecated, null, null, null);
     }
 
     public ImportedOntologyProject(
-            OntologyProjectDefinition definition, String sourceKind, String sourceReleaseId,
-            String runtimeProviderId, String importedBy, String releaseDomain, String releaseDigest,
+            OntologyProjectDefinition definition,
+            String sourceKind,
+            String sourceReleaseId,
+            String runtimeProviderId,
+            String importedBy,
+            String releaseDomain,
+            String releaseDigest,
             String managedRuntimeBindingId) {
-        this(definition, sourceKind, sourceReleaseId, runtimeProviderId, importedBy, false,
-                releaseDomain, releaseDigest, managedRuntimeBindingId);
+        this(
+                definition,
+                sourceKind,
+                sourceReleaseId,
+                runtimeProviderId,
+                importedBy,
+                false,
+                releaseDomain,
+                releaseDigest,
+                managedRuntimeBindingId);
     }
 }

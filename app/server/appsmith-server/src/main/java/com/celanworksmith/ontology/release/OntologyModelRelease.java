@@ -10,7 +10,8 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
 
     public record Release(String domain, String modelId, String version, String releaseDigest) {}
 
-    public sealed interface Element permits EntitySet, RuntimeBinding, EntitySetLink, UnsupportedElement, LineageElement {
+    public sealed interface Element
+            permits EntitySet, RuntimeBinding, EntitySetLink, UnsupportedElement, LineageElement {
         String domain();
 
         String kind();
@@ -26,7 +27,8 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
             String version,
             Map<String, String> displayName,
             List<Field> fields,
-            List<String> primaryKeyFields) implements Element {
+            List<String> primaryKeyFields)
+            implements Element {
         @Override
         public String kind() {
             return "entity_set";
@@ -61,7 +63,8 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
             String entitySet,
             String assetRef,
             Map<String, String> primaryKeyMapping,
-            Map<String, RuntimeFieldMapping> fieldMappings) implements Element {
+            Map<String, RuntimeFieldMapping> fieldMappings)
+            implements Element {
         @Override
         public String kind() {
             return "runtime_binding";
@@ -83,7 +86,8 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
             String destinationEntitySet,
             String cardinality,
             String mappingStatus,
-            List<LinkFieldMapping> fieldMappings) implements Element {
+            List<LinkFieldMapping> fieldMappings)
+            implements Element {
         @Override
         public String kind() {
             return "entity_set_link";

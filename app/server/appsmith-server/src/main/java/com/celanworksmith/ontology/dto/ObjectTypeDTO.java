@@ -23,7 +23,13 @@ public record ObjectTypeDTO(
 
     public ObjectTypeDTO(
             String id, String displayName, String runtimeTable, String primaryKey, List<PropertyDTO> properties) {
-        this(id, displayName, properties, runtimeTable, primaryKey == null || primaryKey.isBlank() ? "id" : primaryKey, Map.of());
+        this(
+                id,
+                displayName,
+                properties,
+                runtimeTable,
+                primaryKey == null || primaryKey.isBlank() ? "id" : primaryKey,
+                Map.of());
     }
 
     public ObjectTypeDTO(

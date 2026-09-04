@@ -47,8 +47,7 @@ public record OntologyProjectDefinition(
         }
     }
 
-    public record ObjectRuntimeMapping(
-            String objectTypeId, String assetRef, Map<String, String> primaryKeyMappings) {
+    public record ObjectRuntimeMapping(String objectTypeId, String assetRef, Map<String, String> primaryKeyMappings) {
         public ObjectRuntimeMapping {
             primaryKeyMappings = primaryKeyMappings == null ? Map.of() : Map.copyOf(primaryKeyMappings);
         }

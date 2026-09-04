@@ -28,17 +28,22 @@ public class LocalReleaseJsonOntologyProjectImporter implements OntologyProjectI
     }
 
     @Override
-    public Kind sourceKind() { return Kind.LOCAL_RELEASE_JSON; }
+    public Kind sourceKind() {
+        return Kind.LOCAL_RELEASE_JSON;
+    }
 
     @Override
     public Mono<OntologyMetadataSnapshot> importProject(
             OntologyProjectImportRequest request, OntologyProjectImportContext context) {
         if (request == null || request.sourceKind() != Kind.LOCAL_RELEASE_JSON) {
-            return Mono.error(new IllegalArgumentException("Local Release JSON importer requires a local release request"));
+            return Mono.error(
+                    new IllegalArgumentException("Local Release JSON importer requires a local release request"));
         }
         if (context == null) return Mono.error(new IllegalArgumentException("Import context is required"));
         return Mono.fromSupplier(() -> parser.parse(requiredMetadata(request.metadata())))
-                .flatMap(release -> bindingResolver.resolveRequired(context.workspaceId(), release.release().domain())
+                .flatMap(release -> bindingResolver
+                        .resolveRequired(
+                                context.workspaceId(), release.release().domain())
                         .flatMap(binding -> importWithBinding(request, context, release, binding)));
     }
 
@@ -50,8 +55,8 @@ public class LocalReleaseJsonOntologyProjectImporter implements OntologyProjectI
         for (OntologyModelRelease.Element element : release.elements()) {
             if (element instanceof OntologyModelRelease.RuntimeBinding runtime
                     && !binding.allowedAssetRefs().contains(runtime.assetRef())) {
-                return Mono.error(new IllegalArgumentException(
-                        "Release runtime assets are unavailable in the workspace."));
+                return Mono.error(
+                        new IllegalArgumentException("Release runtime assets are unavailable in the workspace."));
             }
         }
         return Mono.fromSupplier(() -> mapper.map(release))
@@ -72,7 +77,8 @@ public class LocalReleaseJsonOntologyProjectImporter implements OntologyProjectI
     }
 
     private static byte[] requiredMetadata(byte[] metadata) {
-        if (metadata == null || metadata.length == 0) throw new IllegalArgumentException("Release JSON metadata is required");
+        if (metadata == null || metadata.length == 0)
+            throw new IllegalArgumentException("Release JSON metadata is required");
         return metadata;
     }
 

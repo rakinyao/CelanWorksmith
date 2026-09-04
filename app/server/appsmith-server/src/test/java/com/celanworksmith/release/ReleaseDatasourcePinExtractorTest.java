@@ -34,7 +34,8 @@ class ReleaseDatasourcePinExtractorTest {
     void exposesLegacyCompatibilityConstructor() {
         assertThat(ReleaseDatasourcePinExtractor.class.getConstructors())
                 .anyMatch(constructor -> Arrays.equals(
-                        constructor.getParameterTypes(), new Class<?>[] {NewActionRepository.class, PluginService.class}));
+                        constructor.getParameterTypes(),
+                        new Class<?>[] {NewActionRepository.class, PluginService.class}));
     }
 
     @Test
@@ -48,7 +49,8 @@ class ReleaseDatasourcePinExtractorTest {
                 .thenReturn(
                         Flux.just(action("action-3", ontology), action("action-1", database), action("action-2", api)));
 
-        ReleaseDatasourcePinExtractionResult result = extractor(repository, pluginService).extract(candidate()).block();
+        ReleaseDatasourcePinExtractionResult result =
+                extractor(repository, pluginService).extract(candidate()).block();
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.pins())
@@ -83,8 +85,10 @@ class ReleaseDatasourcePinExtractorTest {
         Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
                 .thenReturn(Flux.just(action("action-1", ontology)));
 
-        ReleaseDatasourcePinExtractionResult result =
-                new ReleaseDatasourcePinExtractor(repository, pluginService, snapshotService).extract(candidate()).block();
+        ReleaseDatasourcePinExtractionResult result = new ReleaseDatasourcePinExtractor(
+                        repository, pluginService, snapshotService)
+                .extract(candidate())
+                .block();
 
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.pins()).singleElement().satisfies(pin -> {
@@ -106,12 +110,14 @@ class ReleaseDatasourcePinExtractorTest {
         Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
                 .thenReturn(Flux.just(action("action-1", ontology)));
 
-        ReleaseDatasourcePinExtractionResult result =
-                new ReleaseDatasourcePinExtractor(repository, pluginService, snapshotService).extract(candidate()).block();
+        ReleaseDatasourcePinExtractionResult result = new ReleaseDatasourcePinExtractor(
+                        repository, pluginService, snapshotService)
+                .extract(candidate())
+                .block();
 
         assertThat(result.diagnostics()).isEmpty();
-        assertThat(result.pins()).singleElement().satisfies(pin ->
-                assertThat(pin.providerId()).isEqualTo("provider-from-snapshot"));
+        assertThat(result.pins()).singleElement().satisfies(pin -> assertThat(pin.providerId())
+                .isEqualTo("provider-from-snapshot"));
     }
 
     @Test
@@ -122,30 +128,33 @@ class ReleaseDatasourcePinExtractorTest {
         Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
                 .thenReturn(Flux.just(action("action-1", ontology)));
 
-        ReleaseDatasourcePinExtractionResult result =
-                new ReleaseDatasourcePinExtractor(repository, pluginService).extract(candidate()).block();
+        ReleaseDatasourcePinExtractionResult result = new ReleaseDatasourcePinExtractor(repository, pluginService)
+                .extract(candidate())
+                .block();
 
         assertThat(result.diagnostics()).isEmpty();
-        assertThat(result.pins()).singleElement().satisfies(pin ->
-                assertThat(pin.providerId()).isEqualTo("provider-1"));
+        assertThat(result.pins()).singleElement().satisfies(pin -> assertThat(pin.providerId())
+                .isEqualTo("provider-1"));
     }
 
     @Test
     void reportsProviderFreeDatasourceWhenUsingTheCompatibilityConstructor() {
         NewActionRepository repository = Mockito.mock(NewActionRepository.class);
         PluginService pluginService = ontologyPluginService("opaque-plugin-id");
-        Datasource ontology =
-                datasource("ontology-1", "opaque-plugin-id", providerFreeOntologyProperties("2026-01"));
+        Datasource ontology = datasource("ontology-1", "opaque-plugin-id", providerFreeOntologyProperties("2026-01"));
         Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
                 .thenReturn(Flux.just(action("action-1", ontology)));
 
-        ReleaseDatasourcePinExtractionResult result =
-                new ReleaseDatasourcePinExtractor(repository, pluginService).extract(candidate()).block();
+        ReleaseDatasourcePinExtractionResult result = new ReleaseDatasourcePinExtractor(repository, pluginService)
+                .extract(candidate())
+                .block();
 
         assertThat(result.pins()).isEmpty();
-        assertThat(result.diagnostics()).extracting("code", "message").containsExactly(tuple(
-                "RELEASE_DATASOURCE_CONFIGURATION_MALFORMED",
-                "Provider-free ontology datasources require snapshot-backed release extraction"));
+        assertThat(result.diagnostics())
+                .extracting("code", "message")
+                .containsExactly(tuple(
+                        "RELEASE_DATASOURCE_CONFIGURATION_MALFORMED",
+                        "Provider-free ontology datasources require snapshot-backed release extraction"));
     }
 
     @Test
@@ -157,8 +166,9 @@ class ReleaseDatasourcePinExtractorTest {
         Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
                 .thenReturn(Flux.just(action("action-1", ontology)));
 
-        ReleaseDatasourcePinExtractionResult result =
-                extractor(repository, pluginService).extract(candidate(action("action-1", ontology))).block();
+        ReleaseDatasourcePinExtractionResult result = extractor(repository, pluginService)
+                .extract(candidate(action("action-1", ontology)))
+                .block();
 
         assertThat(result.pins()).isEmpty();
         assertThat(result.diagnostics())
@@ -241,8 +251,9 @@ class ReleaseDatasourcePinExtractorTest {
         Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
                 .thenReturn(Flux.just(action("action-1", compactReference)));
 
-        ReleaseDatasourcePinExtractionResult result =
-                extractor(repository, pluginService).extract(candidate(action("action-1", compactReference))).block();
+        ReleaseDatasourcePinExtractionResult result = extractor(repository, pluginService)
+                .extract(candidate(action("action-1", compactReference)))
+                .block();
 
         assertThat(result.pins()).isEmpty();
         assertThat(result.diagnostics())

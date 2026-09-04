@@ -37,7 +37,8 @@ public class OntologyMetadataSnapshotRepository {
     }
 
     public Mono<Void> deleteById(String snapshotId) {
-        return template.remove(Query.query(Criteria.where("_id").is(snapshotId)), COLLECTION).then();
+        return template.remove(Query.query(Criteria.where("_id").is(snapshotId)), COLLECTION)
+                .then();
     }
 
     @PreDestroy

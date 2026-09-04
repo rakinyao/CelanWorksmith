@@ -181,7 +181,8 @@ public class OntologyDatasourceUpgradeService {
                 PROVIDER_CONTRACT_VERSION,
                 new Property(PROVIDER_CONTRACT_VERSION, OntologyDatasourceService.PROVIDER_CONTRACT_VERSION));
         properties.put(SOURCE_KIND, new Property(SOURCE_KIND, snapshot.sourceKind()));
-        if (snapshot.managedRuntimeBindingId() == null || snapshot.managedRuntimeBindingId().isBlank()) {
+        if (snapshot.managedRuntimeBindingId() == null
+                || snapshot.managedRuntimeBindingId().isBlank()) {
             properties.remove(MANAGED_RUNTIME_BINDING_ID);
         } else {
             properties.put(

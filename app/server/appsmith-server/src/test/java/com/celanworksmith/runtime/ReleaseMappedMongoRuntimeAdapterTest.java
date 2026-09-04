@@ -91,8 +91,8 @@ class ReleaseMappedMongoRuntimeAdapterTest {
         when(template.findOne(any(), eq(Document.class), eq("ont_customer"))).thenAnswer(invocation -> {
             Query query = invocation.getArgument(0);
             return Long.valueOf(1).equals(query.getQueryObject().get("source_customer_id"))
-                    ? Mono.just(new Document(Map.of(
-                            "source_customer_id", 1, "customer_code", "CUS-1", "customer_name", "客户一")))
+                    ? Mono.just(new Document(
+                            Map.of("source_customer_id", 1, "customer_code", "CUS-1", "customer_name", "客户一")))
                     : Mono.empty();
         });
 
@@ -112,8 +112,8 @@ class ReleaseMappedMongoRuntimeAdapterTest {
     void sortsByTheExplicitReleasePrimaryKeyMappingByDefault() {
         OntologyProjectDefinition definition = withPrimaryKeyColumn("contract", "runtime_contract_id");
         when(template.find(any(), eq(Document.class), eq("ont_contract")))
-                .thenReturn(Flux.just(new Document(Map.of(
-                        "runtime_contract_id", "CTR-1", "id", "CTR-1", "contract_name", "智慧运营中心合同"))));
+                .thenReturn(Flux.just(new Document(
+                        Map.of("runtime_contract_id", "CTR-1", "id", "CTR-1", "contract_name", "智慧运营中心合同"))));
         when(template.count(any(), eq("ont_contract"))).thenReturn(Mono.just(1L));
 
         StepVerifier.create(provider.queryObjects(definition, "contract", ObjectSetQuery.defaults()))
@@ -129,20 +129,15 @@ class ReleaseMappedMongoRuntimeAdapterTest {
     void filtersReleasePrimaryKeysUsingTheirExplicitMapping() {
         OntologyProjectDefinition definition = withPrimaryKeyColumn("contract", "runtime_contract_id");
         when(template.find(any(), eq(Document.class), eq("ont_contract")))
-                .thenReturn(Flux.just(new Document(Map.of(
-                        "runtime_contract_id", "CTR-1", "id", "CTR-1", "contract_name", "智慧运营中心合同"))));
+                .thenReturn(Flux.just(new Document(
+                        Map.of("runtime_contract_id", "CTR-1", "id", "CTR-1", "contract_name", "智慧运营中心合同"))));
         when(template.count(any(), eq("ont_contract"))).thenReturn(Mono.just(1L));
 
         StepVerifier.create(provider.queryObjects(
                         definition,
                         "contract",
                         new ObjectSetQuery(
-                                JsonNodeFactory.instance.objectNode().put("id", "CTR-1"),
-                                "id",
-                                "asc",
-                                0,
-                                10,
-                                null)))
+                                JsonNodeFactory.instance.objectNode().put("id", "CTR-1"), "id", "asc", 0, 10, null)))
                 .expectNextCount(1)
                 .verifyComplete();
 
@@ -239,12 +234,13 @@ class ReleaseMappedMongoRuntimeAdapterTest {
     }
 
     private OntologyProjectDefinition withPrimaryKeyColumn(String objectTypeId, String column) {
-        List<OntologyProjectDefinition.ObjectRuntimeMapping> mappings = releaseDefinition.runtimeMappings().objectMappings().stream()
-                .map(mapping -> mapping.objectTypeId().equals(objectTypeId)
-                        ? new OntologyProjectDefinition.ObjectRuntimeMapping(
-                                mapping.objectTypeId(), mapping.assetRef(), Map.of("id", column))
-                        : mapping)
-                .toList();
+        List<OntologyProjectDefinition.ObjectRuntimeMapping> mappings =
+                releaseDefinition.runtimeMappings().objectMappings().stream()
+                        .map(mapping -> mapping.objectTypeId().equals(objectTypeId)
+                                ? new OntologyProjectDefinition.ObjectRuntimeMapping(
+                                        mapping.objectTypeId(), mapping.assetRef(), Map.of("id", column))
+                                : mapping)
+                        .toList();
         return new OntologyProjectDefinition(
                 releaseDefinition.projectId(),
                 releaseDefinition.version(),
@@ -253,6 +249,7 @@ class ReleaseMappedMongoRuntimeAdapterTest {
                 releaseDefinition.linkTypes(),
                 releaseDefinition.functions(),
                 releaseDefinition.actions(),
-                new OntologyProjectDefinition.RuntimeMappings(mappings, releaseDefinition.runtimeMappings().linkMappings()));
+                new OntologyProjectDefinition.RuntimeMappings(
+                        mappings, releaseDefinition.runtimeMappings().linkMappings()));
     }
 }

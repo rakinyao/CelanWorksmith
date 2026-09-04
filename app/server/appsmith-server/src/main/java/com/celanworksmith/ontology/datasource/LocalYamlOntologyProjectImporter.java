@@ -51,8 +51,11 @@ public class LocalYamlOntologyProjectImporter implements OntologyProjectImportSo
         if (context == null) return Mono.error(new IllegalArgumentException("Import context is required"));
         return Mono.fromSupplier(() -> parseDefinition(request.metadata()))
                 .flatMap(definition -> snapshotService.createSnapshot(new ImportedOntologyProject(
-                        definition, "local-yaml", request.sourceReleaseId(),
-                        required(request.runtimeProviderId(), "Runtime Provider ID"), context.importedBy())));
+                        definition,
+                        "local-yaml",
+                        request.sourceReleaseId(),
+                        required(request.runtimeProviderId(), "Runtime Provider ID"),
+                        context.importedBy())));
     }
 
     OntologyProjectDefinition parseDefinition(byte[] metadata) {

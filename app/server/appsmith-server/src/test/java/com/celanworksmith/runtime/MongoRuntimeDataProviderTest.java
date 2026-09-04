@@ -86,7 +86,8 @@ class MongoRuntimeDataProviderTest {
 
     @Test
     void rejectsReleaseAssetTablesForDefinitionsWithoutReleaseMappings() {
-        ObjectTypeDTO type = RuntimeProviderTestFixtures.binding().project().objectTypes().getFirst();
+        ObjectTypeDTO type =
+                RuntimeProviderTestFixtures.binding().project().objectTypes().getFirst();
         OntologyProjectDefinition definition = new OntologyProjectDefinition(
                 "legacy-ont-table",
                 "1",

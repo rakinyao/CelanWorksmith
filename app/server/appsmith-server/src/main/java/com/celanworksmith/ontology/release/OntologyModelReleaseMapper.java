@@ -23,8 +23,7 @@ public final class OntologyModelReleaseMapper {
                 if (bindings.putIfAbsent(binding.entitySet(), binding) != null) {
                     throw new IllegalArgumentException("Release entity has duplicate runtime bindings");
                 }
-            }
-            else if (element instanceof OntologyModelRelease.EntitySetLink link) links.add(link);
+            } else if (element instanceof OntologyModelRelease.EntitySetLink link) links.add(link);
             else if (element instanceof OntologyModelRelease.UnsupportedElement) {
                 throw new IllegalArgumentException("Release contains unsupported capabilities");
             }
@@ -41,10 +40,13 @@ public final class OntologyModelReleaseMapper {
             Map<String, ObjectTypeDTO.RuntimePropertyMapping> propertyMappings = new HashMap<>();
             List<PropertyDTO> properties = new ArrayList<>();
             for (OntologyModelRelease.Field field : entity.fields()) {
-                OntologyModelRelease.RuntimeFieldMapping runtime = binding.fieldMappings().get(field.name());
+                OntologyModelRelease.RuntimeFieldMapping runtime =
+                        binding.fieldMappings().get(field.name());
                 if (runtime == null) throw new IllegalArgumentException("Release field has no runtime mapping");
-                propertyMappings.put(field.name(), new ObjectTypeDTO.RuntimePropertyMapping(
-                        runtime.column(), runtime.expression(), runtime.status()));
+                propertyMappings.put(
+                        field.name(),
+                        new ObjectTypeDTO.RuntimePropertyMapping(
+                                runtime.column(), runtime.expression(), runtime.status()));
                 properties.add(new PropertyDTO(
                         field.name(),
                         localized(field.displayName()),
@@ -60,7 +62,12 @@ public final class OntologyModelReleaseMapper {
             }
             String primaryKey = entity.primaryKeyFields().getFirst();
             objectTypes.add(new ObjectTypeDTO(
-                    entity.name(), localized(entity.displayName()), binding.assetRef(), primaryKey, properties, propertyMappings));
+                    entity.name(),
+                    localized(entity.displayName()),
+                    binding.assetRef(),
+                    primaryKey,
+                    properties,
+                    propertyMappings));
             objectMappings.add(new OntologyProjectDefinition.ObjectRuntimeMapping(
                     entity.name(), binding.assetRef(), binding.primaryKeyMapping()));
         }
@@ -75,7 +82,12 @@ public final class OntologyModelReleaseMapper {
                     .map(mapping -> new LinkTypeDTO.FieldMapping(mapping.sourceField(), mapping.destinationField()))
                     .toList();
             linkTypes.add(new LinkTypeDTO(
-                    link.name(), link.name(), link.sourceEntitySet(), link.destinationEntitySet(), link.cardinality(), mappings));
+                    link.name(),
+                    link.name(),
+                    link.sourceEntitySet(),
+                    link.destinationEntitySet(),
+                    link.cardinality(),
+                    mappings));
             linkMappings.add(new OntologyProjectDefinition.LinkRuntimeMapping(link.name(), mappings));
         }
         return new OntologyProjectDefinition(
@@ -92,7 +104,8 @@ public final class OntologyModelReleaseMapper {
     private static String localized(Map<String, String> text) {
         String localized = text.get("zh-CN");
         if (localized == null || localized.isBlank()) localized = text.get("en-US");
-        if (localized == null || localized.isBlank()) throw new IllegalArgumentException("Release display text is unavailable");
+        if (localized == null || localized.isBlank())
+            throw new IllegalArgumentException("Release display text is unavailable");
         return localized;
     }
 

@@ -740,8 +740,7 @@ class OntologyObjectQueryExecutorTest {
         }
 
         @Override
-        public Mono<ObjectQueryResult> queryObjects(
-                Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+        public Mono<ObjectQueryResult> queryObjects(Snapshot snapshot, String objectTypeId, ObjectQuery query) {
             queryCalls++;
             this.objectTypeId = objectTypeId;
             this.query = query;

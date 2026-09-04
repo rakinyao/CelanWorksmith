@@ -39,9 +39,19 @@ public class OntologySnapshotService {
             validate(project);
             OntologyProjectDefinition definition = project.definition();
             OntologyMetadataSnapshot snapshot = new OntologyMetadataSnapshot(
-                    UUID.randomUUID().toString(), definition.projectId(), definition.version(), project.sourceKind(),
-                    project.sourceReleaseId(), project.runtimeProviderId(), project.importedBy(), clock.instant(),
-                    digest(definition), definition, project.deprecated(), project.releaseDomain(), project.releaseDigest(),
+                    UUID.randomUUID().toString(),
+                    definition.projectId(),
+                    definition.version(),
+                    project.sourceKind(),
+                    project.sourceReleaseId(),
+                    project.runtimeProviderId(),
+                    project.importedBy(),
+                    clock.instant(),
+                    digest(definition),
+                    definition,
+                    project.deprecated(),
+                    project.releaseDomain(),
+                    project.releaseDigest(),
                     project.managedRuntimeBindingId());
             return repository.insert(snapshot);
         });
@@ -163,8 +173,8 @@ public class OntologySnapshotService {
         canonical.put(
                 "fieldMappings",
                 linkType.fieldMappings().stream()
-                        .map(mapping -> Map.of(
-                                "sourceField", mapping.sourceField(), "targetField", mapping.targetField()))
+                        .map(mapping ->
+                                Map.of("sourceField", mapping.sourceField(), "targetField", mapping.targetField()))
                         .toList());
         return canonical;
     }
@@ -179,7 +189,8 @@ public class OntologySnapshotService {
                             Map<String, Object> objectMapping = new LinkedHashMap<>();
                             objectMapping.put("objectTypeId", mapping.objectTypeId());
                             objectMapping.put("assetRef", mapping.assetRef());
-                            objectMapping.put("primaryKeyMappings", new java.util.TreeMap<>(mapping.primaryKeyMappings()));
+                            objectMapping.put(
+                                    "primaryKeyMappings", new java.util.TreeMap<>(mapping.primaryKeyMappings()));
                             return objectMapping;
                         })
                         .toList());
@@ -194,7 +205,10 @@ public class OntologySnapshotService {
                                     "fieldMappings",
                                     mapping.fieldMappings().stream()
                                             .map(field -> Map.of(
-                                                    "sourceField", field.sourceField(), "targetField", field.targetField()))
+                                                    "sourceField",
+                                                    field.sourceField(),
+                                                    "targetField",
+                                                    field.targetField()))
                                             .toList());
                             return linkMapping;
                         })

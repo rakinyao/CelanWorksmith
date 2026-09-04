@@ -6,7 +6,6 @@ import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,9 +24,11 @@ class OntologyModelReleaseMapperTest {
 
         assertThat(definition.projectId()).isEqualTo("business-core-demo");
         assertThat(definition.version()).isEqualTo("1.0.0");
-        assertThat(definition.objectTypes()).extracting(ObjectTypeDTO::id)
+        assertThat(definition.objectTypes())
+                .extracting(ObjectTypeDTO::id)
                 .containsExactlyInAnyOrder("supplier", "customer", "contract", "purchase_order");
-        assertThat(definition.linkTypes()).extracting(LinkTypeDTO::id)
+        assertThat(definition.linkTypes())
+                .extracting(LinkTypeDTO::id)
                 .containsExactlyInAnyOrder(
                         "contract_customer", "contract_supplier", "purchase_order_contract", "purchase_order_supplier");
         assertThat(definition.runtimeMappings().objectMappings()).hasSize(4);

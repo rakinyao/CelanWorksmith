@@ -32,7 +32,11 @@ public class ReleaseRuntimeBindingProperties {
 
         public Binding() {}
 
-        public Binding(String workspaceId, String domain, String managedBindingId, String runtimeProviderId,
+        public Binding(
+                String workspaceId,
+                String domain,
+                String managedBindingId,
+                String runtimeProviderId,
                 List<String> allowedAssetRefs) {
             this.workspaceId = workspaceId;
             this.domain = domain;
@@ -41,15 +45,44 @@ public class ReleaseRuntimeBindingProperties {
             this.allowedAssetRefs = allowedAssetRefs == null ? new ArrayList<>() : new ArrayList<>(allowedAssetRefs);
         }
 
-        public String getWorkspaceId() { return workspaceId; }
-        public void setWorkspaceId(String value) { workspaceId = value; }
-        public String getDomain() { return domain; }
-        public void setDomain(String value) { domain = value; }
-        public String getManagedBindingId() { return managedBindingId; }
-        public void setManagedBindingId(String value) { managedBindingId = value; }
-        public String getRuntimeProviderId() { return runtimeProviderId; }
-        public void setRuntimeProviderId(String value) { runtimeProviderId = value; }
-        public List<String> getAllowedAssetRefs() { return allowedAssetRefs; }
-        public void setAllowedAssetRefs(List<String> value) { allowedAssetRefs = value == null ? new ArrayList<>() : new ArrayList<>(value); }
+        public String getWorkspaceId() {
+            return workspaceId;
+        }
+
+        public void setWorkspaceId(String value) {
+            workspaceId = value;
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String value) {
+            domain = value;
+        }
+
+        public String getManagedBindingId() {
+            return managedBindingId;
+        }
+
+        public void setManagedBindingId(String value) {
+            managedBindingId = value;
+        }
+
+        public String getRuntimeProviderId() {
+            return runtimeProviderId;
+        }
+
+        public void setRuntimeProviderId(String value) {
+            runtimeProviderId = value;
+        }
+
+        public List<String> getAllowedAssetRefs() {
+            return allowedAssetRefs;
+        }
+
+        public void setAllowedAssetRefs(List<String> value) {
+            allowedAssetRefs = value == null ? new ArrayList<>() : new ArrayList<>(value);
+        }
     }
 }

@@ -61,12 +61,18 @@ public class PlatformOntologyProjectImporter implements OntologyProjectImportSou
             return Mono.error(new IllegalArgumentException("Platform release ID is required"));
         }
         return releaseClient.fetchRelease(request.sourceReleaseId()).flatMap(release -> {
-            if (release == null || release.definition() == null || release.runtimeProviderId() == null
+            if (release == null
+                    || release.definition() == null
+                    || release.runtimeProviderId() == null
                     || release.runtimeProviderId().isBlank()) {
                 return Mono.error(new IllegalArgumentException("Platform release metadata is invalid"));
             }
             return snapshotService.createSnapshot(new ImportedOntologyProject(
-                    release.definition(), "platform-release", request.sourceReleaseId(), release.runtimeProviderId(), context.importedBy()));
+                    release.definition(),
+                    "platform-release",
+                    request.sourceReleaseId(),
+                    release.runtimeProviderId(),
+                    context.importedBy()));
         });
     }
 }

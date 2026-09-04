@@ -50,7 +50,8 @@ public class OntologyDatasourceService {
                         Mono.error(new IllegalArgumentException("Workspace datasource administration is required")))
                 .then(ontologyPluginId())
                 .flatMap(pluginId -> {
-                    OntologyProjectImportSource importer = importerFor(request.projectImportRequest().sourceKind());
+                    OntologyProjectImportSource importer =
+                            importerFor(request.projectImportRequest().sourceKind());
                     return invokeImporter(request.projectImportRequest(), request.workspaceId())
                             .flatMap(snapshot -> validatedSnapshot(importer, snapshot))
                             .map(snapshot -> datasource(request, snapshot, pluginId));
@@ -69,8 +70,8 @@ public class OntologyDatasourceService {
                 .validate(snapshot, snapshot.runtimeProviderId())
                 .flatMap(validation -> validation.compatible()
                         ? Mono.just(snapshot)
-                        : Mono.error(new IllegalArgumentException("Runtime Provider is incompatible: "
-                                + String.join("; ", validation.errors()))))
+                        : Mono.error(new IllegalArgumentException(
+                                "Runtime Provider is incompatible: " + String.join("; ", validation.errors()))))
                 .onErrorResume(error -> cleanup(importer, snapshot)
                         .onErrorResume(cleanupError -> Mono.empty())
                         .then(Mono.error(error)));
@@ -81,11 +82,10 @@ public class OntologyDatasourceService {
         return cleanup == null ? Mono.empty() : cleanup;
     }
 
-    private Mono<OntologyMetadataSnapshot> invokeImporter(
-            OntologyProjectImportRequest request, String workspaceId) {
+    private Mono<OntologyMetadataSnapshot> invokeImporter(OntologyProjectImportRequest request, String workspaceId) {
         OntologyProjectImportSource importer = importerFor(request.sourceKind());
-        Mono<OntologyMetadataSnapshot> contextual = importer.importProject(
-                request, new OntologyProjectImportContext(workspaceId, request.importedBy()));
+        Mono<OntologyMetadataSnapshot> contextual =
+                importer.importProject(request, new OntologyProjectImportContext(workspaceId, request.importedBy()));
         if (contextual != null) return contextual;
         // Mockito and third-party legacy sources may only implement the original overload.
         Mono<OntologyMetadataSnapshot> legacy = importer.importProject(request);
@@ -169,7 +169,9 @@ public class OntologyDatasourceService {
         if (!isBlank(snapshot.managedRuntimeBindingId())) {
             properties.add(property("managedRuntimeBindingId", snapshot.managedRuntimeBindingId()));
         }
-        return DatasourceConfiguration.builder().properties(List.copyOf(properties)).build();
+        return DatasourceConfiguration.builder()
+                .properties(List.copyOf(properties))
+                .build();
     }
 
     private Mono<Datasource> persistDatasourceId(Datasource datasource) {

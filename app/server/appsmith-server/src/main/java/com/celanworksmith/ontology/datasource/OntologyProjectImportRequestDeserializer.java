@@ -18,12 +18,12 @@ public final class OntologyProjectImportRequestDeserializer extends StdDeseriali
             throws IOException {
         JsonNode node = parser.getCodec().readTree(parser);
         String sourceKindText = text(node, "sourceKind");
-        OntologyProjectImportSource.Kind sourceKind = sourceKindText == null
-                ? null
-                : OntologyProjectImportSource.Kind.valueOf(sourceKindText);
-        byte[] metadata = node.path("metadata").isNull() || node.path("metadata").isMissingNode()
-                ? null
-                : parser.getCodec().treeToValue(node.path("metadata"), byte[].class);
+        OntologyProjectImportSource.Kind sourceKind =
+                sourceKindText == null ? null : OntologyProjectImportSource.Kind.valueOf(sourceKindText);
+        byte[] metadata =
+                node.path("metadata").isNull() || node.path("metadata").isMissingNode()
+                        ? null
+                        : parser.getCodec().treeToValue(node.path("metadata"), byte[].class);
         String sourceReleaseId = text(node, "sourceReleaseId");
         String runtimeProviderId = sourceKind == OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON
                 ? null

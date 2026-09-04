@@ -43,7 +43,9 @@ public class ReleaseDatasourcePinExtractor {
     }
 
     public ReleaseDatasourcePinExtractor(
-            NewActionRepository actionRepository, PluginService pluginService, OntologySnapshotService snapshotService) {
+            NewActionRepository actionRepository,
+            PluginService pluginService,
+            OntologySnapshotService snapshotService) {
         this.actionRepository = actionRepository;
         this.pluginService = pluginService;
         this.snapshotService = Objects.requireNonNull(snapshotService, "snapshotService must not be null");
@@ -242,8 +244,7 @@ public class ReleaseDatasourcePinExtractor {
         return configuration.getProperties().stream()
                 .filter(property -> property != null)
                 .map(Property::getKey)
-                .anyMatch(key -> "metadataSnapshotId".equals(key)
-                        || "metadataDigest".equals(key));
+                .anyMatch(key -> "metadataSnapshotId".equals(key) || "metadataDigest".equals(key));
     }
 
     private DatasourceConfiguration configuration(Datasource datasource) {
@@ -303,11 +304,7 @@ public class ReleaseDatasourcePinExtractor {
         String message = exception.getMessage();
         if (message != null) {
             for (String key : List.of(
-                    "projectId",
-                    "projectVersion",
-                    "metadataSnapshotId",
-                    "metadataDigest",
-                    "providerContractVersion")) {
+                    "projectId", "projectVersion", "metadataSnapshotId", "metadataDigest", "providerContractVersion")) {
                 if (message.startsWith(key + " ")) {
                     return path + ".datasourceConfiguration.properties." + key;
                 }
