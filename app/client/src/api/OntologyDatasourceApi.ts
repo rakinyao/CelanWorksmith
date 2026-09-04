@@ -4,7 +4,8 @@ import type { ApiResponse } from "api/ApiResponses";
 export type OntologyDatasourceSource =
   | "DEMO"
   | "LOCAL_YAML"
-  | "PLATFORM_RELEASE";
+  | "PLATFORM_RELEASE"
+  | "LOCAL_RELEASE_JSON";
 
 export interface ImportOntologyDatasourceRequest {
   workspaceId: string;

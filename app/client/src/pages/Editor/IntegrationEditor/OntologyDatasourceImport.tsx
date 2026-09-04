@@ -45,11 +45,16 @@ const sourceOptions: Array<{
   labelKey:
     | "ontologyDatasource.sourceDemo"
     | "ontologyDatasource.sourceLocalYaml"
-    | "ontologyDatasource.sourcePlatformRelease";
+    | "ontologyDatasource.sourcePlatformRelease"
+    | "ontologyDatasource.sourceLocalReleaseJson";
   value: OntologyDatasourceSource;
 }> = [
   { value: "DEMO", labelKey: "ontologyDatasource.sourceDemo" },
   { value: "LOCAL_YAML", labelKey: "ontologyDatasource.sourceLocalYaml" },
+  {
+    value: "LOCAL_RELEASE_JSON",
+    labelKey: "ontologyDatasource.sourceLocalReleaseJson",
+  },
   {
     value: "PLATFORM_RELEASE",
     labelKey: "ontologyDatasource.sourcePlatformRelease",
@@ -108,6 +113,7 @@ function OntologyDatasourceImport({
   const [runtimeProviderId, setRuntimeProviderId] = useState("");
   const [sourceReleaseId, setSourceReleaseId] = useState("");
   const [yamlFile, setYamlFile] = useState<File>();
+  const [releaseJsonFile, setReleaseJsonFile] = useState<File>();
   const [validation, setValidation] = useState<ImportValidation>({});
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string>();
@@ -130,6 +136,10 @@ function OntologyDatasourceImport({
       }
     }
 
+    if (source === "LOCAL_RELEASE_JSON" && !releaseJsonFile) {
+      errors.metadata = t("ontologyDatasource.releaseJsonRequired");
+    }
+
     if (source === "PLATFORM_RELEASE" && !sourceReleaseId.trim()) {
       errors.sourceReleaseId = t("ontologyDatasource.releaseRequired");
     }
@@ -148,7 +158,8 @@ function OntologyDatasourceImport({
     setSummary(undefined);
     setImportError(undefined);
     try {
-      const metadata = yamlFile ? await readFile(yamlFile) : undefined;
+      const selectedFile = source === "LOCAL_YAML" ? yamlFile : releaseJsonFile;
+      const metadata = selectedFile ? await readFile(selectedFile) : undefined;
       const response = await OntologyDatasourceApi.importDatasource({
         workspaceId,
         datasourceName: datasourceName.trim(),
@@ -156,7 +167,10 @@ function OntologyDatasourceImport({
           sourceKind: source,
           metadata,
           sourceReleaseId: sourceReleaseId.trim() || undefined,
-          runtimeProviderId: runtimeProviderId.trim() || undefined,
+          runtimeProviderId:
+            source === "LOCAL_YAML"
+              ? runtimeProviderId.trim() || undefined
+              : undefined,
         },
         changeNote: changeNote.trim() || undefined,
       });
@@ -178,12 +192,22 @@ function OntologyDatasourceImport({
 
   const handleSourceChange = useCallback((value: string) => {
     setSource(value as OntologyDatasourceSource);
+    setYamlFile(undefined);
+    setReleaseJsonFile(undefined);
     setValidation({});
   }, []);
 
   const handleYamlFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setYamlFile(event.target.files?.[0]);
+      setValidation((current) => ({ ...current, metadata: undefined }));
+    },
+    [],
+  );
+
+  const handleReleaseJsonFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setReleaseJsonFile(event.target.files?.[0]);
       setValidation((current) => ({ ...current, metadata: undefined }));
     },
     [],
@@ -244,6 +268,22 @@ function OntologyDatasourceImport({
                 value={runtimeProviderId}
               />
             </>
+          )}
+          {source === "LOCAL_RELEASE_JSON" && (
+            <Flex flexDirection="column" gap="spaces-1">
+              <Text>{t("ontologyDatasource.releaseJsonFile")}</Text>
+              <FileInput
+                accept=".json,application/json"
+                aria-label={t("ontologyDatasource.releaseJsonFile")}
+                onChange={handleReleaseJsonFileChange}
+                type="file"
+              />
+              {validation.metadata && (
+                <Text color="var(--ads-v2-color-red-500)">
+                  {validation.metadata}
+                </Text>
+              )}
+            </Flex>
           )}
           {source === "PLATFORM_RELEASE" && (
             <Input

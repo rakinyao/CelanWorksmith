@@ -231,4 +231,48 @@ describe("OntologyDatasourceImport", () => {
     expect(screen.getByText("Select a YAML file.")).not.toBeNull();
     expect(screen.getByText("Enter a runtime provider ID.")).not.toBeNull();
   });
+
+  it("uploads a Release JSON file without showing or sending a provider ID", async () => {
+    (OntologyDatasourceApi.importDatasource as jest.Mock).mockResolvedValue({
+      data: {
+        datasourceId: "ontology-datasource-json",
+        datasourceName: "Release JSON Ontology",
+        projectVersion: "1.0.0",
+      },
+    });
+
+    render(
+      <OntologyDatasourceImport
+        onImported={jest.fn()}
+        workspaceId="workspace-1"
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "Source" }));
+    fireEvent.click(screen.getByText("Local Release JSON"));
+    fireEvent.change(screen.getByRole("textbox", { name: /Datasource name/ }), {
+      target: { value: "Release JSON Ontology" },
+    });
+    const file = new File(["{}"], "business.json", {
+      type: "application/json",
+    });
+    fireEvent.change(screen.getByLabelText("Release JSON file"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import ontology" }));
+
+    await waitFor(() => {
+      expect(OntologyDatasourceApi.importDatasource).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectImportRequest: expect.objectContaining({
+            sourceKind: "LOCAL_RELEASE_JSON",
+            runtimeProviderId: undefined,
+          }),
+        }),
+      );
+    });
+    expect(
+      screen.queryByLabelText("Runtime provider ID"),
+    ).not.toBeInTheDocument();
+  });
 });
