@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class ReleaseDatasourcePinExtractor {
     private final NewActionRepository actionRepository;
@@ -29,15 +30,11 @@ public class ReleaseDatasourcePinExtractor {
     private final OntologySnapshotService snapshotService;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
-    public ReleaseDatasourcePinExtractor(NewActionRepository actionRepository, PluginService pluginService) {
-        this(actionRepository, pluginService, null);
-    }
-
     public ReleaseDatasourcePinExtractor(
             NewActionRepository actionRepository, PluginService pluginService, OntologySnapshotService snapshotService) {
         this.actionRepository = actionRepository;
         this.pluginService = pluginService;
-        this.snapshotService = snapshotService;
+        this.snapshotService = Objects.requireNonNull(snapshotService, "snapshotService must not be null");
     }
 
     public Mono<ReleaseDatasourcePinExtractionResult> extract(ApplicationReleaseCandidate candidate) {
@@ -157,7 +154,6 @@ public class ReleaseDatasourcePinExtractor {
         String projectVersion = required(properties, "projectVersion");
         String snapshotId = required(properties, "metadataSnapshotId");
         String digest = required(properties, "metadataDigest");
-        String providerId = snapshotService == null ? required(properties, "runtimeProviderId") : null;
         String contractVersion = required(properties, "providerContractVersion");
         if (projectId.isBlank() || projectVersion.isBlank()) {
             throw new IllegalArgumentException("project identity must not be blank");
@@ -166,7 +162,7 @@ public class ReleaseDatasourcePinExtractor {
                 datasource.getId(),
                 datasource.getPluginId(),
                 "ONTOLOGY",
-                providerId,
+                null,
                 snapshotId,
                 digest,
                 contractVersion,
@@ -176,9 +172,6 @@ public class ReleaseDatasourcePinExtractor {
 
     private Mono<ReleaseDatasourcePinExtractionResult> resolvePinnedProviders(
             ReleaseDatasourcePinExtractionResult extraction) {
-        if (snapshotService == null) {
-            return Mono.just(extraction);
-        }
         return reactor.core.publisher.Flux.fromIterable(extraction.pins())
                 .concatMap(pin -> "ONTOLOGY".equals(pin.kind())
                         ? snapshotService
