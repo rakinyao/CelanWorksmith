@@ -262,6 +262,58 @@ describe("OntologyDatasourceImport", () => {
     },
   );
 
+  it.each([
+    ["en-US", "Release JSON is invalid or its digest does not match."],
+    ["zh-CN", "发布 JSON 无效或其摘要与内容不匹配。"],
+  ])(
+    "handles a resolved Axios error for invalid Release JSON in %s",
+    async (locale, message) => {
+      await changeLocale(locale as "en-US" | "zh-CN");
+      const resolvedAxiosError = Object.assign(
+        new Error("Request failed with status code 400"),
+        {
+          code: "ERR_BAD_REQUEST",
+          response: {
+            data: {
+              code: "RELEASE_IMPORT_INVALID",
+              message: "secret",
+            },
+          },
+        },
+      );
+
+      (OntologyDatasourceApi.importDatasource as jest.Mock).mockResolvedValue(
+        resolvedAxiosError,
+      );
+
+      render(
+        <OntologyDatasourceImport
+          onImported={jest.fn()}
+          workspaceId="workspace-1"
+        />,
+      );
+
+      fireEvent.change(
+        screen.getByRole("textbox", {
+          name: locale === "en-US" ? /Datasource name/ : /数据源名称/,
+        }),
+        {
+          target: { value: "Release Ontology" },
+        },
+      );
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: locale === "en-US" ? /Import ontology/ : /导入本体/,
+        }),
+      );
+
+      const alert = await screen.findByRole("alert");
+
+      expect(alert.textContent).toBe(message);
+      expect(alert.textContent).not.toContain("secret");
+    },
+  );
+
   it("announces the empty and loading import states", async () => {
     let resolveImport: (() => void) | undefined;
 

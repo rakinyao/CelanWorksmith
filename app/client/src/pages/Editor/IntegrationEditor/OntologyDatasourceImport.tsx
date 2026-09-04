@@ -96,15 +96,23 @@ const structuredErrorCode = (error: unknown): string | undefined => {
 
   const record = error as Record<string, unknown>;
 
-  if (typeof record.code === "string" && record.code) return record.code;
-
   for (const key of ["response", "data", "responseMeta", "error"]) {
     const code = structuredErrorCode(record[key]);
 
     if (code) return code;
   }
 
+  if (typeof record.code === "string" && record.code) return record.code;
+
   return undefined;
+};
+
+const isResolvedAxiosError = (value: unknown): boolean => {
+  if (typeof value !== "object" || value === null) return false;
+
+  const response = (value as Record<string, unknown>).response;
+
+  return typeof response === "object" && response !== null;
 };
 
 const releaseImportErrorKey = (code: string | undefined) => {
@@ -206,6 +214,8 @@ function OntologyDatasourceImport({
         },
         changeNote: changeNote.trim() || undefined,
       });
+
+      if (isResolvedAxiosError(response)) throw response;
 
       setSummary(response.data);
       onImported();
