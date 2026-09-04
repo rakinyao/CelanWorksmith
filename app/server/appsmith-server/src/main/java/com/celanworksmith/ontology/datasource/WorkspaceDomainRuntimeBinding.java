@@ -7,8 +7,15 @@ public record WorkspaceDomainRuntimeBinding(
         String domain,
         String managedBindingId,
         String runtimeProviderId,
-        List<String> allowedAssetRefs) {
+        String providerKind,
+        List<AssetAuthorization> assetAuthorizations,
+        List<LinkAuthorization> linkAuthorizations) {
     public WorkspaceDomainRuntimeBinding {
-        allowedAssetRefs = List.copyOf(allowedAssetRefs == null ? List.of() : allowedAssetRefs);
+        assetAuthorizations = List.copyOf(assetAuthorizations == null ? List.of() : assetAuthorizations);
+        linkAuthorizations = List.copyOf(linkAuthorizations == null ? List.of() : linkAuthorizations);
     }
+
+    public record AssetAuthorization(String assetRef, String mappingDigest) {}
+
+    public record LinkAuthorization(String linkId, String mappingDigest) {}
 }

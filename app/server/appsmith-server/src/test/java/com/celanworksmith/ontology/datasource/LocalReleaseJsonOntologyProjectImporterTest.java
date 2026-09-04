@@ -4,6 +4,8 @@ import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.ontology.release.OntologyModelReleaseMapper;
 import com.celanworksmith.ontology.release.OntologyModelReleaseParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.erdtman.jcs.JsonCanonicalizer;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -11,6 +13,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -31,8 +34,8 @@ class LocalReleaseJsonOntologyProjectImporterTest {
         OntologySnapshotService snapshotService = new OntologySnapshotService(
                 repository, Clock.fixed(Instant.parse("2026-08-13T00:00:00Z"), ZoneOffset.UTC));
         WorkspaceDomainRuntimeBindingResolver resolver = new WorkspaceDomainRuntimeBindingResolver(
-                new ReleaseRuntimeBindingProperties(List.of(new ReleaseRuntimeBindingProperties.Binding(
-                        "workspace-a", "business", "managed-business", "demo-mongo-readonly", allowedAssets()))));
+                new ReleaseRuntimeBindingProperties(List.of(ReleaseRuntimeBindingTestFixtures.businessBinding(
+                        "workspace-a", "managed-business", "demo-mongo-readonly"))));
         LocalReleaseJsonOntologyProjectImporter importer = new LocalReleaseJsonOntologyProjectImporter(
                 snapshotService, resolver, new OntologyModelReleaseParser(), new OntologyModelReleaseMapper());
         OntologyProjectImportRequest request = new OntologyProjectImportRequest(
@@ -51,6 +54,7 @@ class LocalReleaseJsonOntologyProjectImporterTest {
                     assertThat(snapshot.releaseDigest()).startsWith("sha256:");
                     assertThat(snapshot.releaseDomain()).isEqualTo("business");
                     assertThat(snapshot.managedRuntimeBindingId()).isEqualTo("managed-business");
+                    assertThat(snapshot.workspaceId()).isEqualTo("workspace-a");
                     assertThat(snapshot.createdBy()).isEqualTo("admin@example.com");
                 })
                 .verifyComplete();
@@ -75,7 +79,7 @@ class LocalReleaseJsonOntologyProjectImporterTest {
 
         StepVerifier.create(importer.importProject(
                         request, new OntologyProjectImportContext("workspace-a", "admin@example.com")))
-                .expectErrorMatches(error -> error.getMessage().contains("business"))
+                .expectErrorMessage("The workspace release binding is unavailable.")
                 .verify();
         verify(repository, never()).insert(any());
     }
@@ -104,7 +108,14 @@ class LocalReleaseJsonOntologyProjectImporterTest {
                 new OntologySnapshotService(repository, Clock.systemUTC()),
                 new WorkspaceDomainRuntimeBindingResolver(
                         new ReleaseRuntimeBindingProperties(List.of(new ReleaseRuntimeBindingProperties.Binding(
-                                "workspace-a", "business", "managed", "provider", List.of("other-asset"))))));
+                                "workspace-a",
+                                "business",
+                                "managed",
+                                "provider",
+                                "GOVERNED_DATASET",
+                                List.of(new ReleaseRuntimeBindingProperties.AssetAuthorization(
+                                        "other-asset", "sha256:" + "0".repeat(64))),
+                                List.of())))));
 
         StepVerifier.create(importer.importProject(
                         new OntologyProjectImportRequest(
@@ -115,9 +126,88 @@ class LocalReleaseJsonOntologyProjectImporterTest {
                                 null),
                         new OntologyProjectImportContext("workspace-a", "admin@example.com")))
                 .expectErrorMatches(
-                        error -> error.getMessage().equals("Release runtime assets are unavailable in the workspace.")
+                        error -> error.getMessage().equals("Release runtime assets are unavailable in this workspace.")
                                 && !error.getMessage().contains("ont_"))
                 .verify();
+        verify(repository, never()).insert(any());
+    }
+
+    @Test
+    void rejectsAnUnapprovedRuntimeColumnOnAnAllowlistedAssetBeforeSnapshotPersistence() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+        LocalReleaseJsonOntologyProjectImporter importer = new LocalReleaseJsonOntologyProjectImporter(
+                new OntologySnapshotService(repository, Clock.systemUTC()),
+                new WorkspaceDomainRuntimeBindingResolver(new ReleaseRuntimeBindingProperties(List.of(
+                        ReleaseRuntimeBindingTestFixtures.businessBinding("workspace-a", "managed", "provider")))));
+
+        StepVerifier.create(importer.importProject(
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                fixtureWithUnapprovedRuntimeColumn(),
+                                null,
+                                null,
+                                null),
+                        new OntologyProjectImportContext("workspace-a", "admin@example.com")))
+                .expectErrorMessage("Release runtime assets are unavailable in this workspace.")
+                .verify();
+        verify(repository, never()).insert(any());
+    }
+
+    @Test
+    void rejectsAnUnexpectedRuntimeProviderKindBeforeSnapshotPersistence() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        LocalReleaseJsonOntologyProjectImporter importer = authorizedImporter(repository);
+
+        StepVerifier.create(importer.importProject(
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                fixtureWithRuntimeValue("provider_kind", "UNMANAGED_DATASET"),
+                                null,
+                                null,
+                                null),
+                        new OntologyProjectImportContext("workspace-a", "admin@example.com")))
+                .expectErrorMessage("The workspace release binding is unavailable.")
+                .verify();
+
+        verify(repository, never()).insert(any());
+    }
+
+    @Test
+    void rejectsWritableRuntimeBindingsBeforeSnapshotPersistence() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        LocalReleaseJsonOntologyProjectImporter importer = authorizedImporter(repository);
+
+        StepVerifier.create(importer.importProject(
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                fixtureWithRuntimeValue("access_mode", "READ_WRITE"),
+                                null,
+                                null,
+                                null),
+                        new OntologyProjectImportContext("workspace-a", "admin@example.com")))
+                .expectErrorMessage("The workspace release binding is unavailable.")
+                .verify();
+
+        verify(repository, never()).insert(any());
+    }
+
+    @Test
+    void rejectsAlteredVerifiedLinkMappingsBeforeSnapshotPersistence() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        LocalReleaseJsonOntologyProjectImporter importer = authorizedImporter(repository);
+
+        StepVerifier.create(importer.importProject(
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                fixtureWithAlteredLinkMapping(),
+                                null,
+                                null,
+                                null),
+                        new OntologyProjectImportContext("workspace-a", "admin@example.com")))
+                .expectErrorMessage("Release runtime assets are unavailable in this workspace.")
+                .verify();
+
         verify(repository, never()).insert(any());
     }
 
@@ -145,20 +235,89 @@ class LocalReleaseJsonOntologyProjectImporterTest {
         verify(repository, never()).insert(any());
     }
 
-    private static List<String> allowedAssets() {
-        String dataset = "${source_dataset_id}";
-        return List.of(
-                dataset + ":public.ont_supplier",
-                dataset + ":public.ont_customer",
-                dataset + ":public.ont_contract",
-                dataset + ":public.ont_purchase_order");
-    }
-
     private static byte[] fixtureBytes() {
         try {
             return Files.readAllBytes(Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo.json"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
+    }
+
+    private static byte[] fixtureWithUnapprovedRuntimeColumn() {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectNode document = (ObjectNode) objectMapper.readTree(fixtureBytes());
+            for (var element : document.withArray("elements")) {
+                if ("runtime_binding".equals(element.path("kind").asText())
+                        && "contract".equals(element.at("/spec/entity_set").asText())) {
+                    ((ObjectNode) element.at("/spec/field_mappings/contract_name")).put("column", "private_salary");
+                    return signed(document, objectMapper);
+                }
+            }
+            throw new IllegalStateException("Contract runtime binding is missing");
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static byte[] fixtureWithRuntimeValue(String key, String value) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectNode document = (ObjectNode) objectMapper.readTree(fixtureBytes());
+            for (var element : document.withArray("elements")) {
+                if ("runtime_binding".equals(element.path("kind").asText())) {
+                    ((ObjectNode) element.path("spec")).put(key, value);
+                    return signed(document, objectMapper);
+                }
+            }
+            throw new IllegalStateException("Runtime binding is missing");
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static byte[] fixtureWithAlteredLinkMapping() {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectNode document = (ObjectNode) objectMapper.readTree(fixtureBytes());
+            for (var element : document.withArray("elements")) {
+                if ("entity_set_link".equals(element.path("kind").asText())
+                        && "contract_customer".equals(element.path("name").asText())) {
+                    ((ObjectNode) element.at("/spec/field_mappings/0")).put("source_field", "private_salary");
+                    return signed(document, objectMapper);
+                }
+            }
+            throw new IllegalStateException("Verified link is missing");
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static LocalReleaseJsonOntologyProjectImporter authorizedImporter(
+            OntologyMetadataSnapshotRepository repository) {
+        return new LocalReleaseJsonOntologyProjectImporter(
+                new OntologySnapshotService(repository, Clock.systemUTC()),
+                new WorkspaceDomainRuntimeBindingResolver(new ReleaseRuntimeBindingProperties(List.of(
+                        ReleaseRuntimeBindingTestFixtures.businessBinding("workspace-a", "managed", "provider")))));
+    }
+
+    private static byte[] signed(ObjectNode document, ObjectMapper objectMapper) {
+        try {
+            ObjectNode release = (ObjectNode) document.path("release");
+            release.remove("release_digest");
+            byte[] canonical = new JsonCanonicalizer(objectMapper.writeValueAsBytes(document)).getEncodedUTF8();
+            release.put(
+                    "release_digest",
+                    "sha256:" + hex(MessageDigest.getInstance("SHA-256").digest(canonical)));
+            return objectMapper.writeValueAsBytes(document);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder value = new StringBuilder(bytes.length * 2);
+        for (byte current : bytes) value.append(String.format("%02x", current));
+        return value.toString();
     }
 }

@@ -144,16 +144,8 @@ class ReleaseJsonDatasourceIntegrationTest {
         OntologyProjectImportSource importer = new LocalReleaseJsonOntologyProjectImporter(
                 snapshotService,
                 new WorkspaceDomainRuntimeBindingResolver(
-                        new ReleaseRuntimeBindingProperties(List.of(new ReleaseRuntimeBindingProperties.Binding(
-                                WORKSPACE_ID,
-                                "business",
-                                "managed:business-demo",
-                                PROVIDER_ID,
-                                List.of(
-                                        "${source_dataset_id}:public.ont_supplier",
-                                        "${source_dataset_id}:public.ont_customer",
-                                        "${source_dataset_id}:public.ont_contract",
-                                        "${source_dataset_id}:public.ont_purchase_order"))))),
+                        new ReleaseRuntimeBindingProperties(List.of(ReleaseRuntimeBindingTestFixtures.businessBinding(
+                                WORKSPACE_ID, "managed:business-demo", PROVIDER_ID)))),
                 new OntologyModelReleaseParser(),
                 new OntologyModelReleaseMapper());
         OntologyDatasourceService service = new OntologyDatasourceService(

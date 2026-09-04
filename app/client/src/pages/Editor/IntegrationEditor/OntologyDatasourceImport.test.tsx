@@ -184,6 +184,41 @@ describe("OntologyDatasourceImport", () => {
     expect(alert.textContent).not.toContain("[object Object]");
   });
 
+  it.each([
+    [
+      "RELEASE_IMPORT_BINDING_UNAVAILABLE",
+      "The workspace release binding is unavailable.",
+    ],
+    [
+      "RELEASE_IMPORT_ASSETS_UNAVAILABLE",
+      "Release runtime assets are unavailable in this workspace.",
+    ],
+  ])(
+    "renders the localized release import error for %s",
+    async (code, message) => {
+      (OntologyDatasourceApi.importDatasource as jest.Mock).mockRejectedValue({
+        response: { data: { code, message: "untrusted backend diagnostic" } },
+      });
+
+      render(
+        <OntologyDatasourceImport
+          onImported={jest.fn()}
+          workspaceId="workspace-1"
+        />,
+      );
+
+      fireEvent.change(
+        screen.getByRole("textbox", { name: /Datasource name/ }),
+        {
+          target: { value: "Release Ontology" },
+        },
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Import ontology" }));
+
+      expect((await screen.findByRole("alert")).textContent).toBe(message);
+    },
+  );
+
   it("announces the empty and loading import states", async () => {
     let resolveImport: (() => void) | undefined;
 

@@ -85,6 +85,33 @@ class OntologySnapshotServiceTest {
     }
 
     @Test
+    void rejectsReleaseSnapshotOwnedByAnotherWorkspace() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        OntologySnapshotService service = new OntologySnapshotService(repository, FIXED_CLOCK);
+        OntologyMetadataSnapshot snapshot = new OntologyMetadataSnapshot(
+                "release-snapshot",
+                "business-core-demo",
+                "1.0.0",
+                "local-release-json",
+                "business-core-demo@1.0.0",
+                "demo-mongo-readonly",
+                "admin-1",
+                FIXED_CLOCK.instant(),
+                "sha256:" + "a".repeat(64),
+                definitionInSourceOrder(),
+                false,
+                "business",
+                "sha256:" + "b".repeat(64),
+                "business-demo-managed",
+                "workspace-a");
+        when(repository.findById(snapshot.id())).thenReturn(Mono.just(snapshot));
+
+        StepVerifier.create(service.getRequiredSnapshot(snapshot.id(), snapshot.metadataDigest(), "workspace-b"))
+                .expectError(OntologySnapshotService.SnapshotWorkspaceMismatchException.class)
+                .verify();
+    }
+
+    @Test
     void acceptsDemoMetadataAsAnImportSource() {
         OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
         when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));

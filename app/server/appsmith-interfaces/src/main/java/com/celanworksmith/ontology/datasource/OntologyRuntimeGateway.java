@@ -125,7 +125,17 @@ public interface OntologyRuntimeGateway {
 
     Mono<Snapshot> getRequiredSnapshot(String snapshotId, String digest);
 
+    default Mono<Snapshot> getRequiredSnapshot(
+            String snapshotId, String digest, String workspaceId, String datasourceId) {
+        return getRequiredSnapshot(snapshotId, digest);
+    }
+
     Mono<ObjectQueryResult> queryObjects(Snapshot snapshot, String objectTypeId, ObjectQuery query);
+
+    default Mono<ObjectQueryResult> queryObjects(
+            String workspaceId, String datasourceId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+        return queryObjects(snapshot, objectTypeId, query);
+    }
 
     @Deprecated
     default Mono<ObjectQueryResult> queryObjects(
@@ -135,6 +145,16 @@ public interface OntologyRuntimeGateway {
 
     Mono<Object> executeFunction(
             Snapshot snapshot, String functionId, OntologyObjectSet targets, Map<String, Object> parameters);
+
+    default Mono<Object> executeFunction(
+            String workspaceId,
+            String datasourceId,
+            Snapshot snapshot,
+            String functionId,
+            OntologyObjectSet targets,
+            Map<String, Object> parameters) {
+        return executeFunction(snapshot, functionId, targets, parameters);
+    }
 
     @Deprecated
     default Mono<Object> executeFunction(
@@ -147,6 +167,16 @@ public interface OntologyRuntimeGateway {
     }
 
     Mono<List<Map<String, Object>>> resolveLink(Snapshot snapshot, String sourceTypeId, String sourceId, String linkId);
+
+    default Mono<List<Map<String, Object>>> resolveLink(
+            String workspaceId,
+            String datasourceId,
+            Snapshot snapshot,
+            String sourceTypeId,
+            String sourceId,
+            String linkId) {
+        return resolveLink(snapshot, sourceTypeId, sourceId, linkId);
+    }
 
     @Deprecated
     default Mono<List<Map<String, Object>>> resolveLink(

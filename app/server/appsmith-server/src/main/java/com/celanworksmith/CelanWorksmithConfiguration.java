@@ -110,8 +110,10 @@ public class CelanWorksmithConfiguration {
 
     @Bean
     public OntologyRuntimeGateway ontologyRuntimeGateway(
-            OntologySnapshotService snapshotService, RuntimeProviderRegistry runtimeProviderRegistry) {
-        return new OntologySnapshotRuntimeGateway(snapshotService, runtimeProviderRegistry);
+            OntologySnapshotService snapshotService,
+            RuntimeProviderRegistry runtimeProviderRegistry,
+            com.appsmith.server.datasources.base.DatasourceService datasourceService) {
+        return new OntologySnapshotRuntimeGateway(snapshotService, runtimeProviderRegistry, datasourceService);
     }
 
     @Bean

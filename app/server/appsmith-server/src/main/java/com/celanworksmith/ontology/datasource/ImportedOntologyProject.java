@@ -11,7 +11,8 @@ public record ImportedOntologyProject(
         boolean deprecated,
         String releaseDomain,
         String releaseDigest,
-        String managedRuntimeBindingId) {
+        String managedRuntimeBindingId,
+        String workspaceId) {
 
     public ImportedOntologyProject(
             OntologyProjectDefinition definition,
@@ -19,7 +20,7 @@ public record ImportedOntologyProject(
             String sourceReleaseId,
             String runtimeProviderId,
             String importedBy) {
-        this(definition, sourceKind, sourceReleaseId, runtimeProviderId, importedBy, false, null, null, null);
+        this(definition, sourceKind, sourceReleaseId, runtimeProviderId, importedBy, false, null, null, null, null);
     }
 
     public ImportedOntologyProject(
@@ -29,7 +30,17 @@ public record ImportedOntologyProject(
             String runtimeProviderId,
             String importedBy,
             boolean deprecated) {
-        this(definition, sourceKind, sourceReleaseId, runtimeProviderId, importedBy, deprecated, null, null, null);
+        this(
+                definition,
+                sourceKind,
+                sourceReleaseId,
+                runtimeProviderId,
+                importedBy,
+                deprecated,
+                null,
+                null,
+                null,
+                null);
     }
 
     public ImportedOntologyProject(
@@ -47,9 +58,32 @@ public record ImportedOntologyProject(
                 sourceReleaseId,
                 runtimeProviderId,
                 importedBy,
+                releaseDomain,
+                releaseDigest,
+                managedRuntimeBindingId,
+                null);
+    }
+
+    public ImportedOntologyProject(
+            OntologyProjectDefinition definition,
+            String sourceKind,
+            String sourceReleaseId,
+            String runtimeProviderId,
+            String importedBy,
+            String releaseDomain,
+            String releaseDigest,
+            String managedRuntimeBindingId,
+            String workspaceId) {
+        this(
+                definition,
+                sourceKind,
+                sourceReleaseId,
+                runtimeProviderId,
+                importedBy,
                 false,
                 releaseDomain,
                 releaseDigest,
-                managedRuntimeBindingId);
+                managedRuntimeBindingId,
+                workspaceId);
     }
 }

@@ -21,7 +21,41 @@ public record OntologyMetadataSnapshot(
         boolean deprecated,
         String releaseDomain,
         String releaseDigest,
-        String managedRuntimeBindingId) {
+        String managedRuntimeBindingId,
+        String workspaceId) {
+
+    public OntologyMetadataSnapshot(
+            String id,
+            String projectId,
+            String projectVersion,
+            String sourceKind,
+            String sourceReleaseId,
+            String runtimeProviderId,
+            String createdBy,
+            Instant createdAt,
+            String metadataDigest,
+            OntologyProjectDefinition definition,
+            boolean deprecated,
+            String releaseDomain,
+            String releaseDigest,
+            String managedRuntimeBindingId) {
+        this(
+                id,
+                projectId,
+                projectVersion,
+                sourceKind,
+                sourceReleaseId,
+                runtimeProviderId,
+                createdBy,
+                createdAt,
+                metadataDigest,
+                definition,
+                deprecated,
+                releaseDomain,
+                releaseDigest,
+                managedRuntimeBindingId,
+                null);
+    }
 
     public OntologyMetadataSnapshot(
             String id,
@@ -46,6 +80,7 @@ public record OntologyMetadataSnapshot(
                 metadataDigest,
                 definition,
                 false,
+                null,
                 null,
                 null,
                 null);
@@ -75,6 +110,7 @@ public record OntologyMetadataSnapshot(
                 metadataDigest,
                 definition,
                 deprecated,
+                null,
                 null,
                 null,
                 null);

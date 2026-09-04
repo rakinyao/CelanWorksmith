@@ -2,6 +2,8 @@ package com.celanworksmith.ontology.datasource;
 
 import com.appsmith.server.domains.User;
 import com.appsmith.server.services.SessionUserService;
+import com.celanworksmith.CelanWorksmithErrorCode;
+import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.CelanWorksmithExceptionHandler;
 import com.celanworksmith.ontology.datasource.dto.ImportOntologyDatasourceRequest;
 import com.celanworksmith.ontology.datasource.dto.OntologyDatasourceSummary;
@@ -175,5 +177,37 @@ class OntologyDatasourceControllerTest {
                             .doesNotContain(
                                     "Mongo", "mongodb", "demo-mongo-readonly", "forged-metadata", "forged-provider");
                 });
+    }
+
+    @Test
+    void preservesSafeReleaseImportErrorCodesForTheClient() {
+        User user = new User();
+        user.setEmail("trusted@example.com");
+        when(sessionUserService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(service.importDatasource(any()))
+                .thenReturn(Mono.error(new CelanWorksmithException(
+                        CelanWorksmithErrorCode.RELEASE_IMPORT_ASSETS_UNAVAILABLE,
+                        "Release runtime assets are unavailable in this workspace.")));
+
+        client.post()
+                .uri("/api/v1/celanworksmith/ontology/datasources")
+                .bodyValue(new ImportOntologyDatasourceRequest(
+                        "workspace-1",
+                        "Business",
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                "metadata".getBytes(),
+                                "release-1",
+                                null,
+                                "forged@example.com"),
+                        null))
+                .exchange()
+                .expectStatus()
+                .isBadRequest()
+                .expectBody()
+                .jsonPath("$.code")
+                .isEqualTo("RELEASE_IMPORT_ASSETS_UNAVAILABLE")
+                .jsonPath("$.message")
+                .isEqualTo("Release runtime assets are unavailable in this workspace.");
     }
 }

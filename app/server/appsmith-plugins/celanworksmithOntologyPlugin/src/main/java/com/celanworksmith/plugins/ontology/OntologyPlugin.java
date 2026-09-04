@@ -89,7 +89,10 @@ public class OntologyPlugin extends BasePlugin {
                 DatasourceConfiguration datasourceConfigurationInput) {
             return runtimeGateway
                     .getRequiredSnapshot(
-                            datasourceConfiguration.metadataSnapshotId(), datasourceConfiguration.metadataDigest())
+                            datasourceConfiguration.metadataSnapshotId(),
+                            datasourceConfiguration.metadataDigest(),
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId())
                     .map(snapshot -> datasourceStructure(datasourceConfiguration, snapshot));
         }
 
@@ -105,7 +108,10 @@ public class OntologyPlugin extends BasePlugin {
             }
             return runtimeGateway
                     .getRequiredSnapshot(
-                            datasourceConfiguration.metadataSnapshotId(), datasourceConfiguration.metadataDigest())
+                            datasourceConfiguration.metadataSnapshotId(),
+                            datasourceConfiguration.metadataDigest(),
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId())
                     .map(snapshot -> metadataTriggerResult(datasourceConfiguration, snapshot, request));
         }
 
@@ -123,7 +129,10 @@ public class OntologyPlugin extends BasePlugin {
             OntologyActionConfiguration configuration = OntologyActionConfiguration.from(actionConfiguration);
             return runtimeGateway
                     .getRequiredSnapshot(
-                            datasourceConfiguration.metadataSnapshotId(), datasourceConfiguration.metadataDigest())
+                            datasourceConfiguration.metadataSnapshotId(),
+                            datasourceConfiguration.metadataDigest(),
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId())
                     .flatMap(snapshot -> switch (configuration.operation()) {
                         case OBJECT_QUERY ->
                             executeValidatedObjectQuery(datasourceConfiguration, configuration, snapshot);
@@ -446,7 +455,12 @@ public class OntologyPlugin extends BasePlugin {
             OntologyRuntimeGateway.ObjectQuery query = validatedQuery.query();
             String objectTypeId = (String) configuration.definition().get("objectTypeId");
             return runtimeGateway
-                    .queryObjects(snapshot, objectTypeId, query)
+                    .queryObjects(
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId(),
+                            snapshot,
+                            objectTypeId,
+                            query)
                     .map(result -> successResult(result, query, configuration.resultMode(), validatedQuery.full()));
         }
 
@@ -481,6 +495,8 @@ public class OntologyPlugin extends BasePlugin {
                     queryValidator.validateFunctionQuery(configuration, snapshot);
             return runtimeGateway
                     .executeFunction(
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId(),
                             snapshot,
                             validatedQuery.capabilityId(),
                             validatedQuery.targets(),
@@ -496,6 +512,8 @@ public class OntologyPlugin extends BasePlugin {
             queryValidator.validateLink(configuration, snapshot);
             return runtimeGateway
                     .resolveLink(
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId(),
                             snapshot,
                             (String) configuration.definition().get("sourceTypeId"),
                             (String) configuration.definition().get("sourceId"),

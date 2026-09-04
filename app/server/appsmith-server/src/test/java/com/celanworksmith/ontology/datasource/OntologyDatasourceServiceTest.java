@@ -54,16 +54,8 @@ class OntologyDatasourceServiceTest {
         OntologyProjectImportSource importer = new LocalReleaseJsonOntologyProjectImporter(
                 new OntologySnapshotService(repository, Clock.systemUTC()),
                 new WorkspaceDomainRuntimeBindingResolver(
-                        new ReleaseRuntimeBindingProperties(List.of(new ReleaseRuntimeBindingProperties.Binding(
-                                "workspace-a",
-                                "business",
-                                "managed",
-                                "demo-mongo-readonly",
-                                List.of(
-                                        "${source_dataset_id}:public.ont_supplier",
-                                        "${source_dataset_id}:public.ont_customer",
-                                        "${source_dataset_id}:public.ont_contract",
-                                        "${source_dataset_id}:public.ont_purchase_order"))))),
+                        new ReleaseRuntimeBindingProperties(List.of(ReleaseRuntimeBindingTestFixtures.businessBinding(
+                                "workspace-a", "managed", "demo-mongo-readonly")))),
                 new OntologyModelReleaseParser(),
                 new OntologyModelReleaseMapper());
         OntologyDatasourceService service = new OntologyDatasourceService(
@@ -229,8 +221,37 @@ class OntologyDatasourceServiceTest {
                 .verify();
 
         verify(datasourceService).archiveById("datasource-1");
+        verify(importer).cleanupSnapshot(any());
         assertThat(created.get().getDatasourceStorages().get("").getIsConfigured())
                 .isFalse();
+    }
+
+    @Test
+    void deletesImportedSnapshotWhenDatasourceCreationFails() {
+        WorkspaceService workspaceService = mock(WorkspaceService.class);
+        DatasourceService datasourceService = mock(DatasourceService.class);
+        PluginService pluginService = registeredPluginService();
+        OntologyProjectImportSource importer = mock(OntologyProjectImportSource.class);
+        RuntimeProviderCompatibilityValidator validator = mock(RuntimeProviderCompatibilityValidator.class);
+        OntologyMetadataSnapshot snapshot = snapshot("local-yaml");
+        when(workspaceService.findById("workspace-1", AclPermission.WORKSPACE_MANAGE_DATASOURCES))
+                .thenReturn(Mono.just(mock(com.appsmith.server.domains.Workspace.class)));
+        when(importer.sourceKind()).thenReturn(OntologyProjectImportSource.Kind.LOCAL_YAML);
+        when(importer.importProject(any())).thenReturn(Mono.just(snapshot));
+        when(validator.validate(any(), eq("demo-mongo-readonly")))
+                .thenReturn(Mono.just(new ProviderValidationResult(true, List.of())));
+        when(datasourceService.create(any()))
+                .thenReturn(Mono.error(new IllegalStateException("datasource creation failed")));
+
+        OntologyDatasourceService service = new OntologyDatasourceService(
+                workspaceService, datasourceService, pluginService, List.of(importer), validator);
+
+        StepVerifier.create(service.importDatasource(request("workspace-1")))
+                .expectErrorMessage("datasource creation failed")
+                .verify();
+
+        verify(importer).cleanupSnapshot(snapshot);
+        verify(datasourceService, never()).archiveById(any());
     }
 
     @Test

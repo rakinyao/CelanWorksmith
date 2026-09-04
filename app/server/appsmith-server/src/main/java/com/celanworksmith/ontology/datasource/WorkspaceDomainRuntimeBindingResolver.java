@@ -1,5 +1,7 @@
 package com.celanworksmith.ontology.datasource;
 
+import com.celanworksmith.CelanWorksmithErrorCode;
+import com.celanworksmith.CelanWorksmithException;
 import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
@@ -18,7 +20,15 @@ public class WorkspaceDomainRuntimeBindingResolver {
                         configured.getDomain(),
                         configured.getManagedBindingId(),
                         configured.getRuntimeProviderId(),
-                        configured.getAllowedAssetRefs());
+                        configured.getProviderKind(),
+                        configured.getAssetAuthorizations().stream()
+                                .map(asset -> new WorkspaceDomainRuntimeBinding.AssetAuthorization(
+                                        asset.getAssetRef(), asset.getMappingDigest()))
+                                .toList(),
+                        configured.getLinkAuthorizations().stream()
+                                .map(link -> new WorkspaceDomainRuntimeBinding.LinkAuthorization(
+                                        link.getLinkId(), link.getMappingDigest()))
+                                .toList());
                 validate(binding);
                 String key = key(binding.workspaceId(), binding.domain());
                 if (indexed.putIfAbsent(key, binding) != null) {
@@ -32,8 +42,9 @@ public class WorkspaceDomainRuntimeBindingResolver {
     public Mono<WorkspaceDomainRuntimeBinding> resolveRequired(String workspaceId, String domain) {
         WorkspaceDomainRuntimeBinding binding = bindings.get(key(workspaceId, domain));
         if (binding == null) {
-            return Mono.error(new IllegalArgumentException(
-                    "The workspace has no runtime environment configured for the " + domain + " domain."));
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.RELEASE_IMPORT_BINDING_UNAVAILABLE,
+                    "The workspace release binding is unavailable."));
         }
         return Mono.just(binding);
     }
@@ -47,16 +58,35 @@ public class WorkspaceDomainRuntimeBindingResolver {
                 || blank(binding.domain())
                 || blank(binding.managedBindingId())
                 || blank(binding.runtimeProviderId())
-                || binding.allowedAssetRefs().stream().anyMatch(WorkspaceDomainRuntimeBindingResolver::blank)) {
+                || blank(binding.providerKind())
+                || binding.assetAuthorizations().isEmpty()
+                || binding.assetAuthorizations().stream()
+                        .anyMatch(asset -> blank(asset.assetRef()) || !digest(asset.mappingDigest()))
+                || binding.linkAuthorizations().stream()
+                        .anyMatch(link -> blank(link.linkId()) || !digest(link.mappingDigest()))) {
             throw new IllegalArgumentException("Ontology release runtime binding is incomplete");
         }
-        if (binding.allowedAssetRefs().stream().distinct().count()
-                != binding.allowedAssetRefs().size()) {
+        if (binding.assetAuthorizations().stream()
+                        .map(WorkspaceDomainRuntimeBinding.AssetAuthorization::assetRef)
+                        .distinct()
+                        .count()
+                != binding.assetAuthorizations().size()) {
             throw new IllegalArgumentException("Ontology release runtime binding asset refs are duplicated");
+        }
+        if (binding.linkAuthorizations().stream()
+                        .map(WorkspaceDomainRuntimeBinding.LinkAuthorization::linkId)
+                        .distinct()
+                        .count()
+                != binding.linkAuthorizations().size()) {
+            throw new IllegalArgumentException("Ontology release runtime binding links are duplicated");
         }
     }
 
     private static boolean blank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private static boolean digest(String value) {
+        return value != null && value.matches("sha256:[0-9a-fA-F]{64}");
     }
 }

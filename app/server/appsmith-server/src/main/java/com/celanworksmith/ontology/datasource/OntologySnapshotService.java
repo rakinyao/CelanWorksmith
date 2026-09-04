@@ -52,7 +52,8 @@ public class OntologySnapshotService {
                     project.deprecated(),
                     project.releaseDomain(),
                     project.releaseDigest(),
-                    project.managedRuntimeBindingId());
+                    project.managedRuntimeBindingId(),
+                    project.workspaceId());
             return repository.insert(snapshot);
         });
     }
@@ -67,6 +68,13 @@ public class OntologySnapshotService {
                 .switchIfEmpty(Mono.error(new SnapshotNotFoundException()))
                 .filter(snapshot -> digest.equals(snapshot.metadataDigest()))
                 .switchIfEmpty(Mono.error(new SnapshotDigestMismatchException()));
+    }
+
+    public Mono<OntologyMetadataSnapshot> getRequiredSnapshot(String snapshotId, String digest, String workspaceId) {
+        return getRequiredSnapshot(snapshotId, digest)
+                .filter(snapshot -> !LOCAL_RELEASE_JSON.equals(snapshot.sourceKind())
+                        || (!isBlank(workspaceId) && workspaceId.equals(snapshot.workspaceId())))
+                .switchIfEmpty(Mono.error(new SnapshotWorkspaceMismatchException()));
     }
 
     public Mono<Void> deleteSnapshot(String snapshotId) {
@@ -93,7 +101,8 @@ public class OntologySnapshotService {
         if (LOCAL_RELEASE_JSON.equals(project.sourceKind())
                 && (isBlank(project.releaseDomain())
                         || isBlank(project.releaseDigest())
-                        || isBlank(project.managedRuntimeBindingId()))) {
+                        || isBlank(project.managedRuntimeBindingId())
+                        || isBlank(project.workspaceId()))) {
             throw new IllegalArgumentException("Local Release JSON provenance is required");
         }
     }
@@ -286,6 +295,12 @@ public class OntologySnapshotService {
     public static final class SnapshotDigestMismatchException extends SnapshotUnavailableException {
         public SnapshotDigestMismatchException() {
             super("Ontology metadata snapshot digest does not match");
+        }
+    }
+
+    public static final class SnapshotWorkspaceMismatchException extends SnapshotUnavailableException {
+        public SnapshotWorkspaceMismatchException() {
+            super("Ontology metadata snapshot is unavailable for this workspace");
         }
     }
 }

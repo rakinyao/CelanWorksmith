@@ -29,6 +29,20 @@ class OntologyModelReleaseParserTest {
     }
 
     @Test
+    void retainsRuntimeProviderKindAndAccessModeForBindingAuthorization() {
+        OntologyModelRelease release = parser.parse(fixtureBytes());
+
+        OntologyModelRelease.RuntimeBinding binding = release.elements().stream()
+                .filter(OntologyModelRelease.RuntimeBinding.class::isInstance)
+                .map(OntologyModelRelease.RuntimeBinding.class::cast)
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(binding.providerKind()).isEqualTo("GOVERNED_DATASET");
+        assertThat(binding.accessMode()).isEqualTo("READ_ONLY");
+    }
+
+    @Test
     void rejectsADigestMismatch() {
         byte[] tampered = fixtureWithReplacement("business-core-demo", "tampered-model");
 

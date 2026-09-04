@@ -28,7 +28,9 @@ public class ReleaseRuntimeBindingProperties {
         private String domain;
         private String managedBindingId;
         private String runtimeProviderId;
-        private List<String> allowedAssetRefs = new ArrayList<>();
+        private String providerKind;
+        private List<AssetAuthorization> assetAuthorizations = new ArrayList<>();
+        private List<LinkAuthorization> linkAuthorizations = new ArrayList<>();
 
         public Binding() {}
 
@@ -37,12 +39,18 @@ public class ReleaseRuntimeBindingProperties {
                 String domain,
                 String managedBindingId,
                 String runtimeProviderId,
-                List<String> allowedAssetRefs) {
+                String providerKind,
+                List<AssetAuthorization> assetAuthorizations,
+                List<LinkAuthorization> linkAuthorizations) {
             this.workspaceId = workspaceId;
             this.domain = domain;
             this.managedBindingId = managedBindingId;
             this.runtimeProviderId = runtimeProviderId;
-            this.allowedAssetRefs = allowedAssetRefs == null ? new ArrayList<>() : new ArrayList<>(allowedAssetRefs);
+            this.providerKind = providerKind;
+            this.assetAuthorizations =
+                    assetAuthorizations == null ? new ArrayList<>() : new ArrayList<>(assetAuthorizations);
+            this.linkAuthorizations =
+                    linkAuthorizations == null ? new ArrayList<>() : new ArrayList<>(linkAuthorizations);
         }
 
         public String getWorkspaceId() {
@@ -77,12 +85,84 @@ public class ReleaseRuntimeBindingProperties {
             runtimeProviderId = value;
         }
 
-        public List<String> getAllowedAssetRefs() {
-            return allowedAssetRefs;
+        public String getProviderKind() {
+            return providerKind;
         }
 
-        public void setAllowedAssetRefs(List<String> value) {
-            allowedAssetRefs = value == null ? new ArrayList<>() : new ArrayList<>(value);
+        public void setProviderKind(String value) {
+            providerKind = value;
+        }
+
+        public List<AssetAuthorization> getAssetAuthorizations() {
+            return assetAuthorizations;
+        }
+
+        public void setAssetAuthorizations(List<AssetAuthorization> value) {
+            assetAuthorizations = value == null ? new ArrayList<>() : new ArrayList<>(value);
+        }
+
+        public List<LinkAuthorization> getLinkAuthorizations() {
+            return linkAuthorizations;
+        }
+
+        public void setLinkAuthorizations(List<LinkAuthorization> value) {
+            linkAuthorizations = value == null ? new ArrayList<>() : new ArrayList<>(value);
+        }
+    }
+
+    public static class AssetAuthorization {
+        private String assetRef;
+        private String mappingDigest;
+
+        public AssetAuthorization() {}
+
+        public AssetAuthorization(String assetRef, String mappingDigest) {
+            this.assetRef = assetRef;
+            this.mappingDigest = mappingDigest;
+        }
+
+        public String getAssetRef() {
+            return assetRef;
+        }
+
+        public void setAssetRef(String value) {
+            assetRef = value;
+        }
+
+        public String getMappingDigest() {
+            return mappingDigest;
+        }
+
+        public void setMappingDigest(String value) {
+            mappingDigest = value;
+        }
+    }
+
+    public static class LinkAuthorization {
+        private String linkId;
+        private String mappingDigest;
+
+        public LinkAuthorization() {}
+
+        public LinkAuthorization(String linkId, String mappingDigest) {
+            this.linkId = linkId;
+            this.mappingDigest = mappingDigest;
+        }
+
+        public String getLinkId() {
+            return linkId;
+        }
+
+        public void setLinkId(String value) {
+            linkId = value;
+        }
+
+        public String getMappingDigest() {
+            return mappingDigest;
+        }
+
+        public void setMappingDigest(String value) {
+            mappingDigest = value;
         }
     }
 }

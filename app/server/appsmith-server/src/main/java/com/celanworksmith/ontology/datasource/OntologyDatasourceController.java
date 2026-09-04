@@ -2,6 +2,8 @@ package com.celanworksmith.ontology.datasource;
 
 import com.appsmith.server.dtos.ResponseDTO;
 import com.appsmith.server.services.SessionUserService;
+import com.celanworksmith.CelanWorksmithErrorCode;
+import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.ontology.datasource.dto.ImportOntologyDatasourceRequest;
 import com.celanworksmith.ontology.datasource.dto.OntologyDatasourceSummary;
 import org.springframework.http.HttpStatus;
@@ -37,7 +39,7 @@ public class OntologyDatasourceController {
                 .getCurrentUser()
                 .map(user -> withAuthenticatedImportActor(request, user.getEmail()))
                 .flatMap(authenticated -> service.importDatasource(authenticated)
-                        .onErrorMap(error -> isReleaseImport(authenticated)
+                        .onErrorMap(error -> isReleaseImport(authenticated) && !isSafeReleaseImportError(error)
                                 ? new IllegalArgumentException("Ontology release import could not be completed")
                                 : error))
                 .map(summary -> new ResponseDTO<>(HttpStatus.CREATED, summary));
@@ -47,6 +49,12 @@ public class OntologyDatasourceController {
         return request != null
                 && request.projectImportRequest() != null
                 && request.projectImportRequest().sourceKind() == OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON;
+    }
+
+    private boolean isSafeReleaseImportError(Throwable error) {
+        if (!(error instanceof CelanWorksmithException exception)) return false;
+        return exception.code() == CelanWorksmithErrorCode.RELEASE_IMPORT_BINDING_UNAVAILABLE
+                || exception.code() == CelanWorksmithErrorCode.RELEASE_IMPORT_ASSETS_UNAVAILABLE;
     }
 
     private ImportOntologyDatasourceRequest withAuthenticatedImportActor(

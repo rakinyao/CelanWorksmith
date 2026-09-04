@@ -61,7 +61,9 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
             String name,
             String version,
             String entitySet,
+            String providerKind,
             String assetRef,
+            String accessMode,
             Map<String, String> primaryKeyMapping,
             Map<String, RuntimeFieldMapping> fieldMappings)
             implements Element {

@@ -91,6 +91,34 @@ const structuredErrorMessage = (error: unknown): string | undefined => {
   return undefined;
 };
 
+const structuredErrorCode = (error: unknown): string | undefined => {
+  if (typeof error !== "object" || error === null) return undefined;
+
+  const record = error as Record<string, unknown>;
+
+  if (typeof record.code === "string" && record.code) return record.code;
+
+  for (const key of ["response", "data", "responseMeta", "error"]) {
+    const code = structuredErrorCode(record[key]);
+
+    if (code) return code;
+  }
+
+  return undefined;
+};
+
+const releaseImportErrorKey = (code: string | undefined) => {
+  if (code === "RELEASE_IMPORT_BINDING_UNAVAILABLE") {
+    return "ontologyDatasource.releaseJsonBindingUnavailable";
+  }
+
+  if (code === "RELEASE_IMPORT_ASSETS_UNAVAILABLE") {
+    return "ontologyDatasource.releaseJsonAssetUnavailable";
+  }
+
+  return undefined;
+};
+
 const sanitizeDiagnosticMessage = (message: string): string =>
   message
     .replace(
@@ -179,9 +207,15 @@ function OntologyDatasourceImport({
       onImported();
       toast.show(t("ontologyDatasource.importSuccess"), { kind: "success" });
     } catch (error) {
-      const message = sanitizeDiagnosticMessage(
-        structuredErrorMessage(error) || t("ontologyDatasource.importFailed"),
+      const localizedErrorKey = releaseImportErrorKey(
+        structuredErrorCode(error),
       );
+      const message = localizedErrorKey
+        ? t(localizedErrorKey)
+        : sanitizeDiagnosticMessage(
+            structuredErrorMessage(error) ||
+              t("ontologyDatasource.importFailed"),
+          );
 
       setImportError(message);
       toast.show(message, { kind: "error" });

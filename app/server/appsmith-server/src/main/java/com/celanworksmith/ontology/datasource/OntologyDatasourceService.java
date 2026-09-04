@@ -54,13 +54,20 @@ public class OntologyDatasourceService {
                             importerFor(request.projectImportRequest().sourceKind());
                     return invokeImporter(request.projectImportRequest(), request.workspaceId())
                             .flatMap(snapshot -> validatedSnapshot(importer, snapshot))
-                            .map(snapshot -> datasource(request, snapshot, pluginId));
+                            .map(snapshot -> new ImportedDatasource(
+                                    importer, snapshot, datasource(request, snapshot, pluginId)));
                 })
-                .flatMap(datasourceService::create)
-                .flatMap(datasource -> persistDatasourceId(datasource).onErrorResume(error -> datasourceService
-                        .archiveById(datasource.getId())
-                        .onErrorResume(cleanupError -> Mono.empty())
-                        .then(Mono.error(error))))
+                .flatMap(imported -> datasourceService
+                        .create(imported.datasource())
+                        .onErrorResume(error -> cleanup(imported.importer(), imported.snapshot())
+                                .onErrorResume(cleanupError -> Mono.empty())
+                                .then(Mono.error(error)))
+                        .flatMap(datasource -> persistDatasourceId(datasource).onErrorResume(error -> datasourceService
+                                .archiveById(datasource.getId())
+                                .onErrorResume(cleanupError -> Mono.empty())
+                                .then(cleanup(imported.importer(), imported.snapshot())
+                                        .onErrorResume(cleanupError -> Mono.empty()))
+                                .then(Mono.error(error)))))
                 .map(datasource -> summary(datasource, request.changeNote()));
     }
 
@@ -81,6 +88,9 @@ public class OntologyDatasourceService {
         Mono<Void> cleanup = importer.cleanupSnapshot(snapshot);
         return cleanup == null ? Mono.empty() : cleanup;
     }
+
+    private record ImportedDatasource(
+            OntologyProjectImportSource importer, OntologyMetadataSnapshot snapshot, Datasource datasource) {}
 
     private Mono<OntologyMetadataSnapshot> invokeImporter(OntologyProjectImportRequest request, String workspaceId) {
         OntologyProjectImportSource importer = importerFor(request.sourceKind());

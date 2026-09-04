@@ -214,7 +214,9 @@ public final class OntologyModelReleaseParser {
                 name,
                 version,
                 nonblank(spec, "entity_set", "Release runtime binding entity is required"),
+                nonblank(spec, "provider_kind", "Release runtime provider kind is required"),
                 nonblank(spec, "asset_ref", "Release runtime asset is required"),
+                nonblank(spec, "access_mode", "Release runtime access mode is required"),
                 primaryKeys,
                 mappings);
     }

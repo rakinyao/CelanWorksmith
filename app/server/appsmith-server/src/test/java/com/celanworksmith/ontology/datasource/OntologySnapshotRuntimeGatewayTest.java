@@ -1,5 +1,7 @@
 package com.celanworksmith.ontology.datasource;
 
+import com.appsmith.external.models.Datasource;
+import com.appsmith.server.datasources.base.DatasourceService;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
@@ -18,6 +20,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -138,6 +141,24 @@ class OntologySnapshotRuntimeGatewayTest {
                         eq("po-1"),
                         eq("po_delivery"),
                         org.mockito.ArgumentMatchers.any(ObjectSetQuery.class));
+    }
+
+    @Test
+    void rejectsPinnedSnapshotWhenPersistedDatasourceBelongsToAnotherWorkspace() {
+        OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
+        DatasourceService datasourceService = mock(DatasourceService.class);
+        Datasource datasource = new Datasource();
+        datasource.setWorkspaceId("workspace-b");
+        when(datasourceService.findById("datasource-1")).thenReturn(Mono.just(datasource));
+        OntologySnapshotRuntimeGateway gateway = new OntologySnapshotRuntimeGateway(
+                snapshotService, new RuntimeProviderRegistry(List.of()), datasourceService);
+
+        StepVerifier.create(gateway.getRequiredSnapshot(
+                        "snapshot-1", "sha256:" + "a".repeat(64), "workspace-a", "datasource-1"))
+                .expectErrorMessage("Ontology datasource is unavailable for this workspace")
+                .verify();
+
+        verify(snapshotService, never()).getRequiredSnapshot("snapshot-1", "sha256:" + "a".repeat(64), "workspace-a");
     }
 
     private OntologyMetadataSnapshot snapshot() {
