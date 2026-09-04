@@ -49,8 +49,7 @@ public class OntologyDatasourceService {
                 .switchIfEmpty(
                         Mono.error(new IllegalArgumentException("Workspace datasource administration is required")))
                 .then(ontologyPluginId())
-                .flatMap(pluginId -> importerFor(request.projectImportRequest().sourceKind())
-                        .importProject(request.projectImportRequest())
+                .flatMap(pluginId -> invokeImporter(request.projectImportRequest(), request.workspaceId())
                         .flatMap(snapshot -> compatibilityValidator
                                 .validate(snapshot, snapshot.runtimeProviderId())
                                 .flatMap(validation -> validation.compatible()
@@ -64,6 +63,19 @@ public class OntologyDatasourceService {
                         .onErrorResume(cleanupError -> Mono.empty())
                         .then(Mono.error(error))))
                 .map(datasource -> summary(datasource, request.changeNote()));
+    }
+
+    private Mono<OntologyMetadataSnapshot> invokeImporter(
+            OntologyProjectImportRequest request, String workspaceId) {
+        OntologyProjectImportSource importer = importerFor(request.sourceKind());
+        Mono<OntologyMetadataSnapshot> contextual = importer.importProject(
+                request, new OntologyProjectImportContext(workspaceId, request.importedBy()));
+        if (contextual != null) return contextual;
+        // Mockito and third-party legacy sources may only implement the original overload.
+        Mono<OntologyMetadataSnapshot> legacy = importer.importProject(request);
+        return legacy == null
+                ? Mono.error(new IllegalStateException("Ontology importer returned no snapshot"))
+                : legacy;
     }
 
     public Flux<OntologyDatasourceSummary> listDatasourceCandidates(String workspaceId) {

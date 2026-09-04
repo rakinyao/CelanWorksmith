@@ -37,4 +37,14 @@ public class DemoOntologyProjectBootstrap implements OntologyProjectImportSource
         }
         return importDemo(request.importedBy());
     }
+
+    @Override
+    public Mono<OntologyMetadataSnapshot> importProject(
+            OntologyProjectImportRequest request, OntologyProjectImportContext context) {
+        if (request == null || request.sourceKind() != Kind.DEMO) {
+            return Mono.error(new IllegalArgumentException("Demo importer requires a demo request"));
+        }
+        if (context == null) return Mono.error(new IllegalArgumentException("Import context is required"));
+        return importDemo(context.importedBy());
+    }
 }

@@ -42,6 +42,19 @@ public class LocalYamlOntologyProjectImporter implements OntologyProjectImportSo
                         required(request.importedBy(), "Import actor"))));
     }
 
+    @Override
+    public Mono<OntologyMetadataSnapshot> importProject(
+            OntologyProjectImportRequest request, OntologyProjectImportContext context) {
+        if (request == null || request.sourceKind() != Kind.LOCAL_YAML) {
+            return Mono.error(new IllegalArgumentException("Local YAML importer requires a local YAML request"));
+        }
+        if (context == null) return Mono.error(new IllegalArgumentException("Import context is required"));
+        return Mono.fromSupplier(() -> parseDefinition(request.metadata()))
+                .flatMap(definition -> snapshotService.createSnapshot(new ImportedOntologyProject(
+                        definition, "local-yaml", request.sourceReleaseId(),
+                        required(request.runtimeProviderId(), "Runtime Provider ID"), context.importedBy())));
+    }
+
     OntologyProjectDefinition parseDefinition(byte[] metadata) {
         if (metadata == null || metadata.length == 0) {
             throw new IllegalArgumentException("Ontology YAML metadata is required");

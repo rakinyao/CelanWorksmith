@@ -23,6 +23,7 @@ public class OntologySnapshotService {
     private static final String LOCAL_YAML = "local-yaml";
     private static final String PLATFORM_RELEASE = "platform-release";
     private static final String DEMO = "demo";
+    private static final String LOCAL_RELEASE_JSON = "local-release-json";
 
     private final OntologyMetadataSnapshotRepository repository;
     private final Clock clock;
@@ -47,7 +48,10 @@ public class OntologySnapshotService {
                 clock.instant(),
                 digest(definition),
                 definition,
-                project.deprecated());
+                project.deprecated(),
+                project.releaseDomain(),
+                project.releaseDigest(),
+                project.managedRuntimeBindingId());
         return repository.insert(snapshot);
     }
 
@@ -69,7 +73,8 @@ public class OntologySnapshotService {
         }
         if (!LOCAL_YAML.equals(project.sourceKind())
                 && !PLATFORM_RELEASE.equals(project.sourceKind())
-                && !DEMO.equals(project.sourceKind())) {
+                && !DEMO.equals(project.sourceKind())
+                && !LOCAL_RELEASE_JSON.equals(project.sourceKind())) {
             throw new IllegalArgumentException("Ontology import source is not supported");
         }
         if (isBlank(project.definition().projectId())

@@ -49,4 +49,24 @@ public class PlatformOntologyProjectImporter implements OntologyProjectImportSou
                     request.importedBy()));
         });
     }
+
+    @Override
+    public Mono<OntologyMetadataSnapshot> importProject(
+            OntologyProjectImportRequest request, OntologyProjectImportContext context) {
+        if (context == null) return Mono.error(new IllegalArgumentException("Import context is required"));
+        if (request == null || request.sourceKind() != Kind.PLATFORM_RELEASE) {
+            return Mono.error(new IllegalArgumentException("Platform importer requires a platform release request"));
+        }
+        if (request.sourceReleaseId() == null || request.sourceReleaseId().isBlank()) {
+            return Mono.error(new IllegalArgumentException("Platform release ID is required"));
+        }
+        return releaseClient.fetchRelease(request.sourceReleaseId()).flatMap(release -> {
+            if (release == null || release.definition() == null || release.runtimeProviderId() == null
+                    || release.runtimeProviderId().isBlank()) {
+                return Mono.error(new IllegalArgumentException("Platform release metadata is invalid"));
+            }
+            return snapshotService.createSnapshot(new ImportedOntologyProject(
+                    release.definition(), "platform-release", request.sourceReleaseId(), release.runtimeProviderId(), context.importedBy()));
+        });
+    }
 }

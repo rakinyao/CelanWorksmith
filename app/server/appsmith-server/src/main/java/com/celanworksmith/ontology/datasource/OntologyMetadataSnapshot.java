@@ -18,7 +18,10 @@ public record OntologyMetadataSnapshot(
         Instant createdAt,
         String metadataDigest,
         OntologyProjectDefinition definition,
-        boolean deprecated) {
+        boolean deprecated,
+        String releaseDomain,
+        String releaseDigest,
+        String managedRuntimeBindingId) {
 
     public OntologyMetadataSnapshot(
             String id,
@@ -42,6 +45,17 @@ public record OntologyMetadataSnapshot(
                 createdAt,
                 metadataDigest,
                 definition,
-                false);
+                false,
+                null,
+                null,
+                null);
+    }
+
+    public OntologyMetadataSnapshot(
+            String id, String projectId, String projectVersion, String sourceKind, String sourceReleaseId,
+            String runtimeProviderId, String createdBy, Instant createdAt, String metadataDigest,
+            OntologyProjectDefinition definition, boolean deprecated) {
+        this(id, projectId, projectVersion, sourceKind, sourceReleaseId, runtimeProviderId, createdBy, createdAt,
+                metadataDigest, definition, deprecated, null, null, null);
     }
 }

@@ -15,6 +15,11 @@ import com.celanworksmith.ontology.adapter.production.ProductionOntologyProvider
 import com.celanworksmith.ontology.adapter.project.OntologyProjectBackedProvider;
 import com.celanworksmith.ontology.datasource.DemoOntologyProjectBootstrap;
 import com.celanworksmith.ontology.datasource.LocalYamlOntologyProjectImporter;
+import com.celanworksmith.ontology.datasource.LocalReleaseJsonOntologyProjectImporter;
+import com.celanworksmith.ontology.datasource.ReleaseRuntimeBindingProperties;
+import com.celanworksmith.ontology.datasource.WorkspaceDomainRuntimeBindingResolver;
+import com.celanworksmith.ontology.release.OntologyModelReleaseMapper;
+import com.celanworksmith.ontology.release.OntologyModelReleaseParser;
 import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceCompatibilityService;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
@@ -60,11 +65,27 @@ import java.util.List;
 import java.util.Optional;
 
 @Configuration
-@EnableConfigurationProperties({MongoRuntimeProperties.class, WorkspaceActionServerProperties.class})
+@EnableConfigurationProperties({MongoRuntimeProperties.class, WorkspaceActionServerProperties.class, ReleaseRuntimeBindingProperties.class})
 public class CelanWorksmithConfiguration {
     @Bean
     public OntologyProjectYamlImporter ontologyProjectYamlImporter() {
         return new OntologyProjectYamlImporter();
+    }
+
+    @Bean
+    public OntologyModelReleaseParser ontologyModelReleaseParser() {
+        return new OntologyModelReleaseParser();
+    }
+
+    @Bean
+    public OntologyModelReleaseMapper ontologyModelReleaseMapper() {
+        return new OntologyModelReleaseMapper();
+    }
+
+    @Bean
+    public WorkspaceDomainRuntimeBindingResolver workspaceDomainRuntimeBindingResolver(
+            ReleaseRuntimeBindingProperties properties) {
+        return new WorkspaceDomainRuntimeBindingResolver(properties);
     }
 
     @Bean
@@ -160,6 +181,15 @@ public class CelanWorksmithConfiguration {
                 releaseId -> reactor.core.publisher.Mono.error(
                         new IllegalStateException("Ontology platform release client is not configured: " + releaseId)),
                 snapshotService);
+    }
+
+    @Bean
+    public LocalReleaseJsonOntologyProjectImporter localReleaseJsonOntologyProjectImporter(
+            OntologySnapshotService snapshotService,
+            WorkspaceDomainRuntimeBindingResolver bindingResolver,
+            OntologyModelReleaseParser parser,
+            OntologyModelReleaseMapper mapper) {
+        return new LocalReleaseJsonOntologyProjectImporter(snapshotService, bindingResolver, parser, mapper);
     }
 
     @Bean
