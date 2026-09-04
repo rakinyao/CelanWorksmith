@@ -53,7 +53,9 @@ public class OntologyDatasourceController {
                         projectImportRequest.sourceKind(),
                         projectImportRequest.metadata(),
                         projectImportRequest.sourceReleaseId(),
-                        projectImportRequest.runtimeProviderId(),
+                        projectImportRequest.sourceKind() == OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON
+                                ? null
+                                : projectImportRequest.runtimeProviderId(),
                         importedBy),
                 request.changeNote());
     }

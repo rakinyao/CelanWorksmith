@@ -35,24 +35,16 @@ public class OntologySnapshotService {
     }
 
     public Mono<OntologyMetadataSnapshot> createSnapshot(ImportedOntologyProject project) {
-        validate(project);
-        OntologyProjectDefinition definition = project.definition();
-        OntologyMetadataSnapshot snapshot = new OntologyMetadataSnapshot(
-                UUID.randomUUID().toString(),
-                definition.projectId(),
-                definition.version(),
-                project.sourceKind(),
-                project.sourceReleaseId(),
-                project.runtimeProviderId(),
-                project.importedBy(),
-                clock.instant(),
-                digest(definition),
-                definition,
-                project.deprecated(),
-                project.releaseDomain(),
-                project.releaseDigest(),
-                project.managedRuntimeBindingId());
-        return repository.insert(snapshot);
+        return Mono.defer(() -> {
+            validate(project);
+            OntologyProjectDefinition definition = project.definition();
+            OntologyMetadataSnapshot snapshot = new OntologyMetadataSnapshot(
+                    UUID.randomUUID().toString(), definition.projectId(), definition.version(), project.sourceKind(),
+                    project.sourceReleaseId(), project.runtimeProviderId(), project.importedBy(), clock.instant(),
+                    digest(definition), definition, project.deprecated(), project.releaseDomain(), project.releaseDigest(),
+                    project.managedRuntimeBindingId());
+            return repository.insert(snapshot);
+        });
     }
 
     public Mono<OntologyMetadataSnapshot> getRequiredSnapshot(String snapshotId, String digest) {
@@ -65,6 +57,11 @@ public class OntologySnapshotService {
                 .switchIfEmpty(Mono.error(new SnapshotNotFoundException()))
                 .filter(snapshot -> digest.equals(snapshot.metadataDigest()))
                 .switchIfEmpty(Mono.error(new SnapshotDigestMismatchException()));
+    }
+
+    public Mono<Void> deleteSnapshot(String snapshotId) {
+        if (isBlank(snapshotId)) return Mono.empty();
+        return repository.deleteById(snapshotId);
     }
 
     private void validate(ImportedOntologyProject project) {
@@ -82,6 +79,12 @@ public class OntologySnapshotService {
                 || isBlank(project.runtimeProviderId())
                 || isBlank(project.importedBy())) {
             throw new IllegalArgumentException("Ontology project, provider and actor details are required");
+        }
+        if (LOCAL_RELEASE_JSON.equals(project.sourceKind())
+                && (isBlank(project.releaseDomain())
+                        || isBlank(project.releaseDigest())
+                        || isBlank(project.managedRuntimeBindingId()))) {
+            throw new IllegalArgumentException("Local Release JSON provenance is required");
         }
     }
 

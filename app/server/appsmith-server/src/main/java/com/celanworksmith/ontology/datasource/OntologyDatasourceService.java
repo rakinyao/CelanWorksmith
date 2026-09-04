@@ -49,20 +49,36 @@ public class OntologyDatasourceService {
                 .switchIfEmpty(
                         Mono.error(new IllegalArgumentException("Workspace datasource administration is required")))
                 .then(ontologyPluginId())
-                .flatMap(pluginId -> invokeImporter(request.projectImportRequest(), request.workspaceId())
-                        .flatMap(snapshot -> compatibilityValidator
-                                .validate(snapshot, snapshot.runtimeProviderId())
-                                .flatMap(validation -> validation.compatible()
-                                        ? Mono.just(snapshot)
-                                        : Mono.error(new IllegalArgumentException("Runtime Provider is incompatible: "
-                                                + String.join("; ", validation.errors())))))
-                        .map(snapshot -> datasource(request, snapshot, pluginId)))
+                .flatMap(pluginId -> {
+                    OntologyProjectImportSource importer = importerFor(request.projectImportRequest().sourceKind());
+                    return invokeImporter(request.projectImportRequest(), request.workspaceId())
+                            .flatMap(snapshot -> validatedSnapshot(importer, snapshot))
+                            .map(snapshot -> datasource(request, snapshot, pluginId));
+                })
                 .flatMap(datasourceService::create)
                 .flatMap(datasource -> persistDatasourceId(datasource).onErrorResume(error -> datasourceService
                         .archiveById(datasource.getId())
                         .onErrorResume(cleanupError -> Mono.empty())
                         .then(Mono.error(error))))
                 .map(datasource -> summary(datasource, request.changeNote()));
+    }
+
+    private Mono<OntologyMetadataSnapshot> validatedSnapshot(
+            OntologyProjectImportSource importer, OntologyMetadataSnapshot snapshot) {
+        return compatibilityValidator
+                .validate(snapshot, snapshot.runtimeProviderId())
+                .flatMap(validation -> validation.compatible()
+                        ? Mono.just(snapshot)
+                        : Mono.error(new IllegalArgumentException("Runtime Provider is incompatible: "
+                                + String.join("; ", validation.errors()))))
+                .onErrorResume(error -> cleanup(importer, snapshot)
+                        .onErrorResume(cleanupError -> Mono.empty())
+                        .then(Mono.error(error)));
+    }
+
+    private Mono<Void> cleanup(OntologyProjectImportSource importer, OntologyMetadataSnapshot snapshot) {
+        Mono<Void> cleanup = importer.cleanupSnapshot(snapshot);
+        return cleanup == null ? Mono.empty() : cleanup;
     }
 
     private Mono<OntologyMetadataSnapshot> invokeImporter(

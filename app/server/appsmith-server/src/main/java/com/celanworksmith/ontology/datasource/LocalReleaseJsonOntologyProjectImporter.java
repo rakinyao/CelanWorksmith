@@ -51,7 +51,7 @@ public class LocalReleaseJsonOntologyProjectImporter implements OntologyProjectI
             if (element instanceof OntologyModelRelease.RuntimeBinding runtime
                     && !binding.allowedAssetRefs().contains(runtime.assetRef())) {
                 return Mono.error(new IllegalArgumentException(
-                        "Release runtime asset is not available in the workspace binding: " + runtime.assetRef()));
+                        "Release runtime assets are unavailable in the workspace."));
             }
         }
         return Mono.fromSupplier(() -> mapper.map(release))
@@ -64,6 +64,11 @@ public class LocalReleaseJsonOntologyProjectImporter implements OntologyProjectI
                         release.release().domain(),
                         release.release().releaseDigest(),
                         binding.managedBindingId())));
+    }
+
+    @Override
+    public Mono<Void> cleanupSnapshot(OntologyMetadataSnapshot snapshot) {
+        return snapshotService.deleteSnapshot(snapshot == null ? null : snapshot.id());
     }
 
     private static byte[] requiredMetadata(byte[] metadata) {

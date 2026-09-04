@@ -6,6 +6,8 @@ import com.mongodb.reactivestreams.client.MongoClients;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -32,6 +34,10 @@ public class OntologyMetadataSnapshotRepository {
 
     public Mono<OntologyMetadataSnapshot> findById(String snapshotId) {
         return template.findById(snapshotId, OntologyMetadataSnapshot.class, COLLECTION);
+    }
+
+    public Mono<Void> deleteById(String snapshotId) {
+        return template.remove(Query.query(Criteria.where("_id").is(snapshotId)), COLLECTION).then();
     }
 
     @PreDestroy
