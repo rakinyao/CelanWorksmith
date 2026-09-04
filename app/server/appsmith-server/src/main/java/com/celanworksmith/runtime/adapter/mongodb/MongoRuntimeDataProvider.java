@@ -40,6 +40,7 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
     private final CelanworksmithApplicationBindingResolver resolver;
     private final MongoClient client;
     private final String providerId;
+    private final ReleaseMappedMongoRuntimeAdapter releaseAdapter;
 
     public MongoRuntimeDataProvider(ReactiveMongoTemplate template, CelanworksmithApplicationBindingResolver resolver) {
         this(template, resolver, null, new MockDataStore(), "demo-mongo-readonly");
@@ -59,6 +60,7 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         this.template = new ReactiveMongoTemplate(client, properties.getDatabase());
         this.resolver = resolver;
         this.providerId = properties.getProviderId();
+        this.releaseAdapter = new ReleaseMappedMongoRuntimeAdapter(template);
     }
 
     private MongoRuntimeDataProvider(
@@ -72,6 +74,7 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         this.resolver = resolver;
         this.client = client;
         this.providerId = providerId;
+        this.releaseAdapter = new ReleaseMappedMongoRuntimeAdapter(template);
     }
 
     @Override
@@ -100,12 +103,22 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
     }
 
     @Override
+    public Mono<RuntimeMetadataCapabilities> metadataCapabilities(OntologyProjectDefinition definition) {
+        return ReleaseMappedMongoRuntimeAdapter.supports(definition)
+                ? Mono.just(releaseAdapter.metadataCapabilities(definition))
+                : metadataCapabilities();
+    }
+
+    @Override
     public Mono<ObjectSetResult> queryObjects(
             CelanworksmithRuntimeContext context, String typeId, ObjectSetQuery query) {
         if (context == null || context.legacyDefault() || context.applicationId() == null) {
             return super.queryObjects(typeId, query);
         }
-        return resolveType(context.applicationId(), typeId).flatMap(type -> queryMongo(type, query));
+        return resolver.resolve(context.applicationId())
+                .flatMap(binding -> ReleaseMappedMongoRuntimeAdapter.supports(binding.project())
+                        ? releaseAdapter.queryObjects(binding.project(), typeId, query)
+                        : resolveType(binding.project(), typeId).flatMap(type -> queryMongo(type, query)));
     }
 
     @Override
@@ -114,6 +127,9 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         if (definition == null) {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "Ontology project definition is required"));
+        }
+        if (ReleaseMappedMongoRuntimeAdapter.supports(definition)) {
+            return releaseAdapter.queryObjects(definition, typeId, query);
         }
         return resolveType(definition, typeId).flatMap(type -> queryMongo(type, query));
     }
@@ -171,12 +187,18 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         if (context == null || context.legacyDefault() || context.applicationId() == null) {
             return super.getObject(typeId, instanceId);
         }
-        return resolveType(context.applicationId(), typeId).flatMap(type -> {
-            Query query = Query.query(Criteria.where("_id").is(instanceId));
-            return template.findOne(query, MongoRuntimeObjectDocument.class, collection(type))
-                    .switchIfEmpty(Mono.error(new CelanWorksmithException(
-                            CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: " + typeId + "/" + instanceId)))
-                    .map(document -> toDto(document, typeId));
+        return resolver.resolve(context.applicationId()).flatMap(binding -> {
+            if (ReleaseMappedMongoRuntimeAdapter.supports(binding.project())) {
+                return releaseAdapter.getObject(binding.project(), typeId, instanceId);
+            }
+            return resolveType(binding.project(), typeId).flatMap(type -> {
+                Query query = Query.query(Criteria.where("_id").is(instanceId));
+                return template.findOne(query, MongoRuntimeObjectDocument.class, collection(type))
+                        .switchIfEmpty(Mono.error(new CelanWorksmithException(
+                                CelanWorksmithErrorCode.OBJECT_NOT_FOUND,
+                                "Unknown object: " + typeId + "/" + instanceId)))
+                        .map(document -> toDto(document, typeId));
+            });
         });
     }
 
@@ -191,6 +213,9 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
             return super.getLinks(typeId, instanceId, linkTypeId, query);
         }
         return resolver.resolve(context.applicationId()).flatMap(binding -> {
+            if (ReleaseMappedMongoRuntimeAdapter.supports(binding.project())) {
+                return releaseAdapter.getLinks(binding.project(), typeId, instanceId, linkTypeId, query);
+            }
             ObjectTypeDTO sourceType = binding.project().objectTypes().stream()
                     .filter(candidate -> candidate.id().equals(typeId))
                     .findFirst()
@@ -235,6 +260,9 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
         if (definition == null) {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "Ontology project definition is required"));
+        }
+        if (ReleaseMappedMongoRuntimeAdapter.supports(definition)) {
+            return releaseAdapter.getLinks(definition, typeId, instanceId, linkTypeId, query);
         }
         ObjectTypeDTO sourceType = definition.objectTypes().stream()
                 .filter(candidate -> candidate.id().equals(typeId))

@@ -35,6 +35,10 @@ public interface RuntimeProvider {
         return Mono.just(new RuntimeMetadataCapabilities(Map.of()));
     }
 
+    default Mono<RuntimeMetadataCapabilities> metadataCapabilities(OntologyProjectDefinition definition) {
+        return metadataCapabilities();
+    }
+
     Mono<ObjectSetResult> queryObjects(String typeId, ObjectSetQuery query);
 
     default Mono<ObjectSetResult> queryObjects(

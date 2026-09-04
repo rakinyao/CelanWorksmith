@@ -21,7 +21,8 @@ public class RuntimeProviderCompatibilityValidator {
             return Mono.error(new IllegalArgumentException("Ontology metadata snapshot is required"));
         }
         RuntimeProvider provider = providerRegistry.resolveRequired(providerId);
-        return provider.metadataCapabilities().map(capabilities -> validate(snapshot, capabilities));
+        return provider.metadataCapabilities(snapshot.definition())
+                .map(capabilities -> validate(snapshot, capabilities));
     }
 
     private ProviderValidationResult validate(

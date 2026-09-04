@@ -85,6 +85,32 @@ class MongoRuntimeDataProviderTest {
     }
 
     @Test
+    void rejectsReleaseAssetTablesForDefinitionsWithoutReleaseMappings() {
+        ObjectTypeDTO type = RuntimeProviderTestFixtures.binding().project().objectTypes().getFirst();
+        OntologyProjectDefinition definition = new OntologyProjectDefinition(
+                "legacy-ont-table",
+                "1",
+                1,
+                List.of(new ObjectTypeDTO(
+                        type.id(),
+                        type.displayName(),
+                        "ont_contract",
+                        type.primaryKey(),
+                        type.properties(),
+                        type.runtimePropertyMappings())),
+                List.of(),
+                List.of(),
+                List.of(),
+                OntologyProjectDefinition.RuntimeMappings.empty());
+
+        StepVerifier.create(provider.queryObjects(definition, type.id(), RuntimeProviderTestFixtures.query(0, 10)))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(CelanWorksmithException.class)
+                        .hasMessageContaining("Runtime table is not allowed: ont_contract"))
+                .verify();
+    }
+
+    @Test
     void calculatesDelayDaysFromTheTargetedMongoPurchaseOrder() {
         when(template.findOne(any(), eq(MongoRuntimeObjectDocument.class), eq("purchase_orders")))
                 .thenReturn(Mono.just(document("PO001", "DELAYED", 4)));
