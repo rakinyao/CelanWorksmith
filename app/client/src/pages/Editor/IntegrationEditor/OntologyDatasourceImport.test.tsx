@@ -1,6 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "test/testUtils";
 import OntologyDatasourceApi from "api/OntologyDatasourceApi";
+import { changeLocale } from "i18n";
 import OntologyDatasourceImport from "./OntologyDatasourceImport";
 
 jest.mock("api/OntologyDatasourceApi", () => ({
@@ -11,8 +12,13 @@ jest.mock("api/OntologyDatasourceApi", () => ({
 }));
 
 describe("OntologyDatasourceImport", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await changeLocale("en-US");
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await changeLocale("zh-CN");
   });
 
   it("imports the demo project and refreshes the native datasource list", async () => {
@@ -256,6 +262,7 @@ describe("OntologyDatasourceImport", () => {
     const file = new File(["{}"], "business.json", {
       type: "application/json",
     });
+
     fireEvent.change(screen.getByLabelText("Release JSON file"), {
       target: { files: [file] },
     });
@@ -271,8 +278,6 @@ describe("OntologyDatasourceImport", () => {
         }),
       );
     });
-    expect(
-      screen.queryByLabelText("Runtime provider ID"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Runtime provider ID")).toBeNull();
   });
 });
