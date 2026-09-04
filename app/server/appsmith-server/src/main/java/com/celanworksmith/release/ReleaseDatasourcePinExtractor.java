@@ -10,6 +10,7 @@ import com.appsmith.server.domains.Plugin;
 import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
+import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.release.model.ReleaseDatasourcePin;
 import com.celanworksmith.release.model.ReleaseDatasourcePinExtractionResult;
 import com.celanworksmith.release.model.ReleaseDiagnostic;
@@ -25,11 +26,18 @@ import java.util.Map;
 public class ReleaseDatasourcePinExtractor {
     private final NewActionRepository actionRepository;
     private final PluginService pluginService;
+    private final OntologySnapshotService snapshotService;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     public ReleaseDatasourcePinExtractor(NewActionRepository actionRepository, PluginService pluginService) {
+        this(actionRepository, pluginService, null);
+    }
+
+    public ReleaseDatasourcePinExtractor(
+            NewActionRepository actionRepository, PluginService pluginService, OntologySnapshotService snapshotService) {
         this.actionRepository = actionRepository;
         this.pluginService = pluginService;
+        this.snapshotService = snapshotService;
     }
 
     public Mono<ReleaseDatasourcePinExtractionResult> extract(ApplicationReleaseCandidate candidate) {
@@ -40,7 +48,8 @@ public class ReleaseDatasourcePinExtractor {
                 .flatMap(ontologyPluginId -> actionRepository
                         .findByApplicationId(candidate.application().getId(), AclPermission.READ_ACTIONS)
                         .collectList()
-                        .map(actions -> extractPins(actions, ontologyPluginId, candidate.usedDatasources())));
+                        .map(actions -> extractPins(actions, ontologyPluginId, candidate.usedDatasources()))
+                        .flatMap(this::resolvePinnedProviders));
     }
 
     private ReleaseDatasourcePinExtractionResult extractPins(
@@ -148,7 +157,7 @@ public class ReleaseDatasourcePinExtractor {
         String projectVersion = required(properties, "projectVersion");
         String snapshotId = required(properties, "metadataSnapshotId");
         String digest = required(properties, "metadataDigest");
-        String providerId = required(properties, "runtimeProviderId");
+        String providerId = snapshotService == null ? required(properties, "runtimeProviderId") : null;
         String contractVersion = required(properties, "providerContractVersion");
         if (projectId.isBlank() || projectVersion.isBlank()) {
             throw new IllegalArgumentException("project identity must not be blank");
@@ -163,6 +172,31 @@ public class ReleaseDatasourcePinExtractor {
                 contractVersion,
                 projectId,
                 projectVersion);
+    }
+
+    private Mono<ReleaseDatasourcePinExtractionResult> resolvePinnedProviders(
+            ReleaseDatasourcePinExtractionResult extraction) {
+        if (snapshotService == null) {
+            return Mono.just(extraction);
+        }
+        return reactor.core.publisher.Flux.fromIterable(extraction.pins())
+                .concatMap(pin -> "ONTOLOGY".equals(pin.kind())
+                        ? snapshotService
+                                .getRequiredSnapshot(pin.metadataSnapshotId(), pin.metadataDigest())
+                                .map(snapshot -> new ReleaseDatasourcePin(
+                                        pin.datasourceId(),
+                                        pin.pluginId(),
+                                        pin.kind(),
+                                        snapshot.runtimeProviderId(),
+                                        pin.metadataSnapshotId(),
+                                        pin.metadataDigest(),
+                                        pin.providerContractVersion(),
+                                        pin.projectId(),
+                                        pin.projectVersion()))
+                                .onErrorReturn(pin)
+                        : Mono.just(pin))
+                .collectList()
+                .map(pins -> new ReleaseDatasourcePinExtractionResult(pins, extraction.diagnostics()));
     }
 
     private Datasource resolve(Datasource reference, List<Datasource> usedDatasources) {
@@ -191,8 +225,7 @@ public class ReleaseDatasourcePinExtractor {
                 .filter(property -> property != null)
                 .map(Property::getKey)
                 .anyMatch(key -> "metadataSnapshotId".equals(key)
-                        || "metadataDigest".equals(key)
-                        || "runtimeProviderId".equals(key));
+                        || "metadataDigest".equals(key));
     }
 
     private DatasourceConfiguration configuration(Datasource datasource) {
@@ -256,7 +289,6 @@ public class ReleaseDatasourcePinExtractor {
                     "projectVersion",
                     "metadataSnapshotId",
                     "metadataDigest",
-                    "runtimeProviderId",
                     "providerContractVersion")) {
                 if (message.startsWith(key + " ")) {
                     return path + ".datasourceConfiguration.properties." + key;

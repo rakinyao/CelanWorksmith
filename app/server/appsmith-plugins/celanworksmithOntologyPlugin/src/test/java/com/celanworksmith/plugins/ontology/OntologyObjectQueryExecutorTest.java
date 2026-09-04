@@ -41,7 +41,6 @@ class OntologyObjectQueryExecutorTest {
         List<Map<String, Object>> rows = rows(result);
         assertEquals(List.of(Map.of("id", "po-1", "supplierId", "supplier-7", "delayDays", 5)), rows);
         assertEquals(1, gateway.queryCalls);
-        assertEquals("demo-mongo-readonly", gateway.providerId);
         assertEquals(List.of("id", "supplierId", "delayDays"), gateway.query.projection());
     }
 
@@ -101,7 +100,6 @@ class OntologyObjectQueryExecutorTest {
         ActionExecutionResult result = execute(gateway, definition);
 
         assertTrue(result.getIsExecutionSuccess());
-        assertEquals("demo-mongo-readonly", gateway.providerId);
         assertEquals("PurchaseOrder", gateway.objectTypeId);
         assertEquals("delayDays", gateway.query.sortBy());
         assertEquals("desc", gateway.query.sortDirection());
@@ -631,7 +629,7 @@ class OntologyObjectQueryExecutorTest {
 
     private OntologyDatasourceConfiguration datasource() {
         return new OntologyDatasourceConfiguration(
-                "supply-chain", "1.0.0", SNAPSHOT_ID, DIGEST, "demo-mongo-readonly", "workspace-1", "datasource-1");
+                "supply-chain", "1.0.0", SNAPSHOT_ID, DIGEST, "workspace-1", "datasource-1", "demo", null);
     }
 
     private Map<String, Object> metadata(
@@ -675,9 +673,9 @@ class OntologyObjectQueryExecutorTest {
                 new com.appsmith.external.models.Property("projectVersion", "1.0.0"),
                 new com.appsmith.external.models.Property("metadataSnapshotId", SNAPSHOT_ID),
                 new com.appsmith.external.models.Property("metadataDigest", DIGEST),
-                new com.appsmith.external.models.Property("runtimeProviderId", "demo-mongo-readonly"),
                 new com.appsmith.external.models.Property("workspaceId", "workspace-1"),
-                new com.appsmith.external.models.Property("datasourceId", "datasource-1")));
+                new com.appsmith.external.models.Property("datasourceId", "datasource-1"),
+                new com.appsmith.external.models.Property("sourceKind", "demo")));
         return configuration;
     }
 
@@ -724,7 +722,6 @@ class OntologyObjectQueryExecutorTest {
         private final List<SnapshotRequest> snapshotRequests = new ArrayList<>();
         private int liveMetadataRefreshCalls;
         private int queryCalls;
-        private String providerId;
         private String objectTypeId;
         private ObjectQuery query;
         private RuntimeException queryFailure;
@@ -744,9 +741,8 @@ class OntologyObjectQueryExecutorTest {
 
         @Override
         public Mono<ObjectQueryResult> queryObjects(
-                String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+                Snapshot snapshot, String objectTypeId, ObjectQuery query) {
             queryCalls++;
-            this.providerId = providerId;
             this.objectTypeId = objectTypeId;
             this.query = query;
             if (queryFailure != null) {
@@ -768,6 +764,21 @@ class OntologyObjectQueryExecutorTest {
                                     "internalNote",
                                     "private"));
             return Mono.just(new ObjectQueryResult(items, query.offset(), query.limit(), total));
+        }
+
+        @Override
+        public Mono<Object> executeFunction(
+                Snapshot snapshot,
+                String functionId,
+                com.celanworksmith.ontology.datasource.OntologyObjectSet targets,
+                Map<String, Object> parameters) {
+            return Mono.error(new UnsupportedOperationException());
+        }
+
+        @Override
+        public Mono<List<Map<String, Object>>> resolveLink(
+                Snapshot snapshot, String sourceTypeId, String sourceId, String linkId) {
+            return Mono.error(new UnsupportedOperationException());
         }
     }
 }

@@ -657,7 +657,7 @@ class OntologyFunctionLinkActionExecutorTest {
 
     private OntologyDatasourceConfiguration datasource() {
         return new OntologyDatasourceConfiguration(
-                "supply-chain", "1.0.0", "snapshot-001", DIGEST, "provider-1", "workspace-1", "datasource-1");
+                "supply-chain", "1.0.0", "snapshot-001", DIGEST, "workspace-1", "datasource-1", "demo", null);
     }
 
     private TriggerResultDTO trigger(OntologyPlugin.OntologyPluginExecutor executor, String requestType) {
@@ -762,13 +762,12 @@ class OntologyFunctionLinkActionExecutorTest {
 
         @Override
         public Mono<ObjectQueryResult> queryObjects(
-                String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+                Snapshot snapshot, String objectTypeId, ObjectQuery query) {
             return Mono.error(new UnsupportedOperationException());
         }
 
         @Override
         public Mono<Object> executeFunction(
-                String providerId,
                 Snapshot snapshot,
                 String functionId,
                 OntologyObjectSet targets,
@@ -781,7 +780,7 @@ class OntologyFunctionLinkActionExecutorTest {
 
         @Override
         public Mono<List<Map<String, Object>>> resolveLink(
-                String providerId, Snapshot snapshot, String sourceTypeId, String sourceId, String requestedLinkId) {
+                Snapshot snapshot, String sourceTypeId, String sourceId, String requestedLinkId) {
             linkCalls++;
             linkId = requestedLinkId;
             if (linkFailure != null) {

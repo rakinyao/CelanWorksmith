@@ -140,8 +140,8 @@ public class CelanWorksmithConfiguration {
 
     @Bean
     public ReleaseDatasourcePinExtractor releaseDatasourcePinExtractor(
-            NewActionRepository actionRepository, PluginService pluginService) {
-        return new ReleaseDatasourcePinExtractor(actionRepository, pluginService);
+            NewActionRepository actionRepository, PluginService pluginService, OntologySnapshotService snapshotService) {
+        return new ReleaseDatasourcePinExtractor(actionRepository, pluginService, snapshotService);
     }
 
     @Bean

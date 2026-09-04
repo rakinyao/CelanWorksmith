@@ -11,6 +11,8 @@ import com.appsmith.server.domains.Plugin;
 import com.appsmith.server.plugins.base.PluginService;
 import com.appsmith.server.repositories.NewActionRepository;
 import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
+import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshot;
+import com.celanworksmith.ontology.datasource.OntologySnapshotService;
 import com.celanworksmith.release.model.ReleaseDatasourcePin;
 import com.celanworksmith.release.model.ReleaseDatasourcePinExtractionResult;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,32 @@ class ReleaseDatasourcePinExtractorTest {
                         "2026-01",
                         "project-1",
                         "2.4.0"));
+    }
+
+    @Test
+    void derivesOntologyProviderFromThePinnedSnapshotInsteadOfDatasourceProperties() {
+        NewActionRepository repository = Mockito.mock(NewActionRepository.class);
+        PluginService pluginService = ontologyPluginService("opaque-plugin-id");
+        List<Property> properties = ontologyProperties("2026-01").stream()
+                .filter(property -> !"runtimeProviderId".equals(property.getKey()))
+                .toList();
+        Datasource ontology = datasource("ontology-1", "opaque-plugin-id", properties);
+        OntologySnapshotService snapshotService = Mockito.mock(OntologySnapshotService.class);
+        OntologyMetadataSnapshot snapshot = Mockito.mock(OntologyMetadataSnapshot.class);
+        Mockito.when(snapshot.runtimeProviderId()).thenReturn("provider-from-snapshot");
+        Mockito.when(snapshotService.getRequiredSnapshot("snapshot-7", "sha256:" + "a".repeat(64)))
+                .thenReturn(reactor.core.publisher.Mono.just(snapshot));
+        Mockito.when(repository.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
+                .thenReturn(Flux.just(action("action-1", ontology)));
+
+        ReleaseDatasourcePinExtractionResult result =
+                new ReleaseDatasourcePinExtractor(repository, pluginService, snapshotService).extract(candidate()).block();
+
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.pins()).singleElement().satisfies(pin -> {
+            assertThat(pin.providerId()).isEqualTo("provider-from-snapshot");
+            assertThat(pin.metadataSnapshotId()).isEqualTo("snapshot-7");
+        });
     }
 
     @Test

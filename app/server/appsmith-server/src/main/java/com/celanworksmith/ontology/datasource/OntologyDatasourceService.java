@@ -156,19 +156,20 @@ public class OntologyDatasourceService {
 
     private DatasourceConfiguration configuration(
             String datasourceName, String workspaceId, OntologyMetadataSnapshot snapshot) {
-        return DatasourceConfiguration.builder()
-                .properties(List.of(
-                        property("projectId", snapshot.projectId()),
-                        property("projectVersion", snapshot.projectVersion()),
-                        property("metadataSnapshotId", snapshot.id()),
-                        property("metadataDigest", snapshot.metadataDigest()),
-                        property("runtimeProviderId", snapshot.runtimeProviderId()),
-                        property("providerContractVersion", PROVIDER_CONTRACT_VERSION),
-                        property("workspaceId", workspaceId),
-                        property("datasourceId", "pending"),
-                        property("projectName", datasourceName),
-                        property("sourceKind", snapshot.sourceKind())))
-                .build();
+        List<Property> properties = new java.util.ArrayList<>(List.of(
+                property("projectId", snapshot.projectId()),
+                property("projectVersion", snapshot.projectVersion()),
+                property("metadataSnapshotId", snapshot.id()),
+                property("metadataDigest", snapshot.metadataDigest()),
+                property("providerContractVersion", PROVIDER_CONTRACT_VERSION),
+                property("workspaceId", workspaceId),
+                property("datasourceId", "pending"),
+                property("projectName", datasourceName),
+                property("sourceKind", snapshot.sourceKind())));
+        if (!isBlank(snapshot.managedRuntimeBindingId())) {
+            properties.add(property("managedRuntimeBindingId", snapshot.managedRuntimeBindingId()));
+        }
+        return DatasourceConfiguration.builder().properties(List.copyOf(properties)).build();
     }
 
     private Mono<Datasource> persistDatasourceId(Datasource datasource) {
@@ -196,7 +197,7 @@ public class OntologyDatasourceService {
                 required(properties, "projectId"),
                 required(properties, "projectVersion"),
                 required(properties, "sourceKind"),
-                required(properties, "runtimeProviderId"),
+                managedBindingLabel(properties),
                 required(properties, "metadataDigest"),
                 Boolean.FALSE.equals(storage.getIsConfigured()) ? "STOPPED" : "ACTIVE",
                 changeNote);
@@ -282,6 +283,11 @@ public class OntologyDatasourceService {
             throw new IllegalArgumentException("Ontology datasource property is missing: " + key);
         }
         return value;
+    }
+
+    private static String managedBindingLabel(Map<String, String> properties) {
+        String binding = properties.get("managedRuntimeBindingId");
+        return isBlank(binding) ? "snapshot-bound" : binding;
     }
 
     private static void validateRequest(ImportOntologyDatasourceRequest request) {

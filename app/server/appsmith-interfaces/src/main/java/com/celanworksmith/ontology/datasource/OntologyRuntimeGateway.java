@@ -125,19 +125,32 @@ public interface OntologyRuntimeGateway {
 
     Mono<Snapshot> getRequiredSnapshot(String snapshotId, String digest);
 
-    Mono<ObjectQueryResult> queryObjects(String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query);
+    Mono<ObjectQueryResult> queryObjects(Snapshot snapshot, String objectTypeId, ObjectQuery query);
 
+    @Deprecated
+    default Mono<ObjectQueryResult> queryObjects(String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
+        return queryObjects(snapshot, objectTypeId, query);
+    }
+
+    Mono<Object> executeFunction(
+            Snapshot snapshot, String functionId, OntologyObjectSet targets, Map<String, Object> parameters);
+
+    @Deprecated
     default Mono<Object> executeFunction(
             String providerId,
             Snapshot snapshot,
             String functionId,
             OntologyObjectSet targets,
             Map<String, Object> parameters) {
-        return Mono.error(new UnsupportedOperationException("Ontology function execution is not configured"));
+        return executeFunction(snapshot, functionId, targets, parameters);
     }
 
+    Mono<List<Map<String, Object>>> resolveLink(
+            Snapshot snapshot, String sourceTypeId, String sourceId, String linkId);
+
+    @Deprecated
     default Mono<List<Map<String, Object>>> resolveLink(
             String providerId, Snapshot snapshot, String sourceTypeId, String sourceId, String linkId) {
-        return Mono.error(new UnsupportedOperationException("Ontology link execution is not configured"));
+        return resolveLink(snapshot, sourceTypeId, sourceId, linkId);
     }
 }

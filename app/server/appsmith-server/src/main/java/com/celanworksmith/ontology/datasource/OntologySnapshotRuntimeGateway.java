@@ -28,20 +28,12 @@ public class OntologySnapshotRuntimeGateway implements OntologyRuntimeGateway {
 
     @Override
     public Mono<ObjectQueryResult> queryObjects(
-            String providerId, Snapshot snapshot, String objectTypeId, ObjectQuery query) {
-        if (snapshot == null
-                || snapshot.id() == null
-                || snapshot.id().isBlank()
-                || snapshot.digest() == null
-                || snapshot.digest().isBlank()) {
-            return Mono.error(new IllegalArgumentException("Pinned ontology snapshot is required"));
-        }
+            Snapshot snapshot, String objectTypeId, ObjectQuery query) {
         ObjectSetQuery providerQuery = new ObjectSetQuery(
                 query.filter(), query.sortBy(), query.sortDirection(), query.offset(), query.limit());
-        return snapshotService
-                .getRequiredSnapshot(snapshot.id(), snapshot.digest())
+        return requiredSnapshot(snapshot)
                 .flatMap(persistedSnapshot -> runtimeProviderRegistry
-                        .resolveRequired(providerId)
+                        .resolveRequired(persistedSnapshot.runtimeProviderId())
                         .queryObjects(persistedSnapshot.definition(), objectTypeId, providerQuery))
                 .map(result -> new ObjectQueryResult(
                         result.items().stream()
@@ -59,22 +51,21 @@ public class OntologySnapshotRuntimeGateway implements OntologyRuntimeGateway {
 
     @Override
     public Mono<Object> executeFunction(
-            String providerId,
             Snapshot snapshot,
             String functionId,
             OntologyObjectSet targets,
             Map<String, Object> parameters) {
         return requiredSnapshot(snapshot).flatMap(persistedSnapshot -> runtimeProviderRegistry
-                .resolveRequired(providerId)
+                .resolveRequired(persistedSnapshot.runtimeProviderId())
                 .executeFunction(
                         persistedSnapshot.definition(), functionId, new FunctionExecutionRequest(targets, parameters)));
     }
 
     @Override
     public Mono<java.util.List<Map<String, Object>>> resolveLink(
-            String providerId, Snapshot snapshot, String sourceTypeId, String sourceId, String linkId) {
+            Snapshot snapshot, String sourceTypeId, String sourceId, String linkId) {
         return requiredSnapshot(snapshot).flatMap(persistedSnapshot -> runtimeProviderRegistry
-                .resolveRequired(providerId)
+                .resolveRequired(persistedSnapshot.runtimeProviderId())
                 .getLinks(persistedSnapshot.definition(), sourceTypeId, sourceId, linkId, ObjectSetQuery.defaults())
                 .map(result -> result.items().stream()
                         .map(item -> {

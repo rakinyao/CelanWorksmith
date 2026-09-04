@@ -138,7 +138,7 @@ class OntologyDatasourceUpgradeServiceTest {
                 .containsEntry("projectVersion", "2.0.0")
                 .containsEntry("metadataSnapshotId", "snapshot-2")
                 .containsEntry("metadataDigest", "sha256:" + "b".repeat(64))
-                .containsEntry("runtimeProviderId", "demo-mongo-readonly")
+                .doesNotContainKey("runtimeProviderId")
                 .containsEntry("providerContractVersion", "1");
     }
 

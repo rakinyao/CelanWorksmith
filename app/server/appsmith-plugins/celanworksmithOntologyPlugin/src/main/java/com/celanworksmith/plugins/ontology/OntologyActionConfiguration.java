@@ -19,7 +19,6 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             "projectVersion",
             "metadataSnapshotId",
             "metadataDigest",
-            "runtimeProviderId",
             "callerContext",
             "workspaceId",
             "datasourceId",

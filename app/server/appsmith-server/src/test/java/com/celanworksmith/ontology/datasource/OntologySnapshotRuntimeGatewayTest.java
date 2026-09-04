@@ -72,7 +72,7 @@ class OntologySnapshotRuntimeGatewayTest {
                 new OntologyRuntimeGateway.ObjectQuery(List.of("id", "amount"), null, "amount", "desc", 20, 10);
         OntologyRuntimeGateway.Snapshot gatewaySnapshot =
                 new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
-        StepVerifier.create(gateway.queryObjects("demo-mongo-readonly", gatewaySnapshot, "PurchaseOrder", query))
+        StepVerifier.create(gateway.queryObjects(gatewaySnapshot, "PurchaseOrder", query))
                 .assertNext(result -> {
                     assertThat(result.items()).containsExactly(Map.of("id", "po-1", "amount", 42));
                     assertThat(result.offset()).isEqualTo(20);
@@ -115,14 +115,13 @@ class OntologySnapshotRuntimeGatewayTest {
                 new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
 
         StepVerifier.create(gateway.executeFunction(
-                        "demo-mongo-readonly",
                         pinned,
                         "delayScore",
                         new OntologyObjectSet("PurchaseOrder", List.of("po-1")),
                         Map.of("delayDays", 5)))
                 .expectNext(50)
                 .verifyComplete();
-        StepVerifier.create(gateway.resolveLink("demo-mongo-readonly", pinned, "PurchaseOrder", "po-1", "po_delivery"))
+        StepVerifier.create(gateway.resolveLink(pinned, "PurchaseOrder", "po-1", "po_delivery"))
                 .expectNext(List.of(Map.of("id", "delivery-1", "status", "LATE")))
                 .verifyComplete();
 

@@ -446,7 +446,7 @@ public class OntologyPlugin extends BasePlugin {
             OntologyRuntimeGateway.ObjectQuery query = validatedQuery.query();
             String objectTypeId = (String) configuration.definition().get("objectTypeId");
             return runtimeGateway
-                    .queryObjects(datasourceConfiguration.runtimeProviderId(), snapshot, objectTypeId, query)
+                    .queryObjects(snapshot, objectTypeId, query)
                     .map(result -> successResult(result, query, configuration.resultMode(), validatedQuery.full()));
         }
 
@@ -481,7 +481,6 @@ public class OntologyPlugin extends BasePlugin {
                     queryValidator.validateFunctionQuery(configuration, snapshot);
             return runtimeGateway
                     .executeFunction(
-                            datasourceConfiguration.runtimeProviderId(),
                             snapshot,
                             validatedQuery.capabilityId(),
                             validatedQuery.targets(),
@@ -497,7 +496,6 @@ public class OntologyPlugin extends BasePlugin {
             queryValidator.validateLink(configuration, snapshot);
             return runtimeGateway
                     .resolveLink(
-                            datasourceConfiguration.runtimeProviderId(),
                             snapshot,
                             (String) configuration.definition().get("sourceTypeId"),
                             (String) configuration.definition().get("sourceId"),

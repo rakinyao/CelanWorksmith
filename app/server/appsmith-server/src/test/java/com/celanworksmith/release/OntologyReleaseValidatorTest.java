@@ -137,7 +137,7 @@ class OntologyReleaseValidatorTest {
     }
 
     @Test
-    void rejectsProviderIdentityMismatchAsBlocking() {
+    void derivesProviderValidationFromTheSnapshotInsteadOfThePin() {
         ReleaseDatasourcePin pin = pin();
         OntologyMetadataSnapshot snapshot = snapshotEntity();
         snapshot = new OntologyMetadataSnapshot(
@@ -153,15 +153,13 @@ class OntologyReleaseValidatorTest {
                 snapshot.definition());
         when(snapshotService.getRequiredSnapshot("snapshot-1", "digest-1")).thenReturn(Mono.just(snapshot));
         when(runtimeGateway.getRequiredSnapshot("snapshot-1", "digest-1")).thenReturn(Mono.just(snapshot()));
+        when(compatibilityValidator.validate(
+                        any(OntologyMetadataSnapshot.class), org.mockito.ArgumentMatchers.eq("other-provider")))
+                .thenReturn(Mono.just(new ProviderValidationResult(true, List.of())));
 
         List<ReleaseDiagnostic> diagnostics = validator.validate(pin, List.of()).block();
 
-        assertThat(diagnostics)
-                .extracting("severity", "code", "path")
-                .containsExactly(org.assertj.core.groups.Tuple.tuple(
-                        ReleaseDiagnostic.Severity.BLOCKING,
-                        "RELEASE_ONTOLOGY_PROVIDER_INCOMPATIBLE",
-                        "datasources[ontology-1].providerId"));
+        assertThat(diagnostics).isEmpty();
     }
 
     @Test

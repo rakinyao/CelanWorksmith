@@ -100,20 +100,6 @@
           "initialValue": "",
           "controlType": "INPUT_TEXT",
           "disabled": true
-        },
-        {
-          "label": "Runtime Provider ID key",
-          "configProperty": "datasourceConfiguration.properties[4].key",
-          "initialValue": "runtimeProviderId",
-          "controlType": "INPUT_TEXT",
-          "hidden": true
-        },
-        {
-          "label": "Runtime Provider ID",
-          "configProperty": "datasourceConfiguration.properties[4].value",
-          "initialValue": "",
-          "controlType": "INPUT_TEXT",
-          "disabled": true
         }
       ]
     }

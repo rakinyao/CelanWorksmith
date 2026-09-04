@@ -16,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -136,5 +137,39 @@ class OntologyDatasourceControllerTest {
         assertEquals(
                 OntologyProjectImportSource.Kind.DEMO,
                 requestCaptor.getValue().projectImportRequest().sourceKind());
+    }
+
+    @Test
+    void sanitizesReleaseImportFailuresWithoutReflectingProviderOrMetadata() {
+        User user = new User();
+        user.setEmail("trusted@example.com");
+        when(sessionUserService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(service.importDatasource(any())).thenReturn(Mono.error(new IllegalArgumentException(
+                "Mongo URI mongodb://secret.example/release and provider demo-mongo-readonly rejected asset ref")));
+
+        client.post()
+                .uri("/api/v1/celanworksmith/ontology/datasources")
+                .bodyValue(new ImportOntologyDatasourceRequest(
+                        "workspace-1",
+                        "Business",
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                "forged-metadata".getBytes(),
+                                "release-1",
+                                "forged-provider",
+                                "forged@example.com"),
+                        null))
+                .exchange()
+                .expectStatus()
+                .isBadRequest()
+                .expectBody()
+                .jsonPath("$.message")
+                .isEqualTo("Ontology release import could not be completed")
+                .jsonPath("$.message")
+                .value(value -> {
+                    String message = String.valueOf(value);
+                    assertThat(message)
+                            .doesNotContain("Mongo", "mongodb", "demo-mongo-readonly", "forged-metadata", "forged-provider");
+                });
     }
 }

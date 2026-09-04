@@ -24,7 +24,7 @@ public class OntologyDatasourceUpgradeService {
     private static final String PROJECT_VERSION = "projectVersion";
     private static final String SNAPSHOT_ID = "metadataSnapshotId";
     private static final String METADATA_DIGEST = "metadataDigest";
-    private static final String RUNTIME_PROVIDER_ID = "runtimeProviderId";
+    private static final String MANAGED_RUNTIME_BINDING_ID = "managedRuntimeBindingId";
     private static final String PROVIDER_CONTRACT_VERSION = "providerContractVersion";
     private static final String SOURCE_KIND = "sourceKind";
 
@@ -176,11 +176,18 @@ public class OntologyDatasourceUpgradeService {
         properties.put(PROJECT_VERSION, new Property(PROJECT_VERSION, snapshot.projectVersion()));
         properties.put(SNAPSHOT_ID, new Property(SNAPSHOT_ID, snapshot.id()));
         properties.put(METADATA_DIGEST, new Property(METADATA_DIGEST, snapshot.metadataDigest()));
-        properties.put(RUNTIME_PROVIDER_ID, new Property(RUNTIME_PROVIDER_ID, snapshot.runtimeProviderId()));
+        properties.remove("runtimeProviderId");
         properties.put(
                 PROVIDER_CONTRACT_VERSION,
                 new Property(PROVIDER_CONTRACT_VERSION, OntologyDatasourceService.PROVIDER_CONTRACT_VERSION));
         properties.put(SOURCE_KIND, new Property(SOURCE_KIND, snapshot.sourceKind()));
+        if (snapshot.managedRuntimeBindingId() == null || snapshot.managedRuntimeBindingId().isBlank()) {
+            properties.remove(MANAGED_RUNTIME_BINDING_ID);
+        } else {
+            properties.put(
+                    MANAGED_RUNTIME_BINDING_ID,
+                    new Property(MANAGED_RUNTIME_BINDING_ID, snapshot.managedRuntimeBindingId()));
+        }
         return existing.toBuilder()
                 .properties(new ArrayList<>(properties.values()))
                 .build();

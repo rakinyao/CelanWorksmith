@@ -89,10 +89,7 @@ public class OntologyReleaseValidator {
 
     private Mono<ProviderValidationResult> providerValidation(
             ReleaseDatasourcePin pin, OntologyMetadataSnapshot snapshot) {
-        if (!pin.providerId().equals(snapshot.runtimeProviderId())) {
-            return Mono.just(new ProviderValidationResult(false, List.of("provider identity mismatch")));
-        }
-        return compatibilityValidator.validate(snapshot, pin.providerId());
+        return compatibilityValidator.validate(snapshot, snapshot.runtimeProviderId());
     }
 
     private boolean projectChanged(ReleaseDatasourcePin pin, OntologyMetadataSnapshot snapshot) {

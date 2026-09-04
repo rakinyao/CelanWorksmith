@@ -109,7 +109,7 @@ class OntologyDatasourceServiceTest {
                     assertThat(summary.projectId()).isEqualTo("supply-chain");
                     assertThat(summary.projectVersion()).isEqualTo("1.0.0");
                     assertThat(summary.source()).isEqualTo("local-yaml");
-                    assertThat(summary.provider()).isEqualTo("demo-mongo-readonly");
+                    assertThat(summary.provider()).isEqualTo("snapshot-bound");
                     assertThat(summary.digest()).isEqualTo("sha256:" + "a".repeat(64));
                     assertThat(summary.status()).isEqualTo("ACTIVE");
                 })
@@ -121,17 +121,62 @@ class OntologyDatasourceServiceTest {
         DatasourceStorageDTO storage =
                 created.get().getDatasourceStorages().values().iterator().next();
         assertThat(properties(storage.getDatasourceConfiguration()))
-                .containsExactly(
+                .contains(
                         Map.entry("projectId", "supply-chain"),
                         Map.entry("projectVersion", "1.0.0"),
                         Map.entry("metadataSnapshotId", "snapshot-1"),
                         Map.entry("metadataDigest", "sha256:" + "a".repeat(64)),
-                        Map.entry("runtimeProviderId", "demo-mongo-readonly"),
-                        Map.entry("providerContractVersion", "1"),
                         Map.entry("workspaceId", "workspace-1"),
                         Map.entry("datasourceId", "datasource-1"),
-                        Map.entry("projectName", "Supply Chain"),
-                        Map.entry("sourceKind", "local-yaml"));
+                        Map.entry("sourceKind", "local-yaml"))
+                .doesNotContain(Map.entry("runtimeProviderId", "demo-mongo-readonly"));
+    }
+
+    @Test
+    void importsReleaseDatasourceWithOpaqueBindingOnly() {
+        WorkspaceService workspaceService = mock(WorkspaceService.class);
+        DatasourceService datasourceService = mock(DatasourceService.class);
+        PluginService pluginService = registeredPluginService();
+        OntologyProjectImportSource importer = mock(OntologyProjectImportSource.class);
+        RuntimeProviderCompatibilityValidator validator = mock(RuntimeProviderCompatibilityValidator.class);
+        AtomicReference<Datasource> created = new AtomicReference<>();
+        OntologyMetadataSnapshot snapshot = releaseSnapshot();
+        when(workspaceService.findById("workspace-1", AclPermission.WORKSPACE_MANAGE_DATASOURCES))
+                .thenReturn(Mono.just(mock(com.appsmith.server.domains.Workspace.class)));
+        when(importer.sourceKind()).thenReturn(OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON);
+        when(importer.importProject(any())).thenReturn(Mono.just(snapshot));
+        when(validator.validate(any(), eq("demo-mongo-readonly")))
+                .thenReturn(Mono.just(new ProviderValidationResult(true, List.of())));
+        when(datasourceService.create(any())).thenAnswer(invocation -> {
+            Datasource datasource = invocation.getArgument(0);
+            datasource.setId("datasource-release-1");
+            created.set(datasource);
+            return Mono.just(datasource);
+        });
+        when(datasourceService.updateDatasourceStorage(any(), eq(""), eq(true))).thenAnswer(invocation -> {
+            DatasourceStorageDTO storage = invocation.getArgument(0);
+            created.get().setDatasourceStorages(Map.of("", storage));
+            return Mono.just(created.get());
+        });
+        OntologyDatasourceService service = new OntologyDatasourceService(
+                workspaceService, datasourceService, pluginService, List.of(importer), validator);
+
+        StepVerifier.create(service.importDatasource(new ImportOntologyDatasourceRequest(
+                        "workspace-1",
+                        "Business",
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                "release".getBytes(),
+                                "release-1",
+                                "forged-provider",
+                                "admin-1"),
+                        null)))
+                .assertNext(summary -> assertThat(summary.provider()).isEqualTo("managed:business-demo"))
+                .verifyComplete();
+
+        assertThat(properties(created.get().getDatasourceStorages().get("").getDatasourceConfiguration()))
+                .contains(Map.entry("managedRuntimeBindingId", "managed:business-demo"))
+                .doesNotContain(Map.entry("runtimeProviderId", "demo-mongo-readonly"));
     }
 
     @Test
@@ -394,6 +439,25 @@ class OntologyDatasourceServiceTest {
                 new OntologyProjectDefinition("supply-chain", "1.0.0", 1, List.of(), List.of(), List.of(), List.of()));
     }
 
+    private static OntologyMetadataSnapshot releaseSnapshot() {
+        OntologyMetadataSnapshot snapshot = snapshot("local-release-json");
+        return new OntologyMetadataSnapshot(
+                snapshot.id(),
+                snapshot.projectId(),
+                snapshot.projectVersion(),
+                snapshot.sourceKind(),
+                "release-1",
+                snapshot.runtimeProviderId(),
+                snapshot.createdBy(),
+                snapshot.createdAt(),
+                snapshot.metadataDigest(),
+                snapshot.definition(),
+                false,
+                "business",
+                "sha256:" + "b".repeat(64),
+                "managed:business-demo");
+    }
+
     private static Datasource datasource(String id, String workspaceId, OntologyMetadataSnapshot snapshot) {
         Datasource datasource = new Datasource();
         datasource.setId(id);
@@ -421,7 +485,6 @@ class OntologyDatasourceServiceTest {
                         new Property("projectVersion", snapshot.projectVersion()),
                         new Property("metadataSnapshotId", snapshot.id()),
                         new Property("metadataDigest", snapshot.metadataDigest()),
-                        new Property("runtimeProviderId", snapshot.runtimeProviderId()),
                         new Property("providerContractVersion", "1"),
                         new Property("workspaceId", "workspace-1"),
                         new Property("datasourceId", "datasource-1"),
@@ -481,7 +544,6 @@ class OntologyDatasourceServiceTest {
                         Map.entry("projectVersion", "1.0.0"),
                         Map.entry("metadataSnapshotId", "snapshot-1"),
                         Map.entry("metadataDigest", "sha256:" + "a".repeat(64)),
-                        Map.entry("runtimeProviderId", "demo-mongo-readonly"),
                         Map.entry("providerContractVersion", "1"),
                         Map.entry("workspaceId", "workspace-1"),
                         Map.entry("datasourceId", "datasource-demo-1")));

@@ -38,8 +38,8 @@ class ApplicationReleaseProviderHealthGateTest {
             new ApplicationReleaseProviderHealthGate(snapshotService, compatibilityValidator);
 
     @Test
-    void acceptsTheMongoBackedDemoProviderUsingTheExactPin() {
-        ReleaseDatasourcePin pin = pin("demo-mongo-readonly", "snapshot-1", "digest-1");
+    void derivesTheMongoBackedDemoProviderFromThePinnedSnapshot() {
+        ReleaseDatasourcePin pin = pin("forged-provider", "snapshot-1", "digest-1");
         OntologyMetadataSnapshot snapshot = snapshot("snapshot-1", "digest-1", "demo-mongo-readonly");
         when(snapshotService.getRequiredSnapshot("snapshot-1", "digest-1")).thenReturn(Mono.just(snapshot));
 

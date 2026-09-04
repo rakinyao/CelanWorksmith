@@ -36,8 +36,17 @@ public class OntologyDatasourceController {
         return sessionUserService
                 .getCurrentUser()
                 .map(user -> withAuthenticatedImportActor(request, user.getEmail()))
-                .flatMap(service::importDatasource)
+                .flatMap(authenticated -> service.importDatasource(authenticated)
+                        .onErrorMap(error -> isReleaseImport(authenticated)
+                                ? new IllegalArgumentException("Ontology release import could not be completed")
+                                : error))
                 .map(summary -> new ResponseDTO<>(HttpStatus.CREATED, summary));
+    }
+
+    private boolean isReleaseImport(ImportOntologyDatasourceRequest request) {
+        return request != null
+                && request.projectImportRequest() != null
+                && request.projectImportRequest().sourceKind() == OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON;
     }
 
     private ImportOntologyDatasourceRequest withAuthenticatedImportActor(

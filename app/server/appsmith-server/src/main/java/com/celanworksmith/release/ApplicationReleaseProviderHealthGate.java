@@ -40,10 +40,7 @@ public class ApplicationReleaseProviderHealthGate {
 
     private Mono<ProviderValidationResult> validateProvider(
             ReleaseDatasourcePin pin, OntologyMetadataSnapshot snapshot) {
-        if (!pin.providerId().equals(snapshot.runtimeProviderId())) {
-            return Mono.just(new ProviderValidationResult(false, List.of("provider identity mismatch")));
-        }
-        return Mono.defer(() -> compatibilityValidator.validate(snapshot, pin.providerId()));
+        return Mono.defer(() -> compatibilityValidator.validate(snapshot, snapshot.runtimeProviderId()));
     }
 
     private ReleaseDiagnostic providerErrorDiagnostic(ReleaseDatasourcePin pin, Throwable error) {
