@@ -55,6 +55,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -112,7 +113,7 @@ public class CelanWorksmithConfiguration {
     public OntologyRuntimeGateway ontologyRuntimeGateway(
             OntologySnapshotService snapshotService,
             RuntimeProviderRegistry runtimeProviderRegistry,
-            com.appsmith.server.datasources.base.DatasourceService datasourceService) {
+            @Lazy com.appsmith.server.datasources.base.DatasourceService datasourceService) {
         return new OntologySnapshotRuntimeGateway(snapshotService, runtimeProviderRegistry, datasourceService);
     }
 

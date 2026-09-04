@@ -28,6 +28,8 @@ import com.celanworksmith.runtime.port.RuntimeProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.test.StepVerifier;
 
@@ -35,26 +37,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 class CelanWorksmithConfigurationTest {
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withUserConfiguration(CelanWorksmithConfiguration.class)
-            .withBean(OntologyProjectRegistry.class, () -> mock(OntologyProjectRegistry.class))
-            .withBean(ObjectMapper.class, () -> new ObjectMapper().findAndRegisterModules())
-            .withBean(OntologyMetadataSnapshotRepository.class, () -> mock(OntologyMetadataSnapshotRepository.class))
-            .withBean(
-                    CelanworksmithApplicationBindingRepository.class,
-                    () -> mock(CelanworksmithApplicationBindingRepository.class))
-            .withBean(WorkspaceService.class, () -> mock(WorkspaceService.class))
-            .withBean(DatasourceService.class, () -> mock(DatasourceService.class))
-            .withBean(DatasourceStorageService.class, () -> mock(DatasourceStorageService.class))
-            .withBean(PluginService.class, () -> mock(PluginService.class))
-            .withBean(NewActionRepository.class, () -> mock(NewActionRepository.class))
-            .withBean(ApplicationService.class, () -> mock(ApplicationService.class))
-            .withBean(ApplicationPermission.class, () -> mock(ApplicationPermission.class))
-            .withBean(DatasourcePermission.class, () -> mock(DatasourcePermission.class))
-            .withBean(
-                    OntologyDatasourceUpgradeService.AuditStore.class,
-                    () -> mock(OntologyDatasourceUpgradeService.AuditStore.class))
-            .withBean(TransactionalOperator.class, () -> mock(TransactionalOperator.class));
+    private final ApplicationContextRunner contextRunner =
+            baseContextRunner().withBean(DatasourceService.class, () -> mock(DatasourceService.class));
+
+    private ApplicationContextRunner baseContextRunner() {
+        return new ApplicationContextRunner()
+                .withUserConfiguration(CelanWorksmithConfiguration.class)
+                .withBean(OntologyProjectRegistry.class, () -> mock(OntologyProjectRegistry.class))
+                .withBean(ObjectMapper.class, () -> new ObjectMapper().findAndRegisterModules())
+                .withBean(
+                        OntologyMetadataSnapshotRepository.class, () -> mock(OntologyMetadataSnapshotRepository.class))
+                .withBean(
+                        CelanworksmithApplicationBindingRepository.class,
+                        () -> mock(CelanworksmithApplicationBindingRepository.class))
+                .withBean(WorkspaceService.class, () -> mock(WorkspaceService.class))
+                .withBean(DatasourceStorageService.class, () -> mock(DatasourceStorageService.class))
+                .withBean(PluginService.class, () -> mock(PluginService.class))
+                .withBean(NewActionRepository.class, () -> mock(NewActionRepository.class))
+                .withBean(ApplicationService.class, () -> mock(ApplicationService.class))
+                .withBean(ApplicationPermission.class, () -> mock(ApplicationPermission.class))
+                .withBean(DatasourcePermission.class, () -> mock(DatasourcePermission.class))
+                .withBean(
+                        OntologyDatasourceUpgradeService.AuditStore.class,
+                        () -> mock(OntologyDatasourceUpgradeService.AuditStore.class))
+                .withBean(TransactionalOperator.class, () -> mock(TransactionalOperator.class));
+    }
 
     @Test
     void defaultsToProjectAndMongoProviders() {
@@ -101,6 +108,13 @@ class CelanWorksmithConfigurationTest {
     }
 
     @Test
+    void startsWhenPluginExecutorInitializesBeforeDatasourceService() {
+        baseContextRunner()
+                .withUserConfiguration(PluginExecutorInitializationConfiguration.class)
+                .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
     void registersTheOntologyDatasourceLifecycleService() {
         contextRunner.run(context -> assertThat(context).hasSingleBean(OntologyDatasourceService.class));
     }
@@ -123,4 +137,19 @@ class CelanWorksmithConfigurationTest {
                             .verify();
                 });
     }
+
+    @Configuration(proxyBeanMethods = false)
+    static class PluginExecutorInitializationConfiguration {
+        @Bean
+        DatasourceService datasourceService(PluginExecutorInitialization pluginExecutorInitialization) {
+            return mock(DatasourceService.class);
+        }
+
+        @Bean
+        PluginExecutorInitialization pluginExecutorInitialization(OntologyRuntimeGateway runtimeGateway) {
+            return new PluginExecutorInitialization(runtimeGateway);
+        }
+    }
+
+    record PluginExecutorInitialization(OntologyRuntimeGateway runtimeGateway) {}
 }
