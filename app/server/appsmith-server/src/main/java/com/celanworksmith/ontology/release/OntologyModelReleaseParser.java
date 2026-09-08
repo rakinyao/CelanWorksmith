@@ -113,12 +113,64 @@ public final class OntologyModelReleaseParser {
             case "entity_set" -> parseEntity(node, domain, name, version);
             case "runtime_binding" -> parseRuntimeBinding(node, domain, name, version);
             case "entity_set_link" -> parseLink(node, domain, name, version);
+            case "function" -> parseFunction(node, domain, name, version);
             case "entity_source", "entity_source_link" -> parseLineage(node, domain, kind, name, version);
             default -> {
                 fail("Release contains unsupported capabilities");
                 yield null;
             }
         };
+    }
+
+    private OntologyModelRelease.Function parseFunction(JsonNode node, String domain, String name, String version) {
+        JsonNode spec = object(node, "spec", "Release function spec is required");
+        requireOnlyKeys(
+                spec,
+                Set.of(
+                        "display_name",
+                        "owner_object_type_ids",
+                        "return_type",
+                        "side_effect_free",
+                        "target",
+                        "implementation"),
+                "Release function spec");
+        Map<String, String> displayName =
+                localized(object(spec, "display_name", "Release function display name is required"));
+        List<String> owners = strings(
+                array(spec, "owner_object_type_ids", "Release function owners are required"),
+                "Release function owners are invalid");
+        require(!owners.isEmpty(), "Release function owners are required");
+        String returnType = nonblank(spec, "return_type", "Release function return type is required");
+        JsonNode sideEffectFree = spec.path("side_effect_free");
+        require(sideEffectFree.isBoolean(), "Release function side_effect_free is required");
+        require(sideEffectFree.asBoolean(), "Release functions must be side-effect free");
+
+        JsonNode target = object(spec, "target", "Release function target is required");
+        requireOnlyKeys(target, Set.of("max_items"), "Release function target");
+        JsonNode maxItems = target.path("max_items");
+        require(maxItems.isIntegralNumber() && maxItems.canConvertToInt(), "Release function max_items is invalid");
+        require(maxItems.intValue() > 0, "Release function max_items must be positive");
+
+        JsonNode implementation = object(spec, "implementation", "Release function implementation is required");
+        requireOnlyKeys(implementation, Set.of("kind", "ref", "version"), "Release function implementation");
+        String implementationKind =
+                nonblank(implementation, "kind", "Release function implementation kind is required");
+        require("DEMO_HANDLER".equals(implementationKind), "Release function implementation kind is unsupported");
+        String implementationRef = nonblank(implementation, "ref", "Release function implementation ref is required");
+        String implementationVersion =
+                semver(implementation, "version", "Release function implementation version must be strict SemVer");
+        return new OntologyModelRelease.Function(
+                domain,
+                name,
+                version,
+                displayName,
+                returnType,
+                owners,
+                true,
+                maxItems.intValue(),
+                implementationKind,
+                implementationRef,
+                implementationVersion);
     }
 
     private OntologyModelRelease.EntitySet parseEntity(JsonNode node, String domain, String name, String version) {
@@ -340,6 +392,12 @@ public final class OntologyModelReleaseParser {
                     require(
                             destination.contains(mapping.destinationField()),
                             "Release link references an unknown destination field");
+                }
+            } else if (element instanceof OntologyModelRelease.Function function) {
+                for (String owner : function.ownerObjectTypeIds()) {
+                    require(
+                            entities.containsKey(function.domain() + '\u0000' + owner),
+                            "Release function references an unknown owner object type");
                 }
             }
         }

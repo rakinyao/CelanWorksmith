@@ -1,5 +1,6 @@
 package com.celanworksmith.ontology.release;
 
+import com.celanworksmith.ontology.dto.FunctionDTO;
 import com.celanworksmith.ontology.dto.LinkTypeDTO;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
@@ -17,6 +18,7 @@ public final class OntologyModelReleaseMapper {
         Map<String, OntologyModelRelease.RuntimeBinding> bindings = new HashMap<>();
         List<OntologyModelRelease.EntitySet> entities = new ArrayList<>();
         List<OntologyModelRelease.EntitySetLink> links = new ArrayList<>();
+        List<OntologyModelRelease.Function> functions = new ArrayList<>();
         for (OntologyModelRelease.Element element : release.elements()) {
             if (element instanceof OntologyModelRelease.EntitySet entity) entities.add(entity);
             else if (element instanceof OntologyModelRelease.RuntimeBinding binding) {
@@ -24,6 +26,7 @@ public final class OntologyModelReleaseMapper {
                     throw new IllegalArgumentException("Release entity has duplicate runtime bindings");
                 }
             } else if (element instanceof OntologyModelRelease.EntitySetLink link) links.add(link);
+            else if (element instanceof OntologyModelRelease.Function function) functions.add(function);
             else if (element instanceof OntologyModelRelease.UnsupportedElement) {
                 throw new IllegalArgumentException("Release contains unsupported capabilities");
             }
@@ -90,13 +93,26 @@ public final class OntologyModelReleaseMapper {
                     mappings));
             linkMappings.add(new OntologyProjectDefinition.LinkRuntimeMapping(link.name(), mappings));
         }
+        List<FunctionDTO> functionTypes = functions.stream()
+                .map(function -> new FunctionDTO(
+                        function.name(),
+                        localized(function.displayName()),
+                        function.returnType(),
+                        function.ownerObjectTypeIds(),
+                        List.of(),
+                        function.sideEffectFree(),
+                        function.maxItems(),
+                        function.implementationKind(),
+                        function.implementationRef(),
+                        function.implementationVersion()))
+                .toList();
         return new OntologyProjectDefinition(
                 release.release().modelId(),
                 release.release().version(),
                 2,
                 objectTypes,
                 linkTypes,
-                List.of(),
+                functionTypes,
                 List.of(),
                 new OntologyProjectDefinition.RuntimeMappings(objectMappings, linkMappings));
     }

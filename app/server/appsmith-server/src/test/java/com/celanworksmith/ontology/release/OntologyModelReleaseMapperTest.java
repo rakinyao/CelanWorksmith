@@ -59,6 +59,53 @@ class OntologyModelReleaseMapperTest {
         assertThatThrownBy(() -> mapper.map(releaseWithLinkStatus("INFERRED"))).hasMessageContaining("VERIFIED");
     }
 
+    @Test
+    void mapsProvisionalFunctionsToProjectDefinition() {
+        OntologyModelRelease parsed = parser.parse(functionRelease());
+        OntologyProjectDefinition definition = mapper.map(parsed);
+
+        assertThat(definition.functions()).singleElement().satisfies(function -> {
+            assertThat(function.id()).isEqualTo("CalculateTotal");
+            assertThat(function.displayName()).isEqualTo("计算总额");
+            assertThat(function.maxItems()).isEqualTo(100);
+            assertThat(function.implementationKind()).isEqualTo("DEMO_HANDLER");
+        });
+    }
+
+    private byte[] functionRelease() {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+                    new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.node.ObjectNode document =
+                    (com.fasterxml.jackson.databind.node.ObjectNode) objectMapper.readTree(fixtureBytes());
+            com.fasterxml.jackson.databind.node.ObjectNode element =
+                    document.withArray("elements").addObject();
+            element.put("kind", "function")
+                    .put("domain", "business")
+                    .put("name", "CalculateTotal")
+                    .put("version", "1.0.0");
+            com.fasterxml.jackson.databind.node.ObjectNode spec = element.putObject("spec");
+            spec.putObject("display_name").put("en-US", "Calculate total").put("zh-CN", "计算总额");
+            spec.putArray("owner_object_type_ids").add("supplier");
+            spec.put("return_type", "DECIMAL").put("side_effect_free", true);
+            spec.putObject("target").put("max_items", 100);
+            spec.putObject("implementation")
+                    .put("kind", "DEMO_HANDLER")
+                    .put("ref", "demo.calculate_total")
+                    .put("version", "1.0.0");
+            document.with("release").remove("release_digest");
+            org.erdtman.jcs.JsonCanonicalizer canonicalizer =
+                    new org.erdtman.jcs.JsonCanonicalizer(objectMapper.writeValueAsBytes(document));
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(canonicalizer.getEncodedUTF8());
+            StringBuilder hex = new StringBuilder();
+            for (byte value : digest) hex.append(String.format("%02x", value));
+            document.with("release").put("release_digest", "sha256:" + hex);
+            return objectMapper.writeValueAsBytes(document);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
     private OntologyModelRelease releaseWithKind(String kind) {
         OntologyModelRelease release = parser.parse(fixtureBytes());
         List<OntologyModelRelease.Element> elements = new ArrayList<>(release.elements());

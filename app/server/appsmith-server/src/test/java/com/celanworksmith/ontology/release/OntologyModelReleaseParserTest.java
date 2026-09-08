@@ -90,6 +90,33 @@ class OntologyModelReleaseParserTest {
         assertThatThrownBy(() -> parser.parse(signed(release))).hasMessageContaining("domain");
     }
 
+    @Test
+    void parsesProvisionalDemoHandlerFunctionMetadata() {
+        ObjectNode document = minimalRelease();
+        document.withArray("elements").add(function("CalculateTotal"));
+
+        OntologyModelRelease.Function function = parser.parse(signed(document)).elements().stream()
+                .filter(OntologyModelRelease.Function.class::isInstance)
+                .map(OntologyModelRelease.Function.class::cast)
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(function.displayName()).containsEntry("zh-CN", "计算总额");
+        assertThat(function.ownerObjectTypeIds()).containsExactly("thing");
+        assertThat(function.maxItems()).isEqualTo(100);
+        assertThat(function.implementationKind()).isEqualTo("DEMO_HANDLER");
+    }
+
+    @Test
+    void rejectsUnsupportedFunctionImplementationKind() {
+        ObjectNode document = minimalRelease();
+        ObjectNode function = function("CalculateTotal");
+        ((ObjectNode) function.at("/spec/implementation")).put("kind", "PYTHON_PACKAGE");
+        document.withArray("elements").add(function);
+
+        assertThatThrownBy(() -> parser.parse(signed(document))).hasMessageContaining("implementation kind");
+    }
+
     private static byte[] fixtureBytes() {
         try {
             return Files.readAllBytes(Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo.json"));
@@ -179,6 +206,25 @@ class OntologyModelReleaseParserTest {
             if ("runtime_binding".equals(element.path("kind").asText())) return (ObjectNode) element.path("spec");
         }
         throw new IllegalStateException("Fixture runtime binding is missing");
+    }
+
+    private ObjectNode function(String id) {
+        ObjectNode function = objectMapper.createObjectNode();
+        function.put("kind", "function");
+        function.put("domain", "business");
+        function.put("name", id);
+        function.put("version", "1.0.0");
+        ObjectNode spec = function.putObject("spec");
+        spec.putObject("display_name").put("en-US", "Calculate total").put("zh-CN", "计算总额");
+        spec.putArray("owner_object_type_ids").add("thing");
+        spec.put("return_type", "DECIMAL");
+        spec.put("side_effect_free", true);
+        spec.putObject("target").put("max_items", 100);
+        spec.putObject("implementation")
+                .put("kind", "DEMO_HANDLER")
+                .put("ref", "demo.calculate_total")
+                .put("version", "1.0.0");
+        return function;
     }
 
     private byte[] signed(ObjectNode document) {
