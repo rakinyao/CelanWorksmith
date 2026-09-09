@@ -38,10 +38,12 @@ public class OntologyPlugin extends BasePlugin {
 
     @Extension
     public static class OntologyPluginExecutor implements PluginExecutor<OntologyDatasourceConfiguration> {
+        private static final String COLUMN_LABELS_HEADER = "X-CELANWORKSHOP-COLUMN-LABELS";
         private static final Logger LOGGER = LoggerFactory.getLogger(OntologyPluginExecutor.class);
         private final OntologyRuntimeGateway runtimeGateway;
         private final WorkspaceActionServerConfigurationResolver actionServerResolver;
         private final OntologyQueryValidator queryValidator;
+        private final ObjectMapper objectMapper;
 
         public OntologyPluginExecutor(OntologyRuntimeGateway runtimeGateway) {
             this(
@@ -55,7 +57,8 @@ public class OntologyPlugin extends BasePlugin {
                 WorkspaceActionServerConfigurationResolver actionServerResolver) {
             this.runtimeGateway = runtimeGateway;
             this.actionServerResolver = actionServerResolver;
-            this.queryValidator = new OntologyQueryValidator(new ObjectMapper());
+            this.objectMapper = new ObjectMapper();
+            this.queryValidator = new OntologyQueryValidator(objectMapper);
         }
 
         @Override
@@ -173,12 +176,16 @@ public class OntologyPlugin extends BasePlugin {
                                     .map(OntologyRuntimeGateway.PropertyMetadata::dataType)
                                     .findFirst()
                                     .orElse("string");
-                            columns.add(
-                                    new DatasourceStructure.Column(resolvedPrimaryKey, primaryKeyType, null, false));
+                            columns.add(new DatasourceStructure.Column(
+                                    resolvedPrimaryKey, primaryKeyType, null, false, resolvedPrimaryKey));
                         }
                         columns.addAll(visibleProperties.stream()
-                                .map(property ->
-                                        new DatasourceStructure.Column(property.id(), property.dataType(), null, false))
+                                .map(property -> new DatasourceStructure.Column(
+                                        property.id(),
+                                        property.dataType(),
+                                        null,
+                                        false,
+                                        safeDisplayLabel(property.displayName(), property.id())))
                                 .toList());
                         return new DatasourceStructure.Table(
                                 DatasourceStructure.TableType.TABLE,
@@ -461,14 +468,17 @@ public class OntologyPlugin extends BasePlugin {
                             snapshot,
                             objectTypeId,
                             query)
-                    .map(result -> successResult(result, query, configuration.resultMode(), validatedQuery.full()));
+                    .map(result -> successResult(
+                            result, query, configuration.resultMode(), validatedQuery.full(), snapshot, objectTypeId));
         }
 
         private ActionExecutionResult successResult(
                 ObjectQueryResult result,
                 OntologyRuntimeGateway.ObjectQuery query,
                 String resultMode,
-                boolean fullQuery) {
+                boolean fullQuery,
+                Snapshot snapshot,
+                String objectTypeId) {
             ActionExecutionResult executionResult = new ActionExecutionResult();
             if ("TOTAL".equals(resultMode)) {
                 executionResult.setBody(Map.of("n", result.total()));
@@ -481,6 +491,7 @@ public class OntologyPlugin extends BasePlugin {
                 executionResult.setBody(result.items().stream()
                         .map(item -> projectedItem(item, query.projection()))
                         .toList());
+                setColumnLabels(executionResult, snapshot, objectTypeId, query.projection());
             }
             executionResult.setIsExecutionSuccess(true);
             return executionResult;
@@ -494,13 +505,18 @@ public class OntologyPlugin extends BasePlugin {
             OntologyQueryValidator.ValidatedCapabilityQuery validatedQuery =
                     queryValidator.validateFunctionQuery(configuration, snapshot);
             return runtimeGateway
-                    .executeFunction(
+                    .validateTargetObjects(
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId(),
+                            snapshot,
+                            validatedQuery.targets())
+                    .then(Mono.defer(() -> runtimeGateway.executeFunction(
                             datasourceConfiguration.workspaceId(),
                             datasourceConfiguration.datasourceId(),
                             snapshot,
                             validatedQuery.capabilityId(),
                             validatedQuery.targets(),
-                            validatedQuery.parameters())
+                            validatedQuery.parameters())))
                     .map(this::successResult);
         }
 
@@ -541,9 +557,15 @@ public class OntologyPlugin extends BasePlugin {
                             "metadataSnapshotId", datasourceConfiguration.metadataSnapshotId(),
                             "metadataDigest", datasourceConfiguration.metadataDigest()),
                     "ontology-action:" + UUID.randomUUID());
-            return actionServerResolver
-                    .resolveRequired(datasourceConfiguration.workspaceId())
-                    .flatMap(client -> client.execute(request))
+            return runtimeGateway
+                    .validateTargetObjects(
+                            datasourceConfiguration.workspaceId(),
+                            datasourceConfiguration.datasourceId(),
+                            snapshot,
+                            validatedQuery.targets())
+                    .then(Mono.defer(() -> actionServerResolver
+                            .resolveRequired(datasourceConfiguration.workspaceId())
+                            .flatMap(client -> client.execute(request))))
                     .map(this::actionSuccessResult)
                     .onErrorMap(OntologyActionServerClient.DomainException.class, this::actionServerFailure);
         }
@@ -634,6 +656,35 @@ public class OntologyPlugin extends BasePlugin {
                 projected.put(propertyId, item.get(propertyId));
             }
             return projected;
+        }
+
+        private void setColumnLabels(
+                ActionExecutionResult executionResult,
+                Snapshot snapshot,
+                String objectTypeId,
+                List<String> projection) {
+            Map<String, String> labels = new LinkedHashMap<>();
+            OntologyRuntimeGateway.ObjectTypeMetadata objectType = snapshot.objectTypes().stream()
+                    .filter(candidate -> objectTypeId.equals(candidate.id()))
+                    .findFirst()
+                    .orElse(null);
+            if (objectType == null) return;
+
+            for (String propertyId : projection) {
+                String label = objectType.properties().stream()
+                        .filter(property -> propertyId.equals(property.id()))
+                        .map(property -> safeDisplayLabel(property.displayName(), property.id()))
+                        .findFirst()
+                        .orElse(propertyId);
+                labels.put(propertyId, label);
+            }
+
+            try {
+                executionResult.setHeaders(objectMapper.valueToTree(
+                        Map.of(COLUMN_LABELS_HEADER, List.of(objectMapper.writeValueAsString(labels)))));
+            } catch (Exception exception) {
+                throw new IllegalStateException("Unable to serialize ontology column labels", exception);
+            }
         }
 
         private Mono<ActionExecutionResult> failedResult(Throwable error) {

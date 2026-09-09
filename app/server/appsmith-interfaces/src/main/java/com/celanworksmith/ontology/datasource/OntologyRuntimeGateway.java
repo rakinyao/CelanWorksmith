@@ -153,6 +153,13 @@ public interface OntologyRuntimeGateway {
         return queryObjects(snapshot, objectTypeId, query);
     }
 
+    Mono<Void> validateTargetObjects(Snapshot snapshot, OntologyObjectSet targets);
+
+    default Mono<Void> validateTargetObjects(
+            String workspaceId, String datasourceId, Snapshot snapshot, OntologyObjectSet targets) {
+        return validateTargetObjects(snapshot, targets);
+    }
+
     Mono<Object> executeFunction(
             Snapshot snapshot, String functionId, OntologyObjectSet targets, Map<String, Object> parameters);
 

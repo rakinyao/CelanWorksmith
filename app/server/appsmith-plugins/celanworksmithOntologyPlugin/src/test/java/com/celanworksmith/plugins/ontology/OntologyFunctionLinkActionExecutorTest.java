@@ -9,6 +9,7 @@ import com.celanworksmith.ontology.datasource.OntologyActionServerClient;
 import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
@@ -167,6 +168,26 @@ class OntologyFunctionLinkActionExecutorTest {
                         Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
 
         assertFalse(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsAnUnknownFunctionTargetBeforeFunctionExecution() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId",
+                        "delayScore",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO404"),
+                        "parameters",
+                        Map.of("delayDays", 5)));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown object: PurchaseOrder/PO404"));
         assertEquals(0, gateway.functionCalls);
     }
 
@@ -570,6 +591,28 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void rejectsACrossTypeActionTargetBeforeActionServerDispatch() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId",
+                        "reschedulePurchaseOrder",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "SUP001")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown object: PurchaseOrder/SUP001"));
+        assertEquals(0, actionServer.calls);
+    }
+
+    @Test
     void scopesFunctionAndActionMetadataToTheSelectedOwnerType() {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
@@ -868,6 +911,11 @@ class OntologyFunctionLinkActionExecutorTest {
         private int linkCalls;
         private List<Map<String, Object>> linkResult = List.of(Map.of("id", "delivery-1"));
         private RuntimeException linkFailure;
+        private final Map<String, String> runtimeObjectTypes = Map.of(
+                "PO001", "PurchaseOrder",
+                "PO002", "PurchaseOrder",
+                "PO003", "PurchaseOrder",
+                "SUP001", "Supplier");
 
         @Override
         public Mono<Snapshot> getRequiredSnapshot(String snapshotId, String digest) {
@@ -877,6 +925,16 @@ class OntologyFunctionLinkActionExecutorTest {
         @Override
         public Mono<ObjectQueryResult> queryObjects(Snapshot snapshot, String objectTypeId, ObjectQuery query) {
             return Mono.error(new UnsupportedOperationException());
+        }
+
+        @Override
+        public Mono<Void> validateTargetObjects(Snapshot snapshot, OntologyObjectSet targets) {
+            return Flux.fromIterable(targets.objectIds())
+                    .concatMap(objectId -> targets.objectTypeId().equals(runtimeObjectTypes.get(objectId))
+                            ? Mono.<Void>empty()
+                            : Mono.error(new IllegalArgumentException(
+                                    "Unknown object: " + targets.objectTypeId() + "/" + objectId)))
+                    .then();
         }
 
         @Override

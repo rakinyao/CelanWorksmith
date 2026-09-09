@@ -2,6 +2,8 @@ package com.celanworksmith.ontology.datasource;
 
 import com.appsmith.external.models.Datasource;
 import com.appsmith.server.datasources.base.DatasourceService;
+import com.celanworksmith.CelanWorksmithErrorCode;
+import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
@@ -62,6 +64,7 @@ class OntologySnapshotRuntimeGatewayTest {
                     assertThat(gatewaySnapshot.functions()).singleElement().satisfies(function -> {
                         assertThat(function.id()).isEqualTo("delayScore");
                         assertThat(function.ownerObjectTypeIds()).containsExactly("PurchaseOrder");
+                        assertThat(function.maxItems()).isEqualTo(2);
                     });
                     assertThat(gatewaySnapshot.actions()).singleElement().satisfies(action -> {
                         assertThat(action.id()).isEqualTo("updateSchedule");
@@ -144,6 +147,80 @@ class OntologySnapshotRuntimeGatewayTest {
     }
 
     @Test
+    void validatesEveryTargetAgainstThePinnedRuntimeDefinition() {
+        OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
+        RuntimeProvider provider = mock(RuntimeProvider.class);
+        OntologyMetadataSnapshot snapshot = snapshot();
+        when(snapshotService.getRequiredSnapshot(snapshot.id(), snapshot.metadataDigest()))
+                .thenReturn(Mono.just(snapshot));
+        when(provider.providerId()).thenReturn("demo-mongo-readonly");
+        when(provider.getObject(eq(snapshot.definition()), eq("PurchaseOrder"), eq("PO001")))
+                .thenReturn(Mono.just(new ObjectInstanceDTO("PO001", "PurchaseOrder", Map.of())));
+        when(provider.getObject(eq(snapshot.definition()), eq("PurchaseOrder"), eq("PO002")))
+                .thenReturn(Mono.just(new ObjectInstanceDTO("PO002", "PurchaseOrder", Map.of())));
+        OntologyRuntimeGateway gateway =
+                new OntologySnapshotRuntimeGateway(snapshotService, new RuntimeProviderRegistry(List.of(provider)));
+        OntologyRuntimeGateway.Snapshot pinned =
+                new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
+
+        StepVerifier.create(gateway.validateTargetObjects(
+                        pinned, new OntologyObjectSet("PurchaseOrder", List.of("PO001", "PO002"))))
+                .verifyComplete();
+
+        verify(provider).getObject(snapshot.definition(), "PurchaseOrder", "PO001");
+        verify(provider).getObject(snapshot.definition(), "PurchaseOrder", "PO002");
+    }
+
+    @Test
+    void rejectsARuntimeTargetThatDoesNotBelongToTheDeclaredType() {
+        OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
+        RuntimeProvider provider = mock(RuntimeProvider.class);
+        OntologyMetadataSnapshot snapshot = snapshot();
+        when(snapshotService.getRequiredSnapshot(snapshot.id(), snapshot.metadataDigest()))
+                .thenReturn(Mono.just(snapshot));
+        when(provider.providerId()).thenReturn("demo-mongo-readonly");
+        when(provider.getObject(eq(snapshot.definition()), eq("PurchaseOrder"), eq("SUP001")))
+                .thenReturn(Mono.just(new ObjectInstanceDTO("SUP001", "Supplier", Map.of())));
+        OntologyRuntimeGateway gateway =
+                new OntologySnapshotRuntimeGateway(snapshotService, new RuntimeProviderRegistry(List.of(provider)));
+        OntologyRuntimeGateway.Snapshot pinned =
+                new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
+
+        StepVerifier.create(gateway.validateTargetObjects(
+                        pinned, new OntologyObjectSet("PurchaseOrder", List.of("SUP001"))))
+                .expectErrorSatisfies(error -> {
+                    assertThat(error).isInstanceOf(CelanWorksmithException.class);
+                    CelanWorksmithException targetError = (CelanWorksmithException) error;
+                    assertThat(targetError.code()).isEqualTo(CelanWorksmithErrorCode.OBJECT_NOT_FOUND);
+                    assertThat(targetError).hasMessage("Unknown object: PurchaseOrder/SUP001");
+                })
+                .verify();
+    }
+
+    @Test
+    void preservesTheRuntimeTargetNotFoundError() {
+        OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
+        RuntimeProvider provider = mock(RuntimeProvider.class);
+        OntologyMetadataSnapshot snapshot = snapshot();
+        CelanWorksmithException targetNotFound = new CelanWorksmithException(
+                CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: PurchaseOrder/PO404");
+        when(snapshotService.getRequiredSnapshot(snapshot.id(), snapshot.metadataDigest()))
+                .thenReturn(Mono.just(snapshot));
+        when(provider.providerId()).thenReturn("demo-mongo-readonly");
+        when(provider.getObject(eq(snapshot.definition()), eq("PurchaseOrder"), eq("PO404")))
+                .thenReturn(Mono.error(targetNotFound));
+        OntologyRuntimeGateway gateway =
+                new OntologySnapshotRuntimeGateway(snapshotService, new RuntimeProviderRegistry(List.of(provider)));
+        OntologyRuntimeGateway.Snapshot pinned =
+                new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
+
+        StepVerifier.create(
+                        gateway.validateTargetObjects(pinned, new OntologyObjectSet("PurchaseOrder", List.of("PO404"))))
+                .expectErrorSatisfies(error -> assertThat(error).isSameAs(targetNotFound))
+                .verify();
+    }
+
+    @Test
     void rejectsPinnedSnapshotWhenPersistedDatasourceBelongsToAnotherWorkspace() {
         OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
         DatasourceService datasourceService = mock(DatasourceService.class);
@@ -192,7 +269,11 @@ class OntologySnapshotRuntimeGatewayTest {
                                 "INTEGER",
                                 List.of("PurchaseOrder"),
                                 List.of(new PropertyDTO("delayDays", "Delay Days", "INTEGER", true, false, false)),
-                                true)),
+                                true,
+                                2,
+                                "DEMO_HANDLER",
+                                "demo.delay_score",
+                                "1.0.0")),
                         List.of(new com.celanworksmith.ontology.dto.ActionTypeDTO(
                                 "updateSchedule",
                                 "Update Schedule",

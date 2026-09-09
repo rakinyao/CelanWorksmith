@@ -13,6 +13,7 @@ import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.ObjectTypeM
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.PropertyMetadata;
 import com.celanworksmith.ontology.datasource.OntologyRuntimeGateway.Snapshot;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -66,6 +67,36 @@ class OntologyObjectQueryExecutorTest {
         assertTrue(result.getIsExecutionSuccess());
         assertEquals(List.of(Map.of("id", "po-1", "delayDays", 5)), rows(result));
         assertEquals(List.of("id", "delayDays"), gateway.query.projection());
+    }
+
+    @Test
+    void returnsProjectedDisplayNamesAsResponseMetadataWithoutChangingRowKeys() throws Exception {
+        RecordingGateway gateway = new RecordingGateway(new Snapshot(
+                SNAPSHOT_ID,
+                DIGEST,
+                List.of(new ObjectTypeMetadata(
+                        "PurchaseOrder",
+                        List.of(new PropertyMetadata(
+                                "customer_name", "客户名称", "string", false, false, false, false, List.of(), null))))));
+        gateway.customItems = List.of(Map.of("customer_name", "沧澜工坊"));
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode",
+                        "BUILDER",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "projection",
+                        List.of("customer_name")));
+
+        assertEquals(List.of(Map.of("customer_name", "沧澜工坊")), rows(result));
+        JsonNode labels = new ObjectMapper()
+                .readTree(result.getHeaders()
+                        .path("X-CELANWORKSHOP-COLUMN-LABELS")
+                        .get(0)
+                        .asText());
+        assertEquals("客户名称", labels.path("customer_name").asText());
     }
 
     @Test
@@ -431,6 +462,11 @@ class OntologyObjectQueryExecutorTest {
                 objectType.getColumns().stream()
                         .map(DatasourceStructure.Column::getType)
                         .toList());
+        assertEquals(
+                List.of("id", "supplierId", "delayDays"),
+                objectType.getColumns().stream()
+                        .map(DatasourceStructure.Column::getDisplayName)
+                        .toList());
         DatasourceStructure.PrimaryKey primaryKey = assertInstanceOf(
                 DatasourceStructure.PrimaryKey.class, objectType.getKeys().getFirst());
         assertEquals(List.of("id"), primaryKey.getColumnNames());
@@ -763,6 +799,12 @@ class OntologyObjectQueryExecutorTest {
                                     "internalNote",
                                     "private"));
             return Mono.just(new ObjectQueryResult(items, query.offset(), query.limit(), total));
+        }
+
+        @Override
+        public Mono<Void> validateTargetObjects(
+                Snapshot snapshot, com.celanworksmith.ontology.datasource.OntologyObjectSet targets) {
+            return Mono.error(new UnsupportedOperationException());
         }
 
         @Override

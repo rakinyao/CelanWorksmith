@@ -354,6 +354,33 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void omitsBuilderTargetBindingFromTheComposedRuntimeDefinition() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "ACTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "PurchaseOrder",
+                "actionId", "reschedulePurchaseOrder",
+                "targetBinding",
+                        Map.of(
+                                "widgetId", "Table1",
+                                "mode", "SELECTED_ROW",
+                                "expression", "{{Table1.selectedRow.id}}"),
+                "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"))));
+
+        assertEquals(
+                Map.of(
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "actionId",
+                        "reschedulePurchaseOrder",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                        "parameters",
+                        Map.of()),
+                configuration.definition());
+    }
+
+    @Test
     void missingQueryModeKeepsFunctionQueriesInBuilderMode() {
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
                 "operation", "FUNCTION_QUERY",

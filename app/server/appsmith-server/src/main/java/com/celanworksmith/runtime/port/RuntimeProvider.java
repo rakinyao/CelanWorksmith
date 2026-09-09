@@ -48,6 +48,10 @@ public interface RuntimeProvider {
 
     Mono<ObjectInstanceDTO> getObject(String typeId, String instanceId);
 
+    default Mono<ObjectInstanceDTO> getObject(OntologyProjectDefinition definition, String typeId, String instanceId) {
+        return getObject(typeId, instanceId);
+    }
+
     Mono<ObjectSetResult> getLinks(String typeId, String instanceId, String linkTypeId, ObjectSetQuery query);
 
     default Mono<ObjectSetResult> getLinks(

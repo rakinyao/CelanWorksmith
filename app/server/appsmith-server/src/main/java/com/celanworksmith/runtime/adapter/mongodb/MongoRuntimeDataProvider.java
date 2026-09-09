@@ -10,6 +10,7 @@ import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.runtime.adapter.mock.MockRuntimeProvider;
 import com.celanworksmith.runtime.context.CelanworksmithRuntimeContext;
+import com.celanworksmith.runtime.demo.DemoFunctionRegistry;
 import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
 import com.celanworksmith.runtime.dto.ObjectInstanceDTO;
 import com.celanworksmith.runtime.dto.ObjectSetQuery;
@@ -28,6 +29,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -135,13 +137,31 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
     }
 
     @Override
+    public Mono<ObjectInstanceDTO> getObject(OntologyProjectDefinition definition, String typeId, String instanceId) {
+        if (definition == null) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Ontology project definition is required"));
+        }
+        if (ReleaseMappedMongoRuntimeAdapter.supports(definition)) {
+            return releaseAdapter.getObject(definition, typeId, instanceId);
+        }
+        return resolveType(definition, typeId).flatMap(type -> {
+            Query query = Query.query(Criteria.where("_id").is(instanceId));
+            return template.findOne(query, MongoRuntimeObjectDocument.class, collection(type))
+                    .switchIfEmpty(Mono.error(new CelanWorksmithException(
+                            CelanWorksmithErrorCode.OBJECT_NOT_FOUND, "Unknown object: " + typeId + "/" + instanceId)))
+                    .map(document -> toDto(document, typeId));
+        });
+    }
+
+    @Override
     public Mono<Object> executeFunction(
             OntologyProjectDefinition definition, String functionId, FunctionExecutionRequest request) {
         if (definition == null) {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "Ontology project definition is required"));
         }
-        if (!"CalculateDelayDays".equals(functionId)) {
+        if (!"CalculateDelayDays".equals(functionId) && !DemoFunctionRegistry.isRegistered(functionId)) {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.FUNCTION_NOT_FOUND, "Unknown function: " + functionId));
         }
@@ -158,10 +178,105 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT, "Function targets are required"));
         }
-        if (!"PurchaseOrder".equals(targets.objectTypeId())) {
+        definition.functions().stream()
+                .filter(function -> function.id().equals(functionId))
+                .findFirst()
+                .ifPresent(function -> {
+                    if (function.maxItems() != null && targets.objectIds().size() > function.maxItems()) {
+                        throw new CelanWorksmithException(
+                                CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                                "Function " + functionId + " accepts at most " + function.maxItems() + " targets");
+                    }
+                    if (!function.ownerObjectTypeIds().isEmpty()
+                            && !function.ownerObjectTypeIds().contains(targets.objectTypeId())) {
+                        throw new CelanWorksmithException(
+                                CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                                "Function " + functionId + " does not apply to object type: " + targets.objectTypeId());
+                    }
+                });
+        if ("CalculateDelayDays".equals(functionId) && !"PurchaseOrder".equals(targets.objectTypeId())) {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.INVALID_ARGUMENT,
                     "Function CalculateDelayDays does not apply to object type: " + targets.objectTypeId()));
+        }
+        if (("CalculateContractChangeRate".equals(functionId) || "CalculateContractGrossAmount".equals(functionId))
+                && !"contract".equals(targets.objectTypeId())) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                    "Function " + functionId + " does not apply to object type: " + targets.objectTypeId()));
+        }
+        if ("CalculateSupplierRisk".equals(functionId) && !"supplier".equals(targets.objectTypeId())) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                    "Function CalculateSupplierRisk does not apply to object type: " + targets.objectTypeId()));
+        }
+        if ("CalculateCustomerContractTotal".equals(functionId) && !"customer".equals(targets.objectTypeId())) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                    "Function CalculateCustomerContractTotal does not apply to object type: "
+                            + targets.objectTypeId()));
+        }
+        if ("CalculateSupplierRisk".equals(functionId)) {
+            return resolveType(definition, "supplier").flatMap(type -> Flux.fromIterable(targets.objectIds())
+                    .concatMap(id -> releaseAdapter.getObject(definition, type.id(), id))
+                    .map(object -> {
+                        String state = String.valueOf(object.properties().getOrDefault("state", ""));
+                        String match = String.valueOf(object.properties().getOrDefault("match_state", ""));
+                        BigDecimal tax = decimalProperty(object, "tax_rate", object.id());
+                        if (!"ACTIVE".equalsIgnoreCase(state) || !"MATCHED".equalsIgnoreCase(match)) {
+                            return "HIGH";
+                        }
+                        return tax.compareTo(new BigDecimal("0.15")) > 0 ? "MEDIUM" : "LOW";
+                    })
+                    .collectList()
+                    .map(results -> results.size() == 1 ? results.getFirst() : results));
+        }
+        if ("CalculateCustomerContractTotal".equals(functionId)) {
+            return resolveType(definition, "customer").flatMap(type -> Flux.fromIterable(targets.objectIds())
+                    .concatMap(id -> releaseAdapter.getObject(definition, type.id(), id))
+                    .concatMap(customer -> {
+                        Object code = customer.properties().get("customer_code");
+                        if (code == null)
+                            return Mono.error(new CelanWorksmithException(
+                                    CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                                    "Customer " + customer.id() + " has invalid customer_code"));
+                        return releaseAdapter
+                                .queryObjects(definition, "contract", ObjectSetQuery.defaults())
+                                .map(result -> result.items().stream()
+                                        .filter(contract -> code.toString()
+                                                .equals(String.valueOf(
+                                                        contract.properties().get("customer_code"))))
+                                        .map(contract -> decimalProperty(contract, "current_amount", contract.id()))
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                                        .setScale(2, java.math.RoundingMode.HALF_UP));
+                    })
+                    .collectList()
+                    .map(results -> results.size() == 1 ? results.getFirst() : results));
+        }
+        if ("CalculateContractGrossAmount".equals(functionId)) {
+            return resolveType(definition, targets.objectTypeId())
+                    .flatMap(type -> Flux.fromIterable(targets.objectIds())
+                            .concatMap(objectId -> releaseAdapter.getObject(definition, type.id(), objectId))
+                            .map(object -> decimalProperty(object, "current_amount", object.id()))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add)
+                            .map(total -> total.setScale(2, java.math.RoundingMode.HALF_UP)));
+        }
+        if ("CalculateContractChangeRate".equals(functionId)) {
+            return resolveType(definition, targets.objectTypeId())
+                    .flatMap(type -> Flux.fromIterable(targets.objectIds())
+                            .concatMap(objectId -> releaseAdapter.getObject(definition, type.id(), objectId))
+                            .map(object -> {
+                                BigDecimal original = decimalProperty(object, "original_amount", object.id());
+                                BigDecimal change = decimalProperty(object, "change_amount", object.id());
+                                if (original.compareTo(BigDecimal.ZERO) == 0) {
+                                    throw new CelanWorksmithException(
+                                            CelanWorksmithErrorCode.INVALID_ARGUMENT,
+                                            "Contract " + object.id() + " has zero original_amount");
+                                }
+                                return change.divide(original, 4, java.math.RoundingMode.HALF_UP);
+                            })
+                            .collectList()
+                            .map(results -> results.size() == 1 ? results.getFirst() : results));
         }
         return resolveType(definition, targets.objectTypeId()).flatMap(type -> Flux.fromIterable(targets.objectIds())
                 .concatMap(objectId -> template.findOne(
@@ -173,6 +288,20 @@ public class MongoRuntimeDataProvider extends MockRuntimeProvider {
                         .flatMap(document -> parseDelayDays(objectId, document)))
                 .collectList()
                 .map(results -> results.size() == 1 ? results.getFirst() : results));
+    }
+
+    private BigDecimal decimalProperty(ObjectInstanceDTO object, String property, String objectId) {
+        Object value = object.properties() == null ? null : object.properties().get(property);
+        if (value == null) {
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Object " + objectId + " has invalid " + property);
+        }
+        try {
+            return new BigDecimal(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            throw new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Object " + objectId + " has invalid " + property);
+        }
     }
 
     @Override

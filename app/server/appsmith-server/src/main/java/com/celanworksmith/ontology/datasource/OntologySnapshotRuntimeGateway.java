@@ -1,8 +1,11 @@
 package com.celanworksmith.ontology.datasource;
 
 import com.appsmith.server.datasources.base.DatasourceService;
+import com.celanworksmith.CelanWorksmithErrorCode;
+import com.celanworksmith.CelanWorksmithException;
 import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
 import com.celanworksmith.runtime.dto.ObjectSetQuery;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
@@ -76,6 +79,38 @@ public class OntologySnapshotRuntimeGateway implements OntologyRuntimeGateway {
                         result.offset(),
                         result.limit(),
                         result.total()));
+    }
+
+    @Override
+    public Mono<Void> validateTargetObjects(Snapshot snapshot, OntologyObjectSet targets) {
+        return validateTargetObjects(requiredSnapshot(snapshot), targets);
+    }
+
+    @Override
+    public Mono<Void> validateTargetObjects(
+            String workspaceId, String datasourceId, Snapshot snapshot, OntologyObjectSet targets) {
+        return validateTargetObjects(requiredSnapshot(snapshot, workspaceId, datasourceId), targets);
+    }
+
+    private Mono<Void> validateTargetObjects(
+            Mono<OntologyMetadataSnapshot> persistedSnapshots, OntologyObjectSet targets) {
+        if (targets == null) {
+            return Mono.error(new CelanWorksmithException(
+                    CelanWorksmithErrorCode.INVALID_ARGUMENT, "Ontology target objects are required"));
+        }
+        return persistedSnapshots.flatMap(persistedSnapshot -> Flux.fromIterable(targets.objectIds())
+                .concatMap(objectId -> runtimeProviderRegistry
+                        .resolveRequired(persistedSnapshot.runtimeProviderId())
+                        .getObject(persistedSnapshot.definition(), targets.objectTypeId(), objectId)
+                        .switchIfEmpty(Mono.error(new CelanWorksmithException(
+                                CelanWorksmithErrorCode.OBJECT_NOT_FOUND,
+                                "Unknown object: " + targets.objectTypeId() + "/" + objectId)))
+                        .flatMap(target -> targets.objectTypeId().equals(target.typeId())
+                                ? Mono.<Void>empty()
+                                : Mono.error(new CelanWorksmithException(
+                                        CelanWorksmithErrorCode.OBJECT_NOT_FOUND,
+                                        "Unknown object: " + targets.objectTypeId() + "/" + objectId))))
+                .then());
     }
 
     @Override
