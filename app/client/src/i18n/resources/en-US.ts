@@ -346,6 +346,16 @@ const enUS = {
     importEmpty: "No ontology datasource imported yet.",
     importedSummary: "Imported {{name}} version {{version}}.",
   },
+  ontologyCapabilityTarget: {
+    source: "Target source",
+    widget: "Target widget",
+    widgetSelection: "Widget selection",
+    manual: "Manual expression or ID",
+    chooseWidget: "Choose a widget",
+    removedWidget: "Removed widget ({{widgetId}})",
+    widgetUnavailable: "Selected widget is no longer available",
+    expression: "Target expression",
+  },
   release: {
     heading: "Application release",
     loading: "Checking release readiness...",

@@ -22,6 +22,7 @@ import type { DynamicInputControlProps } from "components/formControls/DynamicIn
 import DynamicInputTextControl from "components/formControls/DynamicInputTextControl";
 import FunctionParametersControl from "components/formControls/FunctionParametersControl";
 import type { FunctionParametersControlProps } from "components/formControls/FunctionParametersControl";
+import CapabilityTargetBindingControl from "components/formControls/CapabilityTargetBindingControl";
 import type { FieldArrayControlProps } from "components/formControls/FieldArrayControl";
 import FieldArrayControl from "components/formControls/FieldArrayControl";
 import type { WhereClauseControlProps } from "components/formControls/WhereClauseControl";
@@ -151,6 +152,14 @@ class FormControlRegistry {
           controlProps: FunctionParametersControlProps,
         ): JSX.Element {
           return <FunctionParametersControl {...controlProps} />;
+        },
+      },
+    );
+    FormControlFactory.registerControlBuilder(
+      formControlTypes.ONTOLOGY_CAPABILITY_TARGET,
+      {
+        buildPropertyControl(controlProps): JSX.Element {
+          return <CapabilityTargetBindingControl {...controlProps} />;
         },
       },
     );

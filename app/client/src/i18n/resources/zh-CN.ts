@@ -338,6 +338,16 @@ const zhCN = {
     importEmpty: "尚未导入本体数据源。",
     importedSummary: "已导入 {{name}}，版本 {{version}}。",
   },
+  ontologyCapabilityTarget: {
+    source: "目标来源",
+    widget: "目标组件",
+    widgetSelection: "组件选择",
+    manual: "手动表达式或 ID",
+    chooseWidget: "选择组件",
+    removedWidget: "已移除的组件（{{widgetId}}）",
+    widgetUnavailable: "所选组件已不可用",
+    expression: "目标表达式",
+  },
   release: {
     heading: "应用发布",
     loading: "正在检查发布准备情况……",

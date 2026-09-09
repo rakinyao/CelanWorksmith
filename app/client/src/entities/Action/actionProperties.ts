@@ -22,6 +22,7 @@ const dynamicFields = [
   formControlTypes.QUERY_DYNAMIC_TEXT,
   formControlTypes.QUERY_DYNAMIC_INPUT_TEXT,
   formControlTypes.FUNCTION_PARAMETERS,
+  formControlTypes.ONTOLOGY_CAPABILITY_TARGET,
 ];
 
 type ReactivePaths = Record<string, EvaluationSubstitutionType>;
