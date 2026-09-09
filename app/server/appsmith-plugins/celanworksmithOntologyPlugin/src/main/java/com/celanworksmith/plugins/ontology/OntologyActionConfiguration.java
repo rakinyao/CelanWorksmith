@@ -66,8 +66,8 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             Object queryModeValue = formData.get("queryMode");
             if (queryModeValue == null) {
                 // Legacy object Queries persisted their JSON definition without a query mode.
-                // Preserve that executable shape; only definition-less forms use Builder defaults.
-                advancedMode = formData.get("definition") != null;
+                // Capability requests default to Builder so editor-only definitions cannot cross the boundary.
+                advancedMode = operation == Operation.OBJECT_QUERY && formData.get("definition") != null;
                 builderMode = !advancedMode;
             } else {
                 if (!(queryModeValue instanceof String queryMode)) {

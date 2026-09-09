@@ -75,7 +75,8 @@ public interface OntologyRuntimeGateway {
             String displayName,
             String returnType,
             List<String> ownerObjectTypeIds,
-            List<PropertyMetadata> parameters) {
+            List<PropertyMetadata> parameters,
+            Integer maxItems) {
         public FunctionMetadata {
             ownerObjectTypeIds = immutableList(ownerObjectTypeIds);
             parameters = immutableList(parameters);
@@ -83,7 +84,16 @@ public interface OntologyRuntimeGateway {
 
         public FunctionMetadata(
                 String id, String returnType, List<String> ownerObjectTypeIds, List<PropertyMetadata> parameters) {
-            this(id, id, returnType, ownerObjectTypeIds, parameters);
+            this(id, id, returnType, ownerObjectTypeIds, parameters, null);
+        }
+
+        public FunctionMetadata(
+                String id,
+                String displayName,
+                String returnType,
+                List<String> ownerObjectTypeIds,
+                List<PropertyMetadata> parameters) {
+            this(id, displayName, returnType, ownerObjectTypeIds, parameters, null);
         }
     }
 

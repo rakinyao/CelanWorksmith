@@ -56,6 +56,121 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void executesBuilderFunctionWithManyObjectTarget() {
+        RecordingGateway gateway = new RecordingGateway();
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId", "manyScore",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "PO002"))));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(new OntologyObjectSet("PurchaseOrder", List.of("PO001", "PO002")), gateway.functionTargets);
+    }
+
+    @Test
+    void rejectsBuilderFunctionTargetAboveDeclaredMaxItems() {
+        RecordingGateway gateway = new RecordingGateway();
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId", "manyScore",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "MANY_OBJECTS", "objectIds", List.of("PO001", "PO002", "PO003"))));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("maxItems: 2"));
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsBlankFunctionTargetIdBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId",
+                        "manyScore",
+                        "target",
+                        Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "  "))));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsNonStringFunctionTargetIdsBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId",
+                        "manyScore",
+                        "target",
+                        Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", 2))));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsDuplicateFunctionTargetIdsBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId",
+                        "manyScore",
+                        "target",
+                        Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "PO001"))));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsMismatchedFunctionOwnerBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId", "supplierScore",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
+    void rejectsUnknownRuntimeFunctionIdBeforeProviderCall() {
+        RecordingGateway gateway = new RecordingGateway();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                "FUNCTION_QUERY",
+                Map.of(
+                        "functionId",
+                        "missing-runtime-function",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "PO001")));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertEquals(0, gateway.functionCalls);
+    }
+
+    @Test
     void resolvesLinkByStableLinkId() {
         RecordingGateway gateway = new RecordingGateway();
         ActionExecutionResult result = execute(
@@ -612,19 +727,16 @@ class OntologyFunctionLinkActionExecutorTest {
                 : new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> Mono.just(actionServer));
         ActionConfiguration action = new ActionConfiguration();
         if ("FUNCTION_QUERY".equals(operation)) {
-            action.setFormData(Map.of(
-                    "operation",
-                    operation,
-                    "queryMode",
-                    "BUILDER",
-                    "objectTypeId",
-                    "PurchaseOrder",
-                    "functionId",
-                    definition.get("functionId"),
+            Map<String, Object> formData = new LinkedHashMap<>();
+            formData.put("operation", operation);
+            formData.put("queryMode", "BUILDER");
+            formData.put("objectTypeId", definition.getOrDefault("objectTypeId", "PurchaseOrder"));
+            formData.put("functionId", definition.get("functionId"));
+            formData.put(
                     "target",
-                    Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
-                    "parameters",
-                    definition.getOrDefault("parameters", Map.of())));
+                    definition.getOrDefault("target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002")));
+            formData.put("parameters", definition.getOrDefault("parameters", Map.of()));
+            action.setFormData(formData);
         } else if ("ACTION_QUERY".equals(operation)) {
             Map<String, Object> formData = new LinkedHashMap<>();
             formData.put("operation", operation);
@@ -734,6 +846,8 @@ class OntologyFunctionLinkActionExecutorTest {
                                 "integer",
                                 List.of("PurchaseOrder"),
                                 List.of()),
+                        new FunctionMetadata(
+                                "manyScore", "Many score", "integer", List.of("PurchaseOrder"), List.of(), 2),
                         new FunctionMetadata(
                                 "supplierScore", "Score supplier", "integer", List.of("Supplier"), List.of())),
                 List.of(new LinkMetadata(

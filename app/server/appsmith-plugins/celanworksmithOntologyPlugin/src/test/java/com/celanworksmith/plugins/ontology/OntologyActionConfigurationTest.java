@@ -354,6 +354,30 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void missingQueryModeKeepsFunctionQueriesInBuilderMode() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "FUNCTION_QUERY",
+                "objectTypeId", "Contract",
+                "functionId", "CalculateContractGrossAmount",
+                "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", "C2")),
+                "definition", "{\"target\":{\"source\":\"WIDGET_SELECTION\"}}")));
+
+        assertEquals("OBJECT_SET", ((Map<?, ?>) configuration.definition().get("target")).get("source"));
+    }
+
+    @Test
+    void missingQueryModeKeepsActionQueriesInBuilderMode() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "ACTION_QUERY",
+                "objectTypeId", "PurchaseOrder",
+                "actionId", "UpdatePurchaseOrder",
+                "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"),
+                "definition", "{\"target\":{\"source\":\"WIDGET_SELECTION\"}}")));
+
+        assertEquals("SINGLE_OBJECT", ((Map<?, ?>) configuration.definition().get("target")).get("source"));
+    }
+
+    @Test
     void builderFunctionQueryRejectsNonMapParameters() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,

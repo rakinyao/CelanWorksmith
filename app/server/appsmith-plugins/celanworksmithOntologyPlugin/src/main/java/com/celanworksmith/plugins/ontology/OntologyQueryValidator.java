@@ -61,10 +61,11 @@ final class OntologyQueryValidator {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + functionId));
         String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
         validateOwner("function", function.ownerObjectTypeIds(), objectTypeId);
+        OntologyObjectSet targets = capabilityTarget(configuration.definition(), objectTypeId, function.maxItems());
         return new ValidatedCapabilityQuery(
                 functionId,
                 objectTypeId,
-                singleObjectTarget(configuration.definition(), objectTypeId),
+                targets,
                 parameters(configuration.definition(), function.parameters(), "function"),
                 false);
     }
@@ -116,6 +117,39 @@ final class OntologyQueryValidator {
             throw new IllegalArgumentException("Ontology capability target requires a stable object ID");
         }
         return new OntologyObjectSet(objectTypeId, List.of(identifier));
+    }
+
+    private OntologyObjectSet capabilityTarget(Map<String, Object> definition, String objectTypeId, Integer maxItems) {
+        Object value = definition.get("target");
+        if (!(value instanceof Map<?, ?> target)) {
+            throw new IllegalArgumentException("Ontology capability target must be an object");
+        }
+        Object source = target.get("source");
+        if ("SINGLE_OBJECT".equals(source)) {
+            OntologyObjectSet result = singleObjectTarget(definition, objectTypeId);
+            enforceMaxItems(result, maxItems);
+            return result;
+        }
+        if (!"OBJECT_SET".equals(source) && !"MANY_OBJECTS".equals(source)) {
+            throw new IllegalArgumentException("Unsupported ontology capability target source: " + source);
+        }
+        if (!target.keySet().stream().allMatch(key -> "source".equals(key) || "objectIds".equals(key))) {
+            throw new IllegalArgumentException("Ontology capability target contains unsupported fields");
+        }
+        Object rawIds = target.get("objectIds");
+        if (!(rawIds instanceof List<?> ids) || ids.isEmpty() || !ids.stream().allMatch(String.class::isInstance)) {
+            throw new IllegalArgumentException("Ontology capability target requires a non-empty object ID array");
+        }
+        OntologyObjectSet result = new OntologyObjectSet(
+                objectTypeId, ids.stream().map(String.class::cast).toList());
+        enforceMaxItems(result, maxItems);
+        return result;
+    }
+
+    private void enforceMaxItems(OntologyObjectSet targets, Integer maxItems) {
+        if (maxItems != null && (maxItems <= 0 || targets.objectIds().size() > maxItems)) {
+            throw new IllegalArgumentException("Ontology function target exceeds maxItems: " + maxItems);
+        }
     }
 
     private Map<String, Object> parameters(
