@@ -46,8 +46,8 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             }
         }
 
-        Object operationValue = formData.get("operation");
-        if (!(operationValue instanceof String operationName)) {
+        String operationName = operationName(formData);
+        if (operationName == null) {
             throw new IllegalArgumentException("Ontology operation is required");
         }
 
@@ -65,7 +65,10 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
                 || operation == Operation.ACTION_QUERY) {
             Object queryModeValue = formData.get("queryMode");
             if (queryModeValue == null) {
-                builderMode = true;
+                // Legacy object Queries persisted their JSON definition without a query mode.
+                // Preserve that executable shape; only definition-less forms use Builder defaults.
+                advancedMode = formData.get("definition") != null;
+                builderMode = !advancedMode;
             } else {
                 if (!(queryModeValue instanceof String queryMode)) {
                     throw new IllegalArgumentException("Ontology query mode must be BUILDER or ADVANCED");
@@ -108,6 +111,24 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         }
         validateRequiredIdentifier(operation, definition);
         return new OntologyActionConfiguration(operation, Map.copyOf(definition));
+    }
+
+    private static String operationName(Map<String, Object> formData) {
+        Object operation = formData.get("operation");
+        if (operation instanceof String operationName) return operationName;
+
+        // Early manually-created ontology Queries showed the editor default but did not persist it.
+        // Only recognize the unambiguous object-query shape; capability and link requests stay explicit.
+        Object objectTypeId = formData.get("objectTypeId");
+        if (objectTypeId instanceof String identifier
+                && !identifier.isBlank()
+                && formData.get("definition") != null
+                && !formData.containsKey("functionId")
+                && !formData.containsKey("actionId")
+                && !formData.containsKey("linkId")) {
+            return Operation.OBJECT_QUERY.name();
+        }
+        return null;
     }
 
     private static Map<String, Object> unwrapUqiValues(Map<String, Object> values) {
@@ -251,15 +272,42 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         if (!definition.containsKey("target")) {
             throw new IllegalArgumentException("Ontology capability query definition requires: target");
         }
-        if (!(definition.get("target") instanceof Map<?, ?>)) {
+        if (!(definition.get("target") instanceof Map<?, ?> target)) {
             throw new IllegalArgumentException("Ontology capability target selector must be an object");
         }
+        validateCanonicalCapabilityTarget(operation, target);
         if (!definition.containsKey("parameters")) {
             definition.put("parameters", Map.of());
         }
         if (!(definition.get("parameters") instanceof Map<?, ?>)) {
             throw new IllegalArgumentException("Ontology capability parameters selector must be an object");
         }
+    }
+
+    private static void validateCanonicalCapabilityTarget(Operation operation, Map<?, ?> target) {
+        Object source = target.get("source");
+        if ("SINGLE_OBJECT".equals(source)) {
+            if (!target.keySet().stream().allMatch(key -> "source".equals(key) || "objectId".equals(key))) {
+                throw new IllegalArgumentException("Ontology capability target contains unsupported fields");
+            }
+            if (!(target.get("objectId") instanceof String)) {
+                throw new IllegalArgumentException("Ontology capability target requires a stable object ID");
+            }
+            return;
+        }
+        if (operation == Operation.FUNCTION_QUERY && ("OBJECT_SET".equals(source) || "MANY_OBJECTS".equals(source))) {
+            if (!target.keySet().stream().allMatch(key -> "source".equals(key) || "objectIds".equals(key))) {
+                throw new IllegalArgumentException("Ontology capability target contains unsupported fields");
+            }
+            Object objectIds = target.get("objectIds");
+            if (!(objectIds instanceof List<?> ids)
+                    || ids.isEmpty()
+                    || !ids.stream().allMatch(String.class::isInstance)) {
+                throw new IllegalArgumentException("Ontology capability target requires a non-empty object ID array");
+            }
+            return;
+        }
+        throw new IllegalArgumentException("Unsupported ontology capability target source: " + source);
     }
 
     private static String capabilityIdField(Operation operation) {

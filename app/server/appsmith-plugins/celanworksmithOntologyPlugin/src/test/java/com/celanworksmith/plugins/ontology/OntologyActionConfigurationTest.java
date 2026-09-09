@@ -27,6 +27,17 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void treatsLegacyObjectQueryFormDataWithoutOperationAsObjectQuery() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "queryMode", "ADVANCED",
+                "objectTypeId", "contract",
+                "definition", "{\"objectTypeId\":\"contract\",\"projection\":[\"id\"]}")));
+
+        assertEquals(OntologyActionConfiguration.Operation.OBJECT_QUERY, configuration.operation());
+        assertEquals("contract", configuration.definition().get("objectTypeId"));
+    }
+
+    @Test
     void ignoresNullOptionalFieldsRetainedByNativeQueryEditor() {
         Map<String, Object> formData = new java.util.LinkedHashMap<>();
         formData.put("operation", "OBJECT_QUERY");
@@ -292,6 +303,54 @@ class OntologyActionConfigurationTest {
                                 "functionId", "delayScore",
                                 "target", Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"))))
                         .definition());
+    }
+
+    @Test
+    void rejectsBuilderOnlyWidgetTargetMetadataAtTheRuntimeBoundary() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation",
+                        "FUNCTION_QUERY",
+                        "queryMode",
+                        "BUILDER",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "functionId",
+                        "delayScore",
+                        "target",
+                        Map.of(
+                                "source", "WIDGET_SELECTION",
+                                "widgetId", "widget-1",
+                                "objectIdExpression", "{{Select1.selectedOptionValue}}")))));
+
+        assertEquals("Unsupported ontology capability target source: WIDGET_SELECTION", exception.getMessage());
+    }
+
+    @Test
+    void omitsBuilderTargetMetadataFromTheComposedRuntimeDefinition() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "FUNCTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "Contract",
+                "functionId", "CalculateContractGrossAmount",
+                "widgetId", "widget-1",
+                "mode", "WIDGET",
+                "cardinality", "MANY",
+                "expression", "{{Table1.selectedRows}}",
+                "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", "C2")))));
+
+        assertEquals(
+                Map.of(
+                        "objectTypeId",
+                        "Contract",
+                        "functionId",
+                        "CalculateContractGrossAmount",
+                        "target",
+                        Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", "C2")),
+                        "parameters",
+                        Map.of()),
+                configuration.definition());
     }
 
     @Test

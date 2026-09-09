@@ -38,6 +38,67 @@ class OntologyQueryValidatorTest {
     }
 
     @Test
+    void normalizesManyObjectTargetAndEnforcesFunctionMaxItems() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "FUNCTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "Contract",
+                "functionId", "CalculateContractGrossAmount",
+                "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", "C2")))));
+
+        OntologyQueryValidator.ValidatedCapabilityQuery query =
+                validator.validateFunctionQuery(configuration, snapshotWithManyFunction(2));
+
+        assertEquals(new OntologyObjectSet("Contract", List.of("C1", "C2")), query.targets());
+    }
+
+    @Test
+    void rejectsManyObjectTargetAboveFunctionMaxItems() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "FUNCTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "Contract",
+                "functionId", "CalculateContractGrossAmount",
+                "target", Map.of("source", "MANY_OBJECTS", "objectIds", List.of("C1", "C2", "C3")))));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> validator.validateFunctionQuery(configuration, snapshotWithManyFunction(2)));
+        assertEquals("Ontology function target exceeds maxItems: 2", error.getMessage());
+    }
+
+    @Test
+    void rejectsMalformedFunctionObjectSetTargetsBeforeValidationCompletes() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> validator.validateFunctionQuery(
+                        configuration(
+                                "FUNCTION_QUERY",
+                                "functionId",
+                                "CalculateContractGrossAmount",
+                                Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", "  "))),
+                        snapshotWithManyFunction(2)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> validator.validateFunctionQuery(
+                        configuration(
+                                "FUNCTION_QUERY",
+                                "functionId",
+                                "CalculateContractGrossAmount",
+                                Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", 2))),
+                        snapshotWithManyFunction(2)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> validator.validateFunctionQuery(
+                        configuration(
+                                "FUNCTION_QUERY",
+                                "functionId",
+                                "CalculateContractGrossAmount",
+                                Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", "C1"))),
+                        snapshotWithManyFunction(2)));
+    }
+
+    @Test
     void actionQueryUsesAtomicityOnlyFromActionMetadata() {
         OntologyQueryValidator.ValidatedCapabilityQuery query = validator.validateActionQuery(
                 configuration(
@@ -48,6 +109,29 @@ class OntologyQueryValidatorTest {
                 snapshot());
 
         assertEquals(true, query.atomic());
+    }
+
+    @Test
+    void actionQueryRemainsSingleTargetOnly() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> OntologyActionConfiguration.from(action(Map.of(
+                        "operation", "ACTION_QUERY",
+                        "queryMode", "BUILDER",
+                        "objectTypeId", "PurchaseOrder",
+                        "actionId", "UpdatePurchaseOrder",
+                        "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "PO002"))))));
+    }
+
+    @Test
+    void unknownRuntimeFunctionIdIsRejectedBeforeValidatedQueryCreation() {
+        OntologyActionConfiguration configuration = configuration(
+                "FUNCTION_QUERY",
+                "functionId",
+                "missing-function",
+                Map.of("source", "SINGLE_OBJECT", "objectId", "PO002"));
+
+        assertThrows(IllegalArgumentException.class, () -> validator.validateFunctionQuery(configuration, snapshot()));
     }
 
     @Test
@@ -128,6 +212,22 @@ class OntologyQueryValidatorTest {
                 List.of(new FunctionMetadata("CalculateDelayDays", "number", List.of("PurchaseOrder"), List.of())),
                 List.of(),
                 List.of(new ActionMetadata("UpdatePurchaseOrder", List.of("PurchaseOrder"), true, List.of())));
+    }
+
+    private Snapshot snapshotWithManyFunction(int maxItems) {
+        return new Snapshot(
+                "snapshot",
+                "digest",
+                List.of(new ObjectTypeMetadata("Contract", List.of())),
+                List.of(new FunctionMetadata(
+                        "CalculateContractGrossAmount",
+                        "Contract gross amount",
+                        "decimal",
+                        List.of("Contract"),
+                        List.of(),
+                        maxItems)),
+                List.of(),
+                List.of());
     }
 
     private ActionConfiguration action(Map<String, Object> formData) {
