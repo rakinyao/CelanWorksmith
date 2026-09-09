@@ -96,7 +96,7 @@ describe("CapabilityTargetBindingControl", () => {
       mode: "WIDGET",
       widgetId: "table-id",
       cardinality: "ONE",
-      expression: "{{Table1.selectedRow.contract_id}}",
+      expression: '{{Table1.selectedRow["contract_id"]}}',
     });
   });
 
@@ -121,7 +121,7 @@ describe("CapabilityTargetBindingControl", () => {
       mode: "WIDGET",
       widgetId: "table-id",
       cardinality: "ONE",
-      expression: "{{Table1.selectedRow.contract_id}}",
+      expression: '{{Table1.selectedRow["contract_id"]}}',
     });
   });
 
@@ -241,7 +241,10 @@ describe("CapabilityTargetBindingControl", () => {
     const widgetPicker = screen.getByLabelText("Target widget");
 
     expect(
-      within(widgetPicker).getByRole("option", { name: "Table1" }),
+      within(widgetPicker).getByRole("option", { name: "Table1 (One)" }),
+    ).not.toBeNull();
+    expect(
+      within(widgetPicker).getByRole("option", { name: "Table1 (Many)" }),
     ).not.toBeNull();
     expect(
       within(widgetPicker).getByRole("option", { name: "CustomerSelect" }),
@@ -258,6 +261,34 @@ describe("CapabilityTargetBindingControl", () => {
       cardinality: "MANY",
       expression: "{{Customers.selectedOptionValues}}",
     });
+  });
+
+  it("lets Function manual mode choose a target cardinality", () => {
+    const onBindingChange = renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "{{ids}}" },
+      { maxItems: 2 },
+    );
+
+    expect(screen.getByLabelText("Target cardinality")).not.toBeNull();
+
+    fireEvent.change(screen.getByLabelText("Target cardinality"), {
+      target: { value: "MANY" },
+    });
+
+    expect(onBindingChange).toHaveBeenLastCalledWith({
+      mode: "MANUAL",
+      cardinality: "MANY",
+      expression: "{{ids}}",
+    });
+  });
+
+  it("does not offer many cardinality for an Action target", () => {
+    renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "PO001" },
+      { maxItems: 1 },
+    );
+
+    expect(screen.queryByLabelText("Target cardinality")).toBeNull();
   });
 
   it("revalidates a saved Table binding when bounds and provenance change", () => {
@@ -291,7 +322,7 @@ describe("CapabilityTargetBindingControl", () => {
       mode: "WIDGET",
       widgetId: "table-id",
       cardinality: "ONE",
-      expression: "{{Table1.selectedRow.customer_id}}",
+      expression: '{{Table1.selectedRow["customer_id"]}}',
     });
   });
 });

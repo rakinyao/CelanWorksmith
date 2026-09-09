@@ -16,56 +16,88 @@ type WidgetTargetAdapter = (
   widget: TargetBindingWidget,
   canonicalKey: string | undefined,
   maxItems: number,
-) => WidgetTargetBinding | undefined;
+) => WidgetTargetBinding[];
+
+function tableProperty(canonicalKey: string): string {
+  return `[${JSON.stringify(canonicalKey)}]`;
+}
 
 const widgetTargetAdapters: Record<string, WidgetTargetAdapter> = {
   TABLE_WIDGET: (widget, canonicalKey, maxItems) => {
     if (!canonicalKey) {
-      return undefined;
+      return [];
     }
+
+    const property = tableProperty(canonicalKey);
+    const bindings: WidgetTargetBinding[] = [
+      {
+        widgetId: widget.widgetId,
+        cardinality: "ONE",
+        expression: `{{${widget.widgetName}.selectedRow${property}}}`,
+      },
+    ];
 
     if (maxItems > 1) {
-      return {
+      bindings.push({
         widgetId: widget.widgetId,
         cardinality: "MANY",
-        expression: `{{${widget.widgetName}.selectedRows.map((row) => row.${canonicalKey})}}`,
-      };
+        expression: `{{${widget.widgetName}.selectedRows.map((row) => row${property})}}`,
+      });
     }
 
-    return {
-      widgetId: widget.widgetId,
-      cardinality: "ONE",
-      expression: `{{${widget.widgetName}.selectedRow.${canonicalKey}}}`,
-    };
+    return bindings;
   },
   SELECT_WIDGET: (widget) => {
-    return {
-      widgetId: widget.widgetId,
-      cardinality: "ONE",
-      expression: `{{${widget.widgetName}.selectedOptionValue}}`,
-    };
+    return [
+      {
+        widgetId: widget.widgetId,
+        cardinality: "ONE",
+        expression: `{{${widget.widgetName}.selectedOptionValue}}`,
+      },
+    ];
   },
   MULTI_SELECT_WIDGET: (widget, _canonicalKey, maxItems) => {
     if (maxItems <= 1) {
-      return undefined;
+      return [];
     }
 
-    return {
-      widgetId: widget.widgetId,
-      cardinality: "MANY",
-      expression: `{{${widget.widgetName}.selectedOptionValues}}`,
-    };
+    return [
+      {
+        widgetId: widget.widgetId,
+        cardinality: "MANY",
+        expression: `{{${widget.widgetName}.selectedOptionValues}}`,
+      },
+    ];
   },
 };
+
+export function buildWidgetTargetBindings(
+  widget: TargetBindingWidget,
+  canonicalKey: string | undefined,
+  maxItems: number,
+): WidgetTargetBinding[] {
+  if (!Number.isFinite(maxItems) || maxItems <= 0) {
+    return [];
+  }
+
+  return (
+    widgetTargetAdapters[widget.type]?.(widget, canonicalKey, maxItems) ?? []
+  );
+}
 
 export function buildWidgetTargetBinding(
   widget: TargetBindingWidget,
   canonicalKey: string | undefined,
   maxItems: number,
+  cardinality?: WidgetTargetCardinality,
 ): WidgetTargetBinding | undefined {
-  if (!Number.isFinite(maxItems) || maxItems <= 0) {
-    return undefined;
-  }
+  const bindings = buildWidgetTargetBindings(widget, canonicalKey, maxItems);
 
-  return widgetTargetAdapters[widget.type]?.(widget, canonicalKey, maxItems);
+  return (
+    bindings.find(
+      (binding) =>
+        binding.cardinality ===
+        (cardinality ?? (maxItems > 1 ? "MANY" : "ONE")),
+    ) ?? bindings[0]
+  );
 }

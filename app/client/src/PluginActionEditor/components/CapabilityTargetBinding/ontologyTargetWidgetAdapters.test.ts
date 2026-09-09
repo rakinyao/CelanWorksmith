@@ -1,4 +1,7 @@
-import { buildWidgetTargetBinding } from "./ontologyTargetWidgetAdapters";
+import {
+  buildWidgetTargetBinding,
+  buildWidgetTargetBindings,
+} from "./ontologyTargetWidgetAdapters";
 
 describe("buildWidgetTargetBinding", () => {
   it("builds a single Table target", () => {
@@ -11,7 +14,7 @@ describe("buildWidgetTargetBinding", () => {
     ).toEqual({
       widgetId: "table-id",
       cardinality: "ONE",
-      expression: "{{Table1.selectedRow.contract_id}}",
+      expression: '{{Table1.selectedRow["contract_id"]}}',
     });
   });
 
@@ -25,8 +28,42 @@ describe("buildWidgetTargetBinding", () => {
     ).toEqual({
       widgetId: "table-id",
       cardinality: "MANY",
-      expression: "{{Table1.selectedRows.map((row) => row.contract_id)}}",
+      expression: '{{Table1.selectedRows.map((row) => row["contract_id"])}}',
     });
+  });
+
+  it("offers both single and many Table bindings when the bound allows many", () => {
+    expect(
+      buildWidgetTargetBindings(
+        { widgetId: "table-id", type: "TABLE_WIDGET", widgetName: "Table1" },
+        "contract_id",
+        2,
+      ),
+    ).toEqual([
+      {
+        widgetId: "table-id",
+        cardinality: "ONE",
+        expression: '{{Table1.selectedRow["contract_id"]}}',
+      },
+      {
+        widgetId: "table-id",
+        cardinality: "MANY",
+        expression: '{{Table1.selectedRows.map((row) => row["contract_id"])}}',
+      },
+    ]);
+  });
+
+  it("uses bracket notation for arbitrary canonical keys", () => {
+    expect(
+      buildWidgetTargetBindings(
+        { widgetId: "table-id", type: "TABLE_WIDGET", widgetName: "Table1" },
+        "contract-id",
+        2,
+      ).map(({ expression }) => expression),
+    ).toEqual([
+      '{{Table1.selectedRow["contract-id"]}}',
+      '{{Table1.selectedRows.map((row) => row["contract-id"])}}',
+    ]);
   });
 
   it("builds a single Select target", () => {

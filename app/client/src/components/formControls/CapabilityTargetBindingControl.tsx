@@ -6,7 +6,7 @@ import { getCurrentPageWidgets } from "ee/selectors/entitiesSelector";
 import i18n from "i18n";
 import type { ControlProps } from "./BaseControl";
 import {
-  buildWidgetTargetBinding,
+  buildWidgetTargetBindings,
   type TargetBindingWidget,
   type WidgetTargetCardinality,
 } from "PluginActionEditor/components/CapabilityTargetBinding/ontologyTargetWidgetAdapters";
@@ -78,9 +78,21 @@ const targetMessages = {
     i18n.t("ontologyCapabilityTarget.expression", {
       defaultValue: "Target expression",
     }),
+  cardinality: () =>
+    i18n.t("ontologyCapabilityTarget.cardinality", {
+      defaultValue: "Target cardinality",
+    }),
+  one: () =>
+    i18n.t("ontologyCapabilityTarget.one", {
+      defaultValue: "One",
+    }),
+  many: () =>
+    i18n.t("ontologyCapabilityTarget.many", {
+      defaultValue: "Many",
+    }),
 };
 
-function getBinding(value: unknown): CapabilityTargetBinding {
+function getBinding(value: unknown, maxItems: number): CapabilityTargetBinding {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return DEFAULT_BINDING;
   }
@@ -119,7 +131,8 @@ function getBinding(value: unknown): CapabilityTargetBinding {
   }
 
   const mode = candidate.mode === "WIDGET" ? "WIDGET" : "MANUAL";
-  const cardinality = candidate.cardinality === "MANY" ? "MANY" : "ONE";
+  const cardinality =
+    candidate.cardinality === "MANY" && maxItems > 1 ? "MANY" : "ONE";
 
   return {
     mode,
@@ -164,7 +177,7 @@ export function CapabilityTargetBindingControl(
     tableCanonicalKeys,
     value: rawValue,
   } = props;
-  const value = getBinding(rawValue);
+  const value = getBinding(rawValue, maxItems);
   const [isPickingWidget, setIsPickingWidget] = useState(false);
   const displayedMode = isPickingWidget ? "WIDGET" : value.mode;
   const widgets = useMemo(() => {
@@ -178,7 +191,7 @@ export function CapabilityTargetBindingControl(
         type: widget.type,
         widgetName: widget.widgetName,
       };
-      const binding = buildWidgetTargetBinding(
+      const bindings = buildWidgetTargetBindings(
         targetWidget,
         getWidgetCanonicalKey(widgetId, widget, {
           canonicalKey,
@@ -188,7 +201,7 @@ export function CapabilityTargetBindingControl(
         maxItems,
       );
 
-      return binding ? [{ widgetId, widget, binding }] : [];
+      return bindings.map((binding) => ({ widgetId, widget, binding }));
     });
   }, [
     canonicalKey,
@@ -199,7 +212,9 @@ export function CapabilityTargetBindingControl(
   ]);
 
   const selectedWidget = widgets.find(
-    (widget) => widget.widgetId === value.widgetId,
+    (widget) =>
+      widget.widgetId === value.widgetId &&
+      widget.binding.cardinality === value.cardinality,
   );
   const isRemovedWidget =
     displayedMode === "WIDGET" && Boolean(value.widgetId) && !selectedWidget;
@@ -240,8 +255,14 @@ export function CapabilityTargetBindingControl(
     return;
   };
 
-  const onWidgetChange = (widgetId: string) => {
-    const nextWidget = widgets.find((widget) => widget.widgetId === widgetId);
+  const onWidgetChange = (optionValue: string) => {
+    const nextWidget = widgets.find(
+      (widget) =>
+        `${widget.widgetId}:${widget.binding.cardinality}` === optionValue ||
+        (widget.widgetId === optionValue &&
+          widgets.filter((candidate) => candidate.widgetId === widget.widgetId)
+            .length === 1),
+    );
 
     if (!nextWidget) return;
 
@@ -252,6 +273,14 @@ export function CapabilityTargetBindingControl(
       widgetId: nextWidget.widgetId,
       cardinality: nextWidget.binding.cardinality,
       expression: nextWidget.binding.expression,
+    });
+  };
+
+  const onCardinalityChange = (cardinality: WidgetTargetCardinality) => {
+    updateBinding({
+      mode: "MANUAL",
+      cardinality,
+      expression: value.expression,
     });
   };
 
@@ -311,8 +340,16 @@ export function CapabilityTargetBindingControl(
               onWidgetChange(event.target.value)
             }
             value={
-              selectedWidget?.widgetId ||
-              (isRemovedWidget ? value.widgetId : "")
+              selectedWidget
+                ? widgets.filter(
+                    (candidate) =>
+                      candidate.widgetId === selectedWidget.widgetId,
+                  ).length > 1
+                  ? `${selectedWidget.widgetId}:${selectedWidget.binding.cardinality}`
+                  : selectedWidget.widgetId
+                : isRemovedWidget
+                  ? value.widgetId
+                  : ""
             }
           >
             <option value="">{targetMessages.chooseWidget()}</option>
@@ -324,9 +361,18 @@ export function CapabilityTargetBindingControl(
             {widgets.map(({ binding, widget, widgetId }) => (
               <option
                 key={`${widgetId}-${binding.cardinality}`}
-                value={widgetId}
+                value={
+                  widgets.filter((candidate) => candidate.widgetId === widgetId)
+                    .length > 1
+                    ? `${widgetId}:${binding.cardinality}`
+                    : widgetId
+                }
               >
                 {widget.widgetName}
+                {widgets.filter((candidate) => candidate.widgetId === widgetId)
+                  .length > 1
+                  ? ` (${binding.cardinality === "ONE" ? targetMessages.one() : targetMessages.many()})`
+                  : ""}
               </option>
             ))}
           </select>
@@ -335,20 +381,40 @@ export function CapabilityTargetBindingControl(
           )}
         </>
       ) : (
-        <label>
-          {targetMessages.expression()}
-          <input
-            aria-label={targetMessages.expression()}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              updateBinding({
-                mode: "MANUAL",
-                cardinality: value.cardinality,
-                expression: event.target.value,
-              })
-            }
-            value={value.expression}
-          />
-        </label>
+        <>
+          {maxItems > 1 && (
+            <label htmlFor={`${configProperty}-cardinality`}>
+              {targetMessages.cardinality()}
+              <select
+                aria-label={targetMessages.cardinality()}
+                id={`${configProperty}-cardinality`}
+                onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+                  onCardinalityChange(
+                    event.target.value as WidgetTargetCardinality,
+                  )
+                }
+                value={value.cardinality}
+              >
+                <option value="ONE">{targetMessages.one()}</option>
+                <option value="MANY">{targetMessages.many()}</option>
+              </select>
+            </label>
+          )}
+          <label>
+            {targetMessages.expression()}
+            <input
+              aria-label={targetMessages.expression()}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                updateBinding({
+                  mode: "MANUAL",
+                  cardinality: value.cardinality,
+                  expression: event.target.value,
+                })
+              }
+              value={value.expression}
+            />
+          </label>
+        </>
       )}
     </div>
   );
