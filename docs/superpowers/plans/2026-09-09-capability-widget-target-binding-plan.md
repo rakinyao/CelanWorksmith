@@ -24,7 +24,7 @@
 
 **Interfaces:** `buildWidgetTargetBinding(widget, canonicalKey, maxItems)` returns `WidgetTargetBinding { widgetId, cardinality: "ONE" | "MANY", expression }` or `undefined`.
 
-- [ ] Write failing tests that assert: Table single produces `{{Table1.selectedRow.contract_id}}`; Table many produces `{{Table1.selectedRows.map((row) => row.contract_id)}}`; Select single produces `{{CustomerSelect.selectedOptionValue}}`; MultiSelect many produces `{{Customers.selectedOptionValues}}`; Select is absent for `maxItems = 2`; Table is absent without a canonical key.
+- [ ] Write failing tests that assert: Table single produces `{{Table1.selectedRow.contract_id}}`; Table many produces `{{Table1.selectedRows.map((row) => row.contract_id)}}`; Select single produces `{{CustomerSelect.selectedOptionValue}}` for both `maxItems = 1` and `maxItems = 2`; MultiSelect many produces `{{Customers.selectedOptionValues}}`; Table is absent without a canonical key; non-positive or non-finite bounds produce no binding.
 - [ ] Run `cd app/client && yarn g:jest src/PluginActionEditor/components/CapabilityTargetBinding/ontologyTargetWidgetAdapters.test.ts`; confirm failure because the module is absent.
 - [ ] Implement a closed registry for `TABLE_WIDGET`, `SELECT_WIDGET`, and `MULTI_SELECT_WIDGET`. Permit one-target adapters for every positive bound, and many-target adapters only when `maxItems > 1`.
 - [ ] Rerun the focused test, confirm pass, then commit only the Task 1 files as `feat(ontology): add capability target widget adapters`.
