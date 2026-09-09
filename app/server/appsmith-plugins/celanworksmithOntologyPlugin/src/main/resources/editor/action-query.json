@@ -62,22 +62,11 @@
           }
         },
         {
-          "label": "Target source",
-          "configProperty": "actionConfiguration.formData.target.data.source",
-          "controlType": "DROP_DOWN",
-          "initialValue": "SINGLE_OBJECT",
-          "disabled": true,
-          "options": [{ "label": "Single object", "value": "SINGLE_OBJECT" }],
-          "conditionals": {
-            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}"
-          }
-        },
-        {
-          "label": "Object ID",
-          "configProperty": "actionConfiguration.formData.target.data.objectId",
-          "controlType": "QUERY_DYNAMIC_INPUT_TEXT",
+          "label": "Target",
+          "configProperty": "actionConfiguration.formData.target.data",
+          "controlType": "ONTOLOGY_CAPABILITY_TARGET",
+          "maxItems": 1,
           "isRequired": true,
-          "placeholderText": "{{Table1.selectedRow.id}}",
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}"
           }

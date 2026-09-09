@@ -23,6 +23,7 @@ export interface CapabilityTargetBinding {
 export interface CapabilityTargetBindingWidget extends TargetBindingWidget {
   canonicalKey?: string;
   ontologyCanonicalKey?: string;
+  primaryColumnId?: string;
 }
 
 export interface CapabilityTargetBindingControlProps
@@ -112,7 +113,8 @@ function getWidgetCanonicalKey(
     widget.ontologyCanonicalKey ||
     props.tableCanonicalKeys?.[widgetId] ||
     props.tableCanonicalKey ||
-    props.canonicalKey
+    props.canonicalKey ||
+    widget.primaryColumnId
   );
 }
 

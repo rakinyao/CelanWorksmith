@@ -10,6 +10,7 @@ const widgets = {
   "table-id": {
     type: "TABLE_WIDGET",
     widgetName: "Table1",
+    primaryColumnId: "contract_id",
   },
   "select-id": {
     type: "SELECT_WIDGET",

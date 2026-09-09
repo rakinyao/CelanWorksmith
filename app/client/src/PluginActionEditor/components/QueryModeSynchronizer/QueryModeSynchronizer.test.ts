@@ -354,8 +354,9 @@ describe("OntologyQueryModeSynchronizer", () => {
       expect(result).toEqual({
         updates: {
           "actionConfiguration.formData.target.data": {
-            source: "SINGLE_OBJECT",
-            objectId: "{{Table1.selectedRow.id}}",
+            mode: "MANUAL",
+            cardinality: "ONE",
+            expression: "{{Table1.selectedRow.id}}",
           },
           "actionConfiguration.formData.parameters.data": parameters,
         },
@@ -437,7 +438,7 @@ describe("OntologyQueryModeSynchronizer", () => {
       expect(mockChange).toHaveBeenCalledWith(
         "QueryEditorForm",
         "actionConfiguration.formData.target.data",
-        { source: "SINGLE_OBJECT", objectId: "" },
+        { mode: "MANUAL", cardinality: "ONE", expression: "" },
       );
       expect(mockChange).toHaveBeenCalledWith(
         "QueryEditorForm",
@@ -1118,7 +1119,7 @@ describe("OntologyQueryModeSynchronizer", () => {
       expect(mockChange).toHaveBeenCalledWith(
         "QueryEditorForm",
         "actionConfiguration.formData.target.data",
-        { source: "SINGLE_OBJECT", objectId: "" },
+        { mode: "MANUAL", cardinality: "ONE", expression: "" },
       );
       expect(mockChange).toHaveBeenCalledWith(
         "QueryEditorForm",
@@ -1165,6 +1166,8 @@ describe("OntologyQueryModeSynchronizer", () => {
       );
       const controls = editor.children[0].children as Array<{
         configProperty?: string;
+        controlType?: string;
+        maxItems?: number;
         conditionals?: { fetchDynamicValues?: { config: { params: unknown } } };
       }>;
       const objectType = controls.find(
@@ -1182,10 +1185,9 @@ describe("OntologyQueryModeSynchronizer", () => {
           control.configProperty ===
           "actionConfiguration.formData.parameters.data",
       );
-      const targetObjectId = controls.find(
+      const target = controls.find(
         (control) =>
-          control.configProperty ===
-          "actionConfiguration.formData.target.data.objectId",
+          control.configProperty === "actionConfiguration.formData.target.data",
       );
       const advancedDefinition = controls.find(
         (control) =>
@@ -1218,12 +1220,17 @@ describe("OntologyQueryModeSynchronizer", () => {
         inputType: "JSON",
         evaluationSubstitutionType: "TEMPLATE",
         placeholderText:
-          '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
+          fileName === "function-query.json"
+            ? '{"target":{"source":"OBJECT_SET","objectIds":["PO001","PO002"]},"parameters":{}}'
+            : '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
       });
-      expect(targetObjectId?.conditionals).toMatchObject({
-        show: "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+      expect(target).toMatchObject({
+        controlType: "ONTOLOGY_CAPABILITY_TARGET",
+        maxItems: fileName === "function-query.json" ? 1000 : 1,
+        conditionals: {
+          show: "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+        },
       });
-      expect(targetObjectId?.conditionals).not.toHaveProperty("enable");
       expect(
         controls.some(
           (control) =>

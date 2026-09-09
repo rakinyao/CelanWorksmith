@@ -1,10 +1,17 @@
 export type OntologyCapabilityOperation = "FUNCTION_QUERY" | "ACTION_QUERY";
 
+export type OntologyCapabilityQueryTarget =
+  | {
+      source: "SINGLE_OBJECT";
+      objectId: string;
+    }
+  | {
+      source: "OBJECT_SET";
+      objectIds: string | string[];
+    };
+
 export interface OntologyCapabilityQueryDefinition {
-  target: {
-    source: "SINGLE_OBJECT";
-    objectId: string;
-  };
+  target: OntologyCapabilityQueryTarget;
   parameters: Record<string, unknown>;
 }
 
@@ -122,11 +129,21 @@ function parseBuilderParameters(
 function normalizeDefinition(
   definition: OntologyCapabilityQueryDefinition,
 ): OntologyCapabilityQueryDefinition {
+  const target =
+    definition.target.source === "SINGLE_OBJECT"
+      ? {
+          source: "SINGLE_OBJECT" as const,
+          objectId: definition.target.objectId,
+        }
+      : {
+          source: "OBJECT_SET" as const,
+          objectIds: Array.isArray(definition.target.objectIds)
+            ? [...definition.target.objectIds]
+            : definition.target.objectIds,
+        };
+
   return {
-    target: {
-      source: "SINGLE_OBJECT",
-      objectId: definition.target.objectId,
-    },
+    target,
     parameters: { ...definition.parameters },
   };
 }
@@ -148,23 +165,44 @@ function validateDefinitionShape(value: unknown): string | undefined {
     return "Ontology capability query definition requires a target object";
   }
 
+  const source = value.target.source;
+  const allowedTargetFields =
+    source === "SINGLE_OBJECT"
+      ? ["source", "objectId"]
+      : ["source", "objectIds"];
   const unsupportedTargetField = Object.keys(value.target).find(
-    (key) => key !== "source" && key !== "objectId",
+    (key) => !allowedTargetFields.includes(key),
   );
 
   if (unsupportedTargetField) {
     return `Unsupported field in ontology capability target: ${unsupportedTargetField}`;
   }
 
-  if (value.target.source !== "SINGLE_OBJECT") {
-    return "Ontology capability target source must be SINGLE_OBJECT";
-  }
+  if (source === "SINGLE_OBJECT") {
+    if (
+      typeof value.target.objectId !== "string" ||
+      value.target.objectId.trim() === ""
+    ) {
+      return "Ontology capability target requires an object ID";
+    }
+  } else if (source === "OBJECT_SET") {
+    const objectIds = value.target.objectIds;
 
-  if (
-    typeof value.target.objectId !== "string" ||
-    value.target.objectId.trim() === ""
-  ) {
-    return "Ontology capability target requires an object ID";
+    if (typeof objectIds === "string") {
+      if (objectIds.trim() === "") {
+        return "Ontology capability target requires object IDs";
+      }
+    } else if (
+      !Array.isArray(objectIds) ||
+      objectIds.length === 0 ||
+      objectIds.some(
+        (objectId) => typeof objectId !== "string" || objectId.trim() === "",
+      )
+    ) {
+      return "Ontology capability target requires an object ID array";
+    }
+  } else {
+    return "Ontology capability target source must be SINGLE_OBJECT or OBJECT_SET";
   }
 
   if (!isRecord(value.parameters)) {
@@ -172,6 +210,68 @@ function validateDefinitionShape(value: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+function parseBuilderManyExpression(expression: string): string | string[] {
+  const trimmed = expression.trim();
+
+  if (!trimmed.startsWith("[")) {
+    return expression;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+
+    if (Array.isArray(parsed)) {
+      return parsed as string[];
+    }
+  } catch {
+    return expression;
+  }
+
+  return expression;
+}
+
+function canonicalizeBuilderTarget(
+  value: unknown,
+  operation: OntologyCapabilityOperation,
+): OntologyCapabilityQueryTarget {
+  if (!isRecord(value)) {
+    return value as OntologyCapabilityQueryTarget;
+  }
+
+  if (
+    !hasOwn(value, "mode") &&
+    !hasOwn(value, "cardinality") &&
+    !hasOwn(value, "expression")
+  ) {
+    return value as OntologyCapabilityQueryTarget;
+  }
+
+  if (value.mode !== "WIDGET" && value.mode !== "MANUAL") {
+    throw new Error("Ontology capability target mode must be WIDGET or MANUAL");
+  }
+
+  if (value.cardinality !== "ONE" && value.cardinality !== "MANY") {
+    throw new Error(
+      "Ontology capability target cardinality must be ONE or MANY",
+    );
+  }
+
+  if (typeof value.expression !== "string" || value.expression.trim() === "") {
+    throw new Error("Ontology capability target requires an expression");
+  }
+
+  if (operation === "ACTION_QUERY" && value.cardinality === "MANY") {
+    throw new Error("Action query Builder supports only one target");
+  }
+
+  return value.cardinality === "MANY"
+    ? {
+        source: "OBJECT_SET",
+        objectIds: parseBuilderManyExpression(value.expression),
+      }
+    : { source: "SINGLE_OBJECT", objectId: value.expression };
 }
 
 export function validateCapabilityDefinition(
@@ -187,6 +287,13 @@ export function validateCapabilityDefinition(
   }
 
   const normalized = normalizeDefinition(definition);
+
+  if (
+    operation === "ACTION_QUERY" &&
+    normalized.target.source === "OBJECT_SET"
+  ) {
+    return invalid("Action query Builder supports only one target");
+  }
 
   if (
     typeof selectedCapabilityId !== "string" ||
@@ -289,9 +396,10 @@ export function serializeCapabilityBuilderForm(
 
   const validation = validateCapabilityDefinition(
     {
-      target: unwrapBuilderValue(
-        formData.target,
-      ) as OntologyCapabilityQueryDefinition["target"],
+      target: canonicalizeBuilderTarget(
+        unwrapBuilderValue(formData.target),
+        operation,
+      ),
       parameters: parseBuilderParameters(
         unwrapBuilderValue(formData.parameters),
         selectedCapabilityId,
@@ -321,8 +429,23 @@ export function hydrateCapabilityBuilderForm(
 
   const normalized = normalizeDefinition(definition);
 
+  const builderTarget =
+    normalized.target.source === "SINGLE_OBJECT"
+      ? {
+          mode: "MANUAL" as const,
+          cardinality: "ONE" as const,
+          expression: normalized.target.objectId,
+        }
+      : {
+          mode: "MANUAL" as const,
+          cardinality: "MANY" as const,
+          expression: Array.isArray(normalized.target.objectIds)
+            ? JSON.stringify(normalized.target.objectIds)
+            : normalized.target.objectIds,
+        };
+
   return {
-    "actionConfiguration.formData.target.data": normalized.target,
+    "actionConfiguration.formData.target.data": builderTarget,
     "actionConfiguration.formData.parameters.data": normalized.parameters,
   };
 }

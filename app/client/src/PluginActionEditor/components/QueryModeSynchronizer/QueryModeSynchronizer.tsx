@@ -565,8 +565,9 @@ export function OntologyQueryModeSynchronizer({
           previousCapabilitySelection.current = currentSelection;
           dispatch(
             change(formName, "actionConfiguration.formData.target.data", {
-              source: "SINGLE_OBJECT",
-              objectId: "",
+              mode: "MANUAL",
+              cardinality: "ONE",
+              expression: "",
             }),
           );
           dispatch(

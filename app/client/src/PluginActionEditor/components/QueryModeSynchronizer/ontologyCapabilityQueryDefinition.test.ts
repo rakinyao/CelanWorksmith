@@ -134,11 +134,102 @@ describe("ontology capability query definition", () => {
       }),
     ).toEqual({
       "actionConfiguration.formData.target.data": {
-        source: "SINGLE_OBJECT",
-        objectId: "PO002",
+        mode: "MANUAL",
+        cardinality: "ONE",
+        expression: "PO002",
       },
       "actionConfiguration.formData.parameters.data": { delayDays: 5 },
     });
+  });
+
+  it("serializes a Function many-target binding without Builder metadata", () => {
+    expect(
+      serializeCapabilityBuilderForm(
+        {
+          objectTypeId: { data: "Contract" },
+          functionId: { data: "CalculateContractGrossAmount" },
+          target: {
+            data: {
+              mode: "WIDGET",
+              widgetId: "table-id",
+              cardinality: "MANY",
+              expression:
+                "{{ContractsTable.selectedRows.map((row) => row.contract_id)}}",
+            },
+          },
+          parameters: { data: {} },
+        },
+        "FUNCTION_QUERY",
+        {
+          capabilities: [
+            { id: "CalculateContractGrossAmount", parameters: [] },
+          ],
+        },
+      ),
+    ).toBe(
+      '{"target":{"source":"OBJECT_SET","objectIds":"{{ContractsTable.selectedRows.map((row) => row.contract_id)}}"},"parameters":{}}',
+    );
+  });
+
+  it("serializes a manual literal target without storing widget metadata", () => {
+    expect(
+      serializeCapabilityBuilderForm(
+        {
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: {
+              mode: "MANUAL",
+              cardinality: "ONE",
+              expression: "PO002",
+            },
+          },
+          parameters: { data: { delayDays: 5 } },
+        },
+        "FUNCTION_QUERY",
+        functionMetadata,
+      ),
+    ).toBe(
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"PO002"},"parameters":{"delayDays":5}}',
+    );
+  });
+
+  it("hydrates a Function object set into manual array-expression metadata", () => {
+    expect(
+      hydrateCapabilityBuilderForm({
+        target: { source: "OBJECT_SET", objectIds: ["C1", "C2"] },
+        parameters: {},
+      }),
+    ).toEqual({
+      "actionConfiguration.formData.target.data": {
+        mode: "MANUAL",
+        cardinality: "MANY",
+        expression: '["C1","C2"]',
+      },
+      "actionConfiguration.formData.parameters.data": {},
+    });
+  });
+
+  it("rejects a many-target Action Builder binding", () => {
+    expect(() =>
+      serializeCapabilityBuilderForm(
+        {
+          objectTypeId: { data: "Contract" },
+          actionId: { data: "ReschedulePurchaseOrder" },
+          target: {
+            data: {
+              mode: "WIDGET",
+              widgetId: "table-id",
+              cardinality: "MANY",
+              expression: "{{ContractsTable.selectedRows}}",
+            },
+          },
+          parameters: { data: { newDeliveryDate: "2026-08-30" } },
+        },
+        "ACTION_QUERY",
+        actionMetadata,
+      ),
+    ).toThrow("Action query Builder supports only one target");
   });
 
   it.each([
