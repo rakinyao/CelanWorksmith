@@ -24,3 +24,14 @@
 
 - Function editor resources use the provisional 1000-item upper bound because the current editor resource contract does not expose selected capability cardinality metadata; runtime validation remains authoritative.
 - The commit includes the narrow `primaryColumnId` control fallback and its test because Table provenance is required for the new target picker to work with existing ontology-generated Tables.
+
+## Review Fix Round 1
+
+- Added a regression test with `canonicalKey`, `tableCanonicalKey`, and
+  `tableCanonicalKeys` explicitly absent, proving a Table's `primaryColumnId`
+  fallback produces the expected binding expression.
+- `cd app/client && yarn g:jest src/components/formControls/CapabilityTargetBindingControl.test.tsx`
+  -> 1 suite, 7 tests passed.
+- Targeted ESLint completed with no errors (three existing React performance
+  warnings).
+- Follow-up commit: `test(ontology): cover primary column target fallback` (current HEAD).

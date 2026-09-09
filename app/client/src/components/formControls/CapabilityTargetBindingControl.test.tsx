@@ -98,6 +98,31 @@ describe("CapabilityTargetBindingControl", () => {
     });
   });
 
+  it("uses a Table primaryColumnId when no explicit canonical key is provided", () => {
+    const onBindingChange = renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+      {
+        canonicalKey: undefined,
+        tableCanonicalKey: undefined,
+        tableCanonicalKeys: undefined,
+      },
+    );
+
+    fireEvent.change(screen.getByLabelText("Target source"), {
+      target: { value: "WIDGET" },
+    });
+    fireEvent.change(screen.getByLabelText("Target widget"), {
+      target: { value: "table-id" },
+    });
+
+    expect(onBindingChange).toHaveBeenLastCalledWith({
+      mode: "WIDGET",
+      widgetId: "table-id",
+      cardinality: "ONE",
+      expression: "{{Table1.selectedRow.contract_id}}",
+    });
+  });
+
   it("switches to manual mode without losing the expression", () => {
     const onBindingChange = renderControlled({
       mode: "WIDGET",
