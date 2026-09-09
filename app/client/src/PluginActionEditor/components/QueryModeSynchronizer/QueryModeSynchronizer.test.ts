@@ -462,6 +462,92 @@ describe("OntologyQueryModeSynchronizer", () => {
     },
   );
 
+  it("resets capability state when operation changes with the same owner and capability IDs", () => {
+    const definition = JSON.stringify({
+      target: {
+        source: "SINGLE_OBJECT",
+        objectId: "{{Table1.selectedRow.id}}",
+      },
+      parameters: { delayDays: 5 },
+    });
+
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "BUILDER" },
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "SharedCapability" },
+          target: {
+            data: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{Table1.selectedRow.id}}",
+            },
+          },
+          targetBinding: {
+            data: {
+              mode: "WIDGET",
+              widgetId: "table-id",
+              cardinality: "ONE",
+              expression: "{{Table1.selectedRow.id}}",
+            },
+          },
+          parameters: { data: { delayDays: 5 } },
+          definition: { data: definition },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).not.toHaveBeenCalled();
+
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          operation: { data: "ACTION_QUERY" },
+          actionId: { data: "SharedCapability" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledTimes(4);
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.target.data",
+      { source: "SINGLE_OBJECT", objectId: "" },
+    );
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.targetBinding.data",
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+    );
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.parameters.data",
+      {},
+    );
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.definition.data",
+      "",
+    );
+  });
+
   it("writes the generated JSON when the Query Mode control enters Advanced", () => {
     const request = jest.fn();
 

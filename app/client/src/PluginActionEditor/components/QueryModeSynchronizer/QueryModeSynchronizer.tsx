@@ -344,6 +344,7 @@ interface OntologyQueryModeSynchronizerProps {
 }
 
 interface CapabilitySelection {
+  operation: OntologyCapabilityOperation;
   objectTypeId: string;
   capabilityId: string;
 }
@@ -552,7 +553,11 @@ export function OntologyQueryModeSynchronizer({
           typeof capabilityId === "string" &&
           capabilityId.trim() !== "";
         const currentSelection = hasSelection
-          ? { objectTypeId, capabilityId }
+          ? {
+              operation: operation as OntologyCapabilityOperation,
+              objectTypeId,
+              capabilityId,
+            }
           : undefined;
 
         if (!hasInitialCapabilitySelection.current) {

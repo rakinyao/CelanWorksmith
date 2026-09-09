@@ -34,7 +34,7 @@ export interface CapabilityTargetBindingControlProps
   tableCanonicalKeys?: Record<string, string>;
   maxItems?: number;
   currentPageWidgets?: Record<string, Partial<CapabilityTargetBindingWidget>>;
-  value?: CapabilityTargetBinding;
+  value?: CapabilityTargetBinding | Record<string, unknown>;
   onBindingChange?: (value: CapabilityTargetBinding) => void;
 }
 
@@ -359,11 +359,19 @@ const mapStateToProps = (
   props: CapabilityTargetBindingControlProps,
 ) => {
   const valueSelector = formValueSelector(props.formName);
+  const targetBindingValue = valueSelector(state, props.configProperty);
+  const legacyTargetProperty = props.configProperty.replace(
+    "targetBinding.data",
+    "target.data",
+  );
 
   return {
     currentPageWidgets:
       props.currentPageWidgets || getCurrentPageWidgets(state),
-    value: props.value || valueSelector(state, props.configProperty),
+    value:
+      props.value ??
+      targetBindingValue ??
+      valueSelector(state, legacyTargetProperty),
   };
 };
 

@@ -1,7 +1,9 @@
 import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { Provider } from "react-redux";
+import { createStore } from "redux";
 import i18n from "i18n";
-import {
+import ConnectedCapabilityTargetBindingControl, {
   CapabilityTargetBindingControl,
   type CapabilityTargetBinding,
 } from "./CapabilityTargetBindingControl";
@@ -23,7 +25,7 @@ const widgets = {
 };
 
 const controlProps = {
-  configProperty: "actionConfiguration.formData.target.data",
+  configProperty: "actionConfiguration.formData.targetBinding.data",
   controlType: "ONTOLOGY_CAPABILITY_TARGET" as const,
   formName: "QueryEditorForm",
   id: "capability-target",
@@ -128,6 +130,42 @@ describe("CapabilityTargetBindingControl", () => {
       source: "SINGLE_OBJECT",
       objectId: "PO002",
     } as unknown as CapabilityTargetBinding);
+
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "Target expression",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("PO002");
+  });
+
+  it("hydrates the legacy canonical target through the connected resource path", () => {
+    const state = {
+      form: {
+        QueryEditorForm: {
+          values: {
+            actionConfiguration: {
+              formData: {
+                target: {
+                  data: {
+                    source: "SINGLE_OBJECT",
+                    objectId: "PO002",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const store = createStore(() => state);
+
+    render(
+      <Provider store={store}>
+        <ConnectedCapabilityTargetBindingControl {...controlProps} />
+      </Provider>,
+    );
 
     expect(
       (

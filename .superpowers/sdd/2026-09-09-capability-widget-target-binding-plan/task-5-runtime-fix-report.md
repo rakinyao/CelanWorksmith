@@ -48,3 +48,24 @@ Snapshots:   0 total
 ## Scope / Concerns
 
 Only the capability control, serializer/hydrator, synchronizer, action path resolver, editor resources, focused tests, and this report were changed. The backend build/Maven suite and manual runtime health check were not run in this task; Task 4's server boundary remains the authoritative validator.
+
+## Round 1 Review Correction
+
+The first review identified two compatibility gaps. The connected control now falls back from the new `targetBinding.data` property to legacy canonical `target.data`, so persisted canonical targets render as manual bindings through the actual editor resource path. Capability synchronizer identity now includes operation, so switching Function to Action (or vice versa) resets target binding, canonical target, parameters, and definition even when owner and capability IDs happen to match.
+
+Round 1 RED evidence:
+
+```text
+yarn g:jest src/components/formControls/CapabilityTargetBindingControl.test.tsx src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts
+
+2 failed: connected legacy target rendered an empty expression; same-ID Function-to-Action change dispatched zero resets.
+```
+
+Round 1 GREEN evidence:
+
+```text
+yarn g:jest src/components/formControls/CapabilityTargetBindingControl.test.tsx src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts
+
+Test Suites: 2 passed, 2 total
+Tests:       44 passed, 44 total
+```
