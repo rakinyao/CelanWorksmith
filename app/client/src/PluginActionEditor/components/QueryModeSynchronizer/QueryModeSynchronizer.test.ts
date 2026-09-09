@@ -354,6 +354,10 @@ describe("OntologyQueryModeSynchronizer", () => {
       expect(result).toEqual({
         updates: {
           "actionConfiguration.formData.target.data": {
+            source: "SINGLE_OBJECT",
+            objectId: "{{Table1.selectedRow.id}}",
+          },
+          "actionConfiguration.formData.targetBinding.data": {
             mode: "MANUAL",
             cardinality: "ONE",
             expression: "{{Table1.selectedRow.id}}",
@@ -434,10 +438,15 @@ describe("OntologyQueryModeSynchronizer", () => {
         }),
       );
 
-      expect(mockChange).toHaveBeenCalledTimes(3);
+      expect(mockChange).toHaveBeenCalledTimes(4);
       expect(mockChange).toHaveBeenCalledWith(
         "QueryEditorForm",
         "actionConfiguration.formData.target.data",
+        { source: "SINGLE_OBJECT", objectId: "" },
+      );
+      expect(mockChange).toHaveBeenCalledWith(
+        "QueryEditorForm",
+        "actionConfiguration.formData.targetBinding.data",
         { mode: "MANUAL", cardinality: "ONE", expression: "" },
       );
       expect(mockChange).toHaveBeenCalledWith(
@@ -1115,10 +1124,15 @@ describe("OntologyQueryModeSynchronizer", () => {
         }),
       );
 
-      expect(mockChange).toHaveBeenCalledTimes(3);
+      expect(mockChange).toHaveBeenCalledTimes(4);
       expect(mockChange).toHaveBeenCalledWith(
         "QueryEditorForm",
         "actionConfiguration.formData.target.data",
+        { source: "SINGLE_OBJECT", objectId: "" },
+      );
+      expect(mockChange).toHaveBeenCalledWith(
+        "QueryEditorForm",
+        "actionConfiguration.formData.targetBinding.data",
         { mode: "MANUAL", cardinality: "ONE", expression: "" },
       );
       expect(mockChange).toHaveBeenCalledWith(
@@ -1187,7 +1201,8 @@ describe("OntologyQueryModeSynchronizer", () => {
       );
       const target = controls.find(
         (control) =>
-          control.configProperty === "actionConfiguration.formData.target.data",
+          control.configProperty ===
+          "actionConfiguration.formData.targetBinding.data",
       );
       const advancedDefinition = controls.find(
         (control) =>

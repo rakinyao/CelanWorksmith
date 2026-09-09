@@ -1,5 +1,6 @@
 import {
   hydrateCapabilityBuilderForm,
+  getCapabilityBuilderTargetUpdate,
   parseAdvancedCapabilityDefinition,
   serializeCapabilityBuilderForm,
   validateCapabilityDefinition,
@@ -134,11 +135,69 @@ describe("ontology capability query definition", () => {
       }),
     ).toEqual({
       "actionConfiguration.formData.target.data": {
+        source: "SINGLE_OBJECT",
+        objectId: "PO002",
+      },
+      "actionConfiguration.formData.targetBinding.data": {
         mode: "MANUAL",
         cardinality: "ONE",
         expression: "PO002",
       },
       "actionConfiguration.formData.parameters.data": { delayDays: 5 },
+    });
+  });
+
+  it("serializes canonical runtime target while keeping Builder metadata separate", () => {
+    expect(
+      serializeCapabilityBuilderForm(
+        {
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{CustomerSelect.selectedOptionValue}}",
+            },
+          },
+          targetBinding: {
+            data: {
+              mode: "WIDGET",
+              widgetId: "select-id",
+              cardinality: "ONE",
+              expression: "{{CustomerSelect.selectedOptionValue}}",
+            },
+          },
+          parameters: { data: { delayDays: 5 } },
+        },
+        "FUNCTION_QUERY",
+        functionMetadata,
+      ),
+    ).toBe(
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"{{CustomerSelect.selectedOptionValue}}"},"parameters":{"delayDays":5}}',
+    );
+  });
+
+  it("derives the canonical runtime target from separate Builder metadata", () => {
+    expect(
+      getCapabilityBuilderTargetUpdate(
+        {
+          target: {
+            data: { source: "SINGLE_OBJECT", objectId: "old-id" },
+          },
+          targetBinding: {
+            data: {
+              mode: "WIDGET",
+              widgetId: "table-id",
+              cardinality: "MANY",
+              expression: '["C1","C2"]',
+            },
+          },
+        },
+        "FUNCTION_QUERY",
+      ),
+    ).toEqual({
+      field: "actionConfiguration.formData.target.data",
+      value: { source: "OBJECT_SET", objectIds: ["C1", "C2"] },
     });
   });
 
@@ -202,6 +261,10 @@ describe("ontology capability query definition", () => {
       }),
     ).toEqual({
       "actionConfiguration.formData.target.data": {
+        source: "OBJECT_SET",
+        objectIds: ["C1", "C2"],
+      },
+      "actionConfiguration.formData.targetBinding.data": {
         mode: "MANUAL",
         cardinality: "MANY",
         expression: '["C1","C2"]',

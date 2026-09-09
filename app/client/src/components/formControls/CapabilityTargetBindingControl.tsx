@@ -85,7 +85,39 @@ function getBinding(value: unknown): CapabilityTargetBinding {
     return DEFAULT_BINDING;
   }
 
-  const candidate = value as Partial<CapabilityTargetBinding>;
+  const candidate = value as Partial<CapabilityTargetBinding> & {
+    source?: unknown;
+    objectId?: unknown;
+    objectIds?: unknown;
+  };
+
+  if (
+    candidate.source === "SINGLE_OBJECT" &&
+    typeof candidate.objectId === "string"
+  ) {
+    return {
+      mode: "MANUAL",
+      cardinality: "ONE",
+      expression: candidate.objectId,
+    };
+  }
+
+  if (
+    candidate.source === "OBJECT_SET" &&
+    (typeof candidate.objectIds === "string" ||
+      Array.isArray(candidate.objectIds))
+  ) {
+    const objectIds = candidate.objectIds as string | string[];
+
+    return {
+      mode: "MANUAL",
+      cardinality: "MANY",
+      expression: Array.isArray(objectIds)
+        ? JSON.stringify(objectIds)
+        : objectIds,
+    };
+  }
+
   const mode = candidate.mode === "WIDGET" ? "WIDGET" : "MANUAL";
   const cardinality = candidate.cardinality === "MANY" ? "MANY" : "ONE";
 

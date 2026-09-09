@@ -15,6 +15,11 @@ export interface OntologyCapabilityQueryDefinition {
   parameters: Record<string, unknown>;
 }
 
+export interface OntologyCapabilityTargetUpdate {
+  field: "actionConfiguration.formData.target.data";
+  value: OntologyCapabilityQueryTarget;
+}
+
 export interface OntologyCapabilityMetadata {
   capabilities: Array<{
     id: string;
@@ -274,6 +279,41 @@ function canonicalizeBuilderTarget(
     : { source: "SINGLE_OBJECT", objectId: value.expression };
 }
 
+function builderTargetValue(formData: Record<string, unknown>): unknown {
+  const metadata = unwrapBuilderValue(formData.targetBinding);
+
+  return metadata === undefined
+    ? unwrapBuilderValue(formData.target)
+    : metadata;
+}
+
+export function getCapabilityBuilderTarget(
+  formData: Record<string, unknown>,
+  operation: OntologyCapabilityOperation,
+): OntologyCapabilityQueryTarget {
+  return canonicalizeBuilderTarget(builderTargetValue(formData), operation);
+}
+
+export function getCapabilityBuilderTargetUpdate(
+  formData: Record<string, unknown>,
+  operation: OntologyCapabilityOperation,
+): OntologyCapabilityTargetUpdate | undefined {
+  try {
+    const target = getCapabilityBuilderTarget(formData, operation);
+
+    if (!isRecord(target) || !hasOwn(target, "source")) {
+      return undefined;
+    }
+
+    return {
+      field: "actionConfiguration.formData.target.data",
+      value: target,
+    } as OntologyCapabilityTargetUpdate;
+  } catch {
+    return undefined;
+  }
+}
+
 export function validateCapabilityDefinition(
   definition: OntologyCapabilityQueryDefinition,
   operation: OntologyCapabilityOperation,
@@ -396,10 +436,7 @@ export function serializeCapabilityBuilderForm(
 
   const validation = validateCapabilityDefinition(
     {
-      target: canonicalizeBuilderTarget(
-        unwrapBuilderValue(formData.target),
-        operation,
-      ),
+      target: getCapabilityBuilderTarget(formData, operation),
       parameters: parseBuilderParameters(
         unwrapBuilderValue(formData.parameters),
         selectedCapabilityId,
@@ -445,7 +482,8 @@ export function hydrateCapabilityBuilderForm(
         };
 
   return {
-    "actionConfiguration.formData.target.data": builderTarget,
+    "actionConfiguration.formData.target.data": normalized.target,
+    "actionConfiguration.formData.targetBinding.data": builderTarget,
     "actionConfiguration.formData.parameters.data": normalized.parameters,
   };
 }

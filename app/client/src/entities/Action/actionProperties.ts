@@ -25,6 +25,8 @@ const dynamicFields = [
   formControlTypes.ONTOLOGY_CAPABILITY_TARGET,
 ];
 
+const capabilityTargetControlType = formControlTypes.ONTOLOGY_CAPABILITY_TARGET;
+
 type ReactivePaths = Record<string, EvaluationSubstitutionType>;
 type BindingPaths = ReactivePaths;
 const getCorrectEvaluationSubstitutionType = (substitutionType?: string) => {
@@ -84,7 +86,12 @@ export const getBindingAndReactivePathsOfAction = (
 
       if (dynamicFields.includes(formConfig.controlType)) {
         if (!isHidden(action, formConfig.hidden)) {
-          bindingPaths[configPath] = getCorrectEvaluationSubstitutionType(
+          const dynamicPath =
+            formConfig.controlType === capabilityTargetControlType
+              ? getCapabilityTargetBindingPath(action, configPath)
+              : configPath;
+
+          bindingPaths[dynamicPath] = getCorrectEvaluationSubstitutionType(
             formConfig.evaluationSubstitutionType,
           );
         }
@@ -279,6 +286,30 @@ export const getBindingAndReactivePathsOfAction = (
 
   return { reactivePaths, bindingPaths };
 };
+
+function getCapabilityTargetBindingPath(
+  action: Action,
+  metadataConfigPath: string,
+): string {
+  const target = _.get(action, "actionConfiguration.formData.target");
+  const targetData =
+    target &&
+    typeof target === "object" &&
+    !Array.isArray(target) &&
+    Object.prototype.hasOwnProperty.call(target, "data")
+      ? (target as { data?: unknown }).data
+      : target;
+  const targetSource =
+    targetData && typeof targetData === "object" && !Array.isArray(targetData)
+      ? (targetData as { source?: unknown }).source
+      : undefined;
+  const targetPath = metadataConfigPath.replace(
+    /\.target(?:Binding)?\.data$/,
+    ".target",
+  );
+
+  return `${targetPath}.${targetSource === "OBJECT_SET" ? "objectIds" : "objectId"}`;
+}
 
 export const getBindingOrConfigPathsForSortingControl = (
   fieldName: SortingSubComponent.Order | SortingSubComponent.Column,

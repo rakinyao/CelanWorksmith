@@ -18,6 +18,7 @@ import {
 } from "./ontologyObjectQueryDefinition";
 import {
   hydrateCapabilityBuilderForm,
+  getCapabilityBuilderTargetUpdate,
   parseAdvancedCapabilityDefinition,
   serializeCapabilityBuilderForm,
   validateCapabilityDefinition,
@@ -565,10 +566,20 @@ export function OntologyQueryModeSynchronizer({
           previousCapabilitySelection.current = currentSelection;
           dispatch(
             change(formName, "actionConfiguration.formData.target.data", {
-              mode: "MANUAL",
-              cardinality: "ONE",
-              expression: "",
+              source: "SINGLE_OBJECT",
+              objectId: "",
             }),
+          );
+          dispatch(
+            change(
+              formName,
+              "actionConfiguration.formData.targetBinding.data",
+              {
+                mode: "MANUAL",
+                cardinality: "ONE",
+                expression: "",
+              },
+            ),
           );
           dispatch(
             change(
@@ -597,11 +608,24 @@ export function OntologyQueryModeSynchronizer({
       };
       const fullPageUpdate = getOntologyFullPageUpdate(synchronizerInput);
       const update = getOntologyQueryDefinitionUpdate(synchronizerInput);
+      const targetUpdate =
+        currentQueryMode === "BUILDER" &&
+        (operation === "FUNCTION_QUERY" || operation === "ACTION_QUERY")
+          ? getCapabilityBuilderTargetUpdate(
+              formData,
+              operation as OntologyCapabilityOperation,
+            )
+          : undefined;
+      const currentTarget = readControlData(formData.target);
 
       previousQueryMode.current = currentQueryMode;
 
       if (fullPageUpdate) {
         dispatch(change(formName, fullPageUpdate.field, fullPageUpdate.value));
+      }
+
+      if (targetUpdate && !isEqual(currentTarget, targetUpdate.value)) {
+        dispatch(change(formName, targetUpdate.field, targetUpdate.value));
       }
 
       if (update) {

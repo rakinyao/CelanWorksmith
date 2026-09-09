@@ -63,7 +63,7 @@
         },
         {
           "label": "Target",
-          "configProperty": "actionConfiguration.formData.target.data",
+          "configProperty": "actionConfiguration.formData.targetBinding.data",
           "controlType": "ONTOLOGY_CAPABILITY_TARGET",
           "maxItems": 1000,
           "isRequired": true,

@@ -123,6 +123,21 @@ describe("CapabilityTargetBindingControl", () => {
     });
   });
 
+  it("displays a legacy canonical target as a manual binding", () => {
+    renderControlled({
+      source: "SINGLE_OBJECT",
+      objectId: "PO002",
+    } as unknown as CapabilityTargetBinding);
+
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "Target expression",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("PO002");
+  });
+
   it("switches to manual mode without losing the expression", () => {
     const onBindingChange = renderControlled({
       mode: "WIDGET",

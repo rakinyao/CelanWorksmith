@@ -133,6 +133,52 @@ describe("getReactivePathsOfAction", () => {
     });
   });
 
+  it("registers capability target expressions on the canonical runtime leaf", () => {
+    const config = [
+      {
+        children: [
+          {
+            label: "Target",
+            configProperty: "actionConfiguration.formData.targetBinding.data",
+            controlType: "ONTOLOGY_CAPABILITY_TARGET",
+          },
+        ],
+      },
+    ];
+    const action = {
+      ...DEFAULT_ACTION,
+      actionConfiguration: {
+        formData: {
+          target: {
+            data: {
+              source: "OBJECT_SET",
+              objectIds:
+                "{{ContractsTable.selectedRows.map((row) => row.contract_id)}}",
+            },
+          },
+          targetBinding: {
+            data: {
+              mode: "WIDGET",
+              widgetId: "table-id",
+              cardinality: "MANY",
+              expression:
+                "{{ContractsTable.selectedRows.map((row) => row.contract_id)}}",
+            },
+          },
+        },
+      },
+    };
+
+    const response = getBindingAndReactivePathsOfAction(action, config);
+
+    expect(response.bindingPaths).toEqual({
+      "config.formData.target.objectIds": EvaluationSubstitutionType.TEMPLATE,
+    });
+    expect(response.bindingPaths).not.toHaveProperty(
+      "config.formData.targetBinding.data",
+    );
+  });
+
   it("returns correct values for array field config", () => {
     const config = [
       {
