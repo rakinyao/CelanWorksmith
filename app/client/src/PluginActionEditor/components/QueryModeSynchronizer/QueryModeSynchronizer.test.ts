@@ -1329,6 +1329,8 @@ describe("OntologyQueryModeSynchronizer", () => {
       expect(target).toMatchObject({
         controlType: "ONTOLOGY_CAPABILITY_TARGET",
         maxItems: 1,
+        ownerObjectTypeConfigProperty:
+          "actionConfiguration.formData.objectTypeId.data",
         ...(fileName === "function-query.json"
           ? {
               functionMetadataConfigProperty:

@@ -346,6 +346,8 @@ const zhCN = {
     chooseWidget: "选择组件",
     removedWidget: "已移除的组件（{{widgetId}}）",
     widgetUnavailable: "所选组件已不可用",
+    incompatibleOwner:
+      "{{widgetName}} 绑定到 {{widgetOwner}}，但此能力的目标类型为 {{targetOwner}}",
     expression: "目标表达式",
   },
   release: {

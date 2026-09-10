@@ -280,11 +280,11 @@ function canonicalizeBuilderTarget(
 }
 
 function builderTargetValue(formData: Record<string, unknown>): unknown {
-  const metadata = unwrapBuilderValue(formData.targetBinding);
+  if (Object.prototype.hasOwnProperty.call(formData, "targetBinding")) {
+    return unwrapBuilderValue(formData.targetBinding);
+  }
 
-  return metadata === undefined
-    ? unwrapBuilderValue(formData.target)
-    : metadata;
+  return unwrapBuilderValue(formData.target);
 }
 
 export function getCapabilityBuilderTarget(
@@ -298,11 +298,24 @@ export function getCapabilityBuilderTargetUpdate(
   formData: Record<string, unknown>,
   operation: OntologyCapabilityOperation,
 ): OntologyCapabilityTargetUpdate | undefined {
+  const hasBuilderBinding = Object.prototype.hasOwnProperty.call(
+    formData,
+    "targetBinding",
+  );
+  const invalidTarget: OntologyCapabilityTargetUpdate = {
+    field: "actionConfiguration.formData.target.data",
+    value: { source: "SINGLE_OBJECT", objectId: "" },
+  };
+
   try {
     const target = getCapabilityBuilderTarget(formData, operation);
 
     if (!isRecord(target) || !hasOwn(target, "source")) {
-      return undefined;
+      return hasBuilderBinding ? invalidTarget : undefined;
+    }
+
+    if (target.source !== "SINGLE_OBJECT" && target.source !== "OBJECT_SET") {
+      return invalidTarget;
     }
 
     return {
@@ -310,7 +323,7 @@ export function getCapabilityBuilderTargetUpdate(
       value: target,
     } as OntologyCapabilityTargetUpdate;
   } catch {
-    return undefined;
+    return hasBuilderBinding ? invalidTarget : undefined;
   }
 }
 

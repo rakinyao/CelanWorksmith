@@ -354,6 +354,8 @@ const enUS = {
     chooseWidget: "Choose a widget",
     removedWidget: "Removed widget ({{widgetId}})",
     widgetUnavailable: "Selected widget is no longer available",
+    incompatibleOwner:
+      "{{widgetName}} is tied to {{widgetOwner}}, but this capability targets {{targetOwner}}",
     expression: "Target expression",
   },
   release: {

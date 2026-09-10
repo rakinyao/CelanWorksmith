@@ -66,6 +66,23 @@ describe("ontology capability query definition", () => {
     },
   );
 
+  it("clears a stale target when Builder binding data is explicitly undefined", () => {
+    expect(
+      getCapabilityBuilderTargetUpdate(
+        {
+          target: {
+            data: { source: "SINGLE_OBJECT", objectId: "stale-id" },
+          },
+          targetBinding: { data: undefined },
+        },
+        "FUNCTION_QUERY",
+      ),
+    ).toEqual({
+      field: "actionConfiguration.formData.target.data",
+      value: { source: "SINGLE_OBJECT", objectId: "" },
+    });
+  });
+
   it("serializes a zero-parameter Function when its control has not written form data", () => {
     expect(
       serializeCapabilityBuilderForm(
@@ -200,6 +217,39 @@ describe("ontology capability query definition", () => {
       value: { source: "OBJECT_SET", objectIds: ["C1", "C2"] },
     });
   });
+
+  it.each([
+    [
+      "an empty expression",
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+    ],
+    [
+      "a malformed mode",
+      { mode: "BROKEN", cardinality: "ONE", expression: "PO002" },
+    ],
+    [
+      "a malformed cardinality",
+      { mode: "MANUAL", cardinality: "BROKEN", expression: "PO002" },
+    ],
+  ])(
+    "returns an explicit invalid target update for %s instead of retaining the previous target",
+    (_description, binding) => {
+      expect(
+        getCapabilityBuilderTargetUpdate(
+          {
+            target: {
+              data: { source: "SINGLE_OBJECT", objectId: "stale-id" },
+            },
+            targetBinding: { data: binding },
+          },
+          "FUNCTION_QUERY",
+        ),
+      ).toEqual({
+        field: "actionConfiguration.formData.target.data",
+        value: { source: "SINGLE_OBJECT", objectId: "" },
+      });
+    },
+  );
 
   it("serializes a Function many-target binding without Builder metadata", () => {
     expect(

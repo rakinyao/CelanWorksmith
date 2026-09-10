@@ -24,12 +24,15 @@ export interface CapabilityTargetBindingWidget extends TargetBindingWidget {
   canonicalKey?: string;
   ontologyCanonicalKey?: string;
   primaryColumnId?: string;
+  ownerObjectTypeId?: string;
 }
 
 export interface CapabilityTargetBindingControlProps
   extends Omit<ControlProps, "controlType"> {
   controlType?: ControlProps["controlType"] | "ONTOLOGY_CAPABILITY_TARGET";
   canonicalKey?: string;
+  ownerObjectTypeId?: string;
+  ownerObjectTypeConfigProperty?: string;
   functionMetadataConfigProperty?: string;
   tableCanonicalKey?: string;
   tableCanonicalKeys?: Record<string, string>;
@@ -85,6 +88,18 @@ const targetMessages = {
   widgetUnavailable: () =>
     i18n.t("ontologyCapabilityTarget.widgetUnavailable", {
       defaultValue: "Selected widget is no longer available",
+    }),
+  incompatibleOwner: (
+    widgetName: string,
+    widgetOwner: string,
+    targetOwner: string,
+  ) =>
+    i18n.t("ontologyCapabilityTarget.incompatibleOwner", {
+      defaultValue:
+        "{{widgetName}} is tied to {{widgetOwner}}, but this capability targets {{targetOwner}}",
+      widgetName,
+      widgetOwner,
+      targetOwner,
     }),
   expression: () =>
     i18n.t("ontologyCapabilityTarget.expression", {
@@ -209,8 +224,7 @@ function getWidgetCanonicalKey(
     widget.ontologyCanonicalKey ||
     props.tableCanonicalKeys?.[widgetId] ||
     props.tableCanonicalKey ||
-    props.canonicalKey ||
-    widget.primaryColumnId
+    props.canonicalKey
   );
 }
 
@@ -224,6 +238,7 @@ export function CapabilityTargetBindingControl(
     label,
     maxItems: configuredMaxItems = 1,
     onBindingChange,
+    ownerObjectTypeId,
     tableCanonicalKey,
     tableCanonicalKeys,
     value: rawValue,
@@ -262,6 +277,19 @@ export function CapabilityTargetBindingControl(
     tableCanonicalKey,
     tableCanonicalKeys,
   ]);
+
+  const incompatibleTables = useMemo(
+    () =>
+      ownerObjectTypeId
+        ? Object.values(currentPageWidgets).filter(
+            (widget) =>
+              widget.type === "TABLE_WIDGET" &&
+              typeof widget.ownerObjectTypeId === "string" &&
+              widget.ownerObjectTypeId !== ownerObjectTypeId,
+          )
+        : [],
+    [currentPageWidgets, ownerObjectTypeId],
+  );
 
   const selectedWidget = widgets.find(
     (widget) =>
@@ -382,6 +410,15 @@ export function CapabilityTargetBindingControl(
 
       {displayedMode === "WIDGET" ? (
         <>
+          {incompatibleTables.map((table) => (
+            <span key={table.widgetName} role="status">
+              {targetMessages.incompatibleOwner(
+                table.widgetName || "Table",
+                table.ownerObjectTypeId || "",
+                ownerObjectTypeId || "",
+              )}
+            </span>
+          ))}
           <label htmlFor={`${configProperty}-widget`}>
             {targetMessages.widget()}
           </label>
@@ -488,6 +525,9 @@ const mapStateToProps = (
           props.functionMetadataConfigProperty
         ]?.fetchDynamicValues?.data
       : undefined;
+  const selectedOwnerObjectTypeId = props.ownerObjectTypeConfigProperty
+    ? valueSelector(state, props.ownerObjectTypeConfigProperty)
+    : undefined;
   const legacyTargetProperty = props.configProperty.replace(
     "targetBinding.data",
     "target.data",
@@ -503,6 +543,11 @@ const mapStateToProps = (
     maxItems: props.functionMetadataConfigProperty
       ? selectedFunctionMaxItems(selectedFunctionId, functionMetadata)
       : positiveMaxItems(props.maxItems),
+    ownerObjectTypeId:
+      props.ownerObjectTypeId ??
+      (typeof selectedOwnerObjectTypeId === "string"
+        ? selectedOwnerObjectTypeId
+        : undefined),
   };
 };
 

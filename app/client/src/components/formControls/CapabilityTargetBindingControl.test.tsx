@@ -100,7 +100,7 @@ describe("CapabilityTargetBindingControl", () => {
     });
   });
 
-  it("uses a Table primaryColumnId when no explicit canonical key is provided", () => {
+  it("does not treat an arbitrary Table primaryColumnId as a verified key", () => {
     const onBindingChange = renderControlled(
       { mode: "MANUAL", cardinality: "ONE", expression: "" },
       {
@@ -117,12 +117,62 @@ describe("CapabilityTargetBindingControl", () => {
       target: { value: "table-id" },
     });
 
-    expect(onBindingChange).toHaveBeenLastCalledWith({
-      mode: "WIDGET",
-      widgetId: "table-id",
-      cardinality: "ONE",
-      expression: '{{Table1.selectedRow["contract_id"]}}',
+    expect(
+      within(screen.getByLabelText("Target widget")).queryByRole("option", {
+        name: "Table1",
+      }),
+    ).toBeNull();
+    expect(onBindingChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps manual input available when a Table owner is incompatible", () => {
+    renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "C-001" },
+      {
+        ownerObjectTypeId: "Customer",
+        currentPageWidgets: {
+          "table-id": {
+            type: "TABLE_WIDGET",
+            widgetName: "Table1",
+            canonicalKey: "contract_id",
+            ownerObjectTypeId: "Supplier",
+          },
+        },
+      },
+    );
+
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "Target expression",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("C-001");
+  });
+
+  it("warns when a Table is known to belong to another owner object type", () => {
+    renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+      {
+        ownerObjectTypeId: "Customer",
+        currentPageWidgets: {
+          "table-id": {
+            type: "TABLE_WIDGET",
+            widgetName: "Table1",
+            canonicalKey: "contract_id",
+            ownerObjectTypeId: "Supplier",
+          },
+        },
+      },
+    );
+
+    fireEvent.change(screen.getByLabelText("Target source"), {
+      target: { value: "WIDGET" },
     });
+
+    expect(screen.getByRole("status").textContent).toContain(
+      "Table1 is tied to Supplier, but this capability targets Customer",
+    );
   });
 
   it("displays a legacy canonical target as a manual binding", () => {

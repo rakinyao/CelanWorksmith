@@ -66,6 +66,7 @@
           "configProperty": "actionConfiguration.formData.targetBinding.data",
           "controlType": "ONTOLOGY_CAPABILITY_TARGET",
           "maxItems": 1,
+          "ownerObjectTypeConfigProperty": "actionConfiguration.formData.objectTypeId.data",
           "isRequired": true,
           "conditionals": {
             "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}"
