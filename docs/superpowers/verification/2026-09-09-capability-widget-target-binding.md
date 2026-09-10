@@ -199,16 +199,27 @@ Command:
 systemctl --user restart cw-backend && systemctl --user is-active cw-backend && for attempt in $(seq 1 30); do if curl -fsS http://127.0.0.1:8081/api/v1/health; then printf '\nhealth_attempt=%s\n' "$attempt"; exit 0; fi; sleep 2; done; printf 'health_attempts_exhausted\n'; exit 1
 ```
 
-Result: exit code `1`; all 30 health attempts failed to connect to port
-`8081`. The service unit remained reported as `active (running)`, but the
-Spring application failed during startup. The journal identifies the cause as
-the rate-limit Redis proxy being unable to connect to `127.0.0.1:6379`
-(`RedisConnectionException: Connection refused`). No Redis service or binary
-is available in this environment, so health could not be confirmed.
+The original rerun identified two local dependency prerequisites: Redis on
+`127.0.0.1:6379`, and MongoDB running as a single-node replica set because
+the migration client requests replica-set topology. After those local
+development services were configured, the following current-session health
+command was run:
+
+```text
+systemctl --user start cw-backend && for attempt in $(seq 1 36); do response=$(curl -fsS --max-time 3 http://127.0.0.1:8081/api/v1/health) && { printf '%s\\n' "$response"; exit 0; }; sleep 5; done; exit 1
+```
+
+Result: exit code `0`, with:
+
+```json
+{"responseMeta":{"status":200,"success":true},"data":"All systems are up","errorDisplay":""}
+```
+
+The Redis and MongoDB service setup is local environment configuration only;
+it is not part of the repository changes for this feature.
 
 ### Manual GUI Verification
 
 The six GUI scenarios listed above were not executed. This remains a manual
-browser task, and the failed backend health check prevented a valid GUI
-verification session; automated tests and a successful build do not substitute
-for those observations.
+browser task; the successful health check enables that session, but automated
+tests and a successful build do not substitute for those observations.
