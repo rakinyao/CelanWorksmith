@@ -123,3 +123,92 @@ observations.
    Advanced JSON.
 6. Choose a known incompatible source. Confirm the editor shows a target
    compatibility warning while manual input remains editable and saveable.
+
+## Final Reverification (2026-09-10)
+
+This rerun was performed at `25219c3519` (`Fix malformed Function metadata
+handling`). The worktree contained unrelated user changes; no unrelated files
+were modified for this record.
+
+### Focused Jest
+
+Command:
+
+```text
+cd app/client && yarn g:jest src/PluginActionEditor/components/CapabilityTargetBinding/ontologyTargetWidgetAdapters.test.ts src/components/formControls/CapabilityTargetBindingControl.test.tsx src/entities/Action/actionProperties.test.ts src/PluginActionEditor/components/QueryModeSynchronizer/ontologyCapabilityQueryDefinition.test.ts src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts
+```
+
+Result: exit code `0`.
+
+```text
+Test Suites: 5 passed, 5 total
+Tests:       92 passed, 92 total
+Snapshots:   0 total
+```
+
+The adapter and control suites include the current dynamic `maxItems` cases.
+
+### Focused Maven
+
+Command:
+
+```text
+cd app/server && mvn -q -pl appsmith-plugins/celanworksmithOntologyPlugin,appsmith-server -am -Dtest=OntologyActionConfigurationTest,OntologyQueryValidatorTest,OntologyFunctionLinkActionExecutorTest,OntologySnapshotRuntimeGatewayTest,RuntimeProviderDefinitionBindingTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+Result: exit code `0`. Surefire reports:
+
+```text
+OntologyActionConfigurationTest        tests="40" errors="0" skipped="0" failures="0"
+OntologyQueryValidatorTest            tests="10" errors="0" skipped="0" failures="0"
+OntologyFunctionLinkActionExecutorTest tests="41" errors="0" skipped="0" failures="0"
+OntologySnapshotRuntimeGatewayTest    tests="7"  errors="0" skipped="0" failures="0"
+RuntimeProviderDefinitionBindingTest  tests="1"  errors="0" skipped="0" failures="0"
+```
+
+### Diff Check
+
+Command:
+
+```text
+git diff --check
+```
+
+Result: exit code `0`, no output.
+
+### Backend Build
+
+The literal root-relative command `app/server/./build.sh -DskipTests` exited
+`1` before Maven because `build.sh` resolves
+`scripts/check-field-constants.mjs` relative to its working directory; that
+path does not exist from the repository root. The documented invocation was
+then run from the server directory:
+
+```text
+cd app/server && ./build.sh -DskipTests
+```
+
+Result: exit code `0`; all 33 reactor modules reported `SUCCESS`, Maven
+reported `BUILD SUCCESS`, and the script ended with `mvn Successful`.
+
+### Backend Restart And Health
+
+Command:
+
+```text
+systemctl --user restart cw-backend && systemctl --user is-active cw-backend && for attempt in $(seq 1 30); do if curl -fsS http://127.0.0.1:8081/api/v1/health; then printf '\nhealth_attempt=%s\n' "$attempt"; exit 0; fi; sleep 2; done; printf 'health_attempts_exhausted\n'; exit 1
+```
+
+Result: exit code `1`; all 30 health attempts failed to connect to port
+`8081`. The service unit remained reported as `active (running)`, but the
+Spring application failed during startup. The journal identifies the cause as
+the rate-limit Redis proxy being unable to connect to `127.0.0.1:6379`
+(`RedisConnectionException: Connection refused`). No Redis service or binary
+is available in this environment, so health could not be confirmed.
+
+### Manual GUI Verification
+
+The six GUI scenarios listed above were not executed. This remains a manual
+browser task, and the failed backend health check prevented a valid GUI
+verification session; automated tests and a successful build do not substitute
+for those observations.
