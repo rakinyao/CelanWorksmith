@@ -223,3 +223,34 @@ it is not part of the repository changes for this feature.
 The six GUI scenarios listed above were not executed. This remains a manual
 browser task; the successful health check enables that session, but automated
 tests and a successful build do not substitute for those observations.
+
+## Final Review Corrections (2026-09-10)
+
+Final review found and the follow-up commit `920a139c5a` corrected two Builder
+guardrails: an empty or malformed binding now clears the prior canonical target
+instead of leaving it executable, and a Table now needs explicit canonical-key
+provenance. A known `ownerObjectTypeId` mismatch produces a localized,
+non-blocking warning while manual input remains available. The scoped rereview
+passed; its record is in the SDD workspace.
+
+### Final Focused Jest
+
+Command:
+
+```text
+cd app/client && yarn g:jest src/PluginActionEditor/components/CapabilityTargetBinding/ontologyTargetWidgetAdapters.test.ts src/components/formControls/CapabilityTargetBindingControl.test.tsx src/entities/Action/actionProperties.test.ts src/PluginActionEditor/components/QueryModeSynchronizer/ontologyCapabilityQueryDefinition.test.ts src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts --watch=false
+```
+
+Result: exit code `0`.
+
+```text
+Test Suites: 5 passed, 5 total
+Tests:       98 passed, 98 total
+```
+
+### Final Backend Build And Health
+
+`cd app/server && ./build.sh -DskipTests` completed successfully after the
+editor-resource update. The backend was then restarted and
+`GET http://127.0.0.1:8081/api/v1/health` returned status `200` with
+`"data":"All systems are up"`.
