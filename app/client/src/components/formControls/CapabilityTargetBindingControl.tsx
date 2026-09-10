@@ -30,6 +30,7 @@ export interface CapabilityTargetBindingControlProps
   extends Omit<ControlProps, "controlType"> {
   controlType?: ControlProps["controlType"] | "ONTOLOGY_CAPABILITY_TARGET";
   canonicalKey?: string;
+  functionMetadataConfigProperty?: string;
   tableCanonicalKey?: string;
   tableCanonicalKeys?: Record<string, string>;
   maxItems?: number;
@@ -43,6 +44,11 @@ const DEFAULT_BINDING: CapabilityTargetBinding = {
   cardinality: "ONE",
   expression: "",
 };
+
+interface FunctionDropdownEntry {
+  value?: unknown;
+  maxItems?: unknown;
+}
 
 const targetMessages = {
   source: () =>
@@ -91,6 +97,43 @@ const targetMessages = {
       defaultValue: "Many",
     }),
 };
+
+function positiveMaxItems(value: unknown): number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0
+    ? value
+    : 1;
+}
+
+function functionDropdownEntries(value: unknown): FunctionDropdownEntry[] {
+  if (Array.isArray(value)) {
+    return value as FunctionDropdownEntry[];
+  }
+
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    Array.isArray((value as { content?: unknown }).content)
+  ) {
+    return (value as { content: FunctionDropdownEntry[] }).content;
+  }
+
+  return [];
+}
+
+function selectedFunctionMaxItems(
+  functionId: unknown,
+  metadata: unknown,
+): number {
+  if (typeof functionId !== "string" || functionId.trim() === "") {
+    return 1;
+  }
+
+  const selectedFunction = functionDropdownEntries(metadata).find(
+    (entry) => entry.value === functionId,
+  );
+
+  return positiveMaxItems(selectedFunction?.maxItems);
+}
 
 function getBinding(value: unknown, maxItems: number): CapabilityTargetBinding {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -171,12 +214,13 @@ export function CapabilityTargetBindingControl(
     configProperty,
     currentPageWidgets = {},
     label,
-    maxItems = 1,
+    maxItems: configuredMaxItems = 1,
     onBindingChange,
     tableCanonicalKey,
     tableCanonicalKeys,
     value: rawValue,
   } = props;
+  const maxItems = positiveMaxItems(configuredMaxItems);
   const value = getBinding(rawValue, maxItems);
   const [isPickingWidget, setIsPickingWidget] = useState(false);
   const displayedMode = isPickingWidget ? "WIDGET" : value.mode;
@@ -426,6 +470,16 @@ const mapStateToProps = (
 ) => {
   const valueSelector = formValueSelector(props.formName);
   const targetBindingValue = valueSelector(state, props.configProperty);
+  const actionId = valueSelector(state, "id");
+  const selectedFunctionId = props.functionMetadataConfigProperty
+    ? valueSelector(state, props.functionMetadataConfigProperty)
+    : undefined;
+  const functionMetadata =
+    typeof actionId === "string" && props.functionMetadataConfigProperty
+      ? state.evaluations.triggers[actionId]?.[
+          props.functionMetadataConfigProperty
+        ]?.fetchDynamicValues?.data
+      : undefined;
   const legacyTargetProperty = props.configProperty.replace(
     "targetBinding.data",
     "target.data",
@@ -438,6 +492,9 @@ const mapStateToProps = (
       props.value ??
       targetBindingValue ??
       valueSelector(state, legacyTargetProperty),
+    maxItems: props.functionMetadataConfigProperty
+      ? selectedFunctionMaxItems(selectedFunctionId, functionMetadata)
+      : positiveMaxItems(props.maxItems),
   };
 };
 

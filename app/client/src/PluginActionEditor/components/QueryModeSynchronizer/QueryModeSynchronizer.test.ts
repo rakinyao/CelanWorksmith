@@ -1268,6 +1268,7 @@ describe("OntologyQueryModeSynchronizer", () => {
         configProperty?: string;
         controlType?: string;
         maxItems?: number;
+        functionMetadataConfigProperty?: string;
         conditionals?: { fetchDynamicValues?: { config: { params: unknown } } };
       }>;
       const objectType = controls.find(
@@ -1327,11 +1328,22 @@ describe("OntologyQueryModeSynchronizer", () => {
       });
       expect(target).toMatchObject({
         controlType: "ONTOLOGY_CAPABILITY_TARGET",
-        maxItems: fileName === "function-query.json" ? 1000 : 1,
+        maxItems: 1,
+        ...(fileName === "function-query.json"
+          ? {
+              functionMetadataConfigProperty:
+                "actionConfiguration.formData.functionId.data",
+            }
+          : {}),
         conditionals: {
           show: "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
         },
       });
+      expect(target?.functionMetadataConfigProperty).toBe(
+        fileName === "function-query.json"
+          ? "actionConfiguration.formData.functionId.data"
+          : undefined,
+      );
       expect(
         controls.some(
           (control) =>

@@ -650,7 +650,7 @@ class OntologyFunctionLinkActionExecutorTest {
         TriggerResultDTO links = trigger(executor, "ONTOLOGY_LINKS");
 
         assertEquals(
-                List.of(metadata("Score supplier", "supplierScore", "integer", false, true, false)),
+                List.of(functionMetadata("Score supplier", "supplierScore", "integer", false, true, false, 1)),
                 functions.getTrigger());
         assertEquals(
                 List.of(metadata("Notify supplier", "notifySupplier", "action", false, false, false)),
@@ -687,6 +687,29 @@ class OntologyFunctionLinkActionExecutorTest {
         assertEquals("integer", firstFunction.get("dataType"));
         assertEquals("Calculate delay (integer); read-only", firstFunction.get("description"));
         assertEquals(true, firstFunction.get("readOnly"));
+    }
+
+    @Test
+    void exposesPositiveFunctionTargetBoundsFromThePinnedSnapshot() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO functions = trigger(executor, "ONTOLOGY_FUNCTIONS", Map.of("objectTypeId", "PurchaseOrder"));
+        Map<?, ?> singleTargetFunction = ((List<?>) functions.getTrigger())
+                .stream()
+                        .map(value -> (Map<?, ?>) value)
+                        .filter(function -> "delayScore".equals(function.get("value")))
+                        .findFirst()
+                        .orElseThrow();
+        Map<?, ?> manyTargetFunction = ((List<?>) functions.getTrigger())
+                .stream()
+                        .map(value -> (Map<?, ?>) value)
+                        .filter(function -> "manyScore".equals(function.get("value")))
+                        .findFirst()
+                        .orElseThrow();
+
+        assertEquals(1, singleTargetFunction.get("maxItems"));
+        assertEquals(2, manyTargetFunction.get("maxItems"));
     }
 
     @Test
@@ -772,6 +795,19 @@ class OntologyFunctionLinkActionExecutorTest {
         metadata.put("required", required);
         metadata.put("readOnly", readOnly);
         metadata.put("derived", derived);
+        return metadata;
+    }
+
+    private static Map<String, Object> functionMetadata(
+            String label,
+            String value,
+            String dataType,
+            boolean required,
+            boolean readOnly,
+            boolean derived,
+            int maxItems) {
+        Map<String, Object> metadata = metadata(label, value, dataType, required, readOnly, derived);
+        metadata.put("maxItems", maxItems);
         return metadata;
     }
 

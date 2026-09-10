@@ -217,15 +217,7 @@ public class OntologyPlugin extends BasePlugin {
                 case "ONTOLOGY_OBJECT_PROPERTIES" -> dropdownResult(objectProperties(snapshot, request));
                 case "ONTOLOGY_FUNCTIONS" ->
                     dropdownResult(ownerCompatibleFunctions(snapshot, request).stream()
-                            .map(function -> metadataEntry(
-                                    function.id(),
-                                    function.displayName(),
-                                    function.returnType(),
-                                    false,
-                                    true,
-                                    false,
-                                    List.<String>of(),
-                                    null))
+                            .map(this::functionMetadataEntry)
                             .toList());
                 case "ONTOLOGY_FUNCTION_PARAMETERS" -> dropdownResult(functionParameters(snapshot, request));
                 case "ONTOLOGY_ACTIONS" ->
@@ -401,6 +393,17 @@ public class OntologyPlugin extends BasePlugin {
                             .map(operator -> Map.of("value", operator.value(), "label", operator.label()))
                             .toList());
             return metadata;
+        }
+
+        private Map<String, Object> functionMetadataEntry(OntologyRuntimeGateway.FunctionMetadata function) {
+            Map<String, Object> metadata = metadataEntry(
+                    function.id(), function.displayName(), function.returnType(), false, true, false, List.of(), null);
+            metadata.put("maxItems", positiveMaxItems(function.maxItems()));
+            return metadata;
+        }
+
+        private int positiveMaxItems(Integer maxItems) {
+            return maxItems != null && maxItems > 0 ? maxItems : 1;
         }
 
         private TriggerResultDTO dropdownResult(List<Map<String, Object>> metadata) {
