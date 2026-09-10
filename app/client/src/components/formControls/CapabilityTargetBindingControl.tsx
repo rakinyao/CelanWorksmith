@@ -50,6 +50,12 @@ interface FunctionDropdownEntry {
   maxItems?: unknown;
 }
 
+function isFunctionDropdownEntry(
+  value: unknown,
+): value is FunctionDropdownEntry {
+  return value !== null && typeof value === "object";
+}
+
 const targetMessages = {
   source: () =>
     i18n.t("ontologyCapabilityTarget.source", {
@@ -106,7 +112,7 @@ function positiveMaxItems(value: unknown): number {
 
 function functionDropdownEntries(value: unknown): FunctionDropdownEntry[] {
   if (Array.isArray(value)) {
-    return value as FunctionDropdownEntry[];
+    return value.filter(isFunctionDropdownEntry);
   }
 
   if (
@@ -114,7 +120,9 @@ function functionDropdownEntries(value: unknown): FunctionDropdownEntry[] {
     typeof value === "object" &&
     Array.isArray((value as { content?: unknown }).content)
   ) {
-    return (value as { content: FunctionDropdownEntry[] }).content;
+    return (value as { content: unknown[] }).content.filter(
+      isFunctionDropdownEntry,
+    );
   }
 
   return [];

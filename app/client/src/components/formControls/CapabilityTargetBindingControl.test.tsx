@@ -237,6 +237,48 @@ describe("CapabilityTargetBindingControl", () => {
     },
   );
 
+  it("falls back to one target when Function metadata contains a null entry", () => {
+    const state = {
+      evaluations: {
+        triggers: {
+          "action-id": {
+            "actionConfiguration.formData.functionId.data": {
+              fetchDynamicValues: { data: [null] },
+            },
+          },
+        },
+      },
+      form: {
+        QueryEditorForm: {
+          values: {
+            id: "action-id",
+            actionConfiguration: {
+              formData: {
+                functionId: { data: "manyScore" },
+                targetBinding: {
+                  data: { mode: "MANUAL", cardinality: "ONE", expression: "" },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const store = createStore(() => state);
+
+    render(
+      <Provider store={store}>
+        <ConnectedCapabilityTargetBindingControl
+          {...controlProps}
+          functionMetadataConfigProperty="actionConfiguration.formData.functionId.data"
+          maxItems={1000}
+        />
+      </Provider>,
+    );
+
+    expect(screen.queryByLabelText("Target cardinality")).toBeNull();
+  });
+
   it("switches to manual mode without losing the expression", () => {
     const onBindingChange = renderControlled({
       mode: "WIDGET",
