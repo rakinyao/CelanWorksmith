@@ -153,7 +153,9 @@ public interface OntologyRuntimeGateway {
         return queryObjects(snapshot, objectTypeId, query);
     }
 
-    Mono<Void> validateTargetObjects(Snapshot snapshot, OntologyObjectSet targets);
+    default Mono<Void> validateTargetObjects(Snapshot snapshot, OntologyObjectSet targets) {
+        return Mono.error(new UnsupportedOperationException("Ontology runtime target validation is not supported"));
+    }
 
     default Mono<Void> validateTargetObjects(
             String workspaceId, String datasourceId, Snapshot snapshot, OntologyObjectSet targets) {

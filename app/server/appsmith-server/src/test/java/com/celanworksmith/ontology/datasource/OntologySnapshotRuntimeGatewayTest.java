@@ -172,6 +172,36 @@ class OntologySnapshotRuntimeGatewayTest {
     }
 
     @Test
+    void validatesWorkspaceScopedTargetsAgainstThePinnedRuntimeDefinition() {
+        OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
+        DatasourceService datasourceService = mock(DatasourceService.class);
+        RuntimeProvider provider = mock(RuntimeProvider.class);
+        OntologyMetadataSnapshot snapshot = snapshot();
+        Datasource datasource = new Datasource();
+        datasource.setWorkspaceId("workspace-1");
+        when(datasourceService.findById("datasource-1")).thenReturn(Mono.just(datasource));
+        when(snapshotService.getRequiredSnapshot(snapshot.id(), snapshot.metadataDigest(), "workspace-1"))
+                .thenReturn(Mono.just(snapshot));
+        when(provider.providerId()).thenReturn("demo-mongo-readonly");
+        when(provider.getObject(eq(snapshot.definition()), eq("PurchaseOrder"), eq("PO001")))
+                .thenReturn(Mono.just(new ObjectInstanceDTO("PO001", "PurchaseOrder", Map.of())));
+        OntologyRuntimeGateway gateway = new OntologySnapshotRuntimeGateway(
+                snapshotService, new RuntimeProviderRegistry(List.of(provider)), datasourceService);
+        OntologyRuntimeGateway.Snapshot pinned =
+                new OntologyRuntimeGateway.Snapshot(snapshot.id(), snapshot.metadataDigest(), List.of());
+
+        StepVerifier.create(gateway.validateTargetObjects(
+                        "workspace-1",
+                        "datasource-1",
+                        pinned,
+                        new OntologyObjectSet("PurchaseOrder", List.of("PO001"))))
+                .verifyComplete();
+
+        verify(provider).getObject(snapshot.definition(), "PurchaseOrder", "PO001");
+        verify(provider, never()).getObject("PurchaseOrder", "PO001");
+    }
+
+    @Test
     void rejectsARuntimeTargetThatDoesNotBelongToTheDeclaredType() {
         OntologySnapshotService snapshotService = mock(OntologySnapshotService.class);
         RuntimeProvider provider = mock(RuntimeProvider.class);

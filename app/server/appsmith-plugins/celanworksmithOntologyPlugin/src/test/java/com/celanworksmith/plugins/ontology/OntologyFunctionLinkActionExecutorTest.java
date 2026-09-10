@@ -613,6 +613,34 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void rejectsACrossTypeActionTargetBeforeResolvingTheActionServer() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        int[] resolverCalls = {0};
+        OntologyPlugin.OntologyPluginExecutor executor =
+                new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> {
+                    resolverCalls[0]++;
+                    return Mono.just(actionServer);
+                });
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", "ACTION_QUERY",
+                "queryMode", "BUILDER",
+                "actionId", "reschedulePurchaseOrder",
+                "objectTypeId", "PurchaseOrder",
+                "target", Map.of("source", "SINGLE_OBJECT", "objectId", "SUP001"),
+                "parameters", Map.of()));
+
+        ActionExecutionResult result =
+                executor.execute(datasource(), null, action).block();
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("Unknown object: PurchaseOrder/SUP001"));
+        assertEquals(0, resolverCalls[0]);
+        assertEquals(0, actionServer.calls);
+    }
+
+    @Test
     void scopesFunctionAndActionMetadataToTheSelectedOwnerType() {
         RecordingGateway gateway = new RecordingGateway();
         OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);

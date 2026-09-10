@@ -49,7 +49,8 @@ public interface RuntimeProvider {
     Mono<ObjectInstanceDTO> getObject(String typeId, String instanceId);
 
     default Mono<ObjectInstanceDTO> getObject(OntologyProjectDefinition definition, String typeId, String instanceId) {
-        return getObject(typeId, instanceId);
+        return Mono.error(new UnsupportedOperationException(
+                "Runtime Provider does not support definition-bound object resolution"));
     }
 
     Mono<ObjectSetResult> getLinks(String typeId, String instanceId, String linkTypeId, ObjectSetQuery query);
