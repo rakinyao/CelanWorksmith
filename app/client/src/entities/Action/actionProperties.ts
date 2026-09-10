@@ -305,7 +305,7 @@ function getCapabilityTargetBindingPath(
       : undefined;
   const targetPath = metadataConfigPath.replace(
     /\.target(?:Binding)?\.data$/,
-    ".target",
+    ".target.data",
   );
 
   return `${targetPath}.${targetSource === "OBJECT_SET" ? "objectIds" : "objectId"}`;

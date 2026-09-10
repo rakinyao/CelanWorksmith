@@ -172,7 +172,8 @@ describe("getReactivePathsOfAction", () => {
     const response = getBindingAndReactivePathsOfAction(action, config);
 
     expect(response.bindingPaths).toEqual({
-      "config.formData.target.objectIds": EvaluationSubstitutionType.TEMPLATE,
+      "config.formData.target.data.objectIds":
+        EvaluationSubstitutionType.TEMPLATE,
     });
     expect(response.bindingPaths).not.toHaveProperty(
       "config.formData.targetBinding.data",
