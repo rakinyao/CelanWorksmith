@@ -54,13 +54,23 @@ public class ActionExecutionAuditStore {
             return Map.of();
         }
         Map<String, Object> safe = new LinkedHashMap<>();
-        for (String name : List.of("changeAmount", "changeReason")) {
-            Object value = audit.parameterSummary().get(name);
-            if (value != null) {
-                safe.put(name, value);
-            }
+        Object amount = audit.parameterSummary().get("changeAmount");
+        if (isSafeAmount(amount)) {
+            safe.put("changeAmount", amount);
+        }
+        Object reason = audit.parameterSummary().get("changeReason");
+        if (reason instanceof String value && !value.isBlank()) {
+            safe.put("changeReason", value);
         }
         return Map.copyOf(safe);
+    }
+
+    private static boolean isSafeAmount(Object value) {
+        if (!(value instanceof Number)) {
+            return false;
+        }
+        return !(value instanceof Double doubleValue && !Double.isFinite(doubleValue))
+                && !(value instanceof Float floatValue && !Float.isFinite(floatValue));
     }
 
     public Mono<ActionExecutionAuditDocument> markSucceeded(

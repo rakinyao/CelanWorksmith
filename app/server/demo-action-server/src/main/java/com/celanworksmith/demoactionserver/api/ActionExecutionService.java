@@ -97,10 +97,11 @@ public class ActionExecutionService {
     }
 
     private Mono<ExecutionResult> atomicExecution(ExecuteRequest request) {
+        Mono<TargetOutcome> freshExecution = Mono.defer(() -> createAndExecute(request, false));
         return auditStore
                 .findByIdempotencyKey(request.idempotencyKey())
                 .flatMap(audit -> replay(audit, target(request)))
-                .switchIfEmpty(Mono.defer(() -> transactionalOperator.transactional(createAndExecute(request, false))))
+                .switchIfEmpty(Mono.defer(() -> freshExecution))
                 .map(outcome -> singleTargetFailure(List.of(outcome))
                         .<ExecutionResult>map(ExecutionResult.Failure::new)
                         .orElseGet(() -> new ExecutionResult.Success(
@@ -145,11 +146,23 @@ public class ActionExecutionService {
                 List.of(),
                 parameterSummary(request));
 
-        return auditStore
-                .createIfAbsent(runningAudit)
-                .flatMap(audit -> audit.auditId().equals(auditId)
-                        ? invokeHandler(request, audit, transactional)
-                        : replay(audit, target(request)));
+        return auditStore.createIfAbsent(runningAudit).flatMap(audit -> {
+            if (!audit.auditId().equals(auditId)) {
+                return replay(audit, target(request));
+            }
+            Mono<TargetOutcome> execution = invokeHandler(request, audit, transactional);
+            if (transactional) {
+                return execution;
+            }
+            Mono<TargetOutcome> business = execution.onErrorMap(error -> error instanceof AtomicExecutionException
+                    ? error
+                    : new AtomicExecutionException(audit, target(request), error));
+            return transactionalOperator
+                    .transactional(business)
+                    .onErrorResume(
+                            AtomicExecutionException.class,
+                            exception -> finishFailure(exception.audit, exception.target, exception.failure()));
+        });
     }
 
     private Mono<TargetOutcome> invokeHandler(
@@ -167,6 +180,9 @@ public class ActionExecutionService {
                                 outcome.changedProperties())
                         .thenReturn(outcome));
         Mono<TargetOutcome> dispatched = transactional ? transactionalOperator.transactional(execution) : execution;
+        if (!transactional) {
+            return dispatched;
+        }
         return dispatched
                 .onErrorResume(
                         DeclaredDomainException.class,
@@ -181,13 +197,23 @@ public class ActionExecutionService {
             return Map.of();
         }
         java.util.Map<String, Object> summary = new java.util.LinkedHashMap<>();
-        for (String name : List.of("changeAmount", "changeReason")) {
-            Object value = request.parameters().get(name);
-            if (value != null) {
-                summary.put(name, value);
-            }
+        Object amount = request.parameters().get("changeAmount");
+        if (isSafeAmount(amount)) {
+            summary.put("changeAmount", amount);
+        }
+        Object reason = request.parameters().get("changeReason");
+        if (reason instanceof String value && !value.isBlank()) {
+            summary.put("changeReason", value);
         }
         return Map.copyOf(summary);
+    }
+
+    private static boolean isSafeAmount(Object value) {
+        if (!(value instanceof Number)) {
+            return false;
+        }
+        return !(value instanceof Double doubleValue && !Double.isFinite(doubleValue))
+                && !(value instanceof Float floatValue && !Float.isFinite(floatValue));
     }
 
     private Mono<Void> validateSupportedRequest(ExecuteRequest request, String auditId) {
@@ -293,6 +319,27 @@ public class ActionExecutionService {
 
         public DomainFailure failure() {
             return failure;
+        }
+    }
+
+    private static final class AtomicExecutionException extends RuntimeException {
+        private final ActionExecutionAuditDocument audit;
+        private final OntologyActionServerProtocol.ChangedObject target;
+
+        private AtomicExecutionException(
+                ActionExecutionAuditDocument audit,
+                OntologyActionServerProtocol.ChangedObject target,
+                Throwable cause) {
+            super(cause);
+            this.audit = audit;
+            this.target = target;
+        }
+
+        private DomainFailure failure() {
+            Throwable cause = getCause();
+            return cause instanceof DeclaredDomainException exception
+                    ? exception.failure()
+                    : internalFailure(audit.auditId());
         }
     }
 

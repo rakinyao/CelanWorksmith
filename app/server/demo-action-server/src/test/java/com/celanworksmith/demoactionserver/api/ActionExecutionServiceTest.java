@@ -331,6 +331,39 @@ class ActionExecutionServiceTest {
     }
 
     @Test
+    void abortsAtomicTransactionBeforeRecordingHandlerFailure() {
+        when(auditStore.findByIdempotencyKey("rollback-key")).thenReturn(Mono.empty());
+        when(auditStore.createIfAbsent(any()))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+        when(auditStore.markFailed(anyString(), any(), any()))
+                .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        AtomicInteger handlerCalls = new AtomicInteger();
+        AtomicInteger transactionErrors = new AtomicInteger();
+        when(transactionalOperator.transactional(any(Mono.class)))
+                .thenAnswer(invocation ->
+                        invocation.getArgument(0, Mono.class).doOnError(error -> transactionErrors.incrementAndGet()));
+        ActionExecutionService service = service(handler((request, auditId) -> {
+            handlerCalls.incrementAndGet(); // models a write performed before a later handler error
+            return Mono.error(new ActionExecutionService.DeclaredDomainException(
+                    new DomainFailure("v1", auditId, "TARGET_NOT_FOUND", "Target was not found.")));
+        }));
+
+        StepVerifier.create(service.execute(request(List.of("PO001"), true, "rollback-key")))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                    assertThat(((ActionExecutionService.ExecutionResult.Failure) result)
+                                    .response()
+                                    .code())
+                            .isEqualTo("TARGET_NOT_FOUND");
+                })
+                .verifyComplete();
+
+        assertThat(handlerCalls).hasValue(1);
+        assertThat(transactionErrors).hasValue(1);
+        verify(auditStore).markFailed(anyString(), any(), any());
+    }
+
+    @Test
     void derivesDistinctTargetAuditKeysForColonBearingTargetAndParentKeys() {
         when(auditStore.findByIdempotencyKey(anyString())).thenReturn(Mono.empty());
         when(auditStore.createIfAbsent(any()))

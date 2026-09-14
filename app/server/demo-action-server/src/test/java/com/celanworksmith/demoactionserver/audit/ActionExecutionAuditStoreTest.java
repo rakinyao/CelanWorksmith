@@ -103,4 +103,42 @@ class ActionExecutionAuditStoreTest {
                 .containsEntry("changeReason", "Scope expansion")
                 .doesNotContainKey("secret");
     }
+
+    @Test
+    void dropsMalformedApplyContractChangeParameterValues() {
+        ReactiveMongoTemplate mongoTemplate = mock(ReactiveMongoTemplate.class);
+        ActionExecutionAuditStore store = new ActionExecutionAuditStore(mongoTemplate);
+        ActionExecutionAuditDocument audit = new ActionExecutionAuditDocument(
+                "audit-3",
+                "key-3",
+                "workspace-1",
+                "project-1",
+                "1.0.0",
+                "datasource-1",
+                "ApplyContractChange",
+                "contract",
+                "C001",
+                Instant.parse("2026-08-22T00:00:00Z"),
+                null,
+                "RUNNING",
+                null,
+                List.of(),
+                List.of(),
+                Map.of("changeAmount", Map.of("nested", 1), "changeReason", List.of("bad")));
+
+        when(mongoTemplate.findOne(
+                        any(Query.class),
+                        eq(ActionExecutionAuditDocument.class),
+                        eq(ActionExecutionAuditStore.COLLECTION)))
+                .thenReturn(Mono.empty());
+        when(mongoTemplate.insert(any(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION)))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+
+        ArgumentCaptor<ActionExecutionAuditDocument> inserted =
+                ArgumentCaptor.forClass(ActionExecutionAuditDocument.class);
+        StepVerifier.create(store.createIfAbsent(audit)).expectNextCount(1).verifyComplete();
+        org.mockito.Mockito.verify(mongoTemplate).insert(inserted.capture(), eq(ActionExecutionAuditStore.COLLECTION));
+
+        assertThat(inserted.getValue().parameterSummary()).isEmpty();
+    }
 }
