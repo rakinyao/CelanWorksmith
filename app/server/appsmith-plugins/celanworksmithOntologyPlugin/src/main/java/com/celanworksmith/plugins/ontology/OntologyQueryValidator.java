@@ -170,7 +170,7 @@ final class OntologyQueryValidator {
     }
 
     private int actionMaxItems(Integer maxItems) {
-        return maxItems != null && maxItems > 0 ? maxItems : 1;
+        return maxItems == null ? 1 : maxItems;
     }
 
     private Map<String, Object> parameters(

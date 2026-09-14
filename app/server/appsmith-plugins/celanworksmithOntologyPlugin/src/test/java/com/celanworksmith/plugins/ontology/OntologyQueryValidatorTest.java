@@ -148,6 +148,23 @@ class OntologyQueryValidatorTest {
     }
 
     @Test
+    void malformedNonpositiveActionMaxItemsAreRejected() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "ACTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "contract",
+                "actionId", "ApplyContractChange",
+                "target", Map.of("source", "SINGLE_OBJECT", "objectId", "C1"))));
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> validator.validateActionQuery(configuration, snapshotWithBoundedAction(0)));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> validator.validateActionQuery(configuration, snapshotWithBoundedAction(-1)));
+    }
+
+    @Test
     void unknownRuntimeFunctionIdIsRejectedBeforeValidatedQueryCreation() {
         OntologyActionConfiguration configuration = configuration(
                 "FUNCTION_QUERY",
