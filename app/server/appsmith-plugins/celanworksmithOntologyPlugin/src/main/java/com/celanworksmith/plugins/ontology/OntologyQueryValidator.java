@@ -96,7 +96,7 @@ final class OntologyQueryValidator {
         String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
         validateOwner("action", action.ownerObjectTypeIds(), objectTypeId);
         OntologyObjectSet targets =
-                capabilityTarget(configuration.definition(), objectTypeId, action.maxItems(), "action");
+                capabilityTarget(configuration.definition(), objectTypeId, actionMaxItems(action.maxItems()), "action");
         return new ValidatedCapabilityQuery(
                 actionId,
                 objectTypeId,
@@ -167,6 +167,10 @@ final class OntologyQueryValidator {
         if (maxItems != null && (maxItems <= 0 || targets.objectIds().size() > maxItems)) {
             throw new IllegalArgumentException("Ontology " + capabilityName + " target exceeds maxItems: " + maxItems);
         }
+    }
+
+    private int actionMaxItems(Integer maxItems) {
+        return maxItems != null && maxItems > 0 ? maxItems : 1;
     }
 
     private Map<String, Object> parameters(

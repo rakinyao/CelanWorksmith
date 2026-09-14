@@ -136,6 +136,18 @@ class OntologyQueryValidatorTest {
     }
 
     @Test
+    void legacyActionWithoutMaxItemsRemainsSingleTargetOnly() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "ACTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "PurchaseOrder",
+                "actionId", "UpdatePurchaseOrder",
+                "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "PO002")))));
+
+        assertThrows(IllegalArgumentException.class, () -> validator.validateActionQuery(configuration, snapshot()));
+    }
+
+    @Test
     void unknownRuntimeFunctionIdIsRejectedBeforeValidatedQueryCreation() {
         OntologyActionConfiguration configuration = configuration(
                 "FUNCTION_QUERY",
