@@ -129,6 +129,28 @@ Deferred: List, Tree, Form, date/filter controls, direct server-side Object
 Query/Filter target sources, composite-key authoring UX, and richer provenance
 discovery.
 
+### Deferred Table Selection-Change Event
+
+The native Table Widget currently exposes `onRowSelected` only. In multi-row
+mode it fires when a row is added to the selection, but does not fire when a
+row is removed, all rows are selected, or all rows are cleared. `selectedRows`
+still updates reactively, so it is suitable for pure Widget bindings, but it
+cannot cause a Function or Action Query to execute.
+
+Do not use polling or a Widget-specific ontology workaround for this gap. A
+future Table-platform change should add one `onSelectionChange` event that
+fires after every selection-set transition in both single- and multi-row
+mode, including select, deselect, select-all, clear-all, and selection reset
+after Table data changes. The event must preserve the current `onRowSelected`
+semantics for compatibility and make the updated `selectedRows` available to
+the triggered Query/JS execution. This enables server-authoritative Function
+refreshes based on a selected `OntologyObjectSet<T>` without creating a
+parallel execution path.
+
+This is not part of the current Functions/Actions Demo scope. Upstream
+Appsmith tracking: [#15891](https://github.com/appsmithorg/appsmith/issues/15891)
+and [#23964](https://github.com/appsmithorg/appsmith/issues/23964).
+
 ## Verification
 
 - Unit tests cover adapter expressions for each first-phase Widget and manual
