@@ -217,7 +217,7 @@ class ActionExecutionServiceTest {
     }
 
     @Test
-    void rejectsAtomicRequestsBeforeDispatchingHandlersOrCreatingAudits() {
+    void rejectsAtomicRequestsWithMultipleTargetsBeforeDispatchingHandlersOrCreatingAudits() {
         AtomicInteger handlerCalls = new AtomicInteger();
         ActionExecutionService service = service(handler((request, auditId) -> {
             handlerCalls.incrementAndGet();
@@ -230,13 +230,104 @@ class ActionExecutionServiceTest {
                     assertThat(((ActionExecutionService.ExecutionResult.Failure) result)
                                     .response()
                                     .code())
-                            .isEqualTo("ATOMIC_EXECUTION_UNSUPPORTED");
+                            .isEqualTo("INVALID_REQUEST");
                 })
                 .verifyComplete();
 
         assertThat(handlerCalls).hasValue(0);
         verifyNoInteractions(auditStore);
         verify(transactionalOperator, never()).transactional(any(Mono.class));
+    }
+
+    @Test
+    void executesAndReplaysAtomicSingleTargetWithoutSecondDispatch() {
+        ActionExecutionAuditDocument[] stored = new ActionExecutionAuditDocument[1];
+        when(auditStore.findByIdempotencyKey("atomic-key"))
+                .thenAnswer(invocation -> stored[0] == null ? Mono.empty() : Mono.just(stored[0]));
+        when(auditStore.createIfAbsent(any())).thenAnswer(invocation -> {
+            stored[0] = invocation.getArgument(0, ActionExecutionAuditDocument.class);
+            return Mono.just(stored[0]);
+        });
+        when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
+                .thenAnswer(invocation -> {
+                    ActionExecutionAuditDocument running = stored[0];
+                    stored[0] = new ActionExecutionAuditDocument(
+                            running.auditId(),
+                            running.idempotencyKey(),
+                            running.workspaceId(),
+                            running.projectId(),
+                            running.projectVersion(),
+                            running.datasourceId(),
+                            running.actionId(),
+                            running.objectTypeId(),
+                            running.objectId(),
+                            running.startedAt(),
+                            invocation.getArgument(1, Instant.class),
+                            "SUCCEEDED",
+                            null,
+                            invocation.getArgument(3),
+                            invocation.getArgument(4),
+                            "Action completed.",
+                            running.parameterSummary());
+                    return Mono.just(stored[0]);
+                });
+        AtomicInteger handlerCalls = new AtomicInteger();
+        ActionExecutionService service = service(handler((request, auditId) -> {
+            handlerCalls.incrementAndGet();
+            return Mono.just(success(auditId));
+        }));
+        ExecuteRequest request = request(List.of("PO001"), true, "atomic-key");
+
+        StepVerifier.create(service.execute(request))
+                .assertNext(
+                        result -> assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Success.class))
+                .verifyComplete();
+        StepVerifier.create(service.execute(request))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Success.class);
+                    ExecuteSuccess response = ((ActionExecutionService.ExecutionResult.Success) result).response();
+                    assertThat(response.outcomes()).hasSize(1);
+                    assertThat(response.outcomes().getFirst().auditId()).isEqualTo(stored[0].auditId());
+                })
+                .verifyComplete();
+
+        assertThat(handlerCalls).hasValue(1);
+        verify(auditStore).createIfAbsent(any());
+        verify(transactionalOperator, org.mockito.Mockito.times(1)).transactional(any(Mono.class));
+    }
+
+    @Test
+    void mapsOnlyApprovedApplyContractChangeParametersIntoAudit() {
+        when(auditStore.findByIdempotencyKey("mapping-key")).thenReturn(Mono.empty());
+        when(auditStore.createIfAbsent(any()))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+        when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
+                .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        ActionExecutionService service = service(
+                handler("ApplyContractChange", (request, auditId) -> Mono.just(success(auditId, "contract", "C001"))));
+        ExecuteRequest request = new ExecuteRequest(
+                "v1",
+                "workspace-1",
+                "project-1",
+                "1.0.0",
+                "datasource-1",
+                "ApplyContractChange",
+                new OntologyObjectSet("contract", List.of("C001")),
+                true,
+                Map.of("changeAmount", 120000, "changeReason", "Scope expansion", "secret", "do-not-store"),
+                Map.of("metadataSnapshotId", "snapshot-1", "metadataDigest", "sha256:abc", "token", "do-not-store"),
+                "mapping-key");
+
+        StepVerifier.create(service.execute(request)).expectNextCount(1).verifyComplete();
+
+        ArgumentCaptor<ActionExecutionAuditDocument> audit =
+                ArgumentCaptor.forClass(ActionExecutionAuditDocument.class);
+        verify(auditStore).createIfAbsent(audit.capture());
+        assertThat(audit.getValue().parameterSummary())
+                .containsEntry("changeAmount", 120000)
+                .containsEntry("changeReason", "Scope expansion")
+                .doesNotContainKey("context")
+                .doesNotContainKey("secret");
     }
 
     @Test
@@ -272,10 +363,15 @@ class ActionExecutionServiceTest {
 
     private static DemoActionHandler handler(
             java.util.function.BiFunction<ExecuteRequest, String, Mono<ExecuteSuccess>> behavior) {
+        return handler("UpdateProductionSchedule", behavior);
+    }
+
+    private static DemoActionHandler handler(
+            String actionId, java.util.function.BiFunction<ExecuteRequest, String, Mono<ExecuteSuccess>> behavior) {
         return new DemoActionHandler() {
             @Override
             public String actionId() {
-                return "UpdateProductionSchedule";
+                return actionId;
             }
 
             @Override
@@ -408,11 +504,15 @@ class ActionExecutionServiceTest {
     }
 
     private static ExecuteSuccess success(String auditId, String objectId) {
+        return success(auditId, "PurchaseOrder", objectId);
+    }
+
+    private static ExecuteSuccess success(String auditId, String objectTypeId, String objectId) {
         return new ExecuteSuccess(
                 "v1",
                 List.of(new TargetOutcome(
                         new com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject(
-                                "PurchaseOrder", objectId),
+                                objectTypeId, objectId),
                         "SUCCEEDED",
                         List.of(),
                         List.of(),

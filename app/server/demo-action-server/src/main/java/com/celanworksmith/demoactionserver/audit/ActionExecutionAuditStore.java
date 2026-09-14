@@ -14,7 +14,9 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class ActionExecutionAuditStore {
@@ -40,10 +42,25 @@ public class ActionExecutionAuditStore {
     }
 
     public Mono<ActionExecutionAuditDocument> createIfAbsent(ActionExecutionAuditDocument audit) {
-        return findByIdempotencyKey(audit.idempotencyKey())
-                .switchIfEmpty(mongoTemplate.insert(audit, COLLECTION))
+        ActionExecutionAuditDocument safeAudit = audit.withParameterSummary(safeParameterSummary(audit));
+        return findByIdempotencyKey(safeAudit.idempotencyKey())
+                .switchIfEmpty(mongoTemplate.insert(safeAudit, COLLECTION))
                 .onErrorResume(DuplicateKeyException.class, exception -> findByIdempotencyKey(audit.idempotencyKey())
                         .switchIfEmpty(Mono.error(exception)));
+    }
+
+    static Map<String, Object> safeParameterSummary(ActionExecutionAuditDocument audit) {
+        if (!"ApplyContractChange".equals(audit.actionId())) {
+            return Map.of();
+        }
+        Map<String, Object> safe = new LinkedHashMap<>();
+        for (String name : List.of("changeAmount", "changeReason")) {
+            Object value = audit.parameterSummary().get(name);
+            if (value != null) {
+                safe.put(name, value);
+            }
+        }
+        return Map.copyOf(safe);
     }
 
     public Mono<ActionExecutionAuditDocument> markSucceeded(

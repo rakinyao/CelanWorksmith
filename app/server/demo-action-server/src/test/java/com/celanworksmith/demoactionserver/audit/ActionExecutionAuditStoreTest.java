@@ -10,6 +10,7 @@ import reactor.test.StepVerifier;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,5 +61,46 @@ class ActionExecutionAuditStoreTest {
                         eq(ActionExecutionAuditStore.COLLECTION));
         calls.verify(mongoTemplate).insert(inserted.capture(), eq(ActionExecutionAuditStore.COLLECTION));
         assertThat(inserted.getValue()).isEqualTo(audit);
+    }
+
+    @Test
+    void persistsOnlyApprovedApplyContractChangeParameterSummaryFields() {
+        ReactiveMongoTemplate mongoTemplate = mock(ReactiveMongoTemplate.class);
+        ActionExecutionAuditStore store = new ActionExecutionAuditStore(mongoTemplate);
+        ActionExecutionAuditDocument audit = new ActionExecutionAuditDocument(
+                "audit-2",
+                "key-2",
+                "workspace-1",
+                "project-1",
+                "1.0.0",
+                "datasource-1",
+                "ApplyContractChange",
+                "contract",
+                "C001",
+                Instant.parse("2026-08-22T00:00:00Z"),
+                null,
+                "RUNNING",
+                null,
+                List.of(),
+                List.of(),
+                Map.of("changeAmount", 120000, "changeReason", "Scope expansion", "secret", "do-not-store"));
+
+        when(mongoTemplate.findOne(
+                        any(Query.class),
+                        eq(ActionExecutionAuditDocument.class),
+                        eq(ActionExecutionAuditStore.COLLECTION)))
+                .thenReturn(Mono.empty());
+        when(mongoTemplate.insert(any(ActionExecutionAuditDocument.class), eq(ActionExecutionAuditStore.COLLECTION)))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+
+        ArgumentCaptor<ActionExecutionAuditDocument> inserted =
+                ArgumentCaptor.forClass(ActionExecutionAuditDocument.class);
+        StepVerifier.create(store.createIfAbsent(audit)).expectNextCount(1).verifyComplete();
+        org.mockito.Mockito.verify(mongoTemplate).insert(inserted.capture(), eq(ActionExecutionAuditStore.COLLECTION));
+
+        assertThat(inserted.getValue().parameterSummary())
+                .containsEntry("changeAmount", 120000)
+                .containsEntry("changeReason", "Scope expansion")
+                .doesNotContainKey("secret");
     }
 }

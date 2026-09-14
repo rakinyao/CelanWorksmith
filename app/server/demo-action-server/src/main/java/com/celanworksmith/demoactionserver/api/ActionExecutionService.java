@@ -21,6 +21,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -30,7 +31,6 @@ public class ActionExecutionService {
     private static final String RUNNING = "RUNNING";
     private static final String ACTION_IN_PROGRESS = "ACTION_IN_PROGRESS";
     public static final String ACTION_EXECUTION_FAILED = "ACTION_EXECUTION_FAILED";
-    private static final String ATOMIC_EXECUTION_UNSUPPORTED = "ATOMIC_EXECUTION_UNSUPPORTED";
     private static final String INVALID_REQUEST = "INVALID_REQUEST";
     private static final String SAFE_SERVER_MESSAGE = "Action execution failed.";
     private static final String SUCCESS_MESSAGE = "Action completed.";
@@ -69,11 +69,18 @@ public class ActionExecutionService {
                     OntologyActionServerProtocol.V1, null, INVALID_REQUEST, "contractVersion must be v1.")));
         }
         if (request.atomic()) {
-            return Mono.just(new ExecutionResult.Failure(new DomainFailure(
-                    OntologyActionServerProtocol.V1,
-                    null,
-                    ATOMIC_EXECUTION_UNSUPPORTED,
-                    "Atomic action execution is not supported.")));
+            if (request.targets().objectIds().size() != 1) {
+                return Mono.just(new ExecutionResult.Failure(new DomainFailure(
+                        OntologyActionServerProtocol.V1,
+                        null,
+                        INVALID_REQUEST,
+                        "Atomic action execution requires exactly one target.")));
+            }
+            return validateSupportedRequest(request, null)
+                    .then(atomicExecution(request))
+                    .onErrorResume(
+                            DeclaredDomainException.class,
+                            exception -> Mono.just(new ExecutionResult.Failure(exception.failure())));
         }
 
         return validateSupportedRequest(request, null)
@@ -87,6 +94,17 @@ public class ActionExecutionService {
                 .onErrorResume(
                         DeclaredDomainException.class,
                         exception -> Mono.just(new ExecutionResult.Failure(exception.failure())));
+    }
+
+    private Mono<ExecutionResult> atomicExecution(ExecuteRequest request) {
+        return auditStore
+                .findByIdempotencyKey(request.idempotencyKey())
+                .flatMap(audit -> replay(audit, target(request)))
+                .switchIfEmpty(Mono.defer(() -> transactionalOperator.transactional(createAndExecute(request, false))))
+                .map(outcome -> singleTargetFailure(List.of(outcome))
+                        .<ExecutionResult>map(ExecutionResult.Failure::new)
+                        .orElseGet(() -> new ExecutionResult.Success(
+                                new ExecuteSuccess(OntologyActionServerProtocol.V1, List.of(outcome)))));
     }
 
     private static java.util.Optional<DomainFailure> singleTargetFailure(List<TargetOutcome> outcomes) {
@@ -104,10 +122,10 @@ public class ActionExecutionService {
         return auditStore
                 .findByIdempotencyKey(targetRequest.idempotencyKey())
                 .flatMap(audit -> replay(audit, target(targetRequest)))
-                .switchIfEmpty(Mono.defer(() -> createAndExecute(targetRequest)));
+                .switchIfEmpty(Mono.defer(() -> createAndExecute(targetRequest, true)));
     }
 
-    private Mono<TargetOutcome> createAndExecute(ExecuteRequest request) {
+    private Mono<TargetOutcome> createAndExecute(ExecuteRequest request, boolean transactional) {
         String auditId = UUID.randomUUID().toString();
         ActionExecutionAuditDocument runningAudit = new ActionExecutionAuditDocument(
                 auditId,
@@ -124,35 +142,52 @@ public class ActionExecutionService {
                 RUNNING,
                 null,
                 List.of(),
-                List.of());
+                List.of(),
+                parameterSummary(request));
 
         return auditStore
                 .createIfAbsent(runningAudit)
                 .flatMap(audit -> audit.auditId().equals(auditId)
-                        ? invokeHandler(request, audit)
+                        ? invokeHandler(request, audit, transactional)
                         : replay(audit, target(request)));
     }
 
-    private Mono<TargetOutcome> invokeHandler(ExecuteRequest request, ActionExecutionAuditDocument audit) {
-        return transactionalOperator
-                .transactional(handlerRegistry
-                        .resolve(request.actionId(), audit.auditId())
-                        .flatMap(handler -> handler.execute(request, audit.auditId()))
-                        .map(result -> handlerSuccess(result, request, audit.auditId()))
-                        .flatMap(outcome -> auditStore
-                                .markSucceeded(
-                                        audit.auditId(),
-                                        Instant.now(clock),
-                                        SUCCESS_MESSAGE,
-                                        outcome.changedObjects(),
-                                        outcome.changedProperties())
-                                .thenReturn(outcome)))
+    private Mono<TargetOutcome> invokeHandler(
+            ExecuteRequest request, ActionExecutionAuditDocument audit, boolean transactional) {
+        Mono<TargetOutcome> execution = handlerRegistry
+                .resolve(request.actionId(), audit.auditId())
+                .flatMap(handler -> handler.execute(request, audit.auditId()))
+                .map(result -> handlerSuccess(result, request, audit.auditId()))
+                .flatMap(outcome -> auditStore
+                        .markSucceeded(
+                                audit.auditId(),
+                                Instant.now(clock),
+                                SUCCESS_MESSAGE,
+                                outcome.changedObjects(),
+                                outcome.changedProperties())
+                        .thenReturn(outcome));
+        Mono<TargetOutcome> dispatched = transactional ? transactionalOperator.transactional(execution) : execution;
+        return dispatched
                 .onErrorResume(
                         DeclaredDomainException.class,
                         exception -> finishFailure(audit, target(request), exception.failure()))
                 .onErrorResume(
                         Throwable.class,
                         exception -> finishFailure(audit, target(request), internalFailure(audit.auditId())));
+    }
+
+    private static Map<String, Object> parameterSummary(ExecuteRequest request) {
+        if (!"ApplyContractChange".equals(request.actionId())) {
+            return Map.of();
+        }
+        java.util.Map<String, Object> summary = new java.util.LinkedHashMap<>();
+        for (String name : List.of("changeAmount", "changeReason")) {
+            Object value = request.parameters().get(name);
+            if (value != null) {
+                summary.put(name, value);
+            }
+        }
+        return Map.copyOf(summary);
     }
 
     private Mono<Void> validateSupportedRequest(ExecuteRequest request, String auditId) {
