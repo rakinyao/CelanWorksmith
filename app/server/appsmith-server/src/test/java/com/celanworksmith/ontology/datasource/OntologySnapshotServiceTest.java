@@ -1,5 +1,6 @@
 package com.celanworksmith.ontology.datasource;
 
+import com.celanworksmith.ontology.dto.ActionTypeDTO;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
 import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
@@ -50,6 +51,22 @@ class OntologySnapshotServiceTest {
         assertThat(persistedSnapshot.get().runtimeProviderId()).isEqualTo("demo-mongo-readonly");
         assertThat(persistedSnapshot.get().createdBy()).isEqualTo("admin-1");
         assertThat(persistedSnapshot.get().createdAt()).isEqualTo(Instant.parse("2026-08-13T00:00:00Z"));
+    }
+
+    @Test
+    void includesActionTargetBoundInMetadataDigest() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+        OntologySnapshotService service = new OntologySnapshotService(repository, FIXED_CLOCK);
+
+        OntologyMetadataSnapshot one = service.createSnapshot(
+                        importedProject("demo", "action-1", definitionWithActionBound(1)))
+                .block();
+        OntologyMetadataSnapshot two = service.createSnapshot(
+                        importedProject("demo", "action-2", definitionWithActionBound(2)))
+                .block();
+
+        assertThat(one.metadataDigest()).isNotEqualTo(two.metadataDigest());
     }
 
     @Test
@@ -168,6 +185,25 @@ class OntologySnapshotServiceTest {
                 List.of(),
                 List.of(),
                 List.of());
+    }
+
+    private OntologyProjectDefinition definitionWithActionBound(int maxItems) {
+        OntologyProjectDefinition base = definitionInSourceOrder();
+        return new OntologyProjectDefinition(
+                base.projectId(),
+                base.version(),
+                base.schemaVersion(),
+                base.objectTypes(),
+                base.linkTypes(),
+                base.functions(),
+                List.of(new ActionTypeDTO(
+                        "ApplyContractChange",
+                        "Apply contract change",
+                        List.of("contract"),
+                        true,
+                        maxItems,
+                        List.of(),
+                        true)));
     }
 
     private ObjectTypeDTO object(String id, String propertyId, String dataType) {

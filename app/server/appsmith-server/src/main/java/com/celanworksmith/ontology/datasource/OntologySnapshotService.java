@@ -241,6 +241,7 @@ public class OntologySnapshotService {
         canonical.put("id", action.id());
         canonical.put("displayName", action.displayName());
         canonical.put("ownerObjectTypeIds", action.ownerObjectTypeIds());
+        canonical.put("maxItems", action.maxItems());
         canonical.put("atomic", action.atomic());
         canonical.put("parameters", canonicalProperties(action.parameters()));
         canonical.put("requiresConfirmation", action.requiresConfirmation());
