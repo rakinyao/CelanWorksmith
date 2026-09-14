@@ -10,18 +10,21 @@ import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.Execu
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.TargetOutcome;
 import com.celanworksmith.ontology.datasource.OntologyObjectSet;
+import org.bson.types.Decimal128;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -100,7 +103,7 @@ public class ActionExecutionService {
         Mono<TargetOutcome> freshExecution = Mono.defer(() -> createAndExecute(request, false));
         return auditStore
                 .findByIdempotencyKey(request.idempotencyKey())
-                .flatMap(audit -> replay(audit, target(request)))
+                .flatMap(audit -> replayOrReject(audit, request))
                 .switchIfEmpty(Mono.defer(() -> freshExecution))
                 .map(outcome -> singleTargetFailure(List.of(outcome))
                         .<ExecutionResult>map(ExecutionResult.Failure::new)
@@ -122,7 +125,7 @@ public class ActionExecutionService {
         ExecuteRequest targetRequest = singleTargetRequest(request, objectId);
         return auditStore
                 .findByIdempotencyKey(targetRequest.idempotencyKey())
-                .flatMap(audit -> replay(audit, target(targetRequest)))
+                .flatMap(audit -> replayOrReject(audit, targetRequest))
                 .switchIfEmpty(Mono.defer(() -> createAndExecute(targetRequest, true)));
     }
 
@@ -157,11 +160,12 @@ public class ActionExecutionService {
             Mono<TargetOutcome> business = execution.onErrorMap(error -> error instanceof AtomicExecutionException
                     ? error
                     : new AtomicExecutionException(audit, target(request), error));
-            return transactionalOperator
-                    .transactional(business)
-                    .onErrorResume(
-                            AtomicExecutionException.class,
-                            exception -> finishFailure(exception.audit, exception.target, exception.failure()));
+            return transactionalOperator.transactional(business).onErrorResume(error -> {
+                if (error instanceof AtomicExecutionException exception) {
+                    return finishFailure(exception.audit, exception.target, exception.failure());
+                }
+                return finishFailure(audit, target(request), internalFailure(audit.auditId()));
+            });
         });
     }
 
@@ -246,6 +250,61 @@ public class ActionExecutionService {
             return Mono.just(failedOutcome(target, audit.failure()));
         }
         return Mono.just(failedOutcome(target, internalFailure(audit.auditId())));
+    }
+
+    private Mono<TargetOutcome> replayOrReject(ActionExecutionAuditDocument audit, ExecuteRequest request) {
+        if (!matchesReplayIdentity(audit, request)) {
+            return Mono.just(failedOutcome(
+                    target(request),
+                    new DomainFailure(
+                            OntologyActionServerProtocol.V1,
+                            audit.auditId(),
+                            INVALID_REQUEST,
+                            "Idempotency key is already associated with a different action request.")));
+        }
+        return replay(audit, target(request));
+    }
+
+    private static boolean matchesReplayIdentity(ActionExecutionAuditDocument audit, ExecuteRequest request) {
+        return Objects.equals(audit.workspaceId(), request.workspaceId())
+                && Objects.equals(audit.projectId(), request.projectId())
+                && Objects.equals(audit.projectVersion(), request.projectVersion())
+                && Objects.equals(audit.datasourceId(), request.datasourceId())
+                && Objects.equals(audit.actionId(), request.actionId())
+                && Objects.equals(audit.objectTypeId(), request.targets().objectTypeId())
+                && Objects.equals(
+                        audit.objectId(), request.targets().objectIds().getFirst())
+                && sameParameterSummary(audit.parameterSummary(), parameterSummary(request));
+    }
+
+    private static boolean sameParameterSummary(Map<String, Object> stored, Map<String, Object> requested) {
+        if (!stored.keySet().equals(requested.keySet())) {
+            return false;
+        }
+        return stored.keySet().stream().allMatch(key -> sameParameterValue(stored.get(key), requested.get(key)));
+    }
+
+    private static boolean sameParameterValue(Object stored, Object requested) {
+        BigDecimal storedDecimal = decimalValue(stored);
+        BigDecimal requestedDecimal = decimalValue(requested);
+        if (storedDecimal != null || requestedDecimal != null) {
+            return storedDecimal != null && requestedDecimal != null && storedDecimal.compareTo(requestedDecimal) == 0;
+        }
+        return Objects.equals(stored, requested);
+    }
+
+    private static BigDecimal decimalValue(Object value) {
+        if (value instanceof Decimal128 decimal128) {
+            return decimal128.bigDecimalValue();
+        }
+        if (value instanceof Number number) {
+            try {
+                return new BigDecimal(number.toString());
+            } catch (NumberFormatException ignored) {
+                // Non-decimal numeric values cannot match a safe replay summary.
+            }
+        }
+        return null;
     }
 
     private Mono<TargetOutcome> finishFailure(

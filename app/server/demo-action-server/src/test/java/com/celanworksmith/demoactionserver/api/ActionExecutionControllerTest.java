@@ -13,8 +13,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -96,6 +98,39 @@ class ActionExecutionControllerTest {
                 .isEqualTo("audit-contract-1")
                 .jsonPath("$.outcomes[0].changedProperties[2].propertyId")
                 .isEqualTo("latest_change_at");
+    }
+
+    @Test
+    void decodesFractionalContractChangeAmountsAsPreciseDecimals() {
+        when(actionExecutionService.execute(any())).thenAnswer(invocation -> {
+            var request = invocation.getArgument(
+                    0, com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest.class);
+            Object amount = request.parameters().get("changeAmount");
+            assertThat(amount).isEqualTo(new BigDecimal("2.50"));
+            return Mono.just(new ActionExecutionService.ExecutionResult.Success(new ExecuteSuccess(
+                    "v1",
+                    List.of(new TargetOutcome(
+                            new ChangedObject("contract", "CTR-1"),
+                            "SUCCEEDED",
+                            List.of(new ChangedObject("contract", "CTR-1")),
+                            List.of(new ChangedProperty("contract", "CTR-1", "current_amount", amount)),
+                            null,
+                            "audit-decimal-1")))));
+        });
+
+        webTestClient
+                .post()
+                .uri("/api/v1/actions/execute")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(contractChangeRequest().replace("125", "2.50"))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.outcomes[0].auditId")
+                .isEqualTo("audit-decimal-1")
+                .jsonPath("$.outcomes[0].changedProperties[0].newValue")
+                .isEqualTo(2.5);
     }
 
     @Test

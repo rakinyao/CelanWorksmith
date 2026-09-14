@@ -367,6 +367,57 @@ class ActionExecutionServiceTest {
     }
 
     @Test
+    void persistsInternalFailureWhenAtomicTransactionCommitFails() {
+        when(auditStore.findByIdempotencyKey("commit-error")).thenReturn(Mono.empty());
+        when(auditStore.createIfAbsent(any()))
+                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+        when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
+                .thenReturn(Mono.just(runningAudit("completed")));
+        when(auditStore.markFailed(anyString(), any(), any()))
+                .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        when(transactionalOperator.transactional(any(Mono.class))).thenAnswer(invocation -> invocation
+                .getArgument(0, Mono.class)
+                .then(Mono.error(new IllegalStateException("transaction commit failed"))));
+        ActionExecutionService service = service(handler((request, auditId) -> Mono.just(success(auditId))));
+
+        StepVerifier.create(service.execute(request(List.of("PO001"), true, "commit-error")))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                    DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
+                    assertThat(failure.code()).isEqualTo(ActionExecutionService.ACTION_EXECUTION_FAILED);
+                    assertThat(failure.auditId()).isNotBlank();
+                })
+                .verifyComplete();
+
+        ArgumentCaptor<DomainFailure> persistedFailure = ArgumentCaptor.forClass(DomainFailure.class);
+        verify(auditStore).markFailed(anyString(), any(), persistedFailure.capture());
+        assertThat(persistedFailure.getValue().code()).isEqualTo(ActionExecutionService.ACTION_EXECUTION_FAILED);
+    }
+
+    @Test
+    void rejectsAtomicReplayWhenIdempotencyKeyTargetsDifferentObject() {
+        when(auditStore.findByIdempotencyKey("mismatch-key"))
+                .thenReturn(Mono.just(succeededAudit("audit-existing", "mismatch-key", "PO001")));
+        AtomicInteger handlerCalls = new AtomicInteger();
+        ActionExecutionService service = service(handler((request, auditId) -> {
+            handlerCalls.incrementAndGet();
+            return Mono.just(success(auditId));
+        }));
+
+        StepVerifier.create(service.execute(request(List.of("PO002"), true, "mismatch-key")))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                    DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
+                    assertThat(failure.code()).isEqualTo("INVALID_REQUEST");
+                    assertThat(failure.auditId()).isEqualTo("audit-existing");
+                })
+                .verifyComplete();
+
+        assertThat(handlerCalls).hasValue(0);
+        verify(auditStore, never()).createIfAbsent(any());
+    }
+
+    @Test
     void derivesDistinctTargetAuditKeysForColonBearingTargetAndParentKeys() {
         when(auditStore.findByIdempotencyKey(anyString())).thenReturn(Mono.empty());
         when(auditStore.createIfAbsent(any()))
@@ -520,7 +571,26 @@ class ActionExecutionServiceTest {
     }
 
     private static ActionExecutionAuditDocument succeededAudit(String auditId) {
-        ActionExecutionAuditDocument runningAudit = runningAudit(auditId);
+        return succeededAudit(auditId, "key-1", "PO001");
+    }
+
+    private static ActionExecutionAuditDocument succeededAudit(String auditId, String idempotencyKey, String objectId) {
+        ActionExecutionAuditDocument runningAudit = new ActionExecutionAuditDocument(
+                auditId,
+                idempotencyKey,
+                "workspace-1",
+                "project-1",
+                "1.0.0",
+                "datasource-1",
+                "UpdateProductionSchedule",
+                "PurchaseOrder",
+                objectId,
+                Instant.parse("2026-08-25T00:00:00Z"),
+                null,
+                "RUNNING",
+                null,
+                List.of(),
+                List.of());
         return new ActionExecutionAuditDocument(
                 runningAudit.auditId(),
                 runningAudit.idempotencyKey(),
