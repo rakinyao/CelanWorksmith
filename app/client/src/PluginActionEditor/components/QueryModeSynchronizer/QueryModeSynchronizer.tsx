@@ -20,7 +20,7 @@ import {
   hydrateCapabilityBuilderForm,
   getCapabilityBuilderTargetUpdate,
   parseAdvancedCapabilityDefinition,
-  serializeCapabilityBuilderForm,
+  serializeCapabilityBuilderDraft,
   validateCapabilityDefinition,
   type OntologyCapabilityMetadata,
   type OntologyCapabilityOperation,
@@ -95,6 +95,8 @@ export function getCapabilityAdvancedToBuilderUpdates(
   operation: OntologyCapabilityOperation,
   capabilityId: unknown,
   metadata?: OntologyCapabilityMetadata,
+  previousTarget?: unknown,
+  previousTargetBinding?: unknown,
 ): OntologyCapabilityAdvancedToBuilderResult {
   try {
     const parsedDefinition = parseAdvancedCapabilityDefinition(text);
@@ -110,7 +112,11 @@ export function getCapabilityAdvancedToBuilderUpdates(
     }
 
     return {
-      updates: hydrateCapabilityBuilderForm(validation.definition),
+      updates: hydrateCapabilityBuilderForm(
+        validation.definition,
+        previousTarget,
+        previousTargetBinding,
+      ),
     };
   } catch {
     return {
@@ -232,6 +238,20 @@ function readControlData(value: unknown): unknown {
   return value;
 }
 
+function equivalentJson(left: unknown, right: unknown): boolean {
+  if (typeof left !== "string" || typeof right !== "string") {
+    return false;
+  }
+
+  try {
+    return (
+      JSON.stringify(JSON.parse(left)) === JSON.stringify(JSON.parse(right))
+    );
+  } catch {
+    return false;
+  }
+}
+
 function shouldSynchronize(
   queryMode: unknown,
   previousQueryMode: unknown,
@@ -274,15 +294,21 @@ export function getOntologyQueryDefinitionUpdate(
   }
 
   let value: string;
+  const currentDefinition = readControlData(input.formData.definition);
+  const isEnteringAdvanced =
+    queryMode === "ADVANCED" &&
+    (input.previousQueryMode === "BUILDER" ||
+      currentDefinition === undefined ||
+      currentDefinition === "");
 
   try {
     value =
       operation === "OBJECT_QUERY"
         ? serializeBuilderForm(input.formData, true)
-        : serializeCapabilityBuilderForm(
+        : serializeCapabilityBuilderDraft(
             input.formData,
             operation as OntologyCapabilityOperation,
-            input.capabilityMetadata,
+            isEnteringAdvanced,
           );
   } catch {
     return undefined;
@@ -292,7 +318,10 @@ export function getOntologyQueryDefinitionUpdate(
     return undefined;
   }
 
-  if (value === readControlData(input.formData.definition)) {
+  if (
+    value === currentDefinition ||
+    (!isEnteringAdvanced && equivalentJson(value, currentDefinition))
+  ) {
     return undefined;
   }
 
@@ -371,6 +400,7 @@ export function OntologyQueryModeSynchronizer({
   const hydrationUpdates = useRef<Record<string, unknown>>();
   const previousQueryMode = useRef<unknown>();
   const previousCapabilitySelection = useRef<CapabilitySelection>();
+  const lastCapabilityBuilderDraft = useRef<Record<string, unknown>>();
   const hasInitialCapabilitySelection = useRef(false);
   const lastValidAdvancedDefinition = useRef<string>();
   const formData = get(formValues, "actionConfiguration.formData") as
@@ -505,21 +535,33 @@ export function OntologyQueryModeSynchronizer({
                   operation,
                   capabilityId,
                   capabilityMetadata,
+                  lastCapabilityBuilderDraft.current?.[
+                    "actionConfiguration.formData.target.data"
+                  ] ?? readControlData(formData.target),
+                  lastCapabilityBuilderDraft.current?.[
+                    "actionConfiguration.formData.targetBinding.data"
+                  ] ?? readControlData(formData.targetBinding),
                 )
               : { error: { id: "invalidDefinition" as const } };
 
           if ("error" in result) {
-            previousQueryMode.current = "ADVANCED";
+            previousQueryMode.current = "BUILDER";
+            const builderDraft = lastCapabilityBuilderDraft.current;
+
+            if (builderDraft) {
+              hydrationUpdates.current = builderDraft;
+              Object.entries(builderDraft).forEach(([field, value]) => {
+                dispatch(change(formName, field, value));
+              });
+            }
+
             toast.show(
-              t("ontologyQuery.cannotSwitchToBuilder", {
+              t("ontologyQuery.advancedDraftPreserved", {
                 reason: t(`ontologyQuery.${result.error.id}`),
               }),
               {
                 kind: "error",
               },
-            );
-            dispatch(
-              change(formName, ONTOLOGY_QUERY_MODE_CONFIG_PROPERTY, "ADVANCED"),
             );
 
             return;
@@ -544,6 +586,20 @@ export function OntologyQueryModeSynchronizer({
           }
 
           hydrationUpdates.current = undefined;
+        }
+
+        if (currentQueryMode === "BUILDER") {
+          lastCapabilityBuilderDraft.current = {
+            "actionConfiguration.formData.target.data": readControlData(
+              formData.target,
+            ),
+            "actionConfiguration.formData.targetBinding.data": readControlData(
+              formData.targetBinding,
+            ),
+            "actionConfiguration.formData.parameters.data": readControlData(
+              formData.parameters,
+            ),
+          };
         }
 
         const objectTypeId = readControlData(formData.objectTypeId);

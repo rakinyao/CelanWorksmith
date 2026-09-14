@@ -22,31 +22,39 @@ function tableProperty(canonicalKey: string): string {
   return `[${JSON.stringify(canonicalKey)}]`;
 }
 
+const tableTargetAdapter: WidgetTargetAdapter = (
+  widget,
+  canonicalKey,
+  maxItems,
+) => {
+  if (!canonicalKey) {
+    return [];
+  }
+
+  const property = tableProperty(canonicalKey);
+  const bindings: WidgetTargetBinding[] = [
+    {
+      widgetId: widget.widgetId,
+      cardinality: "ONE",
+      expression: `{{${widget.widgetName}.selectedRow${property}}}`,
+    },
+  ];
+
+  if (maxItems > 1) {
+    bindings.push({
+      widgetId: widget.widgetId,
+      cardinality: "MANY",
+      expression: `{{${widget.widgetName}.selectedRows.map((row) => row${property})}}`,
+    });
+  }
+
+  return bindings;
+};
+
 const widgetTargetAdapters: Record<string, WidgetTargetAdapter> = {
-  TABLE_WIDGET: (widget, canonicalKey, maxItems) => {
-    if (!canonicalKey) {
-      return [];
-    }
-
-    const property = tableProperty(canonicalKey);
-    const bindings: WidgetTargetBinding[] = [
-      {
-        widgetId: widget.widgetId,
-        cardinality: "ONE",
-        expression: `{{${widget.widgetName}.selectedRow${property}}}`,
-      },
-    ];
-
-    if (maxItems > 1) {
-      bindings.push({
-        widgetId: widget.widgetId,
-        cardinality: "MANY",
-        expression: `{{${widget.widgetName}.selectedRows.map((row) => row${property})}}`,
-      });
-    }
-
-    return bindings;
-  },
+  TABLE_WIDGET: tableTargetAdapter,
+  TABLE_WIDGET_V2: tableTargetAdapter,
+  WDS_TABLE_WIDGET: tableTargetAdapter,
   SELECT_WIDGET: (widget) => {
     return [
       {

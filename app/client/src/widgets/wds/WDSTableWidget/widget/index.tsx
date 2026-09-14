@@ -82,6 +82,7 @@ import * as config from "../config";
 import { getAnvilWidgetDOMId } from "layoutSystems/common/utils/LayoutElementPositionsObserver/utils";
 import type { CanvasWidgetsReduxState } from "ee/reducers/entityReducers/canvasWidgetsReducer";
 import { klonaRegularWithTelemetry } from "utils/helpers";
+import { getColumnLabel } from "widgets/TableWidget/utils/columnLabel";
 
 const ReactTableComponent = lazy(async () =>
   retryPromise(async () => import("../component")),
@@ -323,7 +324,7 @@ export class WDSTableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
   createTablePrimaryColumns = ():
     | Record<string, ColumnProperties>
     | undefined => {
-    const { primaryColumns = {}, tableData = [] } = this.props;
+    const { columnNameMap, primaryColumns = {}, tableData = [] } = this.props;
 
     if (!_.isArray(tableData) || tableData.length === 0) {
       return;
@@ -360,6 +361,8 @@ export class WDSTableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
           false,
           columnType,
         );
+
+        columnProperties.label = getColumnLabel(columnNameMap, columnKey);
 
         newTableColumns[columnProperties.id] = {
           ...columnProperties,

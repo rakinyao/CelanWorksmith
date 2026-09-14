@@ -121,6 +121,8 @@ export default function DatasourceFormRenderer({
   section,
   viewMode,
 }: DatasourceFormRendererProps) {
+  if (!section) return null;
+
   return (
     <React.Fragment key={datasource.id}>
       {map(section.children, (section) => {

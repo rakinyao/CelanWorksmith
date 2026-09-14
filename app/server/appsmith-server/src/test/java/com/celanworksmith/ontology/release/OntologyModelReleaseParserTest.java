@@ -34,7 +34,9 @@ class OntologyModelReleaseParserTest {
 
         assertThat(release.release().version()).isEqualTo("1.1.0");
         assertThat(release.release().releaseDigest()).startsWith("sha256:").hasSize(71);
-        assertThat(release.elements()).filteredOn(OntologyModelRelease.Function.class::isInstance).hasSize(4);
+        assertThat(release.elements())
+                .filteredOn(OntologyModelRelease.Function.class::isInstance)
+                .hasSize(4);
         assertThat(release.elements().stream()
                         .filter(OntologyModelRelease.Function.class::isInstance)
                         .map(OntologyModelRelease.Element::name))
@@ -144,7 +146,8 @@ class OntologyModelReleaseParserTest {
 
     private static byte[] functionFixtureBytes() {
         try {
-            return Files.readAllBytes(Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-functions-1.1.0.json"));
+            return Files.readAllBytes(
+                    Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-functions-1.1.0.json"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

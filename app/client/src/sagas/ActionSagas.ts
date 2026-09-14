@@ -133,6 +133,7 @@ import AppsmithConsole from "utils/AppsmithConsole";
 import { getDynamicBindingsChangesSaga } from "utils/DynamicBindingUtils";
 import { getDefaultTemplateActionConfig } from "utils/editorContextUtils";
 import { isEmptyKeyValue, shouldBeDefined } from "utils/helpers";
+import { ontologyDefaultActionConfiguration } from "utils/ontologyActionConfig";
 import history from "utils/history";
 import { setAIPromptTriggered } from "utils/storage";
 import { sendAnalyticsEventSaga } from "./AnalyticsSaga";
@@ -213,6 +214,10 @@ export function* createDefaultActionPayload({
     dsStructure,
     datasource?.isMock,
   );
+  const ontologyDefaultConfig =
+    plugin?.packageName === PluginPackageName.ONTOLOGY
+      ? ontologyDefaultActionConfiguration()
+      : undefined;
 
   // since table name has been consumed, we no longer need it, hence resetting it
   yield put({
@@ -236,9 +241,7 @@ export function* createDefaultActionPayload({
     actionConfiguration:
       plugin?.type === PluginType.API
         ? defaultApiActionConfig
-        : !!defaultActionConfig
-          ? defaultActionConfig
-          : {},
+        : merge({}, ontologyDefaultConfig, defaultActionConfig),
     name: newActionName,
   };
 

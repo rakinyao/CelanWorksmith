@@ -2,14 +2,23 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import type { DefaultRootState } from "react-redux";
 import { change, formValueSelector } from "redux-form";
-import { getCurrentPageWidgets } from "ee/selectors/entitiesSelector";
+import {
+  getCurrentActions,
+  getCurrentPageWidgets,
+} from "ee/selectors/entitiesSelector";
 import i18n from "i18n";
+import styled from "styled-components";
 import type { ControlProps } from "./BaseControl";
 import {
   buildWidgetTargetBindings,
   type TargetBindingWidget,
   type WidgetTargetCardinality,
 } from "PluginActionEditor/components/CapabilityTargetBinding/ontologyTargetWidgetAdapters";
+import {
+  resolveOntologyTableTargetProvenance,
+  isOntologyTargetTableWidgetType,
+  type OntologyQueryCandidate,
+} from "PluginActionEditor/components/CapabilityTargetBinding/ontologyTableTargetProvenance";
 
 export type CapabilityTargetBindingMode = "WIDGET" | "MANUAL";
 
@@ -25,12 +34,15 @@ export interface CapabilityTargetBindingWidget extends TargetBindingWidget {
   ontologyCanonicalKey?: string;
   primaryColumnId?: string;
   ownerObjectTypeId?: string;
+  tableData?: string;
 }
 
 export interface CapabilityTargetBindingControlProps
   extends Omit<ControlProps, "controlType"> {
   controlType?: ControlProps["controlType"] | "ONTOLOGY_CAPABILITY_TARGET";
   canonicalKey?: string;
+  primaryKey?: string;
+  primaryKeyConfigProperty?: string;
   ownerObjectTypeId?: string;
   ownerObjectTypeConfigProperty?: string;
   functionMetadataConfigProperty?: string;
@@ -38,6 +50,7 @@ export interface CapabilityTargetBindingControlProps
   tableCanonicalKeys?: Record<string, string>;
   maxItems?: number;
   currentPageWidgets?: Record<string, Partial<CapabilityTargetBindingWidget>>;
+  currentPageActions?: OntologyQueryCandidate[];
   value?: CapabilityTargetBinding | Record<string, unknown>;
   onBindingChange?: (value: CapabilityTargetBinding) => void;
 }
@@ -47,6 +60,43 @@ const DEFAULT_BINDING: CapabilityTargetBinding = {
   cardinality: "ONE",
   expression: "",
 };
+
+const NO_WIDGETS: Record<string, Partial<CapabilityTargetBindingWidget>> = {};
+
+const TargetControl = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--ads-v2-spaces-3);
+
+  label {
+    color: var(--ads-v2-color-fg);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  select,
+  input {
+    width: 100%;
+    min-height: 32px;
+    border: 1px solid var(--ads-v2-color-border);
+    border-radius: var(--ads-v2-border-radius);
+    background-color: var(--ads-v2-color-bg);
+    color: var(--ads-v2-color-fg);
+    font-size: 14px;
+    padding: 0 var(--ads-v2-spaces-4);
+  }
+
+  select:focus,
+  input:focus {
+    border-color: var(--ads-v2-color-border-emphasis);
+    outline: none;
+  }
+
+  [role="status"] {
+    color: var(--ads-v2-color-fg-muted);
+    font-size: 12px;
+  }
+`;
 
 interface FunctionDropdownEntry {
   value?: unknown;
@@ -216,9 +266,34 @@ function getWidgetCanonicalKey(
   widget: Partial<CapabilityTargetBindingWidget>,
   props: Pick<
     CapabilityTargetBindingControlProps,
-    "tableCanonicalKeys" | "tableCanonicalKey" | "canonicalKey"
+    | "tableCanonicalKeys"
+    | "tableCanonicalKey"
+    | "canonicalKey"
+    | "currentPageActions"
+    | "ownerObjectTypeId"
+    | "primaryKey"
   >,
 ): string | undefined {
+  if (
+    isOntologyTargetTableWidgetType(widget.type) &&
+    props.currentPageActions !== undefined
+  ) {
+    if (props.ownerObjectTypeId === undefined) {
+      return undefined;
+    }
+
+    const provenance = resolveOntologyTableTargetProvenance(
+      widget,
+      props.currentPageActions,
+    );
+
+    return provenance?.objectTypeId === props.ownerObjectTypeId &&
+      (!provenance.projection ||
+        provenance.projection.includes(props.primaryKey || ""))
+      ? props.primaryKey
+      : undefined;
+  }
+
   return (
     widget.canonicalKey ||
     widget.ontologyCanonicalKey ||
@@ -228,27 +303,47 @@ function getWidgetCanonicalKey(
   );
 }
 
+interface ObjectPropertyDropdownEntry {
+  value?: unknown;
+  isPrimaryKey?: unknown;
+}
+
+function selectedPrimaryKey(metadata: unknown): string | undefined {
+  const primaryKey = (
+    functionDropdownEntries(metadata) as ObjectPropertyDropdownEntry[]
+  ).find(
+    (entry) =>
+      entry.isPrimaryKey === true &&
+      typeof entry.value === "string" &&
+      entry.value.trim() !== "",
+  )?.value;
+
+  return typeof primaryKey === "string" ? primaryKey : undefined;
+}
+
 export function CapabilityTargetBindingControl(
   props: CapabilityTargetBindingControlProps,
 ): JSX.Element {
   const {
     canonicalKey,
     configProperty,
-    currentPageWidgets = {},
+    currentPageWidgets,
     label,
     maxItems: configuredMaxItems = 1,
     onBindingChange,
     ownerObjectTypeId,
+    primaryKey,
     tableCanonicalKey,
     tableCanonicalKeys,
     value: rawValue,
   } = props;
   const maxItems = positiveMaxItems(configuredMaxItems);
   const value = getBinding(rawValue, maxItems);
+  const pageWidgets = currentPageWidgets ?? NO_WIDGETS;
   const [isPickingWidget, setIsPickingWidget] = useState(false);
   const displayedMode = isPickingWidget ? "WIDGET" : value.mode;
   const widgets = useMemo(() => {
-    return Object.entries(currentPageWidgets).flatMap(([widgetId, widget]) => {
+    return Object.entries(pageWidgets).flatMap(([widgetId, widget]) => {
       if (!widget.type || !widget.widgetName) {
         return [];
       }
@@ -262,6 +357,9 @@ export function CapabilityTargetBindingControl(
         targetWidget,
         getWidgetCanonicalKey(widgetId, widget, {
           canonicalKey,
+          currentPageActions: props.currentPageActions,
+          ownerObjectTypeId,
+          primaryKey,
           tableCanonicalKey,
           tableCanonicalKeys,
         }),
@@ -272,8 +370,11 @@ export function CapabilityTargetBindingControl(
     });
   }, [
     canonicalKey,
-    currentPageWidgets,
     maxItems,
+    ownerObjectTypeId,
+    pageWidgets,
+    primaryKey,
+    props.currentPageActions,
     tableCanonicalKey,
     tableCanonicalKeys,
   ]);
@@ -281,14 +382,14 @@ export function CapabilityTargetBindingControl(
   const incompatibleTables = useMemo(
     () =>
       ownerObjectTypeId
-        ? Object.values(currentPageWidgets).filter(
+        ? Object.values(pageWidgets).filter(
             (widget) =>
-              widget.type === "TABLE_WIDGET" &&
+              isOntologyTargetTableWidgetType(widget.type) &&
               typeof widget.ownerObjectTypeId === "string" &&
               widget.ownerObjectTypeId !== ownerObjectTypeId,
           )
         : [],
-    [currentPageWidgets, ownerObjectTypeId],
+    [ownerObjectTypeId, pageWidgets],
   );
 
   const selectedWidget = widgets.find(
@@ -297,7 +398,10 @@ export function CapabilityTargetBindingControl(
       widget.binding.cardinality === value.cardinality,
   );
   const isRemovedWidget =
-    displayedMode === "WIDGET" && Boolean(value.widgetId) && !selectedWidget;
+    displayedMode === "WIDGET" &&
+    currentPageWidgets !== undefined &&
+    Boolean(value.widgetId) &&
+    !selectedWidget;
 
   const updateBinding = useCallback(
     (nextValue: CapabilityTargetBinding) => {
@@ -392,7 +496,7 @@ export function CapabilityTargetBindingControl(
   ]);
 
   return (
-    <div className={`t--${configProperty} uqi-capability-target`}>
+    <TargetControl className={`t--${configProperty} uqi-capability-target`}>
       <label htmlFor={`${configProperty}-mode`}>
         {label || targetMessages.source()}
       </label>
@@ -505,7 +609,7 @@ export function CapabilityTargetBindingControl(
           </label>
         </>
       )}
-    </div>
+    </TargetControl>
   );
 }
 
@@ -525,6 +629,12 @@ const mapStateToProps = (
           props.functionMetadataConfigProperty
         ]?.fetchDynamicValues?.data
       : undefined;
+  const objectPropertyMetadata =
+    typeof actionId === "string" && props.primaryKeyConfigProperty
+      ? state.evaluations?.triggers?.[actionId]?.[
+          props.primaryKeyConfigProperty
+        ]?.fetchDynamicValues?.data
+      : undefined;
   const selectedOwnerObjectTypeId = props.ownerObjectTypeConfigProperty
     ? valueSelector(state, props.ownerObjectTypeConfigProperty)
     : undefined;
@@ -532,10 +642,22 @@ const mapStateToProps = (
     "targetBinding.data",
     "target.data",
   );
+  const currentPageId = state.entities?.pageList?.currentPageId;
+  const currentPageWidgetState = currentPageId
+    ? state.ui?.pageWidgets?.[currentPageId]
+    : undefined;
 
   return {
     currentPageWidgets:
-      props.currentPageWidgets || getCurrentPageWidgets(state),
+      props.currentPageWidgets ??
+      (currentPageWidgetState
+        ? getCurrentPageWidgets(state)
+        : props.currentPageWidgets === undefined && !state.entities?.pageList
+          ? getCurrentPageWidgets(state)
+          : undefined),
+    currentPageActions:
+      props.currentPageActions ??
+      (state.entities?.pageList ? getCurrentActions(state) : undefined),
     value:
       props.value ??
       targetBindingValue ??
@@ -548,6 +670,7 @@ const mapStateToProps = (
       (typeof selectedOwnerObjectTypeId === "string"
         ? selectedOwnerObjectTypeId
         : undefined),
+    primaryKey: props.primaryKey ?? selectedPrimaryKey(objectPropertyMetadata),
   };
 };
 

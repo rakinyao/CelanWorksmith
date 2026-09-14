@@ -8,6 +8,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class WorkspaceDomainRuntimeBindingResolver {
+    private static final String DEPLOYMENT_SCOPE = "*";
+
     private final Map<String, WorkspaceDomainRuntimeBinding> bindings;
 
     public WorkspaceDomainRuntimeBindingResolver(ReleaseRuntimeBindingProperties properties) {
@@ -41,6 +43,7 @@ public class WorkspaceDomainRuntimeBindingResolver {
 
     public Mono<WorkspaceDomainRuntimeBinding> resolveRequired(String workspaceId, String domain) {
         WorkspaceDomainRuntimeBinding binding = bindings.get(key(workspaceId, domain));
+        if (binding == null) binding = bindings.get(key(DEPLOYMENT_SCOPE, domain));
         if (binding == null) {
             return Mono.error(new CelanWorksmithException(
                     CelanWorksmithErrorCode.RELEASE_IMPORT_BINDING_UNAVAILABLE,

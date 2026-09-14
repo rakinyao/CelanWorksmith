@@ -270,6 +270,29 @@ class OntologyActionConfigurationTest {
     }
 
     @Test
+    void builderFunctionQueryParsesEvaluatedObjectSetJsonIntoCanonicalTarget() {
+        OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", uqi("FUNCTION_QUERY"),
+                "queryMode", uqi("BUILDER"),
+                "objectTypeId", uqi("PurchaseOrder"),
+                "functionId", uqi("manyScore"),
+                // Dynamic bindings reach plugins as JSON strings after native multipart substitution.
+                "target", uqi(Map.of("source", "OBJECT_SET", "objectIds", "[\"PO001\",\"PO002\"]")))));
+
+        assertEquals(
+                Map.of(
+                        "functionId",
+                        "manyScore",
+                        "objectTypeId",
+                        "PurchaseOrder",
+                        "target",
+                        Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "PO002")),
+                        "parameters",
+                        Map.of()),
+                configuration.definition());
+    }
+
+    @Test
     void builderFunctionQueryRejectsDynamicJsonThatIsNotAnObject() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,

@@ -18,6 +18,23 @@ describe("buildWidgetTargetBinding", () => {
     });
   });
 
+  it.each(["TABLE_WIDGET_V2", "WDS_TABLE_WIDGET"])(
+    "builds a single target for current Table type %s",
+    (type) => {
+      expect(
+        buildWidgetTargetBinding(
+          { widgetId: "table-id", type, widgetName: "Table1" },
+          "contract_id",
+          1,
+        ),
+      ).toEqual({
+        widgetId: "table-id",
+        cardinality: "ONE",
+        expression: '{{Table1.selectedRow["contract_id"]}}',
+      });
+    },
+  );
+
   it("builds a many-target Table binding", () => {
     expect(
       buildWidgetTargetBinding(

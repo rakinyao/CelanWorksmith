@@ -157,6 +157,24 @@ describe("ontology object query definition", () => {
     });
   });
 
+  it("omits dynamic Builder sorting from the Advanced definition mirror", () => {
+    const definition = JSON.parse(
+      serializeBuilderForm({
+        objectTypeId: { data: "PurchaseOrder" },
+        sort: {
+          data: [
+            {
+              propertyId: '{{Table1.sortColumn || "delayDays"}}',
+              direction: '{{Table1.isAscending ? "ASC" : "DESC"}}',
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(definition).not.toHaveProperty("sort");
+  });
+
   it("serializes and hydrates the object query result mode", () => {
     const definition = serializeBuilderForm({
       objectTypeId: { data: "PurchaseOrder" },

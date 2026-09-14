@@ -24,6 +24,38 @@ import { toast } from "@appsmith/ads";
 import type { PropertyUpdates } from "WidgetProvider/types";
 import type { ModuleInstance } from "ee/constants/ModuleInstanceConstants";
 import { getModuleInstanceById } from "ee/selectors/moduleInstanceSelectors";
+import { objectKeys } from "@appsmith/utils";
+import { getOntologyColumnLabels } from "./ontologyColumnLabels";
+
+const TABLE_WIDGET_TYPES = new Set([
+  "TABLE_WIDGET",
+  "TABLE_WIDGET_V2",
+  "WDS_TABLE_WIDGET",
+]);
+
+interface TableColumn {
+  alias?: string;
+  label?: string;
+  originalId?: string;
+}
+
+const getDefaultTableColumnLabelUpdates = (
+  primaryColumns: Record<string, TableColumn> | undefined,
+  columnNameMap: Record<string, string>,
+): Record<string, string> => {
+  if (!primaryColumns) return {};
+
+  return Object.fromEntries(
+    Object.entries(primaryColumns).flatMap(([columnId, column]) => {
+      const fieldName = column.originalId || column.alias || columnId;
+      const label = columnNameMap[fieldName];
+
+      return label && column.label === fieldName
+        ? [[`primaryColumns.${columnId}.label`, label]]
+        : [];
+    }),
+  );
+};
 
 export function* bindDataToWidgetSaga(
   action: ReduxAction<{
@@ -103,14 +135,31 @@ export function* bindDataToWidgetSaga(
   }
 
   if (queryId && isValidProperty && updates.length > 0) {
-    const updatesMap: Record<string, string> = updates?.reduce(
-      (acc: Record<string, string>, update) => {
+    const updatesMap: Record<string, unknown> = updates?.reduce(
+      (acc: Record<string, unknown>, update) => {
         acc[update.propertyPath] = update.propertyValue as string;
 
         return acc;
       },
       {},
     );
+
+    const columnNameMap = getOntologyColumnLabels(currentAction?.data?.headers);
+
+    if (
+      TABLE_WIDGET_TYPES.has(selectedWidget.type) &&
+      objectKeys(columnNameMap).length > 0
+    ) {
+      updatesMap.columnNameMap = columnNameMap;
+      Object.assign(
+        updatesMap,
+        getDefaultTableColumnLabelUpdates(
+          (selectedWidget as { primaryColumns?: Record<string, TableColumn> })
+            .primaryColumns,
+          columnNameMap,
+        ),
+      );
+    }
 
     const batchUpdateArray = updates.map((update) => {
       return {

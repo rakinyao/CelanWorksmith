@@ -61,15 +61,33 @@ const sourceOptions: Array<{
   },
 ];
 
-const readFile = async (file: File): Promise<number[]> =>
+const readFile = async (file: File): Promise<ArrayBuffer> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onerror = () => reject(reader.error);
-    reader.onload = () =>
-      resolve(Array.from(new Uint8Array(reader.result as ArrayBuffer)));
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
     reader.readAsArrayBuffer(file);
   });
+
+class ReleaseJsonValidationError extends Error {
+  code = "RELEASE_IMPORT_INVALID";
+}
+
+const isSupportedReleaseJson = (metadata: ArrayBuffer): boolean => {
+  try {
+    const envelope = JSON.parse(new TextDecoder().decode(metadata)) as {
+      format?: unknown;
+      format_version?: unknown;
+    };
+
+    return (
+      envelope.format === "ontology-model" && envelope.format_version === 2
+    );
+  } catch {
+    return false;
+  }
+};
 
 const structuredErrorMessage = (error: unknown): string | undefined => {
   if (error instanceof Error && error.message) return error.message;
@@ -110,9 +128,16 @@ const structuredErrorCode = (error: unknown): string | undefined => {
 const isResolvedAxiosError = (value: unknown): boolean => {
   if (typeof value !== "object" || value === null) return false;
 
-  const response = (value as Record<string, unknown>).response;
+  const record = value as Record<string, unknown>;
+  const response = record.response;
+  const responseMeta = record.responseMeta;
 
-  return typeof response === "object" && response !== null;
+  return (
+    (typeof response === "object" && response !== null) ||
+    (typeof responseMeta === "object" &&
+      responseMeta !== null &&
+      (responseMeta as Record<string, unknown>).success === false)
+  );
 };
 
 const releaseImportErrorKey = (code: string | undefined) => {
@@ -199,7 +224,21 @@ function OntologyDatasourceImport({
     setImportError(undefined);
     try {
       const selectedFile = source === "LOCAL_YAML" ? yamlFile : releaseJsonFile;
-      const metadata = selectedFile ? await readFile(selectedFile) : undefined;
+      const fileContents = selectedFile
+        ? await readFile(selectedFile)
+        : undefined;
+
+      if (
+        source === "LOCAL_RELEASE_JSON" &&
+        fileContents &&
+        !isSupportedReleaseJson(fileContents)
+      ) {
+        throw new ReleaseJsonValidationError();
+      }
+
+      const metadata = fileContents
+        ? Array.from(new Uint8Array(fileContents))
+        : undefined;
       const response = await OntologyDatasourceApi.importDatasource({
         workspaceId,
         datasourceName: datasourceName.trim(),

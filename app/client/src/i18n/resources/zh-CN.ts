@@ -289,6 +289,7 @@ const zhCN = {
   },
   ontologyQuery: {
     cannotSwitchToBuilder: "无法切换到构建器：{{reason}}",
+    advancedDraftPreserved: "高级草稿未同步：{{reason}}已恢复构建器中的值。",
     invalidDefinition: "高级定义无效。",
     metadataUnavailable: "本体元数据不可用。",
   },

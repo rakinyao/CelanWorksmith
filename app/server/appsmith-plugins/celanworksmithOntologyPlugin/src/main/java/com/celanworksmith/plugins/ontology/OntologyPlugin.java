@@ -1,5 +1,6 @@
 package com.celanworksmith.plugins.ontology;
 
+import com.appsmith.external.dtos.ExecuteActionDTO;
 import com.appsmith.external.exceptions.pluginExceptions.AppsmithPluginError;
 import com.appsmith.external.exceptions.pluginExceptions.AppsmithPluginException;
 import com.appsmith.external.models.ActionConfiguration;
@@ -7,6 +8,7 @@ import com.appsmith.external.models.ActionExecutionResult;
 import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.DatasourceStructure;
 import com.appsmith.external.models.DatasourceTestResult;
+import com.appsmith.external.models.Param;
 import com.appsmith.external.models.TriggerRequestDTO;
 import com.appsmith.external.models.TriggerResultDTO;
 import com.appsmith.external.plugins.BasePlugin;
@@ -69,6 +71,69 @@ public class OntologyPlugin extends BasePlugin {
         @Override
         public void datasourceDestroy(OntologyDatasourceConfiguration datasourceConfiguration) {
             // The pinned datasource configuration has no runtime connection in the skeleton.
+        }
+
+        @Override
+        public void prepareConfigurationsForExecution(
+                ExecuteActionDTO executeActionDTO,
+                ActionConfiguration actionConfiguration,
+                DatasourceConfiguration datasourceConfiguration) {
+            Object rawDefinition = actionConfiguration.getFormData() == null
+                    ? null
+                    : actionConfiguration.getFormData().get("definition");
+            boolean usesTypedCapabilityDefinition = isAdvancedCapabilityDefinition(actionConfiguration.getFormData());
+
+            PluginExecutor.super.prepareConfigurationsForExecution(
+                    executeActionDTO, actionConfiguration, datasourceConfiguration);
+
+            String definition = unwrapDefinition(rawDefinition);
+            if (!usesTypedCapabilityDefinition || definition == null || actionConfiguration.getFormData() == null) {
+                return;
+            }
+
+            actionConfiguration
+                    .getFormData()
+                    .put(
+                            "definition",
+                            Map.of(
+                                    "data",
+                                    OntologyCapabilityDefinitionSubstitutor.substitute(
+                                            definition, executionParameters(executeActionDTO))));
+        }
+
+        private static boolean isAdvancedCapabilityDefinition(Map<String, Object> formData) {
+            if (formData == null) {
+                return false;
+            }
+            Object operation = unwrapControlValue(formData.get("operation"));
+            Object queryMode = unwrapControlValue(formData.get("queryMode"));
+            return ("FUNCTION_QUERY".equals(operation) || "ACTION_QUERY".equals(operation))
+                    && "ADVANCED".equals(queryMode);
+        }
+
+        private static String unwrapDefinition(Object definition) {
+            Object value = unwrapControlValue(definition);
+            return value instanceof String text ? text : null;
+        }
+
+        private static Object unwrapControlValue(Object value) {
+            if (value instanceof Map<?, ?> map && map.containsKey("data")) {
+                return map.get("data");
+            }
+            return value;
+        }
+
+        private static Map<String, String> executionParameters(ExecuteActionDTO executeActionDTO) {
+            if (executeActionDTO == null || executeActionDTO.getParams() == null) {
+                return Map.of();
+            }
+            Map<String, String> parameters = new LinkedHashMap<>();
+            for (Param parameter : executeActionDTO.getParams()) {
+                if (parameter != null && parameter.getKey() != null) {
+                    parameters.putIfAbsent(parameter.getKey().trim(), parameter.getValue());
+                }
+            }
+            return parameters;
         }
 
         @Override
@@ -262,7 +327,8 @@ public class OntologyPlugin extends BasePlugin {
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ontology object type: " + value));
             return visiblePropertiesWithPrimaryKey(objectType).stream()
-                    .map(property -> propertyMetadataEntry(property))
+                    .map(property ->
+                            propertyMetadataEntry(property, property.id().equals(objectType.primaryKey())))
                     .toList();
         }
 
@@ -378,6 +444,11 @@ public class OntologyPlugin extends BasePlugin {
         }
 
         private Map<String, Object> propertyMetadataEntry(OntologyRuntimeGateway.PropertyMetadata property) {
+            return propertyMetadataEntry(property, false);
+        }
+
+        private Map<String, Object> propertyMetadataEntry(
+                OntologyRuntimeGateway.PropertyMetadata property, boolean isPrimaryKey) {
             Map<String, Object> metadata = metadataEntry(
                     property.id(),
                     property.displayName(),
@@ -387,6 +458,9 @@ public class OntologyPlugin extends BasePlugin {
                     property.derived(),
                     property.enumValues(),
                     property.referenceTypeId());
+            if (isPrimaryKey) {
+                metadata.put("isPrimaryKey", true);
+            }
             metadata.put(
                     "operators",
                     OntologyQueryOperatorCatalog.operatorsFor(property.dataType()).stream()

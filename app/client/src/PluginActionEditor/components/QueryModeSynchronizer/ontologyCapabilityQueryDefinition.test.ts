@@ -2,6 +2,7 @@ import {
   hydrateCapabilityBuilderForm,
   getCapabilityBuilderTargetUpdate,
   parseAdvancedCapabilityDefinition,
+  serializeCapabilityBuilderDraft,
   serializeCapabilityBuilderForm,
   validateCapabilityDefinition,
   type OntologyCapabilityMetadata,
@@ -29,6 +30,55 @@ const actionMetadata: OntologyCapabilityMetadata = {
 };
 
 describe("ontology capability query definition", () => {
+  it("formats the editable Advanced draft for readability", () => {
+    expect(
+      serializeCapabilityBuilderDraft(
+        {
+          targetBinding: {
+            data: {
+              mode: "MANUAL",
+              cardinality: "ONE",
+              expression: "C-001",
+            },
+          },
+          parameters: { data: { amount: 1500000 } },
+        },
+        "FUNCTION_QUERY",
+        true,
+      ),
+    ).toBe(`{
+  "target": {
+    "source": "SINGLE_OBJECT",
+    "objectId": "C-001"
+  },
+  "parameters": {
+    "amount": 1500000
+  }
+}`);
+  });
+
+  it("does not serialize a parameter field's editor view state as a function parameter", () => {
+    expect(
+      serializeCapabilityBuilderDraft(
+        {
+          target: {
+            data: { source: "SINGLE_OBJECT", objectId: "CTR-1" },
+          },
+          // A zero-parameter Builder field may carry only this UI envelope.
+          parameters: { viewType: "component" },
+        },
+        "FUNCTION_QUERY",
+        true,
+      ),
+    ).toBe(`{
+  "target": {
+    "source": "SINGLE_OBJECT",
+    "objectId": "CTR-1"
+  },
+  "parameters": {}
+}`);
+  });
+
   it.each([
     ["FUNCTION_QUERY", "functionId", "CalculateDelayDays", functionMetadata],
     ["ACTION_QUERY", "actionId", "ReschedulePurchaseOrder", actionMetadata],
@@ -126,8 +176,8 @@ describe("ontology capability query definition", () => {
     );
   });
 
-  it("does not assume an unverified capability has zero parameters", () => {
-    expect(() =>
+  it("uses an empty parameter object until unverified capability metadata loads", () => {
+    expect(
       serializeCapabilityBuilderForm(
         {
           objectTypeId: { data: "PurchaseOrder" },
@@ -141,7 +191,9 @@ describe("ontology capability query definition", () => {
         },
         "FUNCTION_QUERY",
       ),
-    ).toThrow("Ontology capability parameters must be a JSON object");
+    ).toBe(
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
+    );
   });
 
   it("hydrates Advanced target and parameters into Builder controls", () => {
@@ -161,6 +213,29 @@ describe("ontology capability query definition", () => {
         expression: "PO002",
       },
       "actionConfiguration.formData.parameters.data": { delayDays: 5 },
+    });
+  });
+
+  it("restores a matching Widget target binding when returning from Advanced", () => {
+    const target = {
+      source: "OBJECT_SET" as const,
+      objectIds: '{{ContractsTable.selectedRows.map((row) => row["id"])}}',
+    };
+    const widgetBinding = {
+      mode: "WIDGET" as const,
+      widgetId: "contracts-table-id",
+      cardinality: "MANY" as const,
+      expression: target.objectIds,
+    };
+
+    expect(
+      hydrateCapabilityBuilderForm(
+        { target, parameters: {} },
+        target,
+        widgetBinding,
+      ),
+    ).toMatchObject({
+      "actionConfiguration.formData.targetBinding.data": widgetBinding,
     });
   });
 

@@ -116,6 +116,7 @@ export function useColumns(alias: string, isSearcheable: boolean) {
         return {
           name: column.name,
           type: getType(column.type),
+          displayName: column.displayName,
           isSelected:
             (column.name !== primaryColumn ||
               !excludePrimaryColumnFromQueryGeneration) &&

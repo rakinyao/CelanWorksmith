@@ -21,7 +21,8 @@ public final class OntologyRuntimeSnapshotProjection {
                                 function.ownerObjectTypeIds(),
                                 function.parameters().stream()
                                         .map(OntologyRuntimeSnapshotProjection::propertyMetadata)
-                                        .toList()))
+                                        .toList(),
+                                function.maxItems()))
                         .toList(),
                 snapshot.definition().linkTypes().stream()
                         .map(link -> new OntologyRuntimeGateway.LinkMetadata(

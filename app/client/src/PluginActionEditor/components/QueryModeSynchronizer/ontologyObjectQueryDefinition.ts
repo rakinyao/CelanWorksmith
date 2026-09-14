@@ -1,4 +1,4 @@
-export type OntologyObjectQueryDefinition = {
+export interface OntologyObjectQueryDefinition {
   objectTypeId: string;
   resultMode?: "ROWS" | "TOTAL";
   projection?: string[];
@@ -22,9 +22,9 @@ export type OntologyObjectQueryDefinition = {
     | {
         mode: "FULL";
       };
-};
+}
 
-export type OntologyQueryMetadata = {
+export interface OntologyQueryMetadata {
   objectTypes: Array<{
     id: string;
     properties: Array<{
@@ -33,7 +33,7 @@ export type OntologyQueryMetadata = {
       operators?: Array<{ value: string; requiresValue?: boolean }>;
     }>;
   }>;
-};
+}
 
 type ValidationResult =
   | { valid: true; definition: OntologyObjectQueryDefinition }
@@ -146,9 +146,11 @@ function validateProjection(
     const property = objectType.properties.find(
       (item) => item.id === propertyId,
     );
+
     if (!property) {
       return invalid(`Unknown Property ID in projection: ${propertyId}`);
     }
+
     if (property.hidden === true) {
       return invalid(
         `Projection cannot include hidden Property: ${propertyId}`,
@@ -179,6 +181,7 @@ function validateFilter(
     ["conditions"],
     "filter",
   );
+
   if (filterFieldError) {
     return invalid(filterFieldError);
   }
@@ -187,14 +190,17 @@ function validateFilter(
     if (!isRecord(condition)) {
       return invalid("Filter conditions must be objects");
     }
+
     const conditionFieldError = findUnsupportedField(
       condition,
       ["propertyId", "operator", "value"],
       "filter condition",
     );
+
     if (conditionFieldError) {
       return invalid(conditionFieldError);
     }
+
     if (
       !isNonEmptyString(condition.propertyId) ||
       !isNonEmptyString(condition.operator)
@@ -203,6 +209,7 @@ function validateFilter(
     }
 
     const property = findVisibleProperty(objectType, condition.propertyId);
+
     if (!property) {
       return invalid(
         `Unknown or hidden Property in filter: ${condition.propertyId}`,
@@ -212,12 +219,15 @@ function validateFilter(
     const operator = property.operators?.find(
       (candidate) => candidate.value === condition.operator,
     );
+
     if (!operator) {
       return invalid(
         `Unsupported operator for Property ${condition.propertyId}: ${condition.operator}`,
       );
     }
+
     const isExplicitlyValueless = operator.value === "isEmpty";
+
     if (!isExplicitlyValueless && !hasValue(condition.value)) {
       return invalid(`Filter operator ${condition.operator} requires a value`);
     }
@@ -237,6 +247,7 @@ function validateSort(
   if (!Array.isArray(definition.sort)) {
     return invalid("Sort must be an array of Property and direction entries");
   }
+
   if (definition.sort.length > 1) {
     return invalid("Sort must contain exactly one property and direction");
   }
@@ -245,14 +256,17 @@ function validateSort(
     if (!isRecord(item) || !isNonEmptyString(item.propertyId)) {
       return invalid("Sort entries require a Property ID and direction");
     }
+
     const sortFieldError = findUnsupportedField(
       item,
       ["propertyId", "direction"],
       "sort entry",
     );
+
     if (sortFieldError) {
       return invalid(sortFieldError);
     }
+
     if (
       !isBinding(item.direction) &&
       item.direction !== "ASC" &&
@@ -260,6 +274,7 @@ function validateSort(
     ) {
       return invalid("Sort direction must be ASC or DESC");
     }
+
     if (
       !isBinding(item.propertyId) &&
       !findVisibleProperty(objectType, item.propertyId)
@@ -281,6 +296,7 @@ function validatePage(
   if (!isRecord(definition.page)) {
     return invalid("Pagination must contain offset and limit");
   }
+
   if (definition.page.mode === "FULL") {
     const fullPageFieldError = findUnsupportedField(
       definition.page,
@@ -290,23 +306,28 @@ function validatePage(
 
     return fullPageFieldError ? invalid(fullPageFieldError) : undefined;
   }
+
   const pageFieldError = findUnsupportedField(
     definition.page,
     ["mode", "offset", "limit"],
     "pagination",
   );
+
   if (pageFieldError) {
     return invalid(pageFieldError);
   }
+
   if (!hasOwn(definition.page, "offset") || !hasOwn(definition.page, "limit")) {
     return invalid("Pagination must contain both offset and limit");
   }
+
   if (
     definition.page.mode !== undefined &&
     definition.page.mode !== "LIMITED"
   ) {
     return invalid("Pagination mode must be LIMITED or FULL");
   }
+
   if (
     !isValidLimitedPageValue(definition.page.offset, false) ||
     !isValidLimitedPageValue(definition.page.limit, true)
@@ -335,6 +356,7 @@ function validateDefinitionShape(definition: unknown): string | undefined {
   const unsupportedField = Object.keys(definition).find(
     (key) => !supportedFields.has(key),
   );
+
   if (unsupportedField) {
     return `Unsupported field in ontology query definition: ${unsupportedField}`;
   }
@@ -355,6 +377,7 @@ function validateDefinitionShape(definition: unknown): string | undefined {
     if (!Array.isArray(definition.projection)) {
       return "Projection must be an array of visible Property IDs";
     }
+
     if (
       definition.projection.some((propertyId) => !isNonEmptyString(propertyId))
     ) {
@@ -369,14 +392,17 @@ function validateDefinitionShape(definition: unknown): string | undefined {
     ) {
       return "Filter must contain a conditions array";
     }
+
     const filterFieldError = findUnsupportedField(
       definition.filter,
       ["conditions"],
       "filter",
     );
+
     if (filterFieldError) {
       return filterFieldError;
     }
+
     for (const condition of definition.filter.conditions) {
       if (
         !isRecord(condition) ||
@@ -385,11 +411,13 @@ function validateDefinitionShape(definition: unknown): string | undefined {
       ) {
         return "Filter conditions require a Property ID and operator";
       }
+
       const conditionFieldError = findUnsupportedField(
         condition,
         ["propertyId", "operator", "value"],
         "filter condition",
       );
+
       if (conditionFieldError) {
         return conditionFieldError;
       }
@@ -400,9 +428,11 @@ function validateDefinitionShape(definition: unknown): string | undefined {
     if (!Array.isArray(definition.sort)) {
       return "Sort must be an array of Property and direction entries";
     }
+
     if (definition.sort.length > 1) {
       return "Sort must contain exactly one property and direction";
     }
+
     for (const item of definition.sort) {
       if (
         !isRecord(item) ||
@@ -413,11 +443,13 @@ function validateDefinitionShape(definition: unknown): string | undefined {
       ) {
         return "Sort entries require a Property ID and direction; direction must be ASC or DESC";
       }
+
       const sortFieldError = findUnsupportedField(
         item,
         ["propertyId", "direction"],
         "sort entry",
       );
+
       if (sortFieldError) {
         return sortFieldError;
       }
@@ -426,9 +458,11 @@ function validateDefinitionShape(definition: unknown): string | undefined {
 
   if (hasOwn(definition, "page") && definition.page !== undefined) {
     const page = definition.page;
+
     if (!isRecord(page)) {
       return "Pagination must contain offset and limit";
     }
+
     if (page.mode === "FULL") {
       const fullPageFieldError = findUnsupportedField(
         page,
@@ -438,20 +472,25 @@ function validateDefinitionShape(definition: unknown): string | undefined {
 
       return fullPageFieldError;
     }
+
     const pageFieldError = findUnsupportedField(
       page,
       ["mode", "offset", "limit"],
       "pagination",
     );
+
     if (pageFieldError) {
       return pageFieldError;
     }
+
     if (page.mode !== undefined && page.mode !== "LIMITED") {
       return "Pagination mode must be LIMITED or FULL";
     }
+
     if (!hasOwn(page, "offset") || !hasOwn(page, "limit")) {
       return "Pagination must contain both offset and limit";
     }
+
     if (
       !isValidLimitedPageValue(page.offset, false) ||
       !isValidLimitedPageValue(page.limit, true)
@@ -468,6 +507,7 @@ export function validateDefinition(
   metadata: OntologyQueryMetadata,
 ): ValidationResult {
   const shapeError = validateDefinitionShape(definition);
+
   if (shapeError) {
     return invalid(shapeError);
   }
@@ -475,6 +515,7 @@ export function validateDefinition(
   const objectType = metadata.objectTypes.find(
     (candidate) => candidate.id === definition.objectTypeId,
   );
+
   if (!objectType) {
     return invalid(`Unknown Object Type ID: ${definition.objectTypeId}`);
   }
@@ -486,6 +527,7 @@ export function validateDefinition(
     validatePage(definition),
   ];
   const validationError = validators.find((result) => result !== undefined);
+
   if (validationError) {
     return validationError;
   }
@@ -571,6 +613,16 @@ export function serializeBuilderForm(
   const sort = unwrapBuilderValue(formData.sort);
   const page = unwrapBuilderValue(formData.page);
   const resultMode = unwrapBuilderValue(formData.resultMode);
+  const staticSort = Array.isArray(sort)
+    ? sort.every(
+        (item) =>
+          isRecord(item) &&
+          !isBinding(item.propertyId) &&
+          !isBinding(item.direction),
+      )
+      ? (sort as OntologyObjectQueryDefinition["sort"])
+      : undefined
+    : (sort as OntologyObjectQueryDefinition["sort"]);
 
   return JSON.stringify(
     normalizeDefinition({
@@ -578,7 +630,10 @@ export function serializeBuilderForm(
       resultMode: resultMode as OntologyObjectQueryDefinition["resultMode"],
       projection: projection as string[] | undefined,
       filter: filter as OntologyObjectQueryDefinition["filter"],
-      sort: sort as OntologyObjectQueryDefinition["sort"],
+      // Advanced JSON is a single string control, so nested bindings are not
+      // evaluated by Appsmith's action pipeline. Keep Builder-only dynamic sorting
+      // out of its mirror rather than sending an unresolved property ID to runtime.
+      sort: staticSort,
       page: page as OntologyObjectQueryDefinition["page"],
     }),
     null,
@@ -625,6 +680,7 @@ export function parseAdvancedDefinition(
   }
 
   const shapeError = validateDefinitionShape(parsed);
+
   if (shapeError) {
     throw new Error(shapeError);
   }

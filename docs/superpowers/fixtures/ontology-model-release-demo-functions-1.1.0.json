@@ -1,0 +1,4060 @@
+{
+  "format" : "ontology-model",
+  "format_version" : 2,
+  "release" : {
+    "domain" : "business",
+    "model_id" : "business-core-demo",
+    "version" : "1.1.0",
+    "previous_release_digest" : "sha256:42c9ff7557b21f54326ae04fa83d1589094bd109c017867e74d4e0ce3b86e4a0",
+    "released_at" : "2026-09-08T00:00:00Z",
+    "change_set" : {
+      "compatibility" : "BACKWARD_COMPATIBLE",
+      "changes" : [ ]
+    },
+    "release_digest" : "sha256:7ad2623afc768a0d78a3055788089bc2cd7e329f94bf6b50bcce10e34c1c391b"
+  },
+  "elements" : [ {
+    "kind" : "entity_set",
+    "domain" : "business",
+    "name" : "contract",
+    "version" : "1.0.0",
+    "spec" : {
+      "description" : {
+        "en-US" : "合同事实表。signed_amount/current_amount 表示签约或当前合同金额，不是会计确认收入；产品线来自万象 NJFPD_CPX_NAME，按项目编号关联。确认收入必须查询 public.ont_revenue。",
+        "zh-CN" : "合同事实表。signed_amount/current_amount 表示签约或当前合同金额，不是会计确认收入；产品线来自万象 NJFPD_CPX_NAME，按项目编号关联。确认收入必须查询 public.ont_revenue。"
+      },
+      "display_name" : {
+        "en-US" : "合同",
+        "zh-CN" : "合同"
+      },
+      "fields" : [ {
+        "description" : {
+          "en-US" : "物理主键",
+          "zh-CN" : "物理主键"
+        },
+        "display_name" : {
+          "en-US" : "合同ID",
+          "zh-CN" : "合同ID"
+        },
+        "name" : "id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "identity",
+          "source" : "${source_dataset_id}:public.ont_contract.id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "合同编号；关联合同主数据 ont_contract.contract_no",
+          "zh-CN" : "合同编号；关联合同主数据 ont_contract.contract_no"
+        },
+        "display_name" : {
+          "en-US" : "合同编号",
+          "zh-CN" : "合同编号"
+        },
+        "name" : "contract_no",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.contract_no"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "合同名称",
+          "zh-CN" : "合同名称"
+        },
+        "display_name" : {
+          "en-US" : "合同名称",
+          "zh-CN" : "合同名称"
+        },
+        "name" : "contract_name",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.contract_name"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "业务字段：contract_category",
+          "zh-CN" : "业务字段：contract_category"
+        },
+        "display_name" : {
+          "en-US" : "合同类别",
+          "zh-CN" : "合同类别"
+        },
+        "name" : "contract_category",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.contract_category"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "原始金额",
+          "zh-CN" : "原始金额"
+        },
+        "display_name" : {
+          "en-US" : "原始金额",
+          "zh-CN" : "原始金额"
+        },
+        "name" : "original_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.original_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "累计变更金额",
+          "zh-CN" : "累计变更金额"
+        },
+        "display_name" : {
+          "en-US" : "累计变更金额",
+          "zh-CN" : "累计变更金额"
+        },
+        "name" : "change_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.change_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "当前合同金额（原合同金额加变更金额）。不能当作确认收入。",
+          "zh-CN" : "当前合同金额（原合同金额加变更金额）。不能当作确认收入。"
+        },
+        "display_name" : {
+          "en-US" : "当前合同金额",
+          "zh-CN" : "当前合同金额"
+        },
+        "name" : "current_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.current_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "币种",
+          "zh-CN" : "币种"
+        },
+        "display_name" : {
+          "en-US" : "币种",
+          "zh-CN" : "币种"
+        },
+        "name" : "currency",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.currency"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "业务状态",
+          "zh-CN" : "业务状态"
+        },
+        "display_name" : {
+          "en-US" : "业务状态",
+          "zh-CN" : "业务状态"
+        },
+        "name" : "state",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "classification",
+          "source" : "${source_dataset_id}:public.ont_contract.state"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "来源系统编码",
+          "zh-CN" : "来源系统编码"
+        },
+        "display_name" : {
+          "en-US" : "来源系统",
+          "zh-CN" : "来源系统"
+        },
+        "name" : "source_system",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.source_system"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "跨系统匹配状态；matched、pending 或 ambiguous",
+          "zh-CN" : "跨系统匹配状态；matched、pending 或 ambiguous"
+        },
+        "display_name" : {
+          "en-US" : "跨系统匹配状态",
+          "zh-CN" : "跨系统匹配状态"
+        },
+        "name" : "match_state",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.match_state"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "项目编号；关联项目主数据 project.project_code",
+          "zh-CN" : "项目编号；关联项目主数据 project.project_code"
+        },
+        "display_name" : {
+          "en-US" : "项目编号",
+          "zh-CN" : "项目编号"
+        },
+        "name" : "project_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.project_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "客户编号；关联客户主数据 ont_customer.customer_code",
+          "zh-CN" : "客户编号；关联客户主数据 ont_customer.customer_code"
+        },
+        "display_name" : {
+          "en-US" : "客户编号",
+          "zh-CN" : "客户编号"
+        },
+        "name" : "customer_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.customer_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "供应商编号；关联供应商主数据 ont_supplier.supplier_code",
+          "zh-CN" : "供应商编号；关联供应商主数据 ont_supplier.supplier_code"
+        },
+        "display_name" : {
+          "en-US" : "供应商编号",
+          "zh-CN" : "供应商编号"
+        },
+        "name" : "supplier_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.supplier_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "累计签约金额（合同金额）。不能当作确认收入；确认收入查询 public.ont_revenue.amount。",
+          "zh-CN" : "累计签约金额（合同金额）。不能当作确认收入；确认收入查询 public.ont_revenue.amount。"
+        },
+        "display_name" : {
+          "en-US" : "累计签约金额",
+          "zh-CN" : "累计签约金额"
+        },
+        "name" : "signed_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.signed_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "首次签约日期",
+          "zh-CN" : "首次签约日期"
+        },
+        "display_name" : {
+          "en-US" : "首次签约日期",
+          "zh-CN" : "首次签约日期"
+        },
+        "name" : "signed_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_contract.signed_at"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "最近变更日期",
+          "zh-CN" : "最近变更日期"
+        },
+        "display_name" : {
+          "en-US" : "最近变更日期",
+          "zh-CN" : "最近变更日期"
+        },
+        "name" : "latest_change_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_contract.latest_change_at"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "布尔标志",
+          "zh-CN" : "布尔标志"
+        },
+        "display_name" : {
+          "en-US" : "是否有质保",
+          "zh-CN" : "是否有质保"
+        },
+        "name" : "has_warranty",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.has_warranty"
+        },
+        "type" : "boolean"
+      }, {
+        "description" : {
+          "en-US" : "布尔标志",
+          "zh-CN" : "布尔标志"
+        },
+        "display_name" : {
+          "en-US" : "是否有维保",
+          "zh-CN" : "是否有维保"
+        },
+        "name" : "has_maintenance",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.has_maintenance"
+        },
+        "type" : "boolean"
+      }, {
+        "description" : {
+          "en-US" : "产品线名称；来源万象产品线接口 NJFPD_CPX_NAME，按项目编号 NJFPD_XMBH 关联；多产品线歧义时保留为空",
+          "zh-CN" : "产品线名称；来源万象产品线接口 NJFPD_CPX_NAME，按项目编号 NJFPD_XMBH 关联；多产品线歧义时保留为空"
+        },
+        "display_name" : {
+          "en-US" : "产品线",
+          "zh-CN" : "产品线"
+        },
+        "name" : "product_line",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_contract.product_line"
+        },
+        "type" : "string"
+      } ],
+      "primary_key_fields" : [ "id" ],
+      "properties" : {
+        "semantic_description" : "合同事实表。signed_amount/current_amount 表示签约或当前合同金额，不是会计确认收入；产品线来自万象 NJFPD_CPX_NAME，按项目编号关联。确认收入必须查询 public.ont_revenue。",
+        "semantic_description_source" : "governed_dataset",
+        "semantic_display_name" : "合同"
+      },
+      "source_table" : "public.ont_contract"
+    }
+  }, {
+    "kind" : "entity_set",
+    "domain" : "business",
+    "name" : "customer",
+    "version" : "1.0.0",
+    "spec" : {
+      "description" : {
+        "en-US" : "客户主数据，包含客户编码、名称、类型、等级、区域、行业、规模、风险标记及金额等属性。",
+        "zh-CN" : "客户主数据，包含客户编码、名称、类型、等级、区域、行业、规模、风险标记及金额等属性。"
+      },
+      "display_name" : {
+        "en-US" : "客户",
+        "zh-CN" : "客户"
+      },
+      "fields" : [ {
+        "description" : {
+          "en-US" : "客户编码 FNUMBER，普通业务关联字段",
+          "zh-CN" : "客户编码 FNUMBER，普通业务关联字段"
+        },
+        "display_name" : {
+          "en-US" : "客户编码",
+          "zh-CN" : "客户编码"
+        },
+        "name" : "customer_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.customer_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "客户名称",
+          "zh-CN" : "客户名称"
+        },
+        "display_name" : {
+          "en-US" : "客户名称",
+          "zh-CN" : "客户名称"
+        },
+        "name" : "customer_name",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.customer_name"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "简称名称",
+          "zh-CN" : "简称名称"
+        },
+        "display_name" : {
+          "en-US" : "简称",
+          "zh-CN" : "简称"
+        },
+        "name" : "short_name",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.short_name"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "说明",
+          "zh-CN" : "说明"
+        },
+        "display_name" : {
+          "en-US" : "说明",
+          "zh-CN" : "说明"
+        },
+        "name" : "description",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.description"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "单据状态",
+          "zh-CN" : "单据状态"
+        },
+        "display_name" : {
+          "en-US" : "单据状态",
+          "zh-CN" : "单据状态"
+        },
+        "name" : "document_status",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.document_status"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "禁用状态",
+          "zh-CN" : "禁用状态"
+        },
+        "display_name" : {
+          "en-US" : "禁用状态",
+          "zh-CN" : "禁用状态"
+        },
+        "name" : "forbid_status",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.forbid_status"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "状态",
+          "zh-CN" : "状态"
+        },
+        "display_name" : {
+          "en-US" : "状态",
+          "zh-CN" : "状态"
+        },
+        "name" : "state",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "classification",
+          "source" : "${source_dataset_id}:public.ont_customer.state"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "客户类型",
+          "zh-CN" : "客户类型"
+        },
+        "display_name" : {
+          "en-US" : "客户类型",
+          "zh-CN" : "客户类型"
+        },
+        "name" : "customer_type",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.customer_type"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "客户类型ID",
+          "zh-CN" : "客户类型ID"
+        },
+        "display_name" : {
+          "en-US" : "客户类型ID",
+          "zh-CN" : "客户类型ID"
+        },
+        "name" : "customer_type_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.customer_type_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "客户等级历史",
+          "zh-CN" : "客户等级历史"
+        },
+        "display_name" : {
+          "en-US" : "客户等级历史",
+          "zh-CN" : "客户等级历史"
+        },
+        "name" : "customer_level_legacy",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.customer_level_legacy"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "客户等级",
+          "zh-CN" : "客户等级"
+        },
+        "display_name" : {
+          "en-US" : "客户等级",
+          "zh-CN" : "客户等级"
+        },
+        "name" : "customer_level",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.customer_level"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "客户等级",
+          "zh-CN" : "客户等级"
+        },
+        "display_name" : {
+          "en-US" : "客户等级",
+          "zh-CN" : "客户等级"
+        },
+        "name" : "customer_grade",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.customer_grade"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "是否贸易客户",
+          "zh-CN" : "是否贸易客户"
+        },
+        "display_name" : {
+          "en-US" : "是否贸易客户",
+          "zh-CN" : "是否贸易客户"
+        },
+        "name" : "is_trade_customer",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.is_trade_customer"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "是否集团客户",
+          "zh-CN" : "是否集团客户"
+        },
+        "display_name" : {
+          "en-US" : "是否集团客户",
+          "zh-CN" : "是否集团客户"
+        },
+        "name" : "is_group_customer",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.is_group_customer"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "国家",
+          "zh-CN" : "国家"
+        },
+        "display_name" : {
+          "en-US" : "国家",
+          "zh-CN" : "国家"
+        },
+        "name" : "country",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.country"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "行政区域名称",
+          "zh-CN" : "行政区域名称"
+        },
+        "display_name" : {
+          "en-US" : "行政区域名称",
+          "zh-CN" : "行政区域名称"
+        },
+        "name" : "administrative_region_name",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.administrative_region_name"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "省份名称",
+          "zh-CN" : "省份名称"
+        },
+        "display_name" : {
+          "en-US" : "省份名称",
+          "zh-CN" : "省份名称"
+        },
+        "name" : "province_name",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.province_name"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "省份ID",
+          "zh-CN" : "省份ID"
+        },
+        "display_name" : {
+          "en-US" : "省份ID",
+          "zh-CN" : "省份ID"
+        },
+        "name" : "province_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.province_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "城市ID",
+          "zh-CN" : "城市ID"
+        },
+        "display_name" : {
+          "en-US" : "城市ID",
+          "zh-CN" : "城市ID"
+        },
+        "name" : "city_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.city_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "区域名称",
+          "zh-CN" : "区域名称"
+        },
+        "display_name" : {
+          "en-US" : "区域名称",
+          "zh-CN" : "区域名称"
+        },
+        "name" : "region_name",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.region_name"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "区域ID",
+          "zh-CN" : "区域ID"
+        },
+        "display_name" : {
+          "en-US" : "区域ID",
+          "zh-CN" : "区域ID"
+        },
+        "name" : "region_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.region_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "地址",
+          "zh-CN" : "地址"
+        },
+        "display_name" : {
+          "en-US" : "地址",
+          "zh-CN" : "地址"
+        },
+        "name" : "address",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.address"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "注册地址",
+          "zh-CN" : "注册地址"
+        },
+        "display_name" : {
+          "en-US" : "注册地址",
+          "zh-CN" : "注册地址"
+        },
+        "name" : "registered_address",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.registered_address"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "发票地址",
+          "zh-CN" : "发票地址"
+        },
+        "display_name" : {
+          "en-US" : "发票地址",
+          "zh-CN" : "发票地址"
+        },
+        "name" : "invoice_address",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.invoice_address"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "邮政编码",
+          "zh-CN" : "邮政编码"
+        },
+        "display_name" : {
+          "en-US" : "邮政编码",
+          "zh-CN" : "邮政编码"
+        },
+        "name" : "postal_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.postal_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "电话",
+          "zh-CN" : "电话"
+        },
+        "display_name" : {
+          "en-US" : "电话",
+          "zh-CN" : "电话"
+        },
+        "name" : "telephone",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.telephone"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "传真",
+          "zh-CN" : "传真"
+        },
+        "display_name" : {
+          "en-US" : "传真",
+          "zh-CN" : "传真"
+        },
+        "name" : "fax",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.fax"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "网站",
+          "zh-CN" : "网站"
+        },
+        "display_name" : {
+          "en-US" : "网站",
+          "zh-CN" : "网站"
+        },
+        "name" : "website",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.website"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "行业",
+          "zh-CN" : "行业"
+        },
+        "display_name" : {
+          "en-US" : "行业",
+          "zh-CN" : "行业"
+        },
+        "name" : "industry",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.industry"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "业务标准",
+          "zh-CN" : "业务标准"
+        },
+        "display_name" : {
+          "en-US" : "业务范围",
+          "zh-CN" : "业务范围"
+        },
+        "name" : "business_scope",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.business_scope"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "公司规模",
+          "zh-CN" : "公司规模"
+        },
+        "display_name" : {
+          "en-US" : "公司规模",
+          "zh-CN" : "公司规模"
+        },
+        "name" : "company_scale",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.company_scale"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "公司性质",
+          "zh-CN" : "公司性质"
+        },
+        "display_name" : {
+          "en-US" : "公司性质",
+          "zh-CN" : "公司性质"
+        },
+        "name" : "company_nature",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.company_nature"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "公司分类",
+          "zh-CN" : "公司分类"
+        },
+        "display_name" : {
+          "en-US" : "公司分类",
+          "zh-CN" : "公司分类"
+        },
+        "name" : "company_classification",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.company_classification"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "法定人员",
+          "zh-CN" : "法定人员"
+        },
+        "display_name" : {
+          "en-US" : "法定代表人",
+          "zh-CN" : "法定代表人"
+        },
+        "name" : "legal_person",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.legal_person"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "注册注册资本",
+          "zh-CN" : "注册注册资本"
+        },
+        "display_name" : {
+          "en-US" : "注册资本",
+          "zh-CN" : "注册资本"
+        },
+        "name" : "registered_capital",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.registered_capital"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "成立日期",
+          "zh-CN" : "成立日期"
+        },
+        "display_name" : {
+          "en-US" : "成立日期",
+          "zh-CN" : "成立日期"
+        },
+        "name" : "established_date",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_customer.established_date"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "统一社会信用编码",
+          "zh-CN" : "统一社会信用编码"
+        },
+        "display_name" : {
+          "en-US" : "统一社会信用代码",
+          "zh-CN" : "统一社会信用代码"
+        },
+        "name" : "unified_social_credit_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.unified_social_credit_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "税登记编码",
+          "zh-CN" : "税登记编码"
+        },
+        "display_name" : {
+          "en-US" : "税务登记编码",
+          "zh-CN" : "税务登记编码"
+        },
+        "name" : "tax_registration_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.tax_registration_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "登记状态",
+          "zh-CN" : "登记状态"
+        },
+        "display_name" : {
+          "en-US" : "登记状态",
+          "zh-CN" : "登记状态"
+        },
+        "name" : "registration_status",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.registration_status"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "联系人ID",
+          "zh-CN" : "联系人ID"
+        },
+        "display_name" : {
+          "en-US" : "联系人ID",
+          "zh-CN" : "联系人ID"
+        },
+        "name" : "contact_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.contact_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "集团客户ID",
+          "zh-CN" : "集团客户ID"
+        },
+        "display_name" : {
+          "en-US" : "集团客户ID",
+          "zh-CN" : "集团客户ID"
+        },
+        "name" : "group_customer_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.group_customer_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "供应商ID",
+          "zh-CN" : "供应商ID"
+        },
+        "display_name" : {
+          "en-US" : "供应商ID",
+          "zh-CN" : "供应商ID"
+        },
+        "name" : "supplier_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.supplier_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "交易币种ID",
+          "zh-CN" : "交易币种ID"
+        },
+        "display_name" : {
+          "en-US" : "交易币种ID",
+          "zh-CN" : "交易币种ID"
+        },
+        "name" : "trading_currency_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.trading_currency_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "销售部门ID",
+          "zh-CN" : "销售部门ID"
+        },
+        "display_name" : {
+          "en-US" : "销售部门ID",
+          "zh-CN" : "销售部门ID"
+        },
+        "name" : "sales_department_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.sales_department_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "销售集团ID",
+          "zh-CN" : "销售集团ID"
+        },
+        "display_name" : {
+          "en-US" : "销售集团ID",
+          "zh-CN" : "销售集团ID"
+        },
+        "name" : "sales_group_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.sales_group_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "销售员ID",
+          "zh-CN" : "销售员ID"
+        },
+        "display_name" : {
+          "en-US" : "销售员ID",
+          "zh-CN" : "销售员ID"
+        },
+        "name" : "seller_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.seller_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "ARID",
+          "zh-CN" : "ARID"
+        },
+        "display_name" : {
+          "en-US" : "AR ID",
+          "zh-CN" : "AR ID"
+        },
+        "name" : "ar_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.ar_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "结算类型ID",
+          "zh-CN" : "结算类型ID"
+        },
+        "display_name" : {
+          "en-US" : "结算类型ID",
+          "zh-CN" : "结算类型ID"
+        },
+        "name" : "settlement_type_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.settlement_type_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "收款币种ID",
+          "zh-CN" : "收款币种ID"
+        },
+        "display_name" : {
+          "en-US" : "收款币种ID",
+          "zh-CN" : "收款币种ID"
+        },
+        "name" : "receiving_currency_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.receiving_currency_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "收款条件ID",
+          "zh-CN" : "收款条件ID"
+        },
+        "display_name" : {
+          "en-US" : "收款条件ID",
+          "zh-CN" : "收款条件ID"
+        },
+        "name" : "receiving_condition_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.receiving_condition_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "信用检查启用",
+          "zh-CN" : "信用检查启用"
+        },
+        "display_name" : {
+          "en-US" : "信用检查启用",
+          "zh-CN" : "信用检查启用"
+        },
+        "name" : "credit_check_enabled",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.credit_check_enabled"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "默认税税率",
+          "zh-CN" : "默认税税率"
+        },
+        "display_name" : {
+          "en-US" : "默认税率",
+          "zh-CN" : "默认税率"
+        },
+        "name" : "default_tax_rate",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.default_tax_rate"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "创建组织ID",
+          "zh-CN" : "创建组织ID"
+        },
+        "display_name" : {
+          "en-US" : "创建组织ID",
+          "zh-CN" : "创建组织ID"
+        },
+        "name" : "create_org_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.create_org_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "使用组织ID",
+          "zh-CN" : "使用组织ID"
+        },
+        "display_name" : {
+          "en-US" : "使用组织ID",
+          "zh-CN" : "使用组织ID"
+        },
+        "name" : "use_org_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.use_org_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "创建人ID",
+          "zh-CN" : "创建人ID"
+        },
+        "display_name" : {
+          "en-US" : "创建人ID",
+          "zh-CN" : "创建人ID"
+        },
+        "name" : "creator_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.creator_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "修改人ID",
+          "zh-CN" : "修改人ID"
+        },
+        "display_name" : {
+          "en-US" : "修改人ID",
+          "zh-CN" : "修改人ID"
+        },
+        "name" : "modifier_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.modifier_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "审批人ID",
+          "zh-CN" : "审批人ID"
+        },
+        "display_name" : {
+          "en-US" : "审批人ID",
+          "zh-CN" : "审批人ID"
+        },
+        "name" : "approver_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.approver_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "审批时间",
+          "zh-CN" : "审批时间"
+        },
+        "display_name" : {
+          "en-US" : "审批时间",
+          "zh-CN" : "审批时间"
+        },
+        "name" : "approved_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_customer.approved_at"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "禁用人ID",
+          "zh-CN" : "禁用人ID"
+        },
+        "display_name" : {
+          "en-US" : "禁用人ID",
+          "zh-CN" : "禁用人ID"
+        },
+        "name" : "forbiddener_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.forbiddener_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "禁用时间",
+          "zh-CN" : "禁用时间"
+        },
+        "display_name" : {
+          "en-US" : "禁用时间",
+          "zh-CN" : "禁用时间"
+        },
+        "name" : "forbidden_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_customer.forbidden_at"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "税类型",
+          "zh-CN" : "税类型"
+        },
+        "display_name" : {
+          "en-US" : "税类型",
+          "zh-CN" : "税类型"
+        },
+        "name" : "tax_type",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.tax_type"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "主要集团ID",
+          "zh-CN" : "主要集团ID"
+        },
+        "display_name" : {
+          "en-US" : "主要集团ID",
+          "zh-CN" : "主要集团ID"
+        },
+        "name" : "primary_group_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.primary_group_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "对应组织ID",
+          "zh-CN" : "对应组织ID"
+        },
+        "display_name" : {
+          "en-US" : "对应组织ID",
+          "zh-CN" : "对应组织ID"
+        },
+        "name" : "corresponding_org_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.corresponding_org_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "优先级",
+          "zh-CN" : "优先级"
+        },
+        "display_name" : {
+          "en-US" : "优先级",
+          "zh-CN" : "优先级"
+        },
+        "name" : "priority",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.priority"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "发票类型",
+          "zh-CN" : "发票类型"
+        },
+        "display_name" : {
+          "en-US" : "发票类型",
+          "zh-CN" : "发票类型"
+        },
+        "name" : "invoice_type",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.invoice_type"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "是否默认付款方",
+          "zh-CN" : "是否默认付款方"
+        },
+        "display_name" : {
+          "en-US" : "是否默认付款方",
+          "zh-CN" : "是否默认付款方"
+        },
+        "name" : "is_default_payer",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.is_default_payer"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "集团客户标签",
+          "zh-CN" : "集团客户标签"
+        },
+        "display_name" : {
+          "en-US" : "集团客户标签",
+          "zh-CN" : "集团客户标签"
+        },
+        "name" : "group_customer_tag",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.group_customer_tag"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "异常标记",
+          "zh-CN" : "异常标记"
+        },
+        "display_name" : {
+          "en-US" : "异常标记",
+          "zh-CN" : "异常标记"
+        },
+        "name" : "abnormal_flag",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.abnormal_flag"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "违法资质标记",
+          "zh-CN" : "违法资质标记"
+        },
+        "display_name" : {
+          "en-US" : "违法资质标记",
+          "zh-CN" : "违法资质标记"
+        },
+        "name" : "illegal_qualification_flag",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.illegal_qualification_flag"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "资金诉讼标记",
+          "zh-CN" : "资金诉讼标记"
+        },
+        "display_name" : {
+          "en-US" : "资金诉讼标记",
+          "zh-CN" : "资金诉讼标记"
+        },
+        "name" : "funds_lawsuit_flag",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.funds_lawsuit_flag"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "黑名单标记",
+          "zh-CN" : "黑名单标记"
+        },
+        "display_name" : {
+          "en-US" : "黑名单标记",
+          "zh-CN" : "黑名单标记"
+        },
+        "name" : "blacklist_flag",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.blacklist_flag"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "风险企业标记",
+          "zh-CN" : "风险企业标记"
+        },
+        "display_name" : {
+          "en-US" : "风险企业标记",
+          "zh-CN" : "风险企业标记"
+        },
+        "name" : "risk_enterprise_flag",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.risk_enterprise_flag"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "产品线ID",
+          "zh-CN" : "产品线ID"
+        },
+        "display_name" : {
+          "en-US" : "产品线ID",
+          "zh-CN" : "产品线ID"
+        },
+        "name" : "product_line_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.product_line_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "签约金额",
+          "zh-CN" : "签约金额"
+        },
+        "display_name" : {
+          "en-US" : "签约金额",
+          "zh-CN" : "签约金额"
+        },
+        "name" : "signed_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.signed_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "退回金额",
+          "zh-CN" : "退回金额"
+        },
+        "display_name" : {
+          "en-US" : "退回金额",
+          "zh-CN" : "退回金额"
+        },
+        "name" : "returned_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.returned_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "未回款金额",
+          "zh-CN" : "未回款金额"
+        },
+        "display_name" : {
+          "en-US" : "未回款金额",
+          "zh-CN" : "未回款金额"
+        },
+        "name" : "unreturned_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.unreturned_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "已开票金额",
+          "zh-CN" : "已开票金额"
+        },
+        "display_name" : {
+          "en-US" : "已开票金额",
+          "zh-CN" : "已开票金额"
+        },
+        "name" : "invoiced_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.invoiced_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "未开票金额",
+          "zh-CN" : "未开票金额"
+        },
+        "display_name" : {
+          "en-US" : "未开票金额",
+          "zh-CN" : "未开票金额"
+        },
+        "name" : "uninvoiced_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.uninvoiced_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "来源创建时间",
+          "zh-CN" : "来源创建时间"
+        },
+        "display_name" : {
+          "en-US" : "来源创建时间",
+          "zh-CN" : "来源创建时间"
+        },
+        "name" : "source_created_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_customer.source_created_at"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "来源更新时间",
+          "zh-CN" : "来源更新时间"
+        },
+        "display_name" : {
+          "en-US" : "来源更新时间",
+          "zh-CN" : "来源更新时间"
+        },
+        "name" : "source_updated_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_customer.source_updated_at"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "来源系统",
+          "zh-CN" : "来源系统"
+        },
+        "display_name" : {
+          "en-US" : "来源系统",
+          "zh-CN" : "来源系统"
+        },
+        "name" : "source_system",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_customer.source_system"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "来源记录ID",
+          "zh-CN" : "来源记录ID"
+        },
+        "display_name" : {
+          "en-US" : "来源记录ID",
+          "zh-CN" : "来源记录ID"
+        },
+        "name" : "source_record_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.source_record_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "接口原始 FCUSTID，客户主键；缺失或重复时使用负数备用ID",
+          "zh-CN" : "接口原始 FCUSTID，客户主键；缺失或重复时使用负数备用ID"
+        },
+        "display_name" : {
+          "en-US" : "来源客户ID",
+          "zh-CN" : "来源客户ID"
+        },
+        "name" : "source_customer_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "identity",
+          "source" : "${source_dataset_id}:public.ont_customer.source_customer_id"
+        },
+        "type" : "integer"
+      }, {
+        "description" : {
+          "en-US" : "来源主ID",
+          "zh-CN" : "来源主ID"
+        },
+        "display_name" : {
+          "en-US" : "来源主ID",
+          "zh-CN" : "来源主ID"
+        },
+        "name" : "source_master_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.source_master_id"
+        },
+        "type" : "integer"
+      }, {
+        "description" : {
+          "en-US" : "来源名称记录ID",
+          "zh-CN" : "来源名称记录ID"
+        },
+        "display_name" : {
+          "en-US" : "来源名称记录ID",
+          "zh-CN" : "来源名称记录ID"
+        },
+        "name" : "source_name_record_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_customer.source_name_record_id"
+        },
+        "type" : "string"
+      } ],
+      "primary_key_fields" : [ "source_customer_id" ],
+      "properties" : {
+        "semantic_description" : "客户主数据，包含客户编码、名称、类型、等级、区域、行业、规模、风险标记及金额等属性。",
+        "semantic_description_source" : "governed_dataset",
+        "semantic_display_name" : "客户"
+      },
+      "source_table" : "public.ont_customer"
+    }
+  }, {
+    "kind" : "entity_set",
+    "domain" : "business",
+    "name" : "purchase_order",
+    "version" : "1.0.0",
+    "spec" : {
+      "description" : {
+        "en-US" : "采购订单记录，来源 U8/ERP（经 DAS 封装），记录供应商、合同、项目、订单金额、付款、物流、签收状态及匹配状态。",
+        "zh-CN" : "采购订单记录，来源 U8/ERP（经 DAS 封装），记录供应商、合同、项目、订单金额、付款、物流、签收状态及匹配状态。"
+      },
+      "display_name" : {
+        "en-US" : "采购订单",
+        "zh-CN" : "采购订单"
+      },
+      "fields" : [ {
+        "description" : {
+          "en-US" : "采购订单号，主键",
+          "zh-CN" : "采购订单号，主键"
+        },
+        "display_name" : {
+          "en-US" : "订单号",
+          "zh-CN" : "订单号"
+        },
+        "name" : "order_no",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "identity",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.order_no"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "供应商编码，关联供应商主数据",
+          "zh-CN" : "供应商编码，关联供应商主数据"
+        },
+        "display_name" : {
+          "en-US" : "供应商编码",
+          "zh-CN" : "供应商编码"
+        },
+        "name" : "supplier_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.supplier_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "合同编号，关联合同主数据",
+          "zh-CN" : "合同编号，关联合同主数据"
+        },
+        "display_name" : {
+          "en-US" : "合同编号",
+          "zh-CN" : "合同编号"
+        },
+        "name" : "contract_no",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.contract_no"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "项目编码，关联项目主数据",
+          "zh-CN" : "项目编码，关联项目主数据"
+        },
+        "display_name" : {
+          "en-US" : "项目编码",
+          "zh-CN" : "项目编码"
+        },
+        "name" : "project_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.project_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "订单金额，单位统一为元",
+          "zh-CN" : "订单金额，单位统一为元"
+        },
+        "display_name" : {
+          "en-US" : "订单金额",
+          "zh-CN" : "订单金额"
+        },
+        "name" : "order_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.order_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "已付款金额，单位统一为元",
+          "zh-CN" : "已付款金额，单位统一为元"
+        },
+        "display_name" : {
+          "en-US" : "已付款",
+          "zh-CN" : "已付款"
+        },
+        "name" : "paid_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.paid_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "未付款金额（派生），单位统一为元",
+          "zh-CN" : "未付款金额（派生），单位统一为元"
+        },
+        "display_name" : {
+          "en-US" : "未付款",
+          "zh-CN" : "未付款"
+        },
+        "name" : "unpaid_amount",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.unpaid_amount"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "币种，人民币/美元/欧元标准化为 CNY/USD/EUR",
+          "zh-CN" : "币种，人民币/美元/欧元标准化为 CNY/USD/EUR"
+        },
+        "display_name" : {
+          "en-US" : "币种",
+          "zh-CN" : "币种"
+        },
+        "name" : "currency",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.currency"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "物流单号",
+          "zh-CN" : "物流单号"
+        },
+        "display_name" : {
+          "en-US" : "物流单号",
+          "zh-CN" : "物流单号"
+        },
+        "name" : "logistics_no",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.logistics_no"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "到货时间",
+          "zh-CN" : "到货时间"
+        },
+        "display_name" : {
+          "en-US" : "到货时间",
+          "zh-CN" : "到货时间"
+        },
+        "name" : "arrived_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.arrived_at"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "待签收/部分签收/已签收/拒收",
+          "zh-CN" : "待签收/部分签收/已签收/拒收"
+        },
+        "display_name" : {
+          "en-US" : "签收状态",
+          "zh-CN" : "签收状态"
+        },
+        "name" : "receipt_state",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.receipt_state"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "来源系统",
+          "zh-CN" : "来源系统"
+        },
+        "display_name" : {
+          "en-US" : "来源系统",
+          "zh-CN" : "来源系统"
+        },
+        "name" : "source_system",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.source_system"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "跨系统匹配状态：matched/pending/ambiguous",
+          "zh-CN" : "跨系统匹配状态：matched/pending/ambiguous"
+        },
+        "display_name" : {
+          "en-US" : "匹配状态",
+          "zh-CN" : "匹配状态"
+        },
+        "name" : "match_state",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.match_state"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "来源记录标识",
+          "zh-CN" : "来源记录标识"
+        },
+        "display_name" : {
+          "en-US" : "来源记录标识",
+          "zh-CN" : "来源记录标识"
+        },
+        "name" : "source_record_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.source_record_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "创建时间",
+          "zh-CN" : "创建时间"
+        },
+        "display_name" : {
+          "en-US" : "创建时间",
+          "zh-CN" : "创建时间"
+        },
+        "name" : "created_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.created_at"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "更新时间",
+          "zh-CN" : "更新时间"
+        },
+        "display_name" : {
+          "en-US" : "更新时间",
+          "zh-CN" : "更新时间"
+        },
+        "name" : "updated_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_purchase_order.updated_at"
+        },
+        "type" : "timestamp"
+      } ],
+      "primary_key_fields" : [ "order_no" ],
+      "properties" : {
+        "semantic_description" : "采购订单记录，来源 U8/ERP（经 DAS 封装），记录供应商、合同、项目、订单金额、付款、物流、签收状态及匹配状态。",
+        "semantic_description_source" : "governed_dataset",
+        "semantic_display_name" : "采购订单"
+      },
+      "source_table" : "public.ont_purchase_order"
+    }
+  }, {
+    "kind" : "entity_set",
+    "domain" : "business",
+    "name" : "supplier",
+    "version" : "1.0.0",
+    "spec" : {
+      "description" : {
+        "en-US" : "供应商主数据，记录供应商编码、名称、类型、状态、税率及来源系统信息。来源：U8/ERP（经 DAS 封装）；装载：Wave 5。",
+        "zh-CN" : "供应商主数据，记录供应商编码、名称、类型、状态、税率及来源系统信息。来源：U8/ERP（经 DAS 封装）；装载：Wave 5。"
+      },
+      "display_name" : {
+        "en-US" : "供应商",
+        "zh-CN" : "供应商"
+      },
+      "fields" : [ {
+        "description" : {
+          "en-US" : "供应商主键",
+          "zh-CN" : "供应商主键"
+        },
+        "display_name" : {
+          "en-US" : "供应商编码",
+          "zh-CN" : "供应商编码"
+        },
+        "name" : "supplier_code",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "identity",
+          "source" : "${source_dataset_id}:public.ont_supplier.supplier_code",
+          "source_column" : "supplier_code"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "供应商名称",
+          "zh-CN" : "供应商名称"
+        },
+        "display_name" : {
+          "en-US" : "供应商名称",
+          "zh-CN" : "供应商名称"
+        },
+        "name" : "supplier_name",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_supplier.supplier_name",
+          "source_column" : "supplier_name"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "物料/服务/工程",
+          "zh-CN" : "物料/服务/工程"
+        },
+        "display_name" : {
+          "en-US" : "供应商类型",
+          "zh-CN" : "供应商类型"
+        },
+        "name" : "supplier_type",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_supplier.supplier_type",
+          "source_column" : "supplier_type"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "启用/黑名单",
+          "zh-CN" : "启用/黑名单"
+        },
+        "display_name" : {
+          "en-US" : "状态",
+          "zh-CN" : "状态"
+        },
+        "name" : "state",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "classification",
+          "source" : "${source_dataset_id}:public.ont_supplier.state",
+          "source_column" : "state"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "默认税率",
+          "zh-CN" : "默认税率"
+        },
+        "display_name" : {
+          "en-US" : "默认税率",
+          "zh-CN" : "默认税率"
+        },
+        "name" : "tax_rate",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_supplier.tax_rate",
+          "source_column" : "tax_rate"
+        },
+        "type" : "decimal"
+      }, {
+        "description" : {
+          "en-US" : "来源系统",
+          "zh-CN" : "来源系统"
+        },
+        "display_name" : {
+          "en-US" : "来源系统",
+          "zh-CN" : "来源系统"
+        },
+        "name" : "source_system",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_supplier.source_system",
+          "source_column" : "source_system"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "matched/pending/ambiguous",
+          "zh-CN" : "matched/pending/ambiguous"
+        },
+        "display_name" : {
+          "en-US" : "匹配状态",
+          "zh-CN" : "匹配状态"
+        },
+        "name" : "match_state",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "attribute",
+          "source" : "${source_dataset_id}:public.ont_supplier.match_state",
+          "source_column" : "match_state"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "来源记录标识",
+          "zh-CN" : "来源记录标识"
+        },
+        "display_name" : {
+          "en-US" : "来源记录ID",
+          "zh-CN" : "来源记录ID"
+        },
+        "name" : "source_record_id",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "relationship",
+          "source" : "${source_dataset_id}:public.ont_supplier.source_record_id",
+          "source_column" : "source_record_id"
+        },
+        "type" : "string"
+      }, {
+        "description" : {
+          "en-US" : "创建时间",
+          "zh-CN" : "创建时间"
+        },
+        "display_name" : {
+          "en-US" : "创建时间",
+          "zh-CN" : "创建时间"
+        },
+        "name" : "created_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_supplier.created_at",
+          "source_column" : "created_at"
+        },
+        "type" : "timestamp"
+      }, {
+        "description" : {
+          "en-US" : "更新时间",
+          "zh-CN" : "更新时间"
+        },
+        "display_name" : {
+          "en-US" : "更新时间",
+          "zh-CN" : "更新时间"
+        },
+        "name" : "updated_at",
+        "properties" : {
+          "semantic_description_source" : "governed_dataset",
+          "semantic_role" : "temporal",
+          "source" : "${source_dataset_id}:public.ont_supplier.updated_at",
+          "source_column" : "updated_at"
+        },
+        "type" : "timestamp"
+      } ],
+      "primary_key_fields" : [ "supplier_code" ],
+      "properties" : {
+        "semantic_description" : "供应商主数据，记录供应商编码、名称、类型、状态、税率及来源系统信息。来源：U8/ERP（经 DAS 封装）；装载：Wave 5。",
+        "semantic_description_source" : "governed_dataset",
+        "semantic_display_name" : "供应商"
+      },
+      "source_table" : "public.ont_supplier"
+    }
+  }, {
+    "kind" : "entity_source",
+    "domain" : "business",
+    "name" : "source_public.ont_contract",
+    "version" : "1.0.0",
+    "spec" : {
+      "constructor" : {
+        "dataset" : "public.ont_contract",
+        "mode" : "read_only",
+        "source_id" : "${source_dataset_id}",
+        "type" : "governed_dataset"
+      },
+      "storages" : [ {
+        "dataset" : "public.ont_contract",
+        "field_mappings" : {
+          "contract" : {
+            "change_amount" : {
+              "column" : "change_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "contract_category" : {
+              "column" : "contract_category",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "contract_name" : {
+              "column" : "contract_name",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "contract_no" : {
+              "column" : "contract_no",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "currency" : {
+              "column" : "currency",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "current_amount" : {
+              "column" : "current_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_code" : {
+              "column" : "customer_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "has_maintenance" : {
+              "column" : "has_maintenance",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "has_warranty" : {
+              "column" : "has_warranty",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "id" : {
+              "column" : "id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "latest_change_at" : {
+              "column" : "latest_change_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "match_state" : {
+              "column" : "match_state",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "original_amount" : {
+              "column" : "original_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "product_line" : {
+              "column" : "product_line",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "project_code" : {
+              "column" : "project_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "signed_amount" : {
+              "column" : "signed_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "signed_at" : {
+              "column" : "signed_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_system" : {
+              "column" : "source_system",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "state" : {
+              "column" : "state",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "supplier_code" : {
+              "column" : "supplier_code",
+              "expression" : null,
+              "status" : "inferred"
+            }
+          }
+        },
+        "schema" : "public",
+        "source_id" : "${source_dataset_id}",
+        "table" : "ont_contract"
+      } ]
+    }
+  }, {
+    "kind" : "entity_source",
+    "domain" : "business",
+    "name" : "source_public.ont_customer",
+    "version" : "1.0.0",
+    "spec" : {
+      "constructor" : {
+        "dataset" : "public.ont_customer",
+        "mode" : "read_only",
+        "source_id" : "${source_dataset_id}",
+        "type" : "governed_dataset"
+      },
+      "storages" : [ {
+        "dataset" : "public.ont_customer",
+        "field_mappings" : {
+          "customer" : {
+            "abnormal_flag" : {
+              "column" : "abnormal_flag",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "address" : {
+              "column" : "address",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "administrative_region_name" : {
+              "column" : "administrative_region_name",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "approved_at" : {
+              "column" : "approved_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "approver_id" : {
+              "column" : "approver_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "ar_id" : {
+              "column" : "ar_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "blacklist_flag" : {
+              "column" : "blacklist_flag",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "business_scope" : {
+              "column" : "business_scope",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "city_id" : {
+              "column" : "city_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "company_classification" : {
+              "column" : "company_classification",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "company_nature" : {
+              "column" : "company_nature",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "company_scale" : {
+              "column" : "company_scale",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "contact_id" : {
+              "column" : "contact_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "corresponding_org_id" : {
+              "column" : "corresponding_org_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "country" : {
+              "column" : "country",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "create_org_id" : {
+              "column" : "create_org_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "creator_id" : {
+              "column" : "creator_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "credit_check_enabled" : {
+              "column" : "credit_check_enabled",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_code" : {
+              "column" : "customer_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_grade" : {
+              "column" : "customer_grade",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_level" : {
+              "column" : "customer_level",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_level_legacy" : {
+              "column" : "customer_level_legacy",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_name" : {
+              "column" : "customer_name",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_type" : {
+              "column" : "customer_type",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "customer_type_id" : {
+              "column" : "customer_type_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "default_tax_rate" : {
+              "column" : "default_tax_rate",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "description" : {
+              "column" : "description",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "document_status" : {
+              "column" : "document_status",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "established_date" : {
+              "column" : "established_date",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "fax" : {
+              "column" : "fax",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "forbid_status" : {
+              "column" : "forbid_status",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "forbidden_at" : {
+              "column" : "forbidden_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "forbiddener_id" : {
+              "column" : "forbiddener_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "funds_lawsuit_flag" : {
+              "column" : "funds_lawsuit_flag",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "group_customer_id" : {
+              "column" : "group_customer_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "group_customer_tag" : {
+              "column" : "group_customer_tag",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "illegal_qualification_flag" : {
+              "column" : "illegal_qualification_flag",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "industry" : {
+              "column" : "industry",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "invoice_address" : {
+              "column" : "invoice_address",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "invoice_type" : {
+              "column" : "invoice_type",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "invoiced_amount" : {
+              "column" : "invoiced_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "is_default_payer" : {
+              "column" : "is_default_payer",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "is_group_customer" : {
+              "column" : "is_group_customer",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "is_trade_customer" : {
+              "column" : "is_trade_customer",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "legal_person" : {
+              "column" : "legal_person",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "modifier_id" : {
+              "column" : "modifier_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "postal_code" : {
+              "column" : "postal_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "primary_group_id" : {
+              "column" : "primary_group_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "priority" : {
+              "column" : "priority",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "product_line_id" : {
+              "column" : "product_line_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "province_id" : {
+              "column" : "province_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "province_name" : {
+              "column" : "province_name",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "receiving_condition_id" : {
+              "column" : "receiving_condition_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "receiving_currency_id" : {
+              "column" : "receiving_currency_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "region_id" : {
+              "column" : "region_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "region_name" : {
+              "column" : "region_name",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "registered_address" : {
+              "column" : "registered_address",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "registered_capital" : {
+              "column" : "registered_capital",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "registration_status" : {
+              "column" : "registration_status",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "returned_amount" : {
+              "column" : "returned_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "risk_enterprise_flag" : {
+              "column" : "risk_enterprise_flag",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "sales_department_id" : {
+              "column" : "sales_department_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "sales_group_id" : {
+              "column" : "sales_group_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "seller_id" : {
+              "column" : "seller_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "settlement_type_id" : {
+              "column" : "settlement_type_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "short_name" : {
+              "column" : "short_name",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "signed_amount" : {
+              "column" : "signed_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_created_at" : {
+              "column" : "source_created_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_customer_id" : {
+              "column" : "source_customer_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_master_id" : {
+              "column" : "source_master_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_name_record_id" : {
+              "column" : "source_name_record_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_record_id" : {
+              "column" : "source_record_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_system" : {
+              "column" : "source_system",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_updated_at" : {
+              "column" : "source_updated_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "state" : {
+              "column" : "state",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "supplier_id" : {
+              "column" : "supplier_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "tax_registration_code" : {
+              "column" : "tax_registration_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "tax_type" : {
+              "column" : "tax_type",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "telephone" : {
+              "column" : "telephone",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "trading_currency_id" : {
+              "column" : "trading_currency_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "unified_social_credit_code" : {
+              "column" : "unified_social_credit_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "uninvoiced_amount" : {
+              "column" : "uninvoiced_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "unreturned_amount" : {
+              "column" : "unreturned_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "use_org_id" : {
+              "column" : "use_org_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "website" : {
+              "column" : "website",
+              "expression" : null,
+              "status" : "inferred"
+            }
+          }
+        },
+        "schema" : "public",
+        "source_id" : "${source_dataset_id}",
+        "table" : "ont_customer"
+      } ]
+    }
+  }, {
+    "kind" : "entity_source",
+    "domain" : "business",
+    "name" : "source_public.ont_purchase_order",
+    "version" : "1.0.0",
+    "spec" : {
+      "constructor" : {
+        "dataset" : "public.ont_purchase_order",
+        "mode" : "read_only",
+        "source_id" : "${source_dataset_id}",
+        "type" : "governed_dataset"
+      },
+      "storages" : [ {
+        "dataset" : "public.ont_purchase_order",
+        "field_mappings" : {
+          "purchase_order" : {
+            "arrived_at" : {
+              "column" : "arrived_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "contract_no" : {
+              "column" : "contract_no",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "created_at" : {
+              "column" : "created_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "currency" : {
+              "column" : "currency",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "logistics_no" : {
+              "column" : "logistics_no",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "match_state" : {
+              "column" : "match_state",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "order_amount" : {
+              "column" : "order_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "order_no" : {
+              "column" : "order_no",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "paid_amount" : {
+              "column" : "paid_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "project_code" : {
+              "column" : "project_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "receipt_state" : {
+              "column" : "receipt_state",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_record_id" : {
+              "column" : "source_record_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_system" : {
+              "column" : "source_system",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "supplier_code" : {
+              "column" : "supplier_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "unpaid_amount" : {
+              "column" : "unpaid_amount",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "updated_at" : {
+              "column" : "updated_at",
+              "expression" : null,
+              "status" : "inferred"
+            }
+          }
+        },
+        "schema" : "public",
+        "source_id" : "${source_dataset_id}",
+        "table" : "ont_purchase_order"
+      } ]
+    }
+  }, {
+    "kind" : "entity_source",
+    "domain" : "business",
+    "name" : "source_public.ont_supplier",
+    "version" : "1.0.0",
+    "spec" : {
+      "constructor" : {
+        "dataset" : "public.ont_supplier",
+        "mode" : "read_only",
+        "source_id" : "${source_dataset_id}",
+        "type" : "governed_dataset"
+      },
+      "storages" : [ {
+        "dataset" : "public.ont_supplier",
+        "field_mappings" : {
+          "supplier" : {
+            "created_at" : {
+              "column" : "created_at",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "match_state" : {
+              "column" : "match_state",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_record_id" : {
+              "column" : "source_record_id",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "source_system" : {
+              "column" : "source_system",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "state" : {
+              "column" : "state",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "supplier_code" : {
+              "column" : "supplier_code",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "supplier_name" : {
+              "column" : "supplier_name",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "supplier_type" : {
+              "column" : "supplier_type",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "tax_rate" : {
+              "column" : "tax_rate",
+              "expression" : null,
+              "status" : "inferred"
+            },
+            "updated_at" : {
+              "column" : "updated_at",
+              "expression" : null,
+              "status" : "inferred"
+            }
+          }
+        },
+        "schema" : "public",
+        "source_id" : "${source_dataset_id}",
+        "table" : "ont_supplier"
+      } ]
+    }
+  }, {
+    "kind" : "entity_source_link",
+    "domain" : "business",
+    "name" : "contract_from_source_public.ont_contract",
+    "version" : "1.0.0",
+    "spec" : {
+      "dest" : {
+        "domain" : "business",
+        "kind" : "entity_set",
+        "name" : "contract"
+      },
+      "field_mappings" : {
+        "change_amount" : "change_amount",
+        "contract_category" : "contract_category",
+        "contract_name" : "contract_name",
+        "contract_no" : "contract_no",
+        "currency" : "currency",
+        "current_amount" : "current_amount",
+        "customer_code" : "customer_code",
+        "has_maintenance" : "has_maintenance",
+        "has_warranty" : "has_warranty",
+        "id" : "id",
+        "latest_change_at" : "latest_change_at",
+        "match_state" : "match_state",
+        "original_amount" : "original_amount",
+        "product_line" : "product_line",
+        "project_code" : "project_code",
+        "signed_amount" : "signed_amount",
+        "signed_at" : "signed_at",
+        "source_system" : "source_system",
+        "state" : "state",
+        "supplier_code" : "supplier_code"
+      },
+      "mapping_status" : "complete",
+      "src" : {
+        "domain" : "business",
+        "kind" : "entity_source",
+        "name" : "source_public.ont_contract"
+      }
+    }
+  }, {
+    "kind" : "entity_source_link",
+    "domain" : "business",
+    "name" : "customer_from_source_public.ont_customer",
+    "version" : "1.0.0",
+    "spec" : {
+      "dest" : {
+        "domain" : "business",
+        "kind" : "entity_set",
+        "name" : "customer"
+      },
+      "field_mappings" : {
+        "abnormal_flag" : "abnormal_flag",
+        "address" : "address",
+        "administrative_region_name" : "administrative_region_name",
+        "approved_at" : "approved_at",
+        "approver_id" : "approver_id",
+        "ar_id" : "ar_id",
+        "blacklist_flag" : "blacklist_flag",
+        "business_scope" : "business_scope",
+        "city_id" : "city_id",
+        "company_classification" : "company_classification",
+        "company_nature" : "company_nature",
+        "company_scale" : "company_scale",
+        "contact_id" : "contact_id",
+        "corresponding_org_id" : "corresponding_org_id",
+        "country" : "country",
+        "create_org_id" : "create_org_id",
+        "creator_id" : "creator_id",
+        "credit_check_enabled" : "credit_check_enabled",
+        "customer_code" : "customer_code",
+        "customer_grade" : "customer_grade",
+        "customer_level" : "customer_level",
+        "customer_level_legacy" : "customer_level_legacy",
+        "customer_name" : "customer_name",
+        "customer_type" : "customer_type",
+        "customer_type_id" : "customer_type_id",
+        "default_tax_rate" : "default_tax_rate",
+        "description" : "description",
+        "document_status" : "document_status",
+        "established_date" : "established_date",
+        "fax" : "fax",
+        "forbid_status" : "forbid_status",
+        "forbidden_at" : "forbidden_at",
+        "forbiddener_id" : "forbiddener_id",
+        "funds_lawsuit_flag" : "funds_lawsuit_flag",
+        "group_customer_id" : "group_customer_id",
+        "group_customer_tag" : "group_customer_tag",
+        "illegal_qualification_flag" : "illegal_qualification_flag",
+        "industry" : "industry",
+        "invoice_address" : "invoice_address",
+        "invoice_type" : "invoice_type",
+        "invoiced_amount" : "invoiced_amount",
+        "is_default_payer" : "is_default_payer",
+        "is_group_customer" : "is_group_customer",
+        "is_trade_customer" : "is_trade_customer",
+        "legal_person" : "legal_person",
+        "modifier_id" : "modifier_id",
+        "postal_code" : "postal_code",
+        "primary_group_id" : "primary_group_id",
+        "priority" : "priority",
+        "product_line_id" : "product_line_id",
+        "province_id" : "province_id",
+        "province_name" : "province_name",
+        "receiving_condition_id" : "receiving_condition_id",
+        "receiving_currency_id" : "receiving_currency_id",
+        "region_id" : "region_id",
+        "region_name" : "region_name",
+        "registered_address" : "registered_address",
+        "registered_capital" : "registered_capital",
+        "registration_status" : "registration_status",
+        "returned_amount" : "returned_amount",
+        "risk_enterprise_flag" : "risk_enterprise_flag",
+        "sales_department_id" : "sales_department_id",
+        "sales_group_id" : "sales_group_id",
+        "seller_id" : "seller_id",
+        "settlement_type_id" : "settlement_type_id",
+        "short_name" : "short_name",
+        "signed_amount" : "signed_amount",
+        "source_created_at" : "source_created_at",
+        "source_customer_id" : "source_customer_id",
+        "source_master_id" : "source_master_id",
+        "source_name_record_id" : "source_name_record_id",
+        "source_record_id" : "source_record_id",
+        "source_system" : "source_system",
+        "source_updated_at" : "source_updated_at",
+        "state" : "state",
+        "supplier_id" : "supplier_id",
+        "tax_registration_code" : "tax_registration_code",
+        "tax_type" : "tax_type",
+        "telephone" : "telephone",
+        "trading_currency_id" : "trading_currency_id",
+        "unified_social_credit_code" : "unified_social_credit_code",
+        "uninvoiced_amount" : "uninvoiced_amount",
+        "unreturned_amount" : "unreturned_amount",
+        "use_org_id" : "use_org_id",
+        "website" : "website"
+      },
+      "mapping_status" : "complete",
+      "src" : {
+        "domain" : "business",
+        "kind" : "entity_source",
+        "name" : "source_public.ont_customer"
+      }
+    }
+  }, {
+    "kind" : "entity_source_link",
+    "domain" : "business",
+    "name" : "purchase_order_from_source_public.ont_purchase_order",
+    "version" : "1.0.0",
+    "spec" : {
+      "dest" : {
+        "domain" : "business",
+        "kind" : "entity_set",
+        "name" : "purchase_order"
+      },
+      "field_mappings" : {
+        "arrived_at" : "arrived_at",
+        "contract_no" : "contract_no",
+        "created_at" : "created_at",
+        "currency" : "currency",
+        "logistics_no" : "logistics_no",
+        "match_state" : "match_state",
+        "order_amount" : "order_amount",
+        "order_no" : "order_no",
+        "paid_amount" : "paid_amount",
+        "project_code" : "project_code",
+        "receipt_state" : "receipt_state",
+        "source_record_id" : "source_record_id",
+        "source_system" : "source_system",
+        "supplier_code" : "supplier_code",
+        "unpaid_amount" : "unpaid_amount",
+        "updated_at" : "updated_at"
+      },
+      "mapping_status" : "complete",
+      "src" : {
+        "domain" : "business",
+        "kind" : "entity_source",
+        "name" : "source_public.ont_purchase_order"
+      }
+    }
+  }, {
+    "kind" : "entity_source_link",
+    "domain" : "business",
+    "name" : "supplier_from_source_public.ont_supplier",
+    "version" : "1.0.0",
+    "spec" : {
+      "dest" : {
+        "domain" : "business",
+        "kind" : "entity_set",
+        "name" : "supplier"
+      },
+      "field_mappings" : {
+        "created_at" : "created_at",
+        "match_state" : "match_state",
+        "source_record_id" : "source_record_id",
+        "source_system" : "source_system",
+        "state" : "state",
+        "supplier_code" : "supplier_code",
+        "supplier_name" : "supplier_name",
+        "supplier_type" : "supplier_type",
+        "tax_rate" : "tax_rate",
+        "updated_at" : "updated_at"
+      },
+      "mapping_status" : "complete",
+      "src" : {
+        "domain" : "business",
+        "kind" : "entity_source",
+        "name" : "source_public.ont_supplier"
+      }
+    }
+  }, {
+    "kind" : "runtime_binding",
+    "domain" : "business",
+    "name" : "contract_runtime",
+    "version" : "1.0.0",
+    "spec" : {
+      "entity_set" : "contract",
+      "provider_kind" : "GOVERNED_DATASET",
+      "asset_ref" : "${source_dataset_id}:public.ont_contract",
+      "access_mode" : "READ_ONLY",
+      "primary_key_mapping" : {
+        "id" : "id"
+      },
+      "field_mappings" : {
+        "change_amount" : {
+          "column" : "change_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "contract_category" : {
+          "column" : "contract_category",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "contract_name" : {
+          "column" : "contract_name",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "contract_no" : {
+          "column" : "contract_no",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "currency" : {
+          "column" : "currency",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "current_amount" : {
+          "column" : "current_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_code" : {
+          "column" : "customer_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "has_maintenance" : {
+          "column" : "has_maintenance",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "has_warranty" : {
+          "column" : "has_warranty",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "id" : {
+          "column" : "id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "latest_change_at" : {
+          "column" : "latest_change_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "match_state" : {
+          "column" : "match_state",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "original_amount" : {
+          "column" : "original_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "product_line" : {
+          "column" : "product_line",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "project_code" : {
+          "column" : "project_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "signed_amount" : {
+          "column" : "signed_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "signed_at" : {
+          "column" : "signed_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_system" : {
+          "column" : "source_system",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "state" : {
+          "column" : "state",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "supplier_code" : {
+          "column" : "supplier_code",
+          "expression" : null,
+          "status" : "inferred"
+        }
+      }
+    }
+  }, {
+    "kind" : "runtime_binding",
+    "domain" : "business",
+    "name" : "customer_runtime",
+    "version" : "1.0.0",
+    "spec" : {
+      "entity_set" : "customer",
+      "provider_kind" : "GOVERNED_DATASET",
+      "asset_ref" : "${source_dataset_id}:public.ont_customer",
+      "access_mode" : "READ_ONLY",
+      "primary_key_mapping" : {
+        "source_customer_id" : "source_customer_id"
+      },
+      "field_mappings" : {
+        "abnormal_flag" : {
+          "column" : "abnormal_flag",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "address" : {
+          "column" : "address",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "administrative_region_name" : {
+          "column" : "administrative_region_name",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "approved_at" : {
+          "column" : "approved_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "approver_id" : {
+          "column" : "approver_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "ar_id" : {
+          "column" : "ar_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "blacklist_flag" : {
+          "column" : "blacklist_flag",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "business_scope" : {
+          "column" : "business_scope",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "city_id" : {
+          "column" : "city_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "company_classification" : {
+          "column" : "company_classification",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "company_nature" : {
+          "column" : "company_nature",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "company_scale" : {
+          "column" : "company_scale",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "contact_id" : {
+          "column" : "contact_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "corresponding_org_id" : {
+          "column" : "corresponding_org_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "country" : {
+          "column" : "country",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "create_org_id" : {
+          "column" : "create_org_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "creator_id" : {
+          "column" : "creator_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "credit_check_enabled" : {
+          "column" : "credit_check_enabled",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_code" : {
+          "column" : "customer_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_grade" : {
+          "column" : "customer_grade",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_level" : {
+          "column" : "customer_level",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_level_legacy" : {
+          "column" : "customer_level_legacy",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_name" : {
+          "column" : "customer_name",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_type" : {
+          "column" : "customer_type",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "customer_type_id" : {
+          "column" : "customer_type_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "default_tax_rate" : {
+          "column" : "default_tax_rate",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "description" : {
+          "column" : "description",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "document_status" : {
+          "column" : "document_status",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "established_date" : {
+          "column" : "established_date",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "fax" : {
+          "column" : "fax",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "forbid_status" : {
+          "column" : "forbid_status",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "forbidden_at" : {
+          "column" : "forbidden_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "forbiddener_id" : {
+          "column" : "forbiddener_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "funds_lawsuit_flag" : {
+          "column" : "funds_lawsuit_flag",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "group_customer_id" : {
+          "column" : "group_customer_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "group_customer_tag" : {
+          "column" : "group_customer_tag",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "illegal_qualification_flag" : {
+          "column" : "illegal_qualification_flag",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "industry" : {
+          "column" : "industry",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "invoice_address" : {
+          "column" : "invoice_address",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "invoice_type" : {
+          "column" : "invoice_type",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "invoiced_amount" : {
+          "column" : "invoiced_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "is_default_payer" : {
+          "column" : "is_default_payer",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "is_group_customer" : {
+          "column" : "is_group_customer",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "is_trade_customer" : {
+          "column" : "is_trade_customer",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "legal_person" : {
+          "column" : "legal_person",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "modifier_id" : {
+          "column" : "modifier_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "postal_code" : {
+          "column" : "postal_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "primary_group_id" : {
+          "column" : "primary_group_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "priority" : {
+          "column" : "priority",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "product_line_id" : {
+          "column" : "product_line_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "province_id" : {
+          "column" : "province_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "province_name" : {
+          "column" : "province_name",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "receiving_condition_id" : {
+          "column" : "receiving_condition_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "receiving_currency_id" : {
+          "column" : "receiving_currency_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "region_id" : {
+          "column" : "region_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "region_name" : {
+          "column" : "region_name",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "registered_address" : {
+          "column" : "registered_address",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "registered_capital" : {
+          "column" : "registered_capital",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "registration_status" : {
+          "column" : "registration_status",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "returned_amount" : {
+          "column" : "returned_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "risk_enterprise_flag" : {
+          "column" : "risk_enterprise_flag",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "sales_department_id" : {
+          "column" : "sales_department_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "sales_group_id" : {
+          "column" : "sales_group_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "seller_id" : {
+          "column" : "seller_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "settlement_type_id" : {
+          "column" : "settlement_type_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "short_name" : {
+          "column" : "short_name",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "signed_amount" : {
+          "column" : "signed_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_created_at" : {
+          "column" : "source_created_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_customer_id" : {
+          "column" : "source_customer_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_master_id" : {
+          "column" : "source_master_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_name_record_id" : {
+          "column" : "source_name_record_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_record_id" : {
+          "column" : "source_record_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_system" : {
+          "column" : "source_system",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_updated_at" : {
+          "column" : "source_updated_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "state" : {
+          "column" : "state",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "supplier_id" : {
+          "column" : "supplier_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "tax_registration_code" : {
+          "column" : "tax_registration_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "tax_type" : {
+          "column" : "tax_type",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "telephone" : {
+          "column" : "telephone",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "trading_currency_id" : {
+          "column" : "trading_currency_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "unified_social_credit_code" : {
+          "column" : "unified_social_credit_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "uninvoiced_amount" : {
+          "column" : "uninvoiced_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "unreturned_amount" : {
+          "column" : "unreturned_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "use_org_id" : {
+          "column" : "use_org_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "website" : {
+          "column" : "website",
+          "expression" : null,
+          "status" : "inferred"
+        }
+      }
+    }
+  }, {
+    "kind" : "runtime_binding",
+    "domain" : "business",
+    "name" : "purchase_order_runtime",
+    "version" : "1.0.0",
+    "spec" : {
+      "entity_set" : "purchase_order",
+      "provider_kind" : "GOVERNED_DATASET",
+      "asset_ref" : "${source_dataset_id}:public.ont_purchase_order",
+      "access_mode" : "READ_ONLY",
+      "primary_key_mapping" : {
+        "order_no" : "order_no"
+      },
+      "field_mappings" : {
+        "arrived_at" : {
+          "column" : "arrived_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "contract_no" : {
+          "column" : "contract_no",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "created_at" : {
+          "column" : "created_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "currency" : {
+          "column" : "currency",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "logistics_no" : {
+          "column" : "logistics_no",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "match_state" : {
+          "column" : "match_state",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "order_amount" : {
+          "column" : "order_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "order_no" : {
+          "column" : "order_no",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "paid_amount" : {
+          "column" : "paid_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "project_code" : {
+          "column" : "project_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "receipt_state" : {
+          "column" : "receipt_state",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_record_id" : {
+          "column" : "source_record_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_system" : {
+          "column" : "source_system",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "supplier_code" : {
+          "column" : "supplier_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "unpaid_amount" : {
+          "column" : "unpaid_amount",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "updated_at" : {
+          "column" : "updated_at",
+          "expression" : null,
+          "status" : "inferred"
+        }
+      }
+    }
+  }, {
+    "kind" : "runtime_binding",
+    "domain" : "business",
+    "name" : "supplier_runtime",
+    "version" : "1.0.0",
+    "spec" : {
+      "entity_set" : "supplier",
+      "provider_kind" : "GOVERNED_DATASET",
+      "asset_ref" : "${source_dataset_id}:public.ont_supplier",
+      "access_mode" : "READ_ONLY",
+      "primary_key_mapping" : {
+        "supplier_code" : "supplier_code"
+      },
+      "field_mappings" : {
+        "created_at" : {
+          "column" : "created_at",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "match_state" : {
+          "column" : "match_state",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_record_id" : {
+          "column" : "source_record_id",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "source_system" : {
+          "column" : "source_system",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "state" : {
+          "column" : "state",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "supplier_code" : {
+          "column" : "supplier_code",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "supplier_name" : {
+          "column" : "supplier_name",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "supplier_type" : {
+          "column" : "supplier_type",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "tax_rate" : {
+          "column" : "tax_rate",
+          "expression" : null,
+          "status" : "inferred"
+        },
+        "updated_at" : {
+          "column" : "updated_at",
+          "expression" : null,
+          "status" : "inferred"
+        }
+      }
+    }
+  }, {
+    "kind" : "entity_set_link",
+    "domain" : "business",
+    "name" : "contract_customer",
+    "version" : "1.0.0",
+    "spec" : {
+      "source_entity_set" : "contract",
+      "destination_entity_set" : "customer",
+      "cardinality" : "MANY_TO_ONE",
+      "mapping_status" : "VERIFIED",
+      "confidence" : 0.9,
+      "entity_link_type" : "related_to",
+      "source_fields_mapping" : {
+        "customer_code" : "customer_code"
+      },
+      "field_mappings" : [ {
+        "source_field" : "customer_code",
+        "destination_field" : "customer_code"
+      } ]
+    }
+  }, {
+    "kind" : "entity_set_link",
+    "domain" : "business",
+    "name" : "contract_supplier",
+    "version" : "1.0.0",
+    "spec" : {
+      "source_entity_set" : "contract",
+      "destination_entity_set" : "supplier",
+      "cardinality" : "MANY_TO_ONE",
+      "mapping_status" : "VERIFIED",
+      "confidence" : 0.9,
+      "entity_link_type" : "related_to",
+      "source_fields_mapping" : {
+        "supplier_code" : "supplier_code"
+      },
+      "field_mappings" : [ {
+        "source_field" : "supplier_code",
+        "destination_field" : "supplier_code"
+      } ]
+    }
+  }, {
+    "kind" : "entity_set_link",
+    "domain" : "business",
+    "name" : "purchase_order_contract",
+    "version" : "1.0.0",
+    "spec" : {
+      "source_entity_set" : "purchase_order",
+      "destination_entity_set" : "contract",
+      "cardinality" : "MANY_TO_ONE",
+      "mapping_status" : "VERIFIED",
+      "confidence" : 0.9,
+      "entity_link_type" : "related_to",
+      "source_fields_mapping" : {
+        "contract_no" : "contract_no"
+      },
+      "field_mappings" : [ {
+        "source_field" : "contract_no",
+        "destination_field" : "contract_no"
+      } ]
+    }
+  }, {
+    "kind" : "entity_set_link",
+    "domain" : "business",
+    "name" : "purchase_order_supplier",
+    "version" : "1.0.0",
+    "spec" : {
+      "source_entity_set" : "purchase_order",
+      "destination_entity_set" : "supplier",
+      "cardinality" : "MANY_TO_ONE",
+      "mapping_status" : "VERIFIED",
+      "confidence" : 0.9,
+      "entity_link_type" : "related_to",
+      "source_fields_mapping" : {
+        "supplier_code" : "supplier_code"
+      },
+      "field_mappings" : [ {
+        "source_field" : "supplier_code",
+        "destination_field" : "supplier_code"
+      } ]
+    }
+  }, {
+    "kind" : "function",
+    "domain" : "business",
+    "name" : "CalculateSupplierRisk",
+    "version" : "1.1.0",
+    "spec" : {
+      "display_name" : {
+        "en-US" : "CalculateSupplierRisk",
+        "zh-CN" : "供应商风险评估"
+      },
+      "owner_object_type_ids" : [ "supplier" ],
+      "return_type" : "STRING",
+      "side_effect_free" : true,
+      "target" : {
+        "max_items" : 1
+      },
+      "implementation" : {
+        "kind" : "DEMO_HANDLER",
+        "ref" : "demo.calculate_supplier_risk",
+        "version" : "1.0.0"
+      }
+    }
+  }, {
+    "kind" : "function",
+    "domain" : "business",
+    "name" : "CalculateContractChangeRate",
+    "version" : "1.1.0",
+    "spec" : {
+      "display_name" : {
+        "en-US" : "CalculateContractChangeRate",
+        "zh-CN" : "合同变更率"
+      },
+      "owner_object_type_ids" : [ "contract" ],
+      "return_type" : "DECIMAL",
+      "side_effect_free" : true,
+      "target" : {
+        "max_items" : 1
+      },
+      "implementation" : {
+        "kind" : "DEMO_HANDLER",
+        "ref" : "demo.calculate_contract_change_rate",
+        "version" : "1.0.0"
+      }
+    }
+  }, {
+    "kind" : "function",
+    "domain" : "business",
+    "name" : "CalculateContractGrossAmount",
+    "version" : "1.1.0",
+    "spec" : {
+      "display_name" : {
+        "en-US" : "CalculateContractGrossAmount",
+        "zh-CN" : "合同当前金额合计"
+      },
+      "owner_object_type_ids" : [ "contract" ],
+      "return_type" : "DECIMAL",
+      "side_effect_free" : true,
+      "target" : {
+        "max_items" : 1000
+      },
+      "implementation" : {
+        "kind" : "DEMO_HANDLER",
+        "ref" : "demo.calculate_contract_gross_amount",
+        "version" : "1.0.0"
+      }
+    }
+  }, {
+    "kind" : "function",
+    "domain" : "business",
+    "name" : "CalculateCustomerContractTotal",
+    "version" : "1.1.0",
+    "spec" : {
+      "display_name" : {
+        "en-US" : "CalculateCustomerContractTotal",
+        "zh-CN" : "客户合同金额合计"
+      },
+      "owner_object_type_ids" : [ "customer" ],
+      "return_type" : "DECIMAL",
+      "side_effect_free" : true,
+      "target" : {
+        "max_items" : 1000
+      },
+      "implementation" : {
+        "kind" : "DEMO_HANDLER",
+        "ref" : "demo.calculate_customer_contract_total",
+        "version" : "1.0.0"
+      }
+    }
+  } ]
+}

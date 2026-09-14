@@ -6,6 +6,7 @@ import i18n from "i18n";
 import ConnectedCapabilityTargetBindingControl, {
   CapabilityTargetBindingControl,
   type CapabilityTargetBinding,
+  type CapabilityTargetBindingControlProps,
 } from "./CapabilityTargetBindingControl";
 
 const widgets = {
@@ -42,7 +43,7 @@ function renderControlled(
     cardinality: "ONE",
     expression: "",
   },
-  overrides: Partial<typeof controlProps> = {},
+  overrides: Partial<CapabilityTargetBindingControlProps> = {},
 ) {
   const onBindingChange = jest.fn();
   const ControlledControl = () => {
@@ -123,6 +124,171 @@ describe("CapabilityTargetBindingControl", () => {
       }),
     ).toBeNull();
     expect(onBindingChange).not.toHaveBeenCalled();
+  });
+
+  it("offers a Table only when its Object Query and Release primary key match the capability owner", () => {
+    const onBindingChange = renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+      {
+        canonicalKey: undefined,
+        primaryKey: "customer_id",
+        ownerObjectTypeId: "Customer",
+        currentPageWidgets: {
+          "table-id": {
+            type: "TABLE_WIDGET",
+            widgetName: "CustomerTable",
+            tableData: "{{CustomerQuery.data}}",
+          },
+        },
+        currentPageActions: [
+          {
+            config: { name: "CustomerQuery" },
+            actionConfiguration: {
+              formData: {
+                operation: { data: "OBJECT_QUERY" },
+                objectTypeId: { data: "Customer" },
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    fireEvent.change(screen.getByLabelText("Target source"), {
+      target: { value: "WIDGET" },
+    });
+    fireEvent.change(screen.getByLabelText("Target widget"), {
+      target: { value: "table-id" },
+    });
+
+    expect(onBindingChange).toHaveBeenLastCalledWith({
+      mode: "WIDGET",
+      widgetId: "table-id",
+      cardinality: "ONE",
+      expression: '{{CustomerTable.selectedRow["customer_id"]}}',
+    });
+  });
+
+  it("offers a current V2 Table when its Object Query and Release primary key match", () => {
+    renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+      {
+        canonicalKey: undefined,
+        primaryKey: "contract_id",
+        ownerObjectTypeId: "Contract",
+        currentPageWidgets: {
+          "table-id": {
+            type: "TABLE_WIDGET_V2",
+            widgetName: "ContractTable",
+            tableData: "{{ContractQuery.data}}",
+          },
+        },
+        currentPageActions: [
+          {
+            config: { name: "ContractQuery" },
+            actionConfiguration: {
+              formData: {
+                operation: { data: "OBJECT_QUERY" },
+                objectTypeId: { data: "Contract" },
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    fireEvent.change(screen.getByLabelText("Target source"), {
+      target: { value: "WIDGET" },
+    });
+
+    expect(
+      within(screen.getByLabelText("Target widget")).getByRole("option", {
+        name: "ContractTable",
+      }),
+    ).not.toBeNull();
+  });
+
+  it("excludes a Table whose Object Query belongs to another object type", () => {
+    renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+      {
+        canonicalKey: undefined,
+        primaryKey: "customer_id",
+        ownerObjectTypeId: "Customer",
+        currentPageWidgets: {
+          "table-id": {
+            type: "TABLE_WIDGET",
+            widgetName: "SupplierTable",
+            tableData: "{{SupplierQuery.data}}",
+          },
+        },
+        currentPageActions: [
+          {
+            config: { name: "SupplierQuery" },
+            actionConfiguration: {
+              formData: {
+                operation: { data: "OBJECT_QUERY" },
+                objectTypeId: { data: "Supplier" },
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    fireEvent.change(screen.getByLabelText("Target source"), {
+      target: { value: "WIDGET" },
+    });
+
+    expect(
+      within(screen.getByLabelText("Target widget")).queryByRole("option", {
+        name: "SupplierTable",
+      }),
+    ).toBeNull();
+  });
+
+  it("excludes an Advanced Table Query whose explicit projection omits the Release primary key", () => {
+    renderControlled(
+      { mode: "MANUAL", cardinality: "ONE", expression: "" },
+      {
+        canonicalKey: undefined,
+        primaryKey: "customer_id",
+        ownerObjectTypeId: "Customer",
+        currentPageWidgets: {
+          "table-id": {
+            type: "TABLE_WIDGET",
+            widgetName: "CustomerTable",
+            tableData: "{{CustomerQuery.data}}",
+          },
+        },
+        currentPageActions: [
+          {
+            config: {
+              name: "CustomerQuery",
+              actionConfiguration: {
+                formData: {
+                  operation: { data: "OBJECT_QUERY" },
+                  queryMode: { data: "ADVANCED" },
+                  definition: {
+                    data: '{"objectTypeId":"Customer","projection":["name"]}',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    );
+
+    fireEvent.change(screen.getByLabelText("Target source"), {
+      target: { value: "WIDGET" },
+    });
+
+    expect(
+      within(screen.getByLabelText("Target widget")).queryByRole("option", {
+        name: "CustomerTable",
+      }),
+    ).toBeNull();
   });
 
   it("keeps manual input available when a Table owner is incompatible", () => {
@@ -379,6 +545,25 @@ describe("CapabilityTargetBindingControl", () => {
     expect(screen.getByRole("status").textContent).toContain(
       "Selected widget is no longer available",
     );
+  });
+
+  it("does not report a selected widget as removed while page widgets are loading", () => {
+    renderControlled(
+      {
+        mode: "WIDGET",
+        widgetId: "table-id",
+        cardinality: "ONE",
+        expression: '{{Table1.selectedRow["contract_id"]}}',
+      },
+      { currentPageWidgets: undefined },
+    );
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(
+      within(screen.getByLabelText("Target widget")).queryByRole("option", {
+        name: /Removed widget/,
+      }),
+    ).toBeNull();
   });
 
   it("offers many-target Table and MultiSelect adapters above one item", () => {

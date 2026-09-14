@@ -1379,6 +1379,7 @@ export function* switchDatasourceSaga(
   const datasource: Datasource = yield select(getDatasource, datasourceId);
 
   if (datasource) {
+    yield call(checkAndGetPluginFormConfigsSaga, datasource.pluginId);
     yield put(changeDatasource({ datasource, shouldNotRedirect }));
   }
 }

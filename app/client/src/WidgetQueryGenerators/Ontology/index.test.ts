@@ -58,7 +58,7 @@ describe("Ontology WidgetQueryGenerator", () => {
     });
   });
 
-  it("seeds the generated builder query with its canonical definition", () => {
+  it("seeds the generated query with stable ordering and ontology column labels", () => {
     const actions = Ontology.build(
       {
         select: {
@@ -72,8 +72,18 @@ describe("Ontology WidgetQueryGenerator", () => {
       {
         ...formConfig,
         columns: [
-          { name: "id", type: "string", isSelected: true },
-          { name: "supplierId", type: "string", isSelected: true },
+          {
+            name: "id",
+            type: "string",
+            isSelected: true,
+            displayName: "订单编号",
+          },
+          {
+            name: "supplierId",
+            type: "string",
+            isSelected: true,
+            displayName: "供应商",
+          },
         ],
       },
       {},
@@ -87,14 +97,18 @@ describe("Ontology WidgetQueryGenerator", () => {
     expect(definition.objectTypeId).toBe(builderFormData.objectTypeId.data);
     expect(definition.projection).toEqual(builderFormData.projection.data);
     expect(definition.filter).toEqual(builderFormData.filter.data);
-    expect(definition.sort).toEqual(builderFormData.sort.data);
+    expect(definition.sort).toEqual([{ propertyId: "id", direction: "ASC" }]);
     expect(definition.page).toEqual(builderFormData.page.data);
-    expect(selectAction.dynamicBindingPathList).toEqual(
-      expect.arrayContaining([
-        { key: "formData.filter.data" },
-        { key: "formData.sort.data" },
-      ]),
-    );
+    expect(selectAction.columnNameMap).toEqual({
+      id: "订单编号",
+      supplierId: "供应商",
+    });
+    expect(selectAction.dynamicBindingPathList).toContainEqual({
+      key: "formData.filter.data",
+    });
+    expect(selectAction.dynamicBindingPathList).not.toContainEqual({
+      key: "formData.sort.data",
+    });
     expect(selectAction.dynamicBindingPathList).not.toContainEqual({
       key: "formData.page.data",
     });
@@ -121,6 +135,7 @@ describe("Ontology WidgetQueryGenerator", () => {
         {
           objectTypeId: "PurchaseOrder",
           projection: ["id", "delayDays"],
+          sort: [{ propertyId: "id", direction: "ASC" }],
           page: { mode: "LIMITED", offset: 0, limit: 100 },
         },
         null,

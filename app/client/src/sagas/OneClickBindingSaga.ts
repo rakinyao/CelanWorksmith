@@ -3,7 +3,7 @@ import {
   ReduxActionErrorTypes,
   ReduxActionTypes,
 } from "ee/constants/ReduxActionConstants";
-import { type Plugin, PluginType } from "entities/Plugin";
+import { type Plugin, PluginPackageName, PluginType } from "entities/Plugin";
 import {
   ActionCreationSourceTypeEnum,
   ActionExecutionContext,
@@ -36,11 +36,9 @@ import { getWidgetByID } from "./selectors";
 import type {
   WidgetQueryConfig,
   WidgetQueryGenerationFormConfig,
-} from "WidgetQueryGenerators/types";
-import {
-  QUERY_TYPE,
   QueryPaginationBindingMode,
 } from "WidgetQueryGenerators/types";
+import { QUERY_TYPE } from "WidgetQueryGenerators/types";
 import type { WidgetProps } from "widgets/BaseWidget";
 import type { ApiResponse } from "api/ApiResponses";
 import type { ActionCreateUpdateResponse } from "api/ActionAPI";
@@ -56,17 +54,44 @@ import {
   oneClickBindingFailureMessage,
   oneClickBindingSuccessMessage,
 } from "./OneClickBindingMessages";
+import { getOntologyColumnLabels } from "./ontologyColumnLabels";
 
-type GeneratedActionMetadata = {
+interface GeneratedActionMetadata {
   type: QUERY_TYPE | string;
   paginationBindingMode?: QueryPaginationBindingMode;
-};
+  columnNameMap?: Record<string, string>;
+}
 
 export const getPaginationBindingMode = (
   actions: GeneratedActionMetadata[],
 ): QueryPaginationBindingMode | undefined =>
   actions.find((action) => action.type === QUERY_TYPE.SELECT)
     ?.paginationBindingMode;
+
+export const getOntologyInjectedPrimaryKeyVisibilityUpdates = (
+  pluginPackageName: string | undefined,
+  widget: Record<string, unknown>,
+  formConfig: Pick<
+    WidgetQueryGenerationFormConfig,
+    "columns" | "primaryColumn"
+  >,
+): Record<string, boolean> => {
+  const primaryKey = formConfig.primaryColumn;
+  const primaryKeyWasSelected = formConfig.columns?.some(
+    (column) => column.name === primaryKey && column.isSelected === true,
+  );
+
+  if (
+    pluginPackageName !== PluginPackageName.ONTOLOGY ||
+    !primaryKey ||
+    primaryKeyWasSelected ||
+    !widget.primaryColumns
+  ) {
+    return {};
+  }
+
+  return { [`primaryColumns.${primaryKey}.isVisible`]: false };
+};
 
 export function* createActionsForOneClickBindingSaga(
   payload: Partial<Action> & { eventData: unknown; pluginId: string },
@@ -162,6 +187,10 @@ function* BindWidgetToDatasource(
     const paginationBindingMode = getPaginationBindingMode(
       actionConfigurationList,
     );
+    const generatedOntologyColumnNameMap = actionConfigurationList.find(
+      (generatedAction: GeneratedActionMetadata) =>
+        generatedAction.type === QUERY_TYPE.SELECT,
+    )?.columnNameMap;
 
     const newActionName =
       plugin.type === PluginType.DB
@@ -361,6 +390,31 @@ function* BindWidgetToDatasource(
           action.payload,
         ) || {};
 
+      const currentActions: ActionDataState = yield select(getActions);
+      const selectedQuery = currentActions.find(
+        (candidate) =>
+          candidate.config.name === queryNameMap[QUERY_TYPE.SELECT],
+      );
+      const responseColumnNameMap = getOntologyColumnLabels(
+        selectedQuery?.data?.headers,
+      );
+      const columnNameMap = Object.keys(responseColumnNameMap).length
+        ? responseColumnNameMap
+        : generatedOntologyColumnNameMap;
+
+      if (columnNameMap && Object.keys(columnNameMap).length) {
+        Object.assign(modify, { columnNameMap });
+      }
+
+      Object.assign(
+        modify,
+        getOntologyInjectedPrimaryKeyVisibilityUpdates(
+          plugin.packageName,
+          updatedWidget as unknown as Record<string, unknown>,
+          action.payload,
+        ),
+      );
+
       yield put({
         type: ReduxActionTypes.BATCH_UPDATE_WIDGET_PROPERTY,
         payload: {
@@ -420,6 +474,7 @@ function* BindWidgetToDatasource(
       kind: "error",
       autoClose: 5000,
     });
+
     return;
   }
 

@@ -101,18 +101,24 @@ class OntologyConfigurationTest {
     @Test
     void mergesNativeUqiSelectorFieldsIntoTheAdvancedDefinition() {
         ActionConfiguration action = new ActionConfiguration();
-        action.setFormData(Map.of(
-                "operation", Map.of("data", "ACTION_QUERY"),
-                "actionId", Map.of("data", "ReschedulePurchaseOrder"),
-                "objectTypeId", Map.of("data", "PurchaseOrder"),
-                "objectId", Map.of("data", "PO001"),
-                "definition", Map.of("data", "{\"actionId\":\"ignored\",\"parameters\":{}}")));
+        action.setFormData(
+                Map.of(
+                        "operation", Map.of("data", "ACTION_QUERY"),
+                        "queryMode", Map.of("data", "ADVANCED"),
+                        "actionId", Map.of("data", "ReschedulePurchaseOrder"),
+                        "objectTypeId", Map.of("data", "PurchaseOrder"),
+                        "definition",
+                                Map.of(
+                                        "data",
+                                        "{\"target\":{\"source\":\"SINGLE_OBJECT\",\"objectId\":\"PO001\"},\"parameters\":{}}")));
 
         OntologyActionConfiguration configuration = OntologyActionConfiguration.from(action);
 
         assertEquals("ReschedulePurchaseOrder", configuration.definition().get("actionId"));
         assertEquals("PurchaseOrder", configuration.definition().get("objectTypeId"));
-        assertEquals("PO001", configuration.definition().get("objectId"));
+        assertEquals(
+                Map.of("source", "SINGLE_OBJECT", "objectId", "PO001"),
+                configuration.definition().get("target"));
         assertEquals(Map.of(), configuration.definition().get("parameters"));
     }
 
@@ -186,13 +192,11 @@ class OntologyConfigurationTest {
         assertEquals(
                 "FUNCTION_PARAMETERS", builderParameters.path("controlType").asText());
 
-        JsonNode advancedParameters = functionChildren.get(3);
+        JsonNode target = findControl(functionChildren, "actionConfiguration.formData.targetBinding.data");
         assertEquals(
-                "actionConfiguration.formData.parameters.data",
-                advancedParameters.path("configProperty").asText());
-        assertEquals(
-                "ONTOLOGY_FUNCTION_ADVANCED_PARAMETERS",
-                advancedParameters.path("propertyName").asText());
+                "actionConfiguration.formData.targetBinding.data",
+                target.path("configProperty").asText());
+        assertEquals("ONTOLOGY_CAPABILITY_TARGET", target.path("controlType").asText());
         assertTrue(!functionEditor.toString().contains("metadataDigest"));
         assertTrue(!functionEditor.toString().contains("workspaceId"));
     }
@@ -331,6 +335,7 @@ class OntologyConfigurationTest {
         ActionConfiguration action = new ActionConfiguration();
         action.setFormData(Map.of(
                 "operation", "OBJECT_QUERY",
+                "queryMode", "BUILDER",
                 "objectTypeId", "PurchaseOrder",
                 "projection", List.of("po_number", "supplier_id"),
                 "definition", "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"id\"]}"));
@@ -361,6 +366,7 @@ class OntologyConfigurationTest {
         ActionConfiguration nonListAction = new ActionConfiguration();
         nonListAction.setFormData(Map.of(
                 "operation", "OBJECT_QUERY",
+                "queryMode", "BUILDER",
                 "objectTypeId", "PurchaseOrder",
                 "projection", "id",
                 "definition", Map.of("objectTypeId", "PurchaseOrder")));
@@ -369,6 +375,8 @@ class OntologyConfigurationTest {
         nonStringEntryAction.setFormData(Map.of(
                 "operation",
                 "OBJECT_QUERY",
+                "queryMode",
+                "BUILDER",
                 "objectTypeId",
                 "PurchaseOrder",
                 "projection",

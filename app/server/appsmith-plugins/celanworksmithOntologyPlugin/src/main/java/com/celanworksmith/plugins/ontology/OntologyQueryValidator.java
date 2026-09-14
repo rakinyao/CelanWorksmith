@@ -38,12 +38,25 @@ final class OntologyQueryValidator {
         ObjectTypeMetadata objectType = objectType(snapshot, objectTypeId);
         Map<String, PropertyMetadata> properties = propertiesById(objectType);
         List<String> projection = projection(definition, properties);
+        projection = includeBuilderPrimaryKey(configuration, objectType, projection);
         JsonNode filter = filter(definition, objectTypeId, properties);
         Sort sort = sort(definition, properties);
         Page page = page(definition);
         return new ValidatedObjectQuery(
                 new ObjectQuery(projection, filter, sort.propertyId(), sort.direction(), page.offset(), page.limit()),
                 page.full());
+    }
+
+    private List<String> includeBuilderPrimaryKey(
+            OntologyActionConfiguration configuration, ObjectTypeMetadata objectType, List<String> projection) {
+        String primaryKey = objectType.primaryKey();
+        if (!configuration.builderMode() || isBlank(primaryKey) || projection.contains(primaryKey)) {
+            return projection;
+        }
+
+        List<String> projectionWithPrimaryKey = new java.util.ArrayList<>(projection);
+        projectionWithPrimaryKey.add(primaryKey);
+        return List.copyOf(projectionWithPrimaryKey);
     }
 
     Map<String, Object> validateFunctionParameters(OntologyActionConfiguration configuration, Snapshot snapshot) {

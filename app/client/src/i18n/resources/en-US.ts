@@ -294,6 +294,8 @@ const enUS = {
   },
   ontologyQuery: {
     cannotSwitchToBuilder: "Cannot switch to Builder: {{reason}}",
+    advancedDraftPreserved:
+      "Advanced draft was not synchronized: {{reason}} Builder values were restored.",
     invalidDefinition: "The Advanced definition is invalid.",
     metadataUnavailable: "Ontology metadata is unavailable.",
   },

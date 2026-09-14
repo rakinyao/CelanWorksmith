@@ -142,6 +142,7 @@ import {
   updateAndSyncTableLocalColumnOrders,
 } from "./utilities";
 import resetWidget from "workers/Evaluation/fns/resetWidget";
+import { getColumnLabel } from "widgets/TableWidget/utils/columnLabel";
 
 const ReactTableComponent = lazy(async () =>
   retryPromise(async () => import("../component")),
@@ -654,6 +655,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
     | Record<string, ColumnProperties>
     | undefined => {
     const {
+      columnNameMap,
       infiniteScrollEnabled,
       primaryColumns = {},
       tableData = [],
@@ -692,6 +694,8 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
           false,
           columnType,
         );
+
+        columnProperties.label = getColumnLabel(columnNameMap, columnKey);
 
         newTableColumns[columnProperties.id] = {
           ...columnProperties,
@@ -1943,6 +1947,7 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
 
     if (pageNo >= 1) {
       this.updatePaginationDirectionFlags(PaginationDirection.PREVIOUS_PAGE);
+
       if (this.props.onPageChange) {
         pushBatchMetaUpdates("pageNo", pageNo, {
           triggerPropertyName: "onPageChange",

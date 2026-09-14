@@ -20,7 +20,6 @@ import type { WidgetState } from "widgets/BaseWidget";
 import BaseWidget from "widgets/BaseWidget";
 import { RenderModes } from "constants/WidgetConstants";
 import { EventType } from "constants/AppsmithActionConstants/ActionConstants";
-import { ValidationTypes } from "constants/WidgetValidation";
 import type { RenderMenuButtonProps } from "../component/TableUtilities";
 import {
   getDefaultColumnProperties,
@@ -32,6 +31,7 @@ import {
   renderIconButton,
 } from "../component/TableUtilities";
 import { getAllTableColumnKeys } from "../component/TableHelpers";
+import { getColumnLabel } from "../utils/columnLabel";
 import Skeleton from "components/utils/Skeleton";
 import { noop, retryPromise } from "utils/AppsmithUtils";
 
@@ -896,6 +896,8 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
           index,
           this.props.widgetName,
         );
+
+        columnProperties.label = getColumnLabel(columnNameMap, i);
 
         if (migrated === false) {
           // Update column names using the names from the table before migration

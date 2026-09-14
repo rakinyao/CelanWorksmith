@@ -4,7 +4,7 @@
 
 **Goal:** Let a workspace user upload an `ontology-model` v2 Release JSON and
 create a native ontology datasource backed by an administrator-managed
-workspace/domain runtime environment, then query the generated Demo assets.
+deployment/tenant domain runtime environment, then query the generated Demo assets.
 
 **Architecture:** Add a local Release JSON importer and a narrow Release-to-
 `OntologyProjectDefinition` mapper. A workspace-domain binding resolver
@@ -43,7 +43,7 @@ MongoDB, React/TypeScript, Jest, JUnit 5, Reactor Test, Playwright.
   or a runtime binding selection control for ordinary users.
 - Existing legacy `suppliers`/`purchase_orders` collections and nested
   `properties.*` Mongo document behavior remain supported.
-- The Demo workspace binding maps `business` to the managed local Mongo
+- The Demo deployment binding maps `business` to the managed local Mongo
   provider; its Release assets are `ont_supplier`, `ont_customer`,
   `ont_contract`, and `ont_purchase_order`.
 
@@ -58,7 +58,7 @@ the datasource controller, UI, or runtime gateway.
 | --- | --- | --- |
 | `OntologyModelReleaseParser` | v2 JSON syntax, canonical digest, accepted element kinds | Replace/add parser versions here; do not spread JSON parsing to callers. |
 | `OntologyModelReleaseMapper` | maps `entity_set`, `entity_set_link`, `runtime_binding` into legacy project DTOs | Extend here for final localized metadata, composite keys, capabilities, and element kinds. |
-| `WorkspaceDomainRuntimeBindingResolver` | resolves one opaque binding by workspace/domain | Add final administrator persistence, environment policy, per-asset overrides, and platform-published binding support here. |
+| `WorkspaceDomainRuntimeBindingResolver` | resolves one opaque binding by deployment/tenant domain; `*` is the local development deployment scope | Replace the development scope with final administrator persistence, tenant policy, per-asset overrides, and platform-published binding support here. |
 | `LocalReleaseJsonOntologyProjectImporter` | local file bytes -> parsed Release -> mapper -> snapshot | Future remote Release client must feed the same parsed/mapped path. |
 | `OntologyMetadataSnapshot` extension | retains domain, Release digest and opaque binding identity | Migrate this snapshot record in one place if the final audit schema changes. |
 | `OntologyProjectDefinition` mapping extension | retains explicit Release runtime column and link-field mappings with the immutable snapshot | Replace this metadata extension only if the final common project contract gains a governed runtime-mapping schema. |
@@ -79,8 +79,8 @@ definition and not a source of field/link semantics.
 | `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/project/OntologyProjectDefinition.java` | Immutable, persisted project-level runtime mapping metadata. |
 | `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/dto/ObjectTypeDTO.java` | Backwards-compatible mapped runtime-column metadata. |
 | `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/dto/LinkTypeDTO.java` | Backwards-compatible explicit source/destination runtime-field metadata. |
-| `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource/WorkspaceDomainRuntimeBinding.java` | Opaque workspace/domain managed binding record. |
-| `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource/WorkspaceDomainRuntimeBindingResolver.java` | Workspace/domain binding lookup contract. |
+| `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource/WorkspaceDomainRuntimeBinding.java` | Opaque deployment/tenant-domain managed binding record; the legacy field name remains a temporary compatibility seam. |
+| `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource/WorkspaceDomainRuntimeBindingResolver.java` | Deployment/tenant-domain binding lookup contract; exact workspace entries remain an optional development override. |
 | `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource/ReleaseRuntimeBindingProperties.java` | Development bootstrap configuration properties. |
 | `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource/LocalReleaseJsonOntologyProjectImporter.java` | `LOCAL_RELEASE_JSON` import source. |
 | `app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource/OntologyProjectImportSource.java` | Add `LOCAL_RELEASE_JSON` source kind and server context. |
@@ -303,9 +303,11 @@ Expected: FAIL because the binding resolver and JSON importer do not exist.
 - [ ] **Step 3: Add explicit provisional binding configuration**
 
 Use `@ConfigurationProperties(prefix = "celanworksmith.ontology.release-bindings")`
-with a list of bindings. Each binding contains workspace ID, domain, opaque
-managed binding ID, runtime provider ID, and exact allowed asset refs. Validate
-duplicates at startup. Resolver returns only the exact workspace/domain match;
+with a list of bindings. Each binding contains a deployment/tenant scope, domain,
+opaque managed binding ID, runtime provider ID, and exact allowed asset refs.
+The local development deployment is represented by `workspace-id=*`; exact
+workspace entries are optional overrides. Validate duplicates at startup.
+Resolver checks an exact workspace override first, then the deployment scope;
 errors use the sanitized message `The workspace has no runtime environment
 configured for the <domain> domain.`.
 
@@ -315,7 +317,7 @@ Add the enum value and introduce `OntologyProjectImportContext`; do not add
 workspace identity or resolved state to the HTTP-deserialized request. The
 controller overwrites the actor, and the service creates the context only after
 `WORKSPACE_MANAGE_DATASOURCES` authorization. Parse Release bytes, resolve the
-exact workspace/domain binding, ensure every Release runtime `asset_ref` is
+deployment/tenant domain binding, ensure every Release runtime `asset_ref` is
 allowlisted, map it, and create a snapshot with source kind
 `local-release-json`, a canonical *snapshot* metadata digest, the validated
 Release digest in a distinct `releaseDigest` field, source release ID, managed
@@ -335,7 +337,7 @@ asset refs; do not set this binding globally.
 
 Run the Task 2 command from Step 2.
 
-Expected: PASS; exact workspace/domain resolution succeeds, missing/unavailable
+Expected: PASS; deployment/tenant domain resolution succeeds, missing/unavailable
 bindings leave no snapshot, and browser-supplied provider IDs cannot choose a
 different provider.
 
@@ -345,7 +347,7 @@ different provider.
 git add app/server/appsmith-server/src/main/java/com/celanworksmith/ontology/datasource \
   app/server/appsmith-server/src/main/java/com/celanworksmith/CelanWorksmithConfiguration.java \
   app/server/appsmith-server/src/test/java/com/celanworksmith/ontology/datasource
-git commit -m "feat(ontology): import release JSON by workspace binding"
+git commit -m "feat(ontology): import release JSON by managed binding"
 ```
 
 ### Task 3: Provider-Blind Native Datasource And Gateway Boundary
@@ -523,8 +525,8 @@ Route only project definitions carrying the explicit Release runtime-mapping
 records to the new adapter. It queries the runtime table named by the mapped
 entity’s `runtimeTable`, and allows only the fixed legacy tables plus the
 explicitly supported `ont_*` Release tables in `RuntimeTableMapping`. Import
-validation already proves that every mapped table is authorized by the exact
-workspace/domain binding before it becomes part of a snapshot. The adapter
+validation already proves that every mapped table is authorized by the
+deployment/tenant domain binding before it becomes part of a snapshot. The adapter
 reads the mapped primary key and emits mapped top-level field values as DTO
 properties. Leave legacy query behavior unchanged. Do not use a process-local
 `sourceKind` flag, because runtime calls receive the immutable definition from
@@ -738,7 +740,8 @@ git commit -m "test(ontology): verify release JSON workspace import"
 - Task 1 isolates provisional Release parsing and mapping from all import
   callers; digest, fields, links, runtime bindings, and capability exclusion
   are covered.
-- Task 2 provides exact workspace/domain resolution with no global fallback,
+- Task 2 provides deployment/tenant domain resolution. The local `*` scope is
+  a development-only deployment binding, not a cross-tenant production fallback,
   creates immutable Release audit metadata, and retains a dedicated future
   contract seam.
 - Task 3 ensures the public datasource API is provider-blind, cleans up on

@@ -4,6 +4,7 @@ export interface Column {
   name: string;
   type: string;
   isSelected: boolean;
+  displayName?: string;
 }
 
 interface GsheetConfig {

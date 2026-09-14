@@ -224,6 +224,52 @@ The six GUI scenarios listed above were not executed. This remains a manual
 browser task; the successful health check enables that session, but automated
 tests and a successful build do not substitute for those observations.
 
+## Table Query Provenance And Primary-Key Guardrail (2026-09-10)
+
+This provisional extension adds an explicit boundary between a Table's native
+configuration and an ontology target source. A Table is offered to a Function
+or Action only when its data expression is exactly `{{QueryName.data}}`, the
+named current-page Query is an `OBJECT_QUERY`, the Query object type matches
+the capability owner, and `ONTOLOGY_OBJECT_PROPERTIES` reports an explicitly
+declared Release primary key. `primaryColumnId` is not treated as ontology
+identity metadata.
+
+Builder Object Queries add a declared Release primary key to the runtime
+projection when it is absent. This does not rewrite Advanced JSON, and the
+key's schema name remains a provisional Release-contract seam. The Builder
+mode marker is retained by `OntologyActionConfiguration` solely to make that
+execution distinction explicit.
+
+Focused verification completed in this session:
+
+```text
+cd app/client && yarn g:jest \
+  src/sagas/OneClickBindingSaga.test.ts \
+  src/PluginActionEditor/components/CapabilityTargetBinding/ontologyTableTargetProvenance.test.ts \
+  src/components/formControls/CapabilityTargetBindingControl.test.tsx \
+  src/PluginActionEditor/components/QueryModeSynchronizer/ontologyObjectQueryDefinition.test.ts \
+  src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts \
+  --maxWorkers=1
+
+5 suites passed, 96 tests passed.
+
+cd app/server && mvn -q -pl appsmith-plugins/celanworksmithOntologyPlugin -am \
+  -Dtest=OntologyActionConfigurationTest,OntologyConfigurationTest,OntologyObjectQueryExecutorTest \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+
+92 tests passed.
+```
+
+The plugin package was rebuilt and copied to `app/server/dist/plugins`; the
+locally started backend answered `200` from `/api/v1/health` after restart.
+
+Manual verification still required: create a Builder Object Query whose
+visible projection omits its Release primary key, bind it directly to a Table,
+then verify the matching Function/Action Target picker offers that Table and
+successfully runs from its selected row(s). Confirm that an Advanced Object
+Query omitting the primary key remains runnable but is not offered as an
+automatic Table source.
+
 ## Final Review Corrections (2026-09-10)
 
 Final review found and the follow-up commit `920a139c5a` corrected two Builder
@@ -254,3 +300,122 @@ Tests:       98 passed, 98 total
 editor-resource update. The backend was then restarted and
 `GET http://127.0.0.1:8081/api/v1/health` returned status `200` with
 `"data":"All systems are up"`.
+
+### Primary-Key Visibility Regression
+
+The Table form configuration retains available columns even when a column is
+not included in the query projection. The one-click binding visibility rule
+therefore treats a primary key as selected only when its column has
+`isSelected: true`; a Release primary key that is present in metadata but not
+selected remains hidden after the Builder runtime injects it.
+
+```text
+cd app/client && yarn g:jest \
+  src/sagas/OneClickBindingSaga.test.ts \
+  src/PluginActionEditor/components/CapabilityTargetBinding/ontologyTableTargetProvenance.test.ts \
+  src/components/formControls/CapabilityTargetBindingControl.test.tsx \
+  src/PluginActionEditor/components/QueryModeSynchronizer/ontologyObjectQueryDefinition.test.ts \
+  src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts
+
+Test Suites: 5 passed, 5 total
+Tests:       97 passed, 97 total
+```
+
+An independent scoped re-review found no remaining P1/P2 issue in this rule.
+
+## Function/Action Advanced JSON Formatting (2026-09-11)
+
+Function and Action Builder-to-Advanced drafts now use the same two-space JSON
+formatting as Object Query Advanced definitions. The compact serializer remains
+available for canonical/runtime-oriented callers; the synchronizer formats the
+draft only when entering Advanced or initializing an empty definition. JSON
+content is compared semantically to avoid repeated updates caused only by
+whitespace differences.
+
+```text
+cd app/client && yarn g:jest \
+  src/PluginActionEditor/components/QueryModeSynchronizer/ontologyCapabilityQueryDefinition.test.ts \
+  src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts \
+  --watch=false
+
+Test Suites: 2 passed, 2 total
+Tests:       61 passed, 61 total
+```
+
+Prettier checks for the four changed synchronizer files and `git diff --check`
+also passed.
+
+## Function Advanced Builder Envelope Regression (2026-09-14)
+
+The Builder's parameter field can be present as an editor-only view envelope
+(`{ "viewType": "component" }`) when a Function has no writable
+parameters. It is now normalized to an empty parameter object before an
+Advanced draft is created, so that UI metadata never reaches the ontology
+runtime. Entering Advanced also rewrites an equivalent compact capability
+definition into its two-space formatted draft; semantic equality suppresses
+only subsequent no-op updates while already editing Advanced JSON.
+
+```text
+cd app/client && yarn g:jest \
+  src/PluginActionEditor/components/QueryModeSynchronizer/ontologyCapabilityQueryDefinition.test.ts \
+  src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts \
+  --watch=false
+
+Test Suites: 2 passed, 2 total
+Tests:       63 passed, 63 total
+```
+
+## Builder Target Binding Round Trip (2026-09-14)
+
+Switching a Function or Action Query from Builder to Advanced now snapshots
+the Builder target and its source binding. When the validated Advanced target
+is unchanged, switching back restores the original `WIDGET` binding, including
+the selected widget, target cardinality, and expression. This retains the
+component-selection presentation rather than incorrectly converting it to a
+manual expression or ID.
+
+If the Advanced target was changed, the editor deliberately uses the existing
+manual fallback. It must not present a stale widget binding whose expression no
+longer represents the saved target.
+
+```text
+cd app/client && yarn g:jest \
+  src/PluginActionEditor/components/QueryModeSynchronizer/ontologyCapabilityQueryDefinition.test.ts \
+  src/PluginActionEditor/components/QueryModeSynchronizer/QueryModeSynchronizer.test.ts \
+  --watch=false
+
+Test Suites: 2 passed, 2 total
+Tests:       65 passed, 65 total
+```
+
+Prettier passed for the four changed synchronizer files, and `git diff --check`
+completed with no output.
+
+Manual verification: configure a Function or Action target from a Table,
+Select, or MultiSelect; switch to Advanced without changing the JSON; then
+return to Builder. The original component mode and selected widget should
+remain visible. Change `target` in the Advanced JSON and return to Builder to
+confirm the mode falls back to manual input instead.
+
+## Advanced Single-Object Target Substitution (2026-09-14)
+
+An Advanced Function or Action definition may contain a canonical Table target
+such as `{{Table1.selectedRow["id"]}}`. JSON serialization escapes the inner
+quotes before the generic template renderer runs, so this expression must be
+substituted structurally on the parsed `target.objectId` leaf. The capability
+definition substitutor now performs that substitution before serializing the
+definition for execution. Object-set array substitution remains unchanged.
+
+```text
+cd app/server && mvn -q \
+  -pl appsmith-plugins/celanworksmithOntologyPlugin \
+  -am \
+  -Dtest=OntologyCapabilityDefinitionSubstitutorTest \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+
+OntologyCapabilityDefinitionSubstitutorTest
+tests="3" errors="0" skipped="0" failures="0"
+```
+
+The ontology plugin was rebuilt, copied to `app/server/dist/plugins`, and
+`cw-backend` was restarted. Its health endpoint returned HTTP 200 on startup.

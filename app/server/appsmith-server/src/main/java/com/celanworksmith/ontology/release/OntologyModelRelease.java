@@ -11,7 +11,7 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
     public record Release(String domain, String modelId, String version, String releaseDigest) {}
 
     public sealed interface Element
-            permits EntitySet, RuntimeBinding, EntitySetLink, UnsupportedElement, LineageElement {
+            permits EntitySet, RuntimeBinding, EntitySetLink, Function, UnsupportedElement, LineageElement {
         String domain();
 
         String kind();
@@ -79,6 +79,30 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
     }
 
     public record RuntimeFieldMapping(String column, String expression, String status) {}
+
+    public record Function(
+            String domain,
+            String name,
+            String version,
+            Map<String, String> displayName,
+            String returnType,
+            List<String> ownerObjectTypeIds,
+            boolean sideEffectFree,
+            Integer maxItems,
+            String implementationKind,
+            String implementationRef,
+            String implementationVersion)
+            implements Element {
+        @Override
+        public String kind() {
+            return "function";
+        }
+
+        public Function {
+            displayName = Map.copyOf(displayName);
+            ownerObjectTypeIds = List.copyOf(ownerObjectTypeIds);
+        }
+    }
 
     public record EntitySetLink(
             String domain,

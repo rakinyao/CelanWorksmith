@@ -167,6 +167,36 @@ describe("OntologyQueryModeSynchronizer", () => {
     expect(getOntologyQueryDefinitionUpdate(input)).toBeUndefined();
   });
 
+  it("formats an equivalent compact capability definition when entering Advanced", () => {
+    const compactDefinition =
+      '{"target":{"source":"SINGLE_OBJECT","objectId":"CTR-1"},"parameters":{}}';
+
+    expect(
+      getOntologyQueryDefinitionUpdate({
+        pluginPackageName: "celanworksmith-ontology-plugin",
+        previousQueryMode: "BUILDER",
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          target: {
+            data: { source: "SINGLE_OBJECT", objectId: "CTR-1" },
+          },
+          parameters: { data: {} },
+          definition: { data: compactDefinition },
+        },
+      }),
+    ).toEqual({
+      field: "actionConfiguration.formData.definition.data",
+      value: `{
+  "target": {
+    "source": "SINGLE_OBJECT",
+    "objectId": "CTR-1"
+  },
+  "parameters": {}
+}`,
+    });
+  });
+
   it("ignores non-ontology plugins without creating a network or form update", () => {
     expect(
       getOntologyQueryDefinitionUpdate({
@@ -209,13 +239,17 @@ describe("OntologyQueryModeSynchronizer", () => {
         }),
       ).toEqual({
         field: "actionConfiguration.formData.definition.data",
-        value: JSON.stringify({
-          target: {
-            source: "SINGLE_OBJECT",
-            objectId: "{{Table1.selectedRow.id}}",
+        value: JSON.stringify(
+          {
+            target: {
+              source: "SINGLE_OBJECT",
+              objectId: "{{Table1.selectedRow.id}}",
+            },
+            parameters,
           },
-          parameters,
-        }),
+          null,
+          2,
+        ),
       });
     },
   );
@@ -243,12 +277,17 @@ describe("OntologyQueryModeSynchronizer", () => {
       }),
     ).toEqual({
       field: "actionConfiguration.formData.definition.data",
-      value:
-        '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
+      value: `{
+  "target": {
+    "source": "SINGLE_OBJECT",
+    "objectId": "{{Table1.selectedRow.id}}"
+  },
+  "parameters": {}
+}`,
     });
   });
 
-  it("does not serialize an unverified capability with absent Builder parameters", () => {
+  it("serializes a capability with absent Builder parameters before metadata loads", () => {
     expect(
       getOntologyQueryDefinitionUpdate({
         pluginPackageName: "celanworksmith-ontology-plugin",
@@ -266,7 +305,48 @@ describe("OntologyQueryModeSynchronizer", () => {
           },
         },
       }),
-    ).toBeUndefined();
+    ).toEqual({
+      field: "actionConfiguration.formData.definition.data",
+      value: `{
+  "target": {
+    "source": "SINGLE_OBJECT",
+    "objectId": "{{Table1.selectedRow.id}}"
+  },
+  "parameters": {}
+}`,
+    });
+  });
+
+  it("keeps a structural Advanced draft when Builder capability validation fails", () => {
+    expect(
+      getOntologyQueryDefinitionUpdate({
+        pluginPackageName: "celanworksmith-ontology-plugin",
+        previousQueryMode: "BUILDER",
+        capabilityMetadata,
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: {
+              source: "OBJECT_SET",
+              objectIds: "{{Table1.selectedRows.map((row) => row.id)}}",
+            },
+          },
+          parameters: { data: {} },
+        },
+      }),
+    ).toEqual({
+      field: "actionConfiguration.formData.definition.data",
+      value: `{
+  "target": {
+    "source": "OBJECT_SET",
+    "objectIds": "{{Table1.selectedRows.map((row) => row.id)}}"
+  },
+  "parameters": {}
+}`,
+    });
   });
 
   it("retains zero-parameter metadata while Builder enters Advanced", () => {
@@ -324,7 +404,88 @@ describe("OntologyQueryModeSynchronizer", () => {
     expect(mockChange).toHaveBeenCalledWith(
       "QueryEditorForm",
       "actionConfiguration.formData.definition.data",
-      '{"target":{"source":"SINGLE_OBJECT","objectId":"{{Table1.selectedRow.id}}"},"parameters":{}}',
+      `{
+  "target": {
+    "source": "SINGLE_OBJECT",
+    "objectId": "{{Table1.selectedRow.id}}"
+  },
+  "parameters": {}
+}`,
+    );
+  });
+
+  it("serializes a widget object-set binding when a Function enters Advanced", () => {
+    mockEvaluationState = {
+      "": {
+        ONTOLOGY_FUNCTION_PARAMETERS: {
+          fetchDynamicValues: { data: [] },
+        },
+      },
+    };
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "BUILDER" },
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: {
+            data: {
+              source: "OBJECT_SET",
+              objectIds: '{{Table1.selectedRows.map((row) => row["id"])}}',
+            },
+          },
+          targetBinding: {
+            data: {
+              mode: "WIDGET",
+              widgetId: "table-id",
+              cardinality: "MANY",
+              expression: '{{Table1.selectedRows.map((row) => row["id"])}}',
+            },
+          },
+          parameters: { data: {} },
+          definition: { data: "" },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockChange.mockClear();
+    mockDispatch.mockClear();
+
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "ADVANCED" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.definition.data",
+      `{
+  "target": {
+    "source": "OBJECT_SET",
+    "objectIds": "{{Table1.selectedRows.map((row) => row[\\"id\\"])}}"
+  },
+  "parameters": {}
+}`,
     );
   });
 
@@ -1024,6 +1185,243 @@ describe("OntologyQueryModeSynchronizer", () => {
     );
   });
 
+  it("restores the Builder draft without clearing invalid Advanced capability text", () => {
+    const builderTarget = {
+      source: "SINGLE_OBJECT",
+      objectId: "{{Table1.selectedRow.id}}",
+    };
+    const builderBinding = {
+      mode: "MANUAL",
+      cardinality: "ONE",
+      expression: "{{Table1.selectedRow.id}}",
+    };
+
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "BUILDER" },
+          objectTypeId: { data: "PurchaseOrder" },
+          functionId: { data: "CalculateDelayDays" },
+          target: { data: builderTarget },
+          targetBinding: { data: builderBinding },
+          parameters: { data: { delayDays: 5 } },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockDispatch.mockClear();
+    mockChange.mockClear();
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "ADVANCED" },
+          definition: { data: "{" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "BUILDER" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.target.data",
+      builderTarget,
+    );
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.targetBinding.data",
+      builderBinding,
+    );
+    expect(mockChange).not.toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.queryMode.data",
+      "ADVANCED",
+    );
+  });
+
+  it("restores a matching Widget target binding after a valid Advanced round trip", () => {
+    const target = {
+      source: "OBJECT_SET",
+      objectIds: '{{ContractsTable.selectedRows.map((row) => row["id"])}}',
+    };
+    const widgetBinding = {
+      mode: "WIDGET",
+      widgetId: "contracts-table-id",
+      cardinality: "MANY",
+      expression: target.objectIds,
+    };
+
+    mockEvaluationState = {
+      "": {
+        ONTOLOGY_FUNCTION_PARAMETERS: {
+          fetchDynamicValues: { data: { content: [] } },
+        },
+      },
+    };
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "BUILDER" },
+          objectTypeId: { data: "Contract" },
+          functionId: { data: "CalculateContractGrossAmount" },
+          target: { data: target },
+          targetBinding: { data: widgetBinding },
+          parameters: { data: {} },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockChange.mockClear();
+    mockDispatch.mockClear();
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "ADVANCED" },
+          definition: { data: JSON.stringify({ target, parameters: {} }) },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockChange.mockClear();
+    mockDispatch.mockClear();
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "BUILDER" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.targetBinding.data",
+      widgetBinding,
+    );
+  });
+
+  it("restores a persisted Widget target binding after remounting in Advanced mode", () => {
+    const target = {
+      source: "OBJECT_SET" as const,
+      objectIds: '{{ContractsTable.selectedRows.map((row) => row["id"])}}',
+    };
+    const widgetBinding = {
+      mode: "WIDGET" as const,
+      widgetId: "contracts-table-id",
+      cardinality: "MANY" as const,
+      expression: '{{ContractsTable.selectedRows.map((row) => row["id"])}}',
+    };
+
+    mockEvaluationState = {
+      "": {
+        ONTOLOGY_FUNCTION_PARAMETERS: {
+          fetchDynamicValues: { data: { content: [] } },
+        },
+      },
+    };
+    mockCurrentFormValues = {
+      pluginId: "ontology-plugin-id",
+      actionConfiguration: {
+        formData: {
+          operation: { data: "FUNCTION_QUERY" },
+          queryMode: { data: "ADVANCED" },
+          objectTypeId: { data: "Contract" },
+          functionId: { data: "CalculateContractGrossAmount" },
+          target: { data: target },
+          targetBinding: { data: widgetBinding },
+          parameters: { data: {} },
+          definition: { data: JSON.stringify({ target, parameters: {} }) },
+        },
+      },
+    };
+
+    const view = render(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    mockChange.mockClear();
+    mockDispatch.mockClear();
+    mockCurrentFormValues = {
+      ...mockCurrentFormValues,
+      actionConfiguration: {
+        formData: {
+          ...mockCurrentFormValues.actionConfiguration.formData,
+          queryMode: { data: "BUILDER" },
+        },
+      },
+    };
+    view.rerender(
+      React.createElement(OntologyQueryModeSynchronizer, {
+        enabled: true,
+        formName: "QueryEditorForm",
+      }),
+    );
+
+    expect(mockChange).toHaveBeenCalledWith(
+      "QueryEditorForm",
+      "actionConfiguration.formData.targetBinding.data",
+      widgetBinding,
+    );
+  });
+
   it.each([
     ["en-US", "Cannot switch to Builder: The Advanced definition is invalid."],
     ["zh-CN", "无法切换到构建器：高级定义无效。"],
@@ -1331,6 +1729,9 @@ describe("OntologyQueryModeSynchronizer", () => {
         maxItems: 1,
         ownerObjectTypeConfigProperty:
           "actionConfiguration.formData.objectTypeId.data",
+        primaryKeyConfigProperty:
+          "actionConfiguration.formData.targetBinding.data",
+        fetchOptionsConditionally: true,
         ...(fileName === "function-query.json"
           ? {
               functionMetadataConfigProperty:
@@ -1339,6 +1740,13 @@ describe("OntologyQueryModeSynchronizer", () => {
           : {}),
         conditionals: {
           show: "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+        },
+      });
+      expect(target?.conditionals?.fetchDynamicValues?.config.params).toEqual({
+        requestType: "ONTOLOGY_OBJECT_PROPERTIES",
+        displayType: "DROP_DOWN",
+        parameters: {
+          objectTypeId: "{{actionConfiguration.formData.objectTypeId.data}}",
         },
       });
       expect(target?.functionMetadataConfigProperty).toBe(

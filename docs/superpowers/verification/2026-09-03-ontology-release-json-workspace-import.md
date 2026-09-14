@@ -116,7 +116,7 @@ pipeline.
 | --- | --- | --- |
 | v2 Release syntax, digest, accepted kinds | `OntologyModelReleaseParser` | Final parser/version contract. |
 | Release entity/link/runtime binding mapping | `OntologyModelReleaseMapper` | Final localized metadata, composite-key, capability, and element-kind contract. |
-| workspace/domain opaque binding resolution | `WorkspaceDomainRuntimeBindingResolver` | Administrator persistence, policy, per-asset override, and platform binding contract. |
+| deployment/tenant domain opaque binding resolution | `WorkspaceDomainRuntimeBindingResolver` | `*` is the local development deployment scope; replace it with administrator persistence, tenant policy, per-asset overrides, and platform binding support. |
 | local file import to parsed/mapped snapshot | `LocalReleaseJsonOntologyProjectImporter` | Remote Release client feeding the same parsed/mapped path. |
 | immutable domain/digest/binding audit fields | `OntologyMetadataSnapshot` | Final audit schema. |
 | explicit runtime columns and link fields | `OntologyProjectDefinition` | Governed common runtime-mapping schema. |

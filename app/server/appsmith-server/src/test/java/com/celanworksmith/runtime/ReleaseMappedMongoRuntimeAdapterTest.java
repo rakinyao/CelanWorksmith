@@ -1,10 +1,13 @@
 package com.celanworksmith.runtime;
 
 import com.celanworksmith.application.CelanworksmithApplicationBindingResolver;
+import com.celanworksmith.ontology.datasource.OntologyObjectSet;
+import com.celanworksmith.ontology.dto.FunctionDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.ontology.release.OntologyModelReleaseMapper;
 import com.celanworksmith.ontology.release.OntologyModelReleaseParser;
 import com.celanworksmith.runtime.adapter.mongodb.MongoRuntimeDataProvider;
+import com.celanworksmith.runtime.dto.FunctionExecutionRequest;
 import com.celanworksmith.runtime.dto.ObjectSetQuery;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.bson.Document;
@@ -79,6 +82,88 @@ class ReleaseMappedMongoRuntimeAdapterTest {
                 .contains("contract_name", "智慧")
                 .doesNotContain("properties.");
         assertThat(queryCaptor.getValue().getSortObject().toJson()).contains("contract_name", "-1");
+    }
+
+    @Test
+    void executesContractGrossAmountAcrossReleaseMappedTargets() {
+        OntologyProjectDefinition definition = withFunctions("CalculateContractGrossAmount");
+        when(template.findOne(any(), eq(Document.class), eq("ont_contract")))
+                .thenReturn(Mono.just(new Document(Map.of("id", "CTR-1", "current_amount", 100.25))))
+                .thenReturn(Mono.just(new Document(Map.of("id", "CTR-2", "current_amount", 249.75))));
+
+        StepVerifier.create(provider.executeFunction(
+                        definition,
+                        "CalculateContractGrossAmount",
+                        new FunctionExecutionRequest(
+                                new OntologyObjectSet("contract", List.of("CTR-1", "CTR-2")), Map.of())))
+                .expectNextMatches(value -> value.toString().equals("350.00"))
+                .verifyComplete();
+    }
+
+    @Test
+    void executesContractChangeRateForReleaseMappedTarget() {
+        OntologyProjectDefinition definition = withFunctions("CalculateContractChangeRate");
+        when(template.findOne(any(), eq(Document.class), eq("ont_contract")))
+                .thenReturn(
+                        Mono.just(new Document(Map.of("id", "CTR-1", "original_amount", 200, "change_amount", 50))));
+
+        StepVerifier.create(provider.executeFunction(
+                        definition,
+                        "CalculateContractChangeRate",
+                        new FunctionExecutionRequest(new OntologyObjectSet("contract", List.of("CTR-1")), Map.of())))
+                .expectNextMatches(value -> value.toString().equals("0.2500"))
+                .verifyComplete();
+    }
+
+    @Test
+    void executesSupplierRiskFromReleaseMappedTarget() {
+        OntologyProjectDefinition definition = withFunctions("CalculateSupplierRisk");
+        when(template.findOne(any(), eq(Document.class), eq("ont_supplier")))
+                .thenReturn(Mono.just(new Document(Map.of(
+                        "supplier_code", "SUP-1", "state", "ACTIVE", "match_state", "MATCHED", "tax_rate", 0.1))));
+
+        StepVerifier.create(provider.executeFunction(
+                        definition,
+                        "CalculateSupplierRisk",
+                        new FunctionExecutionRequest(new OntologyObjectSet("supplier", List.of("SUP-1")), Map.of())))
+                .expectNext("LOW")
+                .verifyComplete();
+    }
+
+    @Test
+    void executesCustomerContractTotalWithMappedContractRows() {
+        OntologyProjectDefinition definition = withFunctions("CalculateCustomerContractTotal");
+        when(template.findOne(any(), eq(Document.class), eq("ont_customer")))
+                .thenReturn(Mono.just(new Document(Map.of("source_customer_id", 1, "customer_code", "CUS-1"))));
+        when(template.find(any(), eq(Document.class), eq("ont_contract")))
+                .thenReturn(Flux.just(
+                        new Document(Map.of("id", "CTR-1", "customer_code", "CUS-1", "current_amount", 100.25)),
+                        new Document(Map.of("id", "CTR-2", "customer_code", "CUS-1", "current_amount", 249.75)),
+                        new Document(Map.of("id", "CTR-3", "customer_code", "CUS-2", "current_amount", 99))));
+        when(template.count(any(), eq("ont_contract"))).thenReturn(Mono.just(3L));
+
+        StepVerifier.create(provider.executeFunction(
+                        definition,
+                        "CalculateCustomerContractTotal",
+                        new FunctionExecutionRequest(new OntologyObjectSet("customer", List.of("1")), Map.of())))
+                .expectNextMatches(value -> value.toString().equals("350.00"))
+                .verifyComplete();
+    }
+
+    private OntologyProjectDefinition withFunctions(String functionId) {
+        String owner = "CalculateSupplierRisk".equals(functionId)
+                ? "supplier"
+                : "CalculateCustomerContractTotal".equals(functionId) ? "customer" : "contract";
+        FunctionDTO function = new FunctionDTO(functionId, functionId, "DECIMAL", List.of(owner), List.of(), true);
+        return new OntologyProjectDefinition(
+                releaseDefinition.projectId(),
+                releaseDefinition.version(),
+                releaseDefinition.schemaVersion(),
+                releaseDefinition.objectTypes(),
+                releaseDefinition.linkTypes(),
+                List.of(function),
+                releaseDefinition.actions(),
+                releaseDefinition.runtimeMappings());
     }
 
     @Test

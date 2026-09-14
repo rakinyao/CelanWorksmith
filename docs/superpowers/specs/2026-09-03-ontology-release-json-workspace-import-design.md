@@ -29,7 +29,7 @@ alongside `Demo`, `Local YAML`, and `Platform Release`.
 ```text
 User selects Release JSON and uploads a file
   -> server validates the Release v2 contract and digest
-  -> server resolves the workspace/domain runtime binding
+  -> server resolves the deployment/tenant domain runtime binding
   -> server maps Release elements to an immutable metadata snapshot
   -> server validates snapshot/runtime compatibility
   -> server creates the native ontology datasource
@@ -63,31 +63,32 @@ identifier.
 The first supported Release has no Function or Action elements; capability
 mapping is deliberately deferred until their modelling contract is finalized.
 
-## Workspace Domain Runtime Binding
+## Runtime Domain Binding
 
-Runtime configuration is managed separately from Release import. The initial
-binding granularity is:
+Runtime configuration is managed separately from Release import. A Release
+does not carry a CelanWorksmith workspace identity, so the binding granularity
+is owned by the consuming platform:
 
 ```text
-workspaceId + domain -> managed runtime environment
+deployment/tenant + domain -> managed runtime environment
 ```
 
-For example, a test workspace can bind `business` to the local Demo MongoDB
-environment. The binding is created and maintained by a workspace administrator
-through a restricted management interface or development bootstrap, never by
-the Release import form.
+For example, the local development deployment binds `business` to the Demo
+MongoDB environment. The binding is created and maintained by platform
+operations through restricted administrator configuration or development
+bootstrap, never by the Release import form or the modelling platform.
 
 Internally, the binding resolves every `runtime_binding.asset_ref` in the
 Release to the managed provider/environment. It verifies the provider kind,
 access mode, asset availability, and field/primary-key mappings before a
-snapshot becomes usable. The initial UI exposes only one domain binding per
-workspace; future per-asset overrides can extend the model without changing
-the import API.
+snapshot becomes usable. The initial UI exposes no runtime-binding choice;
+future per-asset overrides can extend the model without changing the import
+API.
 
 Resolution rules are strict:
 
-1. Resolve only the binding for the request workspace and Release domain.
-2. Do not fall back to a different workspace or an implicit global provider.
+1. Resolve only the binding for the consuming deployment/tenant and Release domain.
+2. A workspace never selects or contributes a provider binding.
 3. If no binding exists, reject import with an error naming the domain.
 4. If the managed environment cannot serve every Release asset, reject import.
 5. Do not leave a datasource or snapshot when resolution or compatibility
@@ -117,7 +118,8 @@ cross-workspace configuration.
 
 The development test setup loads the generated `ont_supplier`, `ont_customer`,
 `ont_contract`, and `ont_purchase_order` documents into the Demo MongoDB
-environment. It provisions a test workspace domain binding for `business`.
+environment. It provisions a deployment-level `business` binding, so every
+local development workspace can import the Demo Release.
 
 Manual acceptance is:
 
@@ -130,14 +132,14 @@ filters, pagination, and aggregate result behavior.
 ## Testing
 
 Backend tests cover successful snapshot and datasource creation; digest,
-reference, and mapping rejection; missing workspace/domain binding; unavailable
-asset rejection; and transactional cleanup after failure. They verify no
+reference, and mapping rejection; missing deployment/tenant domain binding;
+unavailable asset rejection; and transactional cleanup after failure. They verify no
 provider configuration leaks into datasource properties or error payloads.
 
 Frontend tests cover the `Release JSON` option, `.json` upload acceptance,
 hidden provider input, request shape, success summary, and sanitized errors.
 
-An integration test uses the Demo workspace binding and generated runtime data
+An integration test uses the Demo deployment binding and generated runtime data
 to import the fixture through the datasource API and query the four mapped
 assets using the native runtime gateway.
 

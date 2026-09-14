@@ -99,31 +99,17 @@ function parseParameters(value: unknown): Record<string, unknown> {
   }
 }
 
-function hasNoWritableParameters(
-  selectedCapabilityId: unknown,
-  metadata?: OntologyCapabilityMetadata,
-): boolean {
-  if (typeof selectedCapabilityId !== "string" || !metadata) {
-    return false;
+function parseBuilderParameters(value: unknown): Record<string, unknown> {
+  if (value === undefined) {
+    return {};
   }
 
-  return (
-    metadata.capabilities
-      .find((capability) => capability.id === selectedCapabilityId)
-      ?.parameters.every(
-        (parameter) => parameter.readOnly || parameter.derived,
-      ) === true
-  );
-}
-
-function parseBuilderParameters(
-  value: unknown,
-  selectedCapabilityId: unknown,
-  metadata?: OntologyCapabilityMetadata,
-): Record<string, unknown> {
   if (
-    value === undefined &&
-    hasNoWritableParameters(selectedCapabilityId, metadata)
+    isRecord(value) &&
+    typeof value.viewType === "string" &&
+    Object.keys(value).every((key) =>
+      ["viewType", "componentData", "jsonData"].includes(key),
+    )
   ) {
     return {};
   }
@@ -452,8 +438,6 @@ export function serializeCapabilityBuilderForm(
       target: getCapabilityBuilderTarget(formData, operation),
       parameters: parseBuilderParameters(
         unwrapBuilderValue(formData.parameters),
-        selectedCapabilityId,
-        metadata,
       ),
     },
     operation,
@@ -468,8 +452,31 @@ export function serializeCapabilityBuilderForm(
   return JSON.stringify(validation.definition);
 }
 
+/**
+ * Produces an editable Advanced draft without treating Builder-only semantic
+ * validation as a reason to discard the user's target and parameter values.
+ */
+export function serializeCapabilityBuilderDraft(
+  formData: Record<string, unknown>,
+  operation: OntologyCapabilityOperation,
+  pretty = false,
+): string {
+  return JSON.stringify(
+    {
+      target: getCapabilityBuilderTarget(formData, operation),
+      parameters: parseBuilderParameters(
+        unwrapBuilderValue(formData.parameters),
+      ),
+    },
+    null,
+    pretty ? 2 : 0,
+  );
+}
+
 export function hydrateCapabilityBuilderForm(
   definition: OntologyCapabilityQueryDefinition,
+  previousTarget?: unknown,
+  previousTargetBinding?: unknown,
 ): Record<string, unknown> {
   const shapeError = validateDefinitionShape(definition);
 
@@ -479,7 +486,7 @@ export function hydrateCapabilityBuilderForm(
 
   const normalized = normalizeDefinition(definition);
 
-  const builderTarget =
+  const fallbackBuilderTarget =
     normalized.target.source === "SINGLE_OBJECT"
       ? {
           mode: "MANUAL" as const,
@@ -494,9 +501,63 @@ export function hydrateCapabilityBuilderForm(
             : normalized.target.objectIds,
         };
 
+  const builderTarget = isMatchingBuilderTargetBinding(
+    normalized.target,
+    previousTarget,
+    previousTargetBinding,
+  )
+    ? previousTargetBinding
+    : fallbackBuilderTarget;
+
   return {
     "actionConfiguration.formData.target.data": normalized.target,
     "actionConfiguration.formData.targetBinding.data": builderTarget,
     "actionConfiguration.formData.parameters.data": normalized.parameters,
   };
+}
+
+function isMatchingBuilderTargetBinding(
+  target: OntologyCapabilityQueryTarget,
+  previousTarget: unknown,
+  previousTargetBinding: unknown,
+): previousTargetBinding is {
+  mode: "WIDGET" | "MANUAL";
+  widgetId?: string;
+  cardinality: "ONE" | "MANY";
+  expression: string;
+} {
+  if (!isRecord(previousTarget) || !isRecord(previousTargetBinding)) {
+    return false;
+  }
+
+  if (
+    previousTargetBinding.mode !== "WIDGET" &&
+    previousTargetBinding.mode !== "MANUAL"
+  ) {
+    return false;
+  }
+
+  if (
+    previousTargetBinding.mode === "WIDGET" &&
+    typeof previousTargetBinding.widgetId !== "string"
+  ) {
+    return false;
+  }
+
+  if (
+    typeof previousTargetBinding.expression !== "string" ||
+    (previousTargetBinding.cardinality !== "ONE" &&
+      previousTargetBinding.cardinality !== "MANY")
+  ) {
+    return false;
+  }
+
+  return (
+    JSON.stringify(previousTarget) === JSON.stringify(target) &&
+    (target.source === "SINGLE_OBJECT"
+      ? previousTargetBinding.cardinality === "ONE" &&
+        previousTargetBinding.expression === target.objectId
+      : previousTargetBinding.cardinality === "MANY" &&
+        previousTargetBinding.expression === target.objectIds)
+  );
 }

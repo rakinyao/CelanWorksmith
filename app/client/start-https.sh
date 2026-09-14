@@ -202,7 +202,9 @@ fi
 nginx_pid="$working_dir/wildcard-nginx.pid"
 nginx_access_log="$working_dir/access.log"
 nginx_error_log="$working_dir/error.log"
+nginx_body_temp="$working_dir/client-body-temp"
 rm -f "$nginx_access_log" "$nginx_error_log"
+mkdir -p "$nginx_body_temp"
 
 nginx_dev_conf="$working_dir/nginx.dev.conf"
 
@@ -245,6 +247,7 @@ http {
     keepalive_timeout  65;
 
     access_log $nginx_access_log;
+    client_body_temp_path $nginx_body_temp;
 
     gzip on;
     gzip_types *;

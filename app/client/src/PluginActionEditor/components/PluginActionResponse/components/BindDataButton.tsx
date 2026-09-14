@@ -32,6 +32,8 @@ import { getNextWidgetName } from "sagas/WidgetOperationUtils";
 import AnalyticsUtil from "ee/utils/AnalyticsUtil";
 import { addSuggestedWidget } from "actions/widgetActions";
 import { getDataTree } from "selectors/dataTreeSelectors";
+import { getOntologyColumnLabels } from "sagas/ontologyColumnLabels";
+import { objectKeys } from "@appsmith/utils";
 import { ASSETS_CDN_URL } from "constants/ThirdPartyConstants";
 import listWidgetIconSvg from "widgets/ListWidget/icon.svg";
 import tableWidgetIconSvg from "widgets/TableWidgetV2/icon.svg";
@@ -146,6 +148,7 @@ function getWidgetProps(
   widgetInfo: WidgetBindingInfo,
   actionName: string,
   widgetName?: string,
+  columnNameMap: Record<string, string> = {},
 ) {
   const fieldName = widgetInfo.propertyName;
 
@@ -156,6 +159,7 @@ function getWidgetProps(
         props: {
           [fieldName]: `{{${actionName}.${suggestedWidget.bindingQuery}}}`,
           dynamicBindingPathList: [{ key: "tableData" }],
+          ...(objectKeys(columnNameMap).length > 0 ? { columnNameMap } : {}),
         },
         parentRowSpace: 10,
       };
@@ -167,6 +171,7 @@ function getWidgetProps(
           [fieldName]: `{{${actionName}.${suggestedWidget.bindingQuery}}}`,
           dynamicBindingPathList: [{ key: "tableData" }],
           dynamicPropertyPathList: [{ key: "tableData" }],
+          ...(objectKeys(columnNameMap).length > 0 ? { columnNameMap } : {}),
         },
         parentRowSpace: 10,
       };
@@ -263,6 +268,16 @@ function BindDataButton(props: BindDataButtonProps) {
   );
   const canvasWidgets = useSelector(getWidgets);
 
+  const ontologyColumnNameMap = useSelector((state) => {
+    const queryId =
+      params.baseApiId || params.baseQueryId || params.moduleInstanceId;
+    const action = state.entities.actions.find(
+      (candidate) => candidate.config.id === queryId,
+    );
+
+    return getOntologyColumnLabels(action?.data?.headers);
+  });
+
   const dataTree = useSelector(getDataTree);
 
   const suggestedWidgetsEnabled =
@@ -330,6 +345,7 @@ function BindDataButton(props: BindDataButtonProps) {
       widgetInfo,
       actionName,
       widgetName,
+      ontologyColumnNameMap,
     );
 
     AnalyticsUtil.logEvent("SUGGESTED_WIDGET_CLICK", {

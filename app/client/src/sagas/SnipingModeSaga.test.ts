@@ -9,6 +9,7 @@ import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import { getModuleInstanceById } from "ee/selectors/moduleInstanceSelectors";
 import WidgetFactory from "WidgetProvider/factory";
 import TableWidget from "widgets/TableWidget/widget";
+import TableWidgetV2 from "widgets/TableWidgetV2/widget";
 import { InputFactory } from "test/factories/Widgets/InputFactory";
 
 jest.mock("ee/selectors/moduleInstanceSelectors", () => ({
@@ -104,6 +105,75 @@ describe("SnipingModeSaga", () => {
         type: ReduxActionTypes.SELECT_WIDGET_INIT,
       },
     ]);
+
+    spy.mockRestore();
+  });
+
+  it("preserves ontology field labels when binding a query result to a table", async () => {
+    const widget = {
+      primaryColumns: {
+        customer_name: {
+          label: "customer_name",
+          originalId: "customer_name",
+        },
+      },
+      type: "TABLE_WIDGET_V2",
+      widgetId: "table-1",
+    };
+    const action = PostgresFactory.build({ id: "query-1", name: "Query1" });
+    const store = testStore({
+      entities: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...({} as any),
+        actions: [
+          {
+            config: action,
+            data: {
+              customer_name: "沧澜工坊",
+              headers: {
+                "X-CELANWORKSHOP-COLUMN-LABELS": [
+                  '{"customer_name":"客户名称"}',
+                ],
+              },
+            },
+          },
+        ],
+        canvasWidgets: { [widget.widgetId]: widget },
+      },
+      ui: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...({} as any),
+        editor: { snipModeBindTo: action.id },
+      },
+    });
+    const dispatched: unknown[] = [];
+    const spy = jest
+      .spyOn(WidgetFactory, "getWidgetMethods")
+      .mockImplementation(TableWidgetV2.getMethods);
+
+    await runSaga(
+      {
+        dispatch: (dispatchedAction) => dispatched.push(dispatchedAction),
+        getState: () => store.getState(),
+      },
+      bindDataToWidgetSaga as Saga,
+      { payload: { widgetId: widget.widgetId } },
+    ).toPromise();
+
+    expect(dispatched).toContainEqual({
+      payload: {
+        shouldReplay: true,
+        updates: {
+          modify: {
+            columnNameMap: { customer_name: "客户名称" },
+            "primaryColumns.customer_name.label": "客户名称",
+            tableData: "{{Query1.data}}",
+          },
+        },
+        widgetId: widget.widgetId,
+      },
+      type: ReduxActionTypes.BATCH_UPDATE_WIDGET_PROPERTY,
+    });
 
     spy.mockRestore();
   });

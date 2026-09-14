@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public record OntologyActionConfiguration(Operation operation, Map<String, Object> definition) {
+public record OntologyActionConfiguration(Operation operation, Map<String, Object> definition, boolean builderMode) {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -110,7 +110,7 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             }
         }
         validateRequiredIdentifier(operation, definition);
-        return new OntologyActionConfiguration(operation, Map.copyOf(definition));
+        return new OntologyActionConfiguration(operation, Map.copyOf(definition), builderMode);
     }
 
     private static String operationName(Map<String, Object> formData) {
@@ -250,7 +250,21 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
         }
         Map<String, Object> target = new java.util.LinkedHashMap<>();
         rawTarget.forEach((key, targetValue) -> target.put(String.valueOf(key), targetValue));
+        normalizeObjectSetTargetIds(target);
         definition.put("target", Collections.unmodifiableMap(target));
+    }
+
+    private static void normalizeObjectSetTargetIds(Map<String, Object> target) {
+        Object source = target.get("source");
+        Object objectIds = target.get("objectIds");
+        if (!("OBJECT_SET".equals(source) || "MANY_OBJECTS".equals(source)) || !(objectIds instanceof String json)) {
+            return;
+        }
+        try {
+            target.put("objectIds", OBJECT_MAPPER.readValue(json, new TypeReference<List<String>>() {}));
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Ontology capability target object IDs must be a JSON array", exception);
+        }
     }
 
     private static void validateAdvancedCapabilityDefinition(Operation operation, Map<String, Object> definition) {

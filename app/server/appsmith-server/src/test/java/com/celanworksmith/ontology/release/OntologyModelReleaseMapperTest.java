@@ -72,6 +72,24 @@ class OntologyModelReleaseMapperTest {
         });
     }
 
+    @Test
+    void mapsAllDemoFunctionsFromTheProvisionalRelease() {
+        OntologyProjectDefinition definition = mapper.map(parser.parse(functionFixtureBytes()));
+
+        assertThat(definition.version()).isEqualTo("1.1.0");
+        assertThat(definition.functions())
+                .extracting(function -> function.id())
+                .containsExactlyInAnyOrder(
+                        "CalculateSupplierRisk",
+                        "CalculateContractChangeRate",
+                        "CalculateContractGrossAmount",
+                        "CalculateCustomerContractTotal");
+        assertThat(definition.functions()).allSatisfy(function -> {
+            assertThat(function.implementationKind()).isEqualTo("DEMO_HANDLER");
+            assertThat(function.maxItems()).isPositive();
+        });
+    }
+
     private byte[] functionRelease() {
         try {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper =
@@ -102,6 +120,15 @@ class OntologyModelReleaseMapperTest {
             document.with("release").put("release_digest", "sha256:" + hex);
             return objectMapper.writeValueAsBytes(document);
         } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private byte[] functionFixtureBytes() {
+        try {
+            return Files.readAllBytes(
+                    Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-functions-1.1.0.json"));
+        } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
     }

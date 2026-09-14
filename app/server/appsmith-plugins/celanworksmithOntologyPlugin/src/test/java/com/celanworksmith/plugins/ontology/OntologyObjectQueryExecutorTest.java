@@ -166,6 +166,34 @@ class OntologyObjectQueryExecutorTest {
     }
 
     @Test
+    void builderProjectionAddsTheDeclaredReleasePrimaryKeyForTargetBindings() {
+        RecordingGateway gateway = gatewayWithDeclaredPrimaryKeyOnly();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of("queryMode", "BUILDER", "objectTypeId", "PurchaseOrder", "projection", List.of("delayDays")));
+
+        assertTrue(result.getIsExecutionSuccess(), result.getReadableError());
+        assertEquals(List.of("delayDays", "id"), gateway.query.projection());
+    }
+
+    @Test
+    void advancedProjectionDoesNotAddTheDeclaredReleasePrimaryKey() {
+        RecordingGateway gateway = gatewayWithDeclaredPrimaryKeyOnly();
+
+        ActionExecutionResult result = executeStructured(
+                gateway,
+                Map.of(
+                        "queryMode",
+                        "ADVANCED",
+                        "definition",
+                        "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"delayDays\"]}"));
+
+        assertTrue(result.getIsExecutionSuccess(), result.getReadableError());
+        assertEquals(List.of("delayDays"), gateway.query.projection());
+    }
+
+    @Test
     void builderAndAdvancedConfigurationsProduceEquivalentRuntimeQueries() {
         Map<String, Object> filter =
                 Map.of("conditions", List.of(Map.of("propertyId", "delayDays", "operator", "gt", "value", 4)));
@@ -636,9 +664,10 @@ class OntologyObjectQueryExecutorTest {
 
         assertEquals(
                 List.of(
-                        propertyMetadata("id", "id", "string", false, true, false),
+                        primaryPropertyMetadata("id", "id", "string", false, true, false),
                         propertyMetadata("delayDays", "delayDays", "integer", false, false, false)),
                 result.getTrigger());
+        assertEquals(true, ((Map<?, ?>) ((List<?>) result.getTrigger()).getFirst()).get("isPrimaryKey"));
     }
 
     private ActionExecutionResult execute(RecordingGateway gateway, Map<String, Object> definition) {
@@ -691,6 +720,13 @@ class OntologyObjectQueryExecutorTest {
                 OntologyQueryOperatorCatalog.operatorsFor(dataType).stream()
                         .map(operator -> Map.of("value", operator.value(), "label", operator.label()))
                         .toList());
+        return metadata;
+    }
+
+    private Map<String, Object> primaryPropertyMetadata(
+            String label, String value, String dataType, boolean required, boolean readOnly, boolean derived) {
+        Map<String, Object> metadata = propertyMetadata(label, value, dataType, required, readOnly, derived);
+        metadata.put("isPrimaryKey", true);
         return metadata;
     }
 

@@ -314,6 +314,38 @@ describe("OntologyDatasourceImport", () => {
     },
   );
 
+  it("does not announce success for a resolved Appsmith error response", async () => {
+    (OntologyDatasourceApi.importDatasource as jest.Mock).mockResolvedValue({
+      responseMeta: {
+        status: 400,
+        success: false,
+        error: {
+          code: "RELEASE_IMPORT_BINDING_UNAVAILABLE",
+          message: "untrusted backend diagnostic",
+        },
+      },
+      data: undefined,
+    });
+    const onImported = jest.fn();
+
+    render(
+      <OntologyDatasourceImport
+        onImported={onImported}
+        workspaceId="workspace-1"
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: /Datasource name/ }), {
+      target: { value: "Release Ontology" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import ontology" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "The workspace release binding is unavailable.",
+    );
+    expect(onImported).not.toHaveBeenCalled();
+  });
+
   it("announces the empty and loading import states", async () => {
     let resolveImport: (() => void) | undefined;
 
@@ -389,9 +421,13 @@ describe("OntologyDatasourceImport", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /Datasource name/ }), {
       target: { value: "Release JSON Ontology" },
     });
-    const file = new File(["{}"], "business.json", {
-      type: "application/json",
-    });
+    const file = new File(
+      [JSON.stringify({ format: "ontology-model", format_version: 2 })],
+      "business.json",
+      {
+        type: "application/json",
+      },
+    );
 
     fireEvent.change(screen.getByLabelText("Release JSON file"), {
       target: { files: [file] },
@@ -409,5 +445,37 @@ describe("OntologyDatasourceImport", () => {
       );
     });
     expect(screen.queryByLabelText("Runtime provider ID")).toBeNull();
+  });
+
+  it("rejects a legacy model export locally instead of uploading it", async () => {
+    render(
+      <OntologyDatasourceImport
+        onImported={jest.fn()}
+        workspaceId="workspace-1"
+      />,
+    );
+
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "Source" }));
+    fireEvent.click(screen.getByText("Local Release JSON"));
+    fireEvent.change(screen.getByRole("textbox", { name: /Datasource name/ }), {
+      target: { value: "Legacy export" },
+    });
+    fireEvent.change(screen.getByLabelText("Release JSON file"), {
+      target: {
+        files: [
+          new File(
+            [JSON.stringify({ format: "ontology-model", format_version: 1 })],
+            "ontology-yisa-model.json",
+            { type: "application/json" },
+          ),
+        ],
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Import ontology" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Release JSON is invalid or its digest does not match.",
+    );
+    expect(OntologyDatasourceApi.importDatasource).not.toHaveBeenCalled();
   });
 });

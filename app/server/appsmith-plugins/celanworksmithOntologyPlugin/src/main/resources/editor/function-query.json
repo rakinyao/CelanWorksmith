@@ -67,10 +67,24 @@
           "controlType": "ONTOLOGY_CAPABILITY_TARGET",
           "maxItems": 1,
           "ownerObjectTypeConfigProperty": "actionConfiguration.formData.objectTypeId.data",
+          "primaryKeyConfigProperty": "actionConfiguration.formData.targetBinding.data",
           "functionMetadataConfigProperty": "actionConfiguration.formData.functionId.data",
           "isRequired": true,
+          "fetchOptionsConditionally": true,
           "conditionals": {
-            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}"
+            "show": "{{actionConfiguration.formData.queryMode.data === 'BUILDER'}}",
+            "fetchDynamicValues": {
+              "condition": "{{!!actionConfiguration.formData.objectTypeId.data}}",
+              "config": {
+                "params": {
+                  "requestType": "ONTOLOGY_OBJECT_PROPERTIES",
+                  "displayType": "DROP_DOWN",
+                  "parameters": {
+                    "objectTypeId": "{{actionConfiguration.formData.objectTypeId.data}}"
+                  }
+                }
+              }
+            }
           }
         },
         {

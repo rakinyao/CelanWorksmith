@@ -76,18 +76,15 @@ export default abstract class Ontology {
       dynamicBindingPathList.push({ key: "formData.filter.data" });
     }
 
-    if (select.orderBy && formConfig.primaryColumn) {
+    if (formConfig.primaryColumn) {
       formData.sort = {
         data: [
           {
-            propertyId: `{{${select.orderBy} || "${formConfig.primaryColumn}"}}`,
-            direction: select.sortOrder
-              ? `{{${select.sortOrder} ? "ASC" : "DESC"}}`
-              : "ASC",
+            propertyId: formConfig.primaryColumn,
+            direction: "ASC",
           },
         ],
       };
-      dynamicBindingPathList.push({ key: "formData.sort.data" });
     }
 
     return {
@@ -97,6 +94,15 @@ export default abstract class Ontology {
         formData,
       },
       dynamicBindingPathList,
+      columnNameMap: Object.fromEntries(
+        formConfig.columns
+          .filter(
+            (column) =>
+              typeof column.displayName === "string" &&
+              column.displayName.trim().length > 0,
+          )
+          .map((column) => [column.name, column.displayName!.trim()]),
+      ),
       paginationBindingMode: QueryPaginationBindingMode.CLIENT_SIDE,
     };
   }
@@ -114,6 +120,7 @@ export default abstract class Ontology {
 
     const initialFormData = pluginInitialValues?.actionConfiguration?.formData;
     const selectFormData = merge({}, initialFormData, select.payload.formData);
+
     selectFormData.definition = {
       data: serializeBuilderForm(selectFormData, true),
     };
@@ -132,5 +139,4 @@ export default abstract class Ontology {
   static getConnectionMode() {
     return DatasourceConnectionMode.READ_ONLY;
   }
-
 }

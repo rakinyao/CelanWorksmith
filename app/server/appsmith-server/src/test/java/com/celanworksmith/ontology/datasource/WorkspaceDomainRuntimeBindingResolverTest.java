@@ -30,4 +30,23 @@ class WorkspaceDomainRuntimeBindingResolverTest {
                 .expectErrorMatches(error -> error.getMessage().equals("The workspace release binding is unavailable."))
                 .verify();
     }
+
+    @Test
+    void resolvesDeploymentDomainBindingForAnyWorkspace() {
+        ReleaseRuntimeBindingProperties properties =
+                new ReleaseRuntimeBindingProperties(List.of(new ReleaseRuntimeBindingProperties.Binding(
+                        "*",
+                        "business",
+                        "managed-business",
+                        "demo-mongo-readonly",
+                        "GOVERNED_DATASET",
+                        List.of(new ReleaseRuntimeBindingProperties.AssetAuthorization(
+                                "dataset:demo:public.ont_supplier", "sha256:" + "0".repeat(64))),
+                        List.of())));
+        WorkspaceDomainRuntimeBindingResolver resolver = new WorkspaceDomainRuntimeBindingResolver(properties);
+
+        StepVerifier.create(resolver.resolveRequired("workspace-b", "business"))
+                .assertNext(binding -> assertThat(binding.managedBindingId()).isEqualTo("managed-business"))
+                .verifyComplete();
+    }
 }
