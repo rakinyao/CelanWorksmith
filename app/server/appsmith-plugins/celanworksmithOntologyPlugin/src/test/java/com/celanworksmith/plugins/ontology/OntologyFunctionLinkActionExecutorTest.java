@@ -72,6 +72,25 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void rejectsBoundedActionObjectSetBeforeResolvingActionServer() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId", "reschedulePurchaseOrder",
+                        "objectTypeId", "PurchaseOrder",
+                        "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "PO002"))));
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("maxItems: 1"));
+        assertEquals(0, actionServer.calls);
+    }
+
+    @Test
     void rejectsBuilderFunctionTargetAboveDeclaredMaxItems() {
         RecordingGateway gateway = new RecordingGateway();
         ActionExecutionResult result = execute(
