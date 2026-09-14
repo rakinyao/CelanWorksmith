@@ -28,6 +28,44 @@ import static org.mockito.Mockito.when;
 
 class LocalReleaseJsonOntologyProjectImporterTest {
     @Test
+    void importsRelease120WithPinnedContractChangeAction() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+        LocalReleaseJsonOntologyProjectImporter importer = new LocalReleaseJsonOntologyProjectImporter(
+                new OntologySnapshotService(
+                        repository, Clock.fixed(Instant.parse("2026-09-08T00:00:00Z"), ZoneOffset.UTC)),
+                new WorkspaceDomainRuntimeBindingResolver(
+                        new ReleaseRuntimeBindingProperties(List.of(ReleaseRuntimeBindingTestFixtures.businessBinding(
+                                "workspace-a", "managed-business", "demo-mongo-readonly")))));
+
+        StepVerifier.create(importer.importProject(
+                        new OntologyProjectImportRequest(
+                                OntologyProjectImportSource.Kind.LOCAL_RELEASE_JSON,
+                                fixtureActionsBytes(),
+                                "business-core-demo@1.2.0",
+                                "forged-provider",
+                                null),
+                        new OntologyProjectImportContext("workspace-a", "admin@example.com")))
+                .assertNext(snapshot -> {
+                    assertThat(snapshot.projectVersion()).isEqualTo("1.2.0");
+                    assertThat(snapshot.sourceReleaseId()).isEqualTo("business-core-demo@1.2.0");
+                    assertThat(snapshot.releaseDigest())
+                            .isEqualTo("sha256:8f6e4113593857c48213d6c32a1715eb132ec75addadae387e91d74f0719e7ad");
+                    assertThat(snapshot.definition().actions()).singleElement().satisfies(action -> {
+                        assertThat(action.id()).isEqualTo("ApplyContractChange");
+                        assertThat(action.ownerObjectTypeIds()).containsExactly("contract");
+                        assertThat(action.maxItems()).isEqualTo(1);
+                        assertThat(action.atomic()).isTrue();
+                        assertThat(action.requiresConfirmation()).isTrue();
+                        assertThat(action.parameters())
+                                .extracting(parameter -> parameter.id())
+                                .containsExactly("changeAmount", "changeReason");
+                    });
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void importsReleaseWithResolvedBindingAndDoesNotUseUserProviderInput() {
         OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
         when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
@@ -238,6 +276,15 @@ class LocalReleaseJsonOntologyProjectImporterTest {
     private static byte[] fixtureBytes() {
         try {
             return Files.readAllBytes(Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo.json"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static byte[] fixtureActionsBytes() {
+        try {
+            return Files.readAllBytes(
+                    Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-actions-1.2.0.json"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

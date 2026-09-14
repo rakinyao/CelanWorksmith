@@ -437,6 +437,77 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void executesSavedContractChangeActionWithNativeRequestShape() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId",
+                        "ApplyContractChange",
+                        "objectTypeId",
+                        "contract",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "CT001"),
+                        "parameters",
+                        Map.of(
+                                "changeAmount",
+                                new java.math.BigDecimal("1250.50"),
+                                "changeReason",
+                                "Approved scope expansion")));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals("ApplyContractChange", actionServer.request.actionId());
+        assertEquals(new OntologyObjectSet("contract", List.of("CT001")), actionServer.request.targets());
+        assertTrue(actionServer.request.atomic());
+        assertEquals(
+                Map.of("changeAmount", new java.math.BigDecimal("1250.50"), "changeReason", "Approved scope expansion"),
+                actionServer.request.parameters());
+        assertEquals(2, actionServer.request.parameters().size());
+    }
+
+    @Test
+    void rejectsContractChangeMultipleObjectTargetBeforeResolvingActionServer() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        int[] resolverCalls = {0};
+        OntologyPlugin.OntologyPluginExecutor executor =
+                new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> {
+                    resolverCalls[0]++;
+                    return Mono.just(actionServer);
+                });
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation",
+                "ACTION_QUERY",
+                "queryMode",
+                "BUILDER",
+                "actionId",
+                "ApplyContractChange",
+                "objectTypeId",
+                "contract",
+                "target",
+                Map.of("source", "OBJECT_SET", "objectIds", List.of("CT001", "CT002")),
+                "parameters",
+                Map.of(
+                        "changeAmount",
+                        new java.math.BigDecimal("1250.50"),
+                        "changeReason",
+                        "Approved scope expansion")));
+
+        ActionExecutionResult result =
+                executor.execute(datasource(), null, action).block();
+
+        assertFalse(result.getIsExecutionSuccess());
+        assertTrue(result.getReadableError().contains("maxItems: 1"));
+        assertEquals(0, resolverCalls[0]);
+        assertEquals(0, actionServer.calls);
+    }
+
+    @Test
     void retainsAuditIdWhenTheActionServerReturnsADomainError() {
         RecordingGateway gateway = new RecordingGateway();
         RecordingActionServer actionServer = new RecordingActionServer();
@@ -1015,6 +1086,16 @@ class OntologyFunctionLinkActionExecutorTest {
                                 List.of(new PropertyMetadata("newScheduleDate", "string", false, false)),
                                 true),
                         new ActionMetadata(
+                                "ApplyContractChange",
+                                "Apply contract change",
+                                List.of("contract"),
+                                1,
+                                true,
+                                List.of(
+                                        new PropertyMetadata("changeAmount", "decimal", false, true),
+                                        new PropertyMetadata("changeReason", "string", false, true)),
+                                true),
+                        new ActionMetadata(
                                 "notifySupplier", "Notify supplier", List.of("Supplier"), 1, false, List.of(), false)));
         private Map<String, Object> functionParameters;
         private OntologyObjectSet functionTargets;
@@ -1027,6 +1108,8 @@ class OntologyFunctionLinkActionExecutorTest {
                 "PO001", "PurchaseOrder",
                 "PO002", "PurchaseOrder",
                 "PO003", "PurchaseOrder",
+                "CT001", "contract",
+                "CT002", "contract",
                 "SUP001", "Supplier");
 
         @Override
