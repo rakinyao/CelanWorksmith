@@ -303,13 +303,16 @@ class ActionExecutionServiceTest {
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
         when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
                 .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        DemoActionServerRequestProperties release12Properties = requestProperties();
+        release12Properties.setProjectVersion(DemoActionServerRequestProperties.DEMO_RELEASE_VERSION);
         ActionExecutionService service = service(
-                handler("ApplyContractChange", (request, auditId) -> Mono.just(success(auditId, "contract", "C001"))));
+                handler("ApplyContractChange", (request, auditId) -> Mono.just(success(auditId, "contract", "C001"))),
+                release12Properties);
         ExecuteRequest request = new ExecuteRequest(
                 "v1",
                 "workspace-1",
                 "project-1",
-                "1.0.0",
+                DemoActionServerRequestProperties.DEMO_RELEASE_VERSION,
                 "datasource-1",
                 "ApplyContractChange",
                 new OntologyObjectSet("contract", List.of("C001")),
@@ -386,11 +389,16 @@ class ActionExecutionServiceTest {
     }
 
     private ActionExecutionService service(DemoActionHandler handler) {
+        return service(handler, requestProperties());
+    }
+
+    private ActionExecutionService service(
+            DemoActionHandler handler, DemoActionServerRequestProperties requestProperties) {
         return new ActionExecutionService(
                 auditStore,
                 transactionalOperator,
                 new DemoActionHandlerRegistry(List.of(handler)),
-                requestProperties(),
+                requestProperties,
                 CLOCK);
     }
 

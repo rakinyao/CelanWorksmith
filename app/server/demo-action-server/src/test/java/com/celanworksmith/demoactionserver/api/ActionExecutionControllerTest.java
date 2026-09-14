@@ -61,6 +61,44 @@ class ActionExecutionControllerTest {
     }
 
     @Test
+    void returnsContractChangeOutcomeForThePinnedAtomicRelease() {
+        when(actionExecutionService.execute(any()))
+                .thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Success(new ExecuteSuccess(
+                        "v1",
+                        List.of(new TargetOutcome(
+                                new ChangedObject("contract", "CTR-1"),
+                                "SUCCEEDED",
+                                List.of(new ChangedObject("contract", "CTR-1")),
+                                List.of(
+                                        new ChangedProperty("contract", "CTR-1", "change_amount", 125.0),
+                                        new ChangedProperty("contract", "CTR-1", "current_amount", 1125.0),
+                                        new ChangedProperty(
+                                                "contract", "CTR-1", "latest_change_at", "2026-09-14T12:34:56Z")),
+                                null,
+                                "audit-contract-1"))))));
+
+        webTestClient
+                .post()
+                .uri("/api/v1/actions/execute")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(contractChangeRequest())
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody()
+                .jsonPath("$.contractVersion")
+                .isEqualTo("v1")
+                .jsonPath("$.outcomes[0].target.objectTypeId")
+                .isEqualTo("contract")
+                .jsonPath("$.outcomes[0].target.objectId")
+                .isEqualTo("CTR-1")
+                .jsonPath("$.outcomes[0].auditId")
+                .isEqualTo("audit-contract-1")
+                .jsonPath("$.outcomes[0].changedProperties[2].propertyId")
+                .isEqualTo("latest_change_at");
+    }
+
+    @Test
     void mapsAnInProgressFailureToConflict() {
         when(actionExecutionService.execute(any()))
                 .thenReturn(Mono.just(new ActionExecutionService.ExecutionResult.Failure(
@@ -161,6 +199,24 @@ class ActionExecutionControllerTest {
                   "parameters": {},
                   "context": {},
                   "idempotencyKey": "key-1"
+                }
+                """;
+    }
+
+    private static String contractChangeRequest() {
+        return """
+                {
+                  "contractVersion": "v1",
+                  "workspaceId": "workspace-1",
+                  "projectId": "celanworksmith-demo",
+                  "projectVersion": "1.2.0",
+                  "datasourceId": "datasource-1",
+                  "actionId": "ApplyContractChange",
+                  "targets": {"objectTypeId": "contract", "objectIds": ["CTR-1"]},
+                  "atomic": true,
+                  "parameters": {"changeAmount": 125, "changeReason": "Scope expansion"},
+                  "context": {"metadataSnapshotId": "snapshot-1", "metadataDigest": "sha256:abc"},
+                  "idempotencyKey": "contract-key-1"
                 }
                 """;
     }

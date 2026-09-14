@@ -6,14 +6,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /** Accepted local workspace/project pin for the development-only action server. */
 @ConfigurationProperties(prefix = "celanworksmith.demo-action-server.request")
 public class DemoActionServerRequestProperties {
+    public static final String DEMO_RELEASE_VERSION = "1.2.0";
+
     private String workspaceId;
     private String projectId;
-    private String projectVersion;
+    private String projectVersion = DEMO_RELEASE_VERSION;
     private String datasourceId;
     private String metadataSnapshotId;
     private String metadataDigest;
 
     public boolean supports(ExecuteRequest request) {
+        if ("ApplyContractChange".equals(request.actionId())
+                && (!DEMO_RELEASE_VERSION.equals(projectVersion)
+                        || !DEMO_RELEASE_VERSION.equals(request.projectVersion()))) {
+            return false;
+        }
         return matches(workspaceId, request.workspaceId())
                 && matches(projectId, request.projectId())
                 && matches(projectVersion, request.projectVersion())

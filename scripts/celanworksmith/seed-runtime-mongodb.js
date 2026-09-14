@@ -2,11 +2,29 @@ const fs = require("fs");
 const path = require("path");
 const dataDir = path.join(process.cwd(), "scripts/celanworksmith/runtime-data");
 const runtime = db.getSiblingDB("celanworksmith_runtime");
+const contractDecimalFields = ["original_amount", "change_amount", "current_amount", "signed_amount"];
+
+function prepareDocument(collectionName, document) {
+  if (collectionName !== "ont_contract") {
+    return document;
+  }
+  const prepared = { ...document };
+  contractDecimalFields.forEach((field) => {
+    if (prepared[field] !== undefined && prepared[field] !== null) {
+      prepared[field] = Decimal128.fromString(String(prepared[field]));
+    }
+  });
+  return prepared;
+}
 
 function seed(collectionName, fileName) {
   const documents = JSON.parse(fs.readFileSync(path.join(dataDir, fileName), "utf8"));
   const collection = runtime.getCollection(collectionName);
-  documents.forEach((document) => collection.replaceOne({ _id: document._id }, document, { upsert: true }));
+  documents.forEach((document) => collection.replaceOne(
+    { _id: document._id },
+    prepareDocument(collectionName, document),
+    { upsert: true },
+  ));
   print(`${collectionName}: ${documents.length} documents upserted`);
 }
 

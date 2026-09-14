@@ -14,7 +14,7 @@ function executeLoaderWithFakeMongoShell() {
     ['purchase_orders.json', [{ _id: 'PO-001' }]],
     ['ont_supplier.json', [{ _id: 'SUP-001' }]],
     ['ont_customer.json', [{ _id: 'CUS-2024-001' }]],
-    ['ont_contract.json', [{ _id: 'CTR-1' }]],
+    ['ont_contract.json', [{ _id: 'CTR-1', original_amount: 100.1, change_amount: 2.3, current_amount: 102.4, signed_amount: 100.1 }]],
     ['ont_purchase_order.json', [{ _id: 'PO-2024-001' }]],
   ]);
   const fakeFs = {
@@ -49,6 +49,7 @@ function executeLoaderWithFakeMongoShell() {
     },
     process: { cwd: () => '/workspace' },
     db: fakeDb,
+    Decimal128: { fromString: (value) => ({ decimal128: value }) },
     print() {},
   };
   vm.runInNewContext(loaderSource, context, { filename: loaderPath });
@@ -64,4 +65,14 @@ test('upserts each release runtime asset without touching legacy collections', (
   ]);
   assert.ok(calls.every((call) => call.options.upsert === true));
   assert.ok(calls.every((call) => !['drop', 'deleteMany'].includes(call.operation)));
+});
+
+test('stores contract money fields as Decimal128 values', () => {
+  const calls = executeLoaderWithFakeMongoShell();
+  const contract = calls.find((call) => call.collection === 'ont_contract').document;
+
+  assert.deepEqual(contract.original_amount, { decimal128: '100.1' });
+  assert.deepEqual(contract.change_amount, { decimal128: '2.3' });
+  assert.deepEqual(contract.current_amount, { decimal128: '102.4' });
+  assert.deepEqual(contract.signed_amount, { decimal128: '100.1' });
 });
