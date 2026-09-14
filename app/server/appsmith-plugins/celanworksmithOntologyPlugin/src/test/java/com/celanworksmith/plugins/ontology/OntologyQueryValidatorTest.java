@@ -112,15 +112,27 @@ class OntologyQueryValidatorTest {
     }
 
     @Test
-    void actionQueryRemainsSingleTargetOnly() {
+    void actionQueryEnforcesDeclaredMaximumTargetItems() {
+        OntologyActionConfiguration manyTargetConfiguration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "ACTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "contract",
+                "actionId", "ApplyContractChange",
+                "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("C1", "C2")))));
+        OntologyActionConfiguration singleTargetConfiguration = OntologyActionConfiguration.from(action(Map.of(
+                "operation", "ACTION_QUERY",
+                "queryMode", "BUILDER",
+                "objectTypeId", "contract",
+                "actionId", "ApplyContractChange",
+                "target", Map.of("source", "SINGLE_OBJECT", "objectId", "C1"))));
+
         assertThrows(
                 IllegalArgumentException.class,
-                () -> OntologyActionConfiguration.from(action(Map.of(
-                        "operation", "ACTION_QUERY",
-                        "queryMode", "BUILDER",
-                        "objectTypeId", "PurchaseOrder",
-                        "actionId", "UpdatePurchaseOrder",
-                        "target", Map.of("source", "OBJECT_SET", "objectIds", List.of("PO001", "PO002"))))));
+                () -> validator.validateActionQuery(manyTargetConfiguration, snapshotWithBoundedAction(1)));
+        OntologyQueryValidator.ValidatedCapabilityQuery query =
+                validator.validateActionQuery(singleTargetConfiguration, snapshotWithBoundedAction(1));
+        assertEquals(new OntologyObjectSet("contract", List.of("C1")), query.targets());
+        assertEquals(true, query.atomic());
     }
 
     @Test
@@ -228,6 +240,23 @@ class OntologyQueryValidatorTest {
                         maxItems)),
                 List.of(),
                 List.of());
+    }
+
+    private Snapshot snapshotWithBoundedAction(int maxItems) {
+        return new Snapshot(
+                "snapshot",
+                "digest",
+                List.of(new ObjectTypeMetadata("contract", List.of())),
+                List.of(),
+                List.of(),
+                List.of(new ActionMetadata(
+                        "ApplyContractChange",
+                        "Apply contract change",
+                        List.of("contract"),
+                        maxItems,
+                        true,
+                        List.of(),
+                        true)));
     }
 
     private ActionConfiguration action(Map<String, Object> formData) {

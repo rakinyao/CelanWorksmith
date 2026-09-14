@@ -309,7 +309,8 @@ public record OntologyActionConfiguration(Operation operation, Map<String, Objec
             }
             return;
         }
-        if (operation == Operation.FUNCTION_QUERY && ("OBJECT_SET".equals(source) || "MANY_OBJECTS".equals(source))) {
+        if ((operation == Operation.FUNCTION_QUERY || operation == Operation.ACTION_QUERY)
+                && ("OBJECT_SET".equals(source) || "MANY_OBJECTS".equals(source))) {
             if (!target.keySet().stream().allMatch(key -> "source".equals(key) || "objectIds".equals(key))) {
                 throw new IllegalArgumentException("Ontology capability target contains unsupported fields");
             }

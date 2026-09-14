@@ -74,7 +74,8 @@ final class OntologyQueryValidator {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown ontology function: " + functionId));
         String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
         validateOwner("function", function.ownerObjectTypeIds(), objectTypeId);
-        OntologyObjectSet targets = capabilityTarget(configuration.definition(), objectTypeId, function.maxItems());
+        OntologyObjectSet targets =
+                capabilityTarget(configuration.definition(), objectTypeId, function.maxItems(), "function");
         return new ValidatedCapabilityQuery(
                 functionId,
                 objectTypeId,
@@ -94,10 +95,12 @@ final class OntologyQueryValidator {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown ontology action: " + actionId));
         String objectTypeId = requiredStableId(configuration.definition(), "objectTypeId");
         validateOwner("action", action.ownerObjectTypeIds(), objectTypeId);
+        OntologyObjectSet targets =
+                capabilityTarget(configuration.definition(), objectTypeId, action.maxItems(), "action");
         return new ValidatedCapabilityQuery(
                 actionId,
                 objectTypeId,
-                singleObjectTarget(configuration.definition(), objectTypeId),
+                targets,
                 parameters(configuration.definition(), action.parameters(), "action"),
                 action.atomic());
     }
@@ -132,7 +135,8 @@ final class OntologyQueryValidator {
         return new OntologyObjectSet(objectTypeId, List.of(identifier));
     }
 
-    private OntologyObjectSet capabilityTarget(Map<String, Object> definition, String objectTypeId, Integer maxItems) {
+    private OntologyObjectSet capabilityTarget(
+            Map<String, Object> definition, String objectTypeId, Integer maxItems, String capabilityName) {
         Object value = definition.get("target");
         if (!(value instanceof Map<?, ?> target)) {
             throw new IllegalArgumentException("Ontology capability target must be an object");
@@ -140,7 +144,7 @@ final class OntologyQueryValidator {
         Object source = target.get("source");
         if ("SINGLE_OBJECT".equals(source)) {
             OntologyObjectSet result = singleObjectTarget(definition, objectTypeId);
-            enforceMaxItems(result, maxItems);
+            enforceMaxItems(result, maxItems, capabilityName);
             return result;
         }
         if (!"OBJECT_SET".equals(source) && !"MANY_OBJECTS".equals(source)) {
@@ -155,13 +159,13 @@ final class OntologyQueryValidator {
         }
         OntologyObjectSet result = new OntologyObjectSet(
                 objectTypeId, ids.stream().map(String.class::cast).toList());
-        enforceMaxItems(result, maxItems);
+        enforceMaxItems(result, maxItems, capabilityName);
         return result;
     }
 
-    private void enforceMaxItems(OntologyObjectSet targets, Integer maxItems) {
+    private void enforceMaxItems(OntologyObjectSet targets, Integer maxItems, String capabilityName) {
         if (maxItems != null && (maxItems <= 0 || targets.objectIds().size() > maxItems)) {
-            throw new IllegalArgumentException("Ontology function target exceeds maxItems: " + maxItems);
+            throw new IllegalArgumentException("Ontology " + capabilityName + " target exceeds maxItems: " + maxItems);
         }
     }
 

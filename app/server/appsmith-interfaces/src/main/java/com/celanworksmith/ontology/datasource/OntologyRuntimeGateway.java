@@ -107,16 +107,27 @@ public interface OntologyRuntimeGateway {
             String id,
             String displayName,
             List<String> ownerObjectTypeIds,
+            Integer maxItems,
             boolean atomic,
-            List<PropertyMetadata> parameters) {
+            List<PropertyMetadata> parameters,
+            boolean requiresConfirmation) {
         public ActionMetadata {
             ownerObjectTypeIds = immutableList(ownerObjectTypeIds);
             parameters = immutableList(parameters);
         }
 
         public ActionMetadata(
+                String id,
+                String displayName,
+                List<String> ownerObjectTypeIds,
+                boolean atomic,
+                List<PropertyMetadata> parameters) {
+            this(id, displayName, ownerObjectTypeIds, null, atomic, parameters, false);
+        }
+
+        public ActionMetadata(
                 String id, List<String> ownerObjectTypeIds, boolean atomic, List<PropertyMetadata> parameters) {
-            this(id, id, ownerObjectTypeIds, atomic, parameters);
+            this(id, id, ownerObjectTypeIds, null, atomic, parameters, false);
         }
     }
 

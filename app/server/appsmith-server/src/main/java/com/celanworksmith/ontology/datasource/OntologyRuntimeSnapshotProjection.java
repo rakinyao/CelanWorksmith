@@ -37,10 +37,12 @@ public final class OntologyRuntimeSnapshotProjection {
                                 action.id(),
                                 action.displayName(),
                                 action.ownerObjectTypeIds(),
+                                action.maxItems(),
                                 action.atomic(),
                                 action.parameters().stream()
                                         .map(OntologyRuntimeSnapshotProjection::propertyMetadata)
-                                        .toList()))
+                                        .toList(),
+                                action.requiresConfirmation()))
                         .toList());
     }
 

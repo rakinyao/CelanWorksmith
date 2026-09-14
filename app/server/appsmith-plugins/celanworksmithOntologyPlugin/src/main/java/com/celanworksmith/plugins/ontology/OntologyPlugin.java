@@ -287,15 +287,7 @@ public class OntologyPlugin extends BasePlugin {
                 case "ONTOLOGY_FUNCTION_PARAMETERS" -> dropdownResult(functionParameters(snapshot, request));
                 case "ONTOLOGY_ACTIONS" ->
                     dropdownResult(ownerCompatibleActions(snapshot, request).stream()
-                            .map(action -> metadataEntry(
-                                    action.id(),
-                                    action.displayName(),
-                                    "action",
-                                    false,
-                                    false,
-                                    false,
-                                    List.<String>of(),
-                                    null))
+                            .map(this::actionMetadataEntry)
                             .toList());
                 case "ONTOLOGY_ACTION_PARAMETERS" -> dropdownResult(actionParameters(snapshot, request));
                 case "ONTOLOGY_LINKS" ->
@@ -473,6 +465,15 @@ public class OntologyPlugin extends BasePlugin {
             Map<String, Object> metadata = metadataEntry(
                     function.id(), function.displayName(), function.returnType(), false, true, false, List.of(), null);
             metadata.put("maxItems", positiveMaxItems(function.maxItems()));
+            return metadata;
+        }
+
+        private Map<String, Object> actionMetadataEntry(OntologyRuntimeGateway.ActionMetadata action) {
+            Map<String, Object> metadata =
+                    metadataEntry(action.id(), action.displayName(), "action", false, false, false, List.of(), null);
+            metadata.put("maxItems", positiveMaxItems(action.maxItems()));
+            metadata.put("atomic", action.atomic());
+            metadata.put("requiresConfirmation", action.requiresConfirmation());
             return metadata;
         }
 

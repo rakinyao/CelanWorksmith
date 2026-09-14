@@ -653,11 +653,29 @@ class OntologyFunctionLinkActionExecutorTest {
                 List.of(functionMetadata("Score supplier", "supplierScore", "integer", false, true, false, 1)),
                 functions.getTrigger());
         assertEquals(
-                List.of(metadata("Notify supplier", "notifySupplier", "action", false, false, false)),
+                List.of(actionMetadata("Notify supplier", "notifySupplier", false, 1, false, false)),
                 actions.getTrigger());
         assertEquals(
                 List.of(metadata("Purchase order deliveries", "po_delivery", "link", false, true, false)),
                 links.getTrigger());
+    }
+
+    @Test
+    void exposesActionTargetBoundAtomicityAndConfirmationMetadata() {
+        RecordingGateway gateway = new RecordingGateway();
+        OntologyPlugin.OntologyPluginExecutor executor = new OntologyPlugin.OntologyPluginExecutor(gateway);
+
+        TriggerResultDTO actions = trigger(executor, "ONTOLOGY_ACTIONS", Map.of("objectTypeId", "PurchaseOrder"));
+        Map<?, ?> action = ((List<?>) actions.getTrigger())
+                .stream()
+                        .map(value -> (Map<?, ?>) value)
+                        .filter(value -> "reschedulePurchaseOrder".equals(value.get("value")))
+                        .findFirst()
+                        .orElseThrow();
+
+        assertEquals(1, action.get("maxItems"));
+        assertEquals(true, action.get("atomic"));
+        assertEquals(true, action.get("requiresConfirmation"));
     }
 
     @Test
@@ -808,6 +826,15 @@ class OntologyFunctionLinkActionExecutorTest {
             int maxItems) {
         Map<String, Object> metadata = metadata(label, value, dataType, required, readOnly, derived);
         metadata.put("maxItems", maxItems);
+        return metadata;
+    }
+
+    private static Map<String, Object> actionMetadata(
+            String label, String value, boolean readOnly, int maxItems, boolean atomic, boolean requiresConfirmation) {
+        Map<String, Object> metadata = metadata(label, value, "action", false, readOnly, false);
+        metadata.put("maxItems", maxItems);
+        metadata.put("atomic", atomic);
+        metadata.put("requiresConfirmation", requiresConfirmation);
         return metadata;
     }
 
@@ -964,10 +991,12 @@ class OntologyFunctionLinkActionExecutorTest {
                                 "reschedulePurchaseOrder",
                                 "Reschedule purchase order",
                                 List.of("PurchaseOrder"),
+                                1,
                                 true,
-                                List.of(new PropertyMetadata("newScheduleDate", "string", false, false))),
+                                List.of(new PropertyMetadata("newScheduleDate", "string", false, false)),
+                                true),
                         new ActionMetadata(
-                                "notifySupplier", "Notify supplier", List.of("Supplier"), false, List.of())));
+                                "notifySupplier", "Notify supplier", List.of("Supplier"), 1, false, List.of(), false)));
         private Map<String, Object> functionParameters;
         private OntologyObjectSet functionTargets;
         private String linkId;
