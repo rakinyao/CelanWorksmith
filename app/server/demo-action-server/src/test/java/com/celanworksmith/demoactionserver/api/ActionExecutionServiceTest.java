@@ -17,6 +17,7 @@ import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -368,19 +369,47 @@ class ActionExecutionServiceTest {
 
     @Test
     void persistsInternalFailureWhenAtomicTransactionCommitFails() {
-        when(auditStore.findByIdempotencyKey("commit-error")).thenReturn(Mono.empty());
-        when(auditStore.createIfAbsent(any()))
-                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0, ActionExecutionAuditDocument.class)));
+        ActionExecutionAuditDocument[] stored = new ActionExecutionAuditDocument[1];
+        when(auditStore.findByIdempotencyKey("commit-error"))
+                .thenAnswer(invocation -> stored[0] == null ? Mono.empty() : Mono.just(stored[0]));
+        when(auditStore.createIfAbsent(any())).thenAnswer(invocation -> {
+            stored[0] = invocation.getArgument(0, ActionExecutionAuditDocument.class);
+            return Mono.just(stored[0]);
+        });
         when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
                 .thenReturn(Mono.just(runningAudit("completed")));
-        when(auditStore.markFailed(anyString(), any(), any()))
-                .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
+        when(auditStore.markFailed(anyString(), any(), any())).thenAnswer(invocation -> {
+            ActionExecutionAuditDocument running = stored[0];
+            stored[0] = new ActionExecutionAuditDocument(
+                    running.auditId(),
+                    running.idempotencyKey(),
+                    running.workspaceId(),
+                    running.projectId(),
+                    running.projectVersion(),
+                    running.datasourceId(),
+                    running.actionId(),
+                    running.objectTypeId(),
+                    running.objectId(),
+                    running.startedAt(),
+                    invocation.getArgument(1, Instant.class),
+                    "FAILED",
+                    invocation.getArgument(2, DomainFailure.class),
+                    List.of(),
+                    List.of(),
+                    running.parameterSummary());
+            return Mono.just(stored[0]);
+        });
         when(transactionalOperator.transactional(any(Mono.class))).thenAnswer(invocation -> invocation
                 .getArgument(0, Mono.class)
                 .then(Mono.error(new IllegalStateException("transaction commit failed"))));
-        ActionExecutionService service = service(handler((request, auditId) -> Mono.just(success(auditId))));
+        AtomicInteger handlerCalls = new AtomicInteger();
+        ActionExecutionService service = service(handler((request, auditId) -> {
+            handlerCalls.incrementAndGet();
+            return Mono.just(success(auditId));
+        }));
 
-        StepVerifier.create(service.execute(request(List.of("PO001"), true, "commit-error")))
+        ExecuteRequest request = request(List.of("PO001"), true, "commit-error");
+        StepVerifier.create(service.execute(request))
                 .assertNext(result -> {
                     assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
                     DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
@@ -389,9 +418,20 @@ class ActionExecutionServiceTest {
                 })
                 .verifyComplete();
 
+        StepVerifier.create(service.execute(request))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                    assertThat(((ActionExecutionService.ExecutionResult.Failure) result)
+                                    .response()
+                                    .code())
+                            .isEqualTo(ActionExecutionService.ACTION_EXECUTION_FAILED);
+                })
+                .verifyComplete();
+
         ArgumentCaptor<DomainFailure> persistedFailure = ArgumentCaptor.forClass(DomainFailure.class);
         verify(auditStore).markFailed(anyString(), any(), persistedFailure.capture());
         assertThat(persistedFailure.getValue().code()).isEqualTo(ActionExecutionService.ACTION_EXECUTION_FAILED);
+        assertThat(handlerCalls).hasValue(1);
     }
 
     @Test
@@ -439,6 +479,38 @@ class ActionExecutionServiceTest {
 
         assertThat(handlerCalls).hasValue(0);
         verify(transactionalOperator, never()).transactional(any(Mono.class));
+    }
+
+    @Test
+    void rejectsDifferentStringAmountButReplaysEquivalentNumericApplyAmount() {
+        DemoActionServerRequestProperties release12Properties = requestProperties();
+        release12Properties.setProjectVersion(DemoActionServerRequestProperties.DEMO_RELEASE_VERSION);
+        ActionExecutionAuditDocument stored = succeededApplyAudit(
+                "audit-apply", "apply-key", "C001", Map.of("changeAmount", "1.00", "changeReason", "Scope"));
+        when(auditStore.findByIdempotencyKey("apply-key")).thenReturn(Mono.just(stored), Mono.just(stored));
+        AtomicInteger handlerCalls = new AtomicInteger();
+        ActionExecutionService service = service(
+                handler("ApplyContractChange", (request, auditId) -> {
+                    handlerCalls.incrementAndGet();
+                    return Mono.just(success(auditId, "contract", "C001"));
+                }),
+                release12Properties);
+
+        StepVerifier.create(service.execute(applyRequest(new BigDecimal("1.0"), "apply-key")))
+                .assertNext(
+                        result -> assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Success.class))
+                .verifyComplete();
+        StepVerifier.create(service.execute(applyRequest("2.00", "apply-key")))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                    assertThat(((ActionExecutionService.ExecutionResult.Failure) result)
+                                    .response()
+                                    .code())
+                            .isEqualTo("INVALID_REQUEST");
+                })
+                .verifyComplete();
+
+        assertThat(handlerCalls).hasValue(0);
     }
 
     @Test
@@ -632,6 +704,43 @@ class ActionExecutionServiceTest {
                 List.of(),
                 List.of(),
                 "Stored success.");
+    }
+
+    private static ActionExecutionAuditDocument succeededApplyAudit(
+            String auditId, String idempotencyKey, String objectId, Map<String, Object> parameterSummary) {
+        return new ActionExecutionAuditDocument(
+                auditId,
+                idempotencyKey,
+                "workspace-1",
+                "project-1",
+                DemoActionServerRequestProperties.DEMO_RELEASE_VERSION,
+                "datasource-1",
+                "ApplyContractChange",
+                "contract",
+                objectId,
+                Instant.parse("2026-08-25T00:00:00Z"),
+                Instant.parse("2026-08-25T00:00:01Z"),
+                "SUCCEEDED",
+                null,
+                List.of(),
+                List.of(),
+                "Stored success.",
+                parameterSummary);
+    }
+
+    private static ExecuteRequest applyRequest(Object amount, String idempotencyKey) {
+        return new ExecuteRequest(
+                "v1",
+                "workspace-1",
+                "project-1",
+                DemoActionServerRequestProperties.DEMO_RELEASE_VERSION,
+                "datasource-1",
+                "ApplyContractChange",
+                new OntologyObjectSet("contract", List.of("C001")),
+                true,
+                Map.of("changeAmount", amount, "changeReason", "Scope"),
+                context(),
+                idempotencyKey);
     }
 
     private static ExecuteSuccess success(String auditId) {

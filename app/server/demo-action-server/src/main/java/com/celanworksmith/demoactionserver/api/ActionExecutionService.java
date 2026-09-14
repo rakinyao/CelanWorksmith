@@ -201,9 +201,9 @@ public class ActionExecutionService {
             return Map.of();
         }
         java.util.Map<String, Object> summary = new java.util.LinkedHashMap<>();
-        Object amount = request.parameters().get("changeAmount");
-        if (isSafeAmount(amount)) {
-            summary.put("changeAmount", amount);
+        Object safeAmount = safeAmountValue(request.parameters().get("changeAmount"));
+        if (safeAmount != null) {
+            summary.put("changeAmount", safeAmount);
         }
         Object reason = request.parameters().get("changeReason");
         if (reason instanceof String value && !value.isBlank()) {
@@ -212,12 +212,12 @@ public class ActionExecutionService {
         return Map.copyOf(summary);
     }
 
-    private static boolean isSafeAmount(Object value) {
-        if (!(value instanceof Number)) {
-            return false;
+    private static Object safeAmountValue(Object value) {
+        BigDecimal decimal = decimalValue(value);
+        if (decimal == null) {
+            return null;
         }
-        return !(value instanceof Double doubleValue && !Double.isFinite(doubleValue))
-                && !(value instanceof Float floatValue && !Float.isFinite(floatValue));
+        return value instanceof String || value instanceof Decimal128 ? decimal : value;
     }
 
     private Mono<Void> validateSupportedRequest(ExecuteRequest request, String auditId) {
@@ -302,6 +302,13 @@ public class ActionExecutionService {
                 return new BigDecimal(number.toString());
             } catch (NumberFormatException ignored) {
                 // Non-decimal numeric values cannot match a safe replay summary.
+            }
+        }
+        if (value instanceof String string && !string.isBlank()) {
+            try {
+                return new BigDecimal(string.trim());
+            } catch (NumberFormatException ignored) {
+                // Non-decimal strings cannot match a safe replay summary.
             }
         }
         return null;
