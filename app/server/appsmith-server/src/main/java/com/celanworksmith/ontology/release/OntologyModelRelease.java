@@ -8,10 +8,15 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
         elements = List.copyOf(elements);
     }
 
-    public record Release(String domain, String modelId, String version, String releaseDigest) {}
+    public record Release(
+            String domain, String modelId, String version, String previousReleaseDigest, String releaseDigest) {
+        public Release(String domain, String modelId, String version, String releaseDigest) {
+            this(domain, modelId, version, null, releaseDigest);
+        }
+    }
 
     public sealed interface Element
-            permits EntitySet, RuntimeBinding, EntitySetLink, Function, UnsupportedElement, LineageElement {
+            permits EntitySet, RuntimeBinding, EntitySetLink, Function, Action, UnsupportedElement, LineageElement {
         String domain();
 
         String kind();
@@ -101,6 +106,46 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
         public Function {
             displayName = Map.copyOf(displayName);
             ownerObjectTypeIds = List.copyOf(ownerObjectTypeIds);
+        }
+    }
+
+    public record Action(
+            String domain,
+            String name,
+            String version,
+            Map<String, String> displayName,
+            List<String> ownerObjectTypeIds,
+            int maxItems,
+            boolean atomic,
+            boolean requiresConfirmation,
+            List<Parameter> parameters)
+            implements Element {
+        @Override
+        public String kind() {
+            return "action";
+        }
+
+        public Action {
+            displayName = Map.copyOf(displayName);
+            ownerObjectTypeIds = List.copyOf(ownerObjectTypeIds);
+            parameters = List.copyOf(parameters);
+        }
+    }
+
+    public record Parameter(
+            String name,
+            String type,
+            Map<String, String> displayName,
+            Map<String, String> description,
+            boolean required,
+            boolean readOnly,
+            boolean derived,
+            List<String> enumValues,
+            String referenceTarget) {
+        public Parameter {
+            displayName = Map.copyOf(displayName);
+            description = Map.copyOf(description);
+            enumValues = List.copyOf(enumValues);
         }
     }
 

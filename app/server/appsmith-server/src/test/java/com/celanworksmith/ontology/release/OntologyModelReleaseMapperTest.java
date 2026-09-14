@@ -2,6 +2,7 @@ package com.celanworksmith.ontology.release;
 
 import com.celanworksmith.ontology.dto.LinkTypeDTO;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
+import com.celanworksmith.ontology.dto.PropertyDTO;
 import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import org.junit.jupiter.api.Test;
 
@@ -90,6 +91,20 @@ class OntologyModelReleaseMapperTest {
         });
     }
 
+    @Test
+    void mapsDemoContractChangeActionMetadata() {
+        OntologyProjectDefinition definition = mapper.map(parser.parse(actionFixtureBytes()));
+
+        assertThat(definition.actions()).singleElement().satisfies(action -> {
+            assertThat(action.id()).isEqualTo("ApplyContractChange");
+            assertThat(action.ownerObjectTypeIds()).containsExactly("contract");
+            assertThat(action.maxItems()).isEqualTo(1);
+            assertThat(action.atomic()).isTrue();
+            assertThat(action.requiresConfirmation()).isTrue();
+            assertThat(action.parameters()).extracting(PropertyDTO::id).containsExactly("changeAmount", "changeReason");
+        });
+    }
+
     private byte[] functionRelease() {
         try {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper =
@@ -128,6 +143,15 @@ class OntologyModelReleaseMapperTest {
         try {
             return Files.readAllBytes(
                     Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-functions-1.1.0.json"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private byte[] actionFixtureBytes() {
+        try {
+            return Files.readAllBytes(
+                    Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-actions-1.2.0.json"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }

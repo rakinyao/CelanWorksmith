@@ -1,5 +1,6 @@
 package com.celanworksmith.ontology.release;
 
+import com.celanworksmith.ontology.dto.ActionTypeDTO;
 import com.celanworksmith.ontology.dto.FunctionDTO;
 import com.celanworksmith.ontology.dto.LinkTypeDTO;
 import com.celanworksmith.ontology.dto.ObjectTypeDTO;
@@ -19,6 +20,7 @@ public final class OntologyModelReleaseMapper {
         List<OntologyModelRelease.EntitySet> entities = new ArrayList<>();
         List<OntologyModelRelease.EntitySetLink> links = new ArrayList<>();
         List<OntologyModelRelease.Function> functions = new ArrayList<>();
+        List<OntologyModelRelease.Action> actions = new ArrayList<>();
         for (OntologyModelRelease.Element element : release.elements()) {
             if (element instanceof OntologyModelRelease.EntitySet entity) entities.add(entity);
             else if (element instanceof OntologyModelRelease.RuntimeBinding binding) {
@@ -27,6 +29,7 @@ public final class OntologyModelReleaseMapper {
                 }
             } else if (element instanceof OntologyModelRelease.EntitySetLink link) links.add(link);
             else if (element instanceof OntologyModelRelease.Function function) functions.add(function);
+            else if (element instanceof OntologyModelRelease.Action action) actions.add(action);
             else if (element instanceof OntologyModelRelease.UnsupportedElement) {
                 throw new IllegalArgumentException("Release contains unsupported capabilities");
             }
@@ -106,6 +109,29 @@ public final class OntologyModelReleaseMapper {
                         function.implementationRef(),
                         function.implementationVersion()))
                 .toList();
+        List<ActionTypeDTO> actionTypes = actions.stream()
+                .map(action -> new ActionTypeDTO(
+                        action.name(),
+                        localized(action.displayName()),
+                        action.ownerObjectTypeIds(),
+                        action.atomic(),
+                        action.maxItems(),
+                        action.parameters().stream()
+                                .map(parameter -> new PropertyDTO(
+                                        parameter.name(),
+                                        localized(parameter.displayName()),
+                                        runtimeType(parameter.type()),
+                                        parameter.required(),
+                                        parameter.readOnly(),
+                                        parameter.derived(),
+                                        null,
+                                        null,
+                                        false,
+                                        parameter.enumValues(),
+                                        parameter.referenceTarget()))
+                                .toList(),
+                        action.requiresConfirmation()))
+                .toList();
         return new OntologyProjectDefinition(
                 release.release().modelId(),
                 release.release().version(),
@@ -113,7 +139,7 @@ public final class OntologyModelReleaseMapper {
                 objectTypes,
                 linkTypes,
                 functionTypes,
-                List.of(),
+                actionTypes,
                 new OntologyProjectDefinition.RuntimeMappings(objectMappings, linkMappings));
     }
 

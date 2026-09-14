@@ -71,6 +71,7 @@ public final class OntologyModelReleaseParser {
                     nonblank(releaseNode, "domain", "Release domain is required"),
                     nonblank(releaseNode, "model_id", "Release model ID is required"),
                     semver(releaseNode, "version", "Release version must be strict SemVer"),
+                    optionalText(releaseNode, "previous_release_digest"),
                     nonblank(releaseNode, "release_digest", "Release digest is required"));
             JsonNode elementsNode = array(document, "elements", "Release elements are required");
 
@@ -114,6 +115,7 @@ public final class OntologyModelReleaseParser {
             case "runtime_binding" -> parseRuntimeBinding(node, domain, name, version);
             case "entity_set_link" -> parseLink(node, domain, name, version);
             case "function" -> parseFunction(node, domain, name, version);
+            case "action" -> parseAction(node, domain, name, version);
             case "entity_source", "entity_source_link" -> parseLineage(node, domain, kind, name, version);
             default -> {
                 fail("Release contains unsupported capabilities");
@@ -171,6 +173,90 @@ public final class OntologyModelReleaseParser {
                 implementationKind,
                 implementationRef,
                 implementationVersion);
+    }
+
+    private OntologyModelRelease.Action parseAction(JsonNode node, String domain, String name, String version) {
+        JsonNode spec = object(node, "spec", "Release Action spec is required");
+        requireOnlyKeys(
+                spec,
+                Set.of(
+                        "display_name",
+                        "owner_object_type_ids",
+                        "target",
+                        "atomic",
+                        "requires_confirmation",
+                        "parameters"),
+                "Release Action spec");
+        Map<String, String> displayName =
+                localized(object(spec, "display_name", "Release Action display name is required"));
+        List<String> owners = strings(
+                array(spec, "owner_object_type_ids", "Release Action owners are required"),
+                "Release Action owners are invalid");
+        require(!owners.isEmpty(), "Release Action owners are required");
+
+        JsonNode target = object(spec, "target", "Release Action target is required");
+        requireOnlyKeys(target, Set.of("max_items"), "Release Action target");
+        JsonNode maxItems = target.path("max_items");
+        require(maxItems.isIntegralNumber() && maxItems.canConvertToInt(), "Release Action max_items is invalid");
+        require(maxItems.intValue() > 0, "Release Action max_items must be positive");
+
+        JsonNode atomicNode = spec.path("atomic");
+        require(atomicNode.isBoolean(), "Release Action atomic is required");
+        JsonNode confirmationNode = spec.path("requires_confirmation");
+        require(confirmationNode.isBoolean(), "Release Action requires_confirmation is required");
+
+        List<OntologyModelRelease.Parameter> parameters = new ArrayList<>();
+        Set<String> parameterNames = new HashSet<>();
+        for (JsonNode parameterNode : array(spec, "parameters", "Release Action parameters are required")) {
+            JsonNode parameter = requireObject(parameterNode, "Release Action parameter is invalid");
+            requireOnlyKeys(
+                    parameter,
+                    Set.of(
+                            "name",
+                            "type",
+                            "display_name",
+                            "description",
+                            "required",
+                            "read_only",
+                            "derived",
+                            "enum_values",
+                            "reference_target"),
+                    "Release Action parameter");
+            String parameterName = nonblank(parameter, "name", "Release Action parameter name is required");
+            require(parameterNames.add(parameterName), "Release Action has duplicate parameter");
+            String type = nonblank(parameter, "type", "Release Action parameter type is required");
+            require(FIELD_TYPES.contains(type), "Release Action parameter type is unsupported");
+            Map<String, String> parameterDisplayName =
+                    localized(object(parameter, "display_name", "Release Action parameter display name is required"));
+            Map<String, String> description =
+                    localized(object(parameter, "description", "Release Action parameter description is required"));
+            JsonNode required = parameter.path("required");
+            JsonNode readOnly = parameter.path("read_only");
+            JsonNode derived = parameter.path("derived");
+            require(required.isBoolean(), "Release Action parameter required is required");
+            require(readOnly.isBoolean(), "Release Action parameter read_only is required");
+            require(derived.isBoolean(), "Release Action parameter derived is required");
+            parameters.add(new OntologyModelRelease.Parameter(
+                    parameterName,
+                    type,
+                    parameterDisplayName,
+                    description,
+                    required.asBoolean(),
+                    readOnly.asBoolean(),
+                    derived.asBoolean(),
+                    strings(parameter.path("enum_values"), "Release Action parameter enum values are invalid"),
+                    optionalText(parameter, "reference_target")));
+        }
+        return new OntologyModelRelease.Action(
+                domain,
+                name,
+                version,
+                displayName,
+                owners,
+                maxItems.intValue(),
+                atomicNode.asBoolean(),
+                confirmationNode.asBoolean(),
+                parameters);
     }
 
     private OntologyModelRelease.EntitySet parseEntity(JsonNode node, String domain, String name, String version) {
@@ -398,6 +484,12 @@ public final class OntologyModelReleaseParser {
                     require(
                             entities.containsKey(function.domain() + '\u0000' + owner),
                             "Release function references an unknown owner object type");
+                }
+            } else if (element instanceof OntologyModelRelease.Action action) {
+                for (String owner : action.ownerObjectTypeIds()) {
+                    require(
+                            entities.containsKey(action.domain() + '\u0000' + owner),
+                            "Release Action references an unknown owner object type");
                 }
             }
         }

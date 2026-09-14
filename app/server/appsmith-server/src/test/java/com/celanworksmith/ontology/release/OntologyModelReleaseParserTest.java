@@ -48,6 +48,42 @@ class OntologyModelReleaseParserTest {
     }
 
     @Test
+    void parsesTheDemoContractChangeActionRelease() {
+        OntologyModelRelease release = parser.parse(actionFixtureBytes());
+
+        assertThat(release.release().version()).isEqualTo("1.2.0");
+        assertThat(release.release().previousReleaseDigest())
+                .isEqualTo("sha256:7ad2623afc768a0d78a3055788089bc2cd7e329f94bf6b50bcce10e34c1c391b");
+        assertThat(release.elements())
+                .filteredOn(OntologyModelRelease.Action.class::isInstance)
+                .singleElement()
+                .satisfies(action -> {
+                    OntologyModelRelease.Action parsed = (OntologyModelRelease.Action) action;
+                    assertThat(parsed.name()).isEqualTo("ApplyContractChange");
+                    assertThat(parsed.ownerObjectTypeIds()).containsExactly("contract");
+                    assertThat(parsed.maxItems()).isEqualTo(1);
+                    assertThat(parsed.atomic()).isTrue();
+                    assertThat(parsed.requiresConfirmation()).isTrue();
+                    assertThat(parsed.parameters())
+                            .extracting(OntologyModelRelease.Parameter::name)
+                            .containsExactly("changeAmount", "changeReason");
+                });
+    }
+
+    @Test
+    void rejectsNonPositiveActionTargetMaxItems() throws Exception {
+        ObjectNode document = (ObjectNode) objectMapper.readTree(actionFixtureBytes());
+        for (JsonNode element : document.path("elements")) {
+            if ("action".equals(element.path("kind").asText())) {
+                ((ObjectNode) element.at("/spec/target")).put("max_items", 0);
+                break;
+            }
+        }
+        assertThatThrownBy(() -> parser.parse(signed(document)))
+                .hasMessageContaining("Action max_items must be positive");
+    }
+
+    @Test
     void retainsRuntimeProviderKindAndAccessModeForBindingAuthorization() {
         OntologyModelRelease release = parser.parse(fixtureBytes());
 
@@ -148,6 +184,15 @@ class OntologyModelReleaseParserTest {
         try {
             return Files.readAllBytes(
                     Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-functions-1.1.0.json"));
+        } catch (IOException exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    private static byte[] actionFixtureBytes() {
+        try {
+            return Files.readAllBytes(
+                    Path.of("../../../docs/superpowers/fixtures/ontology-model-release-demo-actions-1.2.0.json"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
