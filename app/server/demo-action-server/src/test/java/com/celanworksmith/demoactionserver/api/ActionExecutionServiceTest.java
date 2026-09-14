@@ -418,6 +418,30 @@ class ActionExecutionServiceTest {
     }
 
     @Test
+    void rejectsUniqueKeyRaceWhenCreatedAuditTargetsDifferentObject() {
+        when(auditStore.findByIdempotencyKey("race-key")).thenReturn(Mono.empty());
+        when(auditStore.createIfAbsent(any()))
+                .thenReturn(Mono.just(succeededAudit("audit-existing", "race-key", "PO001")));
+        AtomicInteger handlerCalls = new AtomicInteger();
+        ActionExecutionService service = service(handler((request, auditId) -> {
+            handlerCalls.incrementAndGet();
+            return Mono.just(success(auditId));
+        }));
+
+        StepVerifier.create(service.execute(request(List.of("PO002"), true, "race-key")))
+                .assertNext(result -> {
+                    assertThat(result).isInstanceOf(ActionExecutionService.ExecutionResult.Failure.class);
+                    DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
+                    assertThat(failure.code()).isEqualTo("INVALID_REQUEST");
+                    assertThat(failure.auditId()).isEqualTo("audit-existing");
+                })
+                .verifyComplete();
+
+        assertThat(handlerCalls).hasValue(0);
+        verify(transactionalOperator, never()).transactional(any(Mono.class));
+    }
+
+    @Test
     void derivesDistinctTargetAuditKeysForColonBearingTargetAndParentKeys() {
         when(auditStore.findByIdempotencyKey(anyString())).thenReturn(Mono.empty());
         when(auditStore.createIfAbsent(any()))

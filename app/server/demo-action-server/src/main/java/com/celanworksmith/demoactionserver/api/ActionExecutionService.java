@@ -151,7 +151,7 @@ public class ActionExecutionService {
 
         return auditStore.createIfAbsent(runningAudit).flatMap(audit -> {
             if (!audit.auditId().equals(auditId)) {
-                return replay(audit, target(request));
+                return replayOrReject(audit, request);
             }
             Mono<TargetOutcome> execution = invokeHandler(request, audit, transactional);
             if (transactional) {
