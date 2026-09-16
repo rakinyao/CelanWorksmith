@@ -11,7 +11,20 @@ public record ActionTypeDTO(
         boolean atomic,
         Integer maxItems,
         List<PropertyDTO> parameters,
-        boolean requiresConfirmation) {
+        boolean requiresConfirmation,
+        String adapterId,
+        String adapterVersion) {
+    public ActionTypeDTO(
+            String id,
+            String displayName,
+            List<String> ownerObjectTypeIds,
+            boolean atomic,
+            Integer maxItems,
+            List<PropertyDTO> parameters,
+            boolean requiresConfirmation) {
+        this(id, displayName, ownerObjectTypeIds, atomic, maxItems, parameters, requiresConfirmation, null, null);
+    }
+
     public ActionTypeDTO(
             String id,
             String displayName,

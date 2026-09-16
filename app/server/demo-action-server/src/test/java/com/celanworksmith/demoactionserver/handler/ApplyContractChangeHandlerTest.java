@@ -1,7 +1,6 @@
 package com.celanworksmith.demoactionserver.handler;
 
 import com.celanworksmith.demoactionserver.api.ActionExecutionService.DeclaredDomainException;
-import com.celanworksmith.demoactionserver.runtime.DemoRuntimeObjectDocument;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
@@ -9,6 +8,7 @@ import com.celanworksmith.ontology.datasource.OntologyObjectSet;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -37,10 +37,22 @@ class ApplyContractChangeHandlerTest {
     private final ApplyContractChangeHandler handler = new ApplyContractChangeHandler(template, CLOCK);
 
     @Test
+    void isConstructedBySpringUsingTheReactiveMongoTemplateBean() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.registerBean(ReactiveMongoTemplate.class, () -> template);
+            context.register(ApplyContractChangeHandler.class);
+
+            context.refresh();
+
+            assertThat(context.getBean(ApplyContractChangeHandler.class)).isNotNull();
+        }
+    }
+
+    @Test
     void appliesPositiveChangeAndReportsOnlyAllowedProperties() {
-        when(template.findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract")))
+        when(template.findOne(any(), eq(Document.class), eq("ont_contract")))
                 .thenReturn(Mono.just(contract("CTR-1", "10.00", "100.00")));
-        when(template.findAndModify(any(), any(), any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract")))
+        when(template.findAndModify(any(), any(), any(), eq(Document.class), eq("ont_contract")))
                 .thenReturn(Mono.just(contract("CTR-1", "12.50", "102.50")));
 
         StepVerifier.create(handler.execute(request("CTR-1", "2.50", "Scope expansion"), "audit-1"))
@@ -75,25 +87,20 @@ class ApplyContractChangeHandlerTest {
 
         ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
         verify(template)
-                .findAndModify(
-                        any(Query.class),
-                        updateCaptor.capture(),
-                        any(),
-                        eq(DemoRuntimeObjectDocument.class),
-                        eq("ont_contract"));
+                .findAndModify(any(Query.class), updateCaptor.capture(), any(), eq(Document.class), eq("ont_contract"));
         Document set = (Document) updateCaptor.getValue().getUpdateObject().get("$set");
         assertThat(set)
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        "properties.change_amount", new BigDecimal("12.50"),
-                        "properties.current_amount", new BigDecimal("102.50"),
-                        "properties.latest_change_at", "2026-09-14T12:34:56Z"));
+                        "change_amount", new BigDecimal("12.50"),
+                        "current_amount", new BigDecimal("102.50"),
+                        "latest_change_at", "2026-09-14T12:34:56Z"));
     }
 
     @Test
     void appliesNegativeChangeWithoutAllowingNegativeCurrentAmount() {
-        when(template.findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract")))
+        when(template.findOne(any(), eq(Document.class), eq("ont_contract")))
                 .thenReturn(Mono.just(contract("CTR-1", "10.00", "100.00")));
-        when(template.findAndModify(any(), any(), any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract")))
+        when(template.findAndModify(any(), any(), any(), eq(Document.class), eq("ont_contract")))
                 .thenReturn(Mono.just(contract("CTR-1", "7.50", "97.50")));
 
         StepVerifier.create(handler.execute(request("CTR-1", "-2.50", "Scope reduction"), "audit-1"))
@@ -104,15 +111,29 @@ class ApplyContractChangeHandlerTest {
     }
 
     @Test
+    void appliesChangeToFiniteDoubleAmountsFromTheSeededRuntimeDocument() {
+        when(template.findOne(any(), eq(Document.class), eq("ont_contract")))
+                .thenReturn(Mono.just(new Document("_id", "CTR-1")
+                        .append("change_amount", 10.0d)
+                        .append("current_amount", 100.0d)));
+        when(template.findAndModify(any(), any(), any(), eq(Document.class), eq("ont_contract")))
+                .thenReturn(Mono.just(contract("CTR-1", "11.00", "101.00")));
+
+        StepVerifier.create(handler.execute(request("CTR-1", new BigDecimal("1.00"), "Correction"), "audit-1"))
+                .assertNext(result -> assertThat(result.outcomes().getFirst().changedProperties())
+                        .extracting(ChangedProperty::newValue)
+                        .containsExactly(new BigDecimal("11.00"), new BigDecimal("101.00"), "2026-09-14T12:34:56Z"))
+                .verifyComplete();
+    }
+
+    @Test
     void rejectsMissingTargetWithoutWriting() {
-        when(template.findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract")))
-                .thenReturn(Mono.empty());
+        when(template.findOne(any(), eq(Document.class), eq("ont_contract"))).thenReturn(Mono.empty());
 
         StepVerifier.create(handler.execute(request("CTR-404", "1.00", "Correction"), "audit-1"))
                 .expectErrorSatisfies(error -> assertDomainFailure(error, "TARGET_NOT_FOUND"))
                 .verify();
-        verify(template, never())
-                .findAndModify(any(), any(), any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract"));
+        verify(template, never()).findAndModify(any(), any(), any(), eq(Document.class), eq("ont_contract"));
     }
 
     @Test
@@ -120,7 +141,7 @@ class ApplyContractChangeHandlerTest {
         StepVerifier.create(handler.execute(request("v2", true, "CTR-1", "1.00", "Correction"), "audit-1"))
                 .expectErrorSatisfies(error -> assertDomainFailure(error, "INVALID_ACTION_REQUEST"))
                 .verify();
-        verify(template, never()).findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract"));
+        verify(template, never()).findOne(any(), eq(Document.class), eq("ont_contract"));
     }
 
     @Test
@@ -128,7 +149,7 @@ class ApplyContractChangeHandlerTest {
         StepVerifier.create(handler.execute(request("v1", false, "CTR-1", "1.00", "Correction"), "audit-1"))
                 .expectErrorSatisfies(error -> assertDomainFailure(error, "INVALID_ACTION_REQUEST"))
                 .verify();
-        verify(template, never()).findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract"));
+        verify(template, never()).findOne(any(), eq(Document.class), eq("ont_contract"));
     }
 
     @Test
@@ -138,9 +159,8 @@ class ApplyContractChangeHandlerTest {
                     .expectErrorSatisfies(error -> assertDomainFailure(error, "INVALID_ACTION_REQUEST"))
                     .verify();
         }
-        verify(template, never()).findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract"));
-        verify(template, never())
-                .findAndModify(any(), any(), any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract"));
+        verify(template, never()).findOne(any(), eq(Document.class), eq("ont_contract"));
+        verify(template, never()).findAndModify(any(), any(), any(), eq(Document.class), eq("ont_contract"));
     }
 
     @Test
@@ -148,19 +168,18 @@ class ApplyContractChangeHandlerTest {
         StepVerifier.create(handler.execute(request("CTR-1", "1.00", "  "), "audit-1"))
                 .expectErrorSatisfies(error -> assertDomainFailure(error, "INVALID_ACTION_REQUEST"))
                 .verify();
-        verify(template, never()).findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract"));
+        verify(template, never()).findOne(any(), eq(Document.class), eq("ont_contract"));
     }
 
     @Test
     void rejectsChangeThatWouldMakeCurrentAmountNegativeWithoutWriting() {
-        when(template.findOne(any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract")))
+        when(template.findOne(any(), eq(Document.class), eq("ont_contract")))
                 .thenReturn(Mono.just(contract("CTR-1", "10.00", "1.00")));
 
         StepVerifier.create(handler.execute(request("CTR-1", "-1.01", "Correction"), "audit-1"))
                 .expectErrorSatisfies(error -> assertDomainFailure(error, "INVALID_ACTION_REQUEST"))
                 .verify();
-        verify(template, never())
-                .findAndModify(any(), any(), any(), eq(DemoRuntimeObjectDocument.class), eq("ont_contract"));
+        verify(template, never()).findAndModify(any(), any(), any(), eq(Document.class), eq("ont_contract"));
     }
 
     private static void assertDomainFailure(Throwable error, String expectedCode) {
@@ -188,10 +207,9 @@ class ApplyContractChangeHandlerTest {
                 "key-1");
     }
 
-    private static DemoRuntimeObjectDocument contract(String id, String changeAmount, String currentAmount) {
-        return new DemoRuntimeObjectDocument(
-                id,
-                "contract",
-                Map.of("change_amount", new BigDecimal(changeAmount), "current_amount", new BigDecimal(currentAmount)));
+    private static Document contract(String id, String changeAmount, String currentAmount) {
+        return new Document("_id", id)
+                .append("change_amount", new BigDecimal(changeAmount))
+                .append("current_amount", new BigDecimal(currentAmount));
     }
 }

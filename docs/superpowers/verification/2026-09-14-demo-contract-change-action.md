@@ -31,7 +31,71 @@ mvn -q -pl appsmith-server,appsmith-plugins/celanworksmithOntologyPlugin -am \
 包含 `actionId`、单个 `contract` ObjectSet、`atomic=true` 以及且仅有两个业务参数，
 并验证多对象目标在解析 Action Server 前因 `maxItems: 1` 被拒绝。
 
+说明：若不带 `-Dsurefire.failIfNoSpecifiedTests=false`，reactor 上游没有目标测试的
+模块会因 Surefire 测试选择策略退出失败；该参数仅允许无匹配测试的模块跳过，不改变
+目标测试内容。
+
 ## 手工验证步骤
+
+### 新工区 Action Server 路由验收（DEMO）
+
+本节验证的是当前 CelanWorksmith 的最小化 DEMO 路由，不是外部注册中心或正式
+Action Server 注册服务。Action Server 端点只在部署环境中按适配器和版本配置一次；
+Release 发布者和新工区都不需要携带或编辑 Action Server URL，也不需要配置工区专属
+端点。
+
+1. 在后端部署配置中设置一次环境属性
+   `celanworksmith.action-server.adapters.demo-action-server.versions.[1.0.0].url`
+   和可选的 `...timeout-millis`，指向本地 Demo Action Server（默认演示端口为
+   `http://127.0.0.1:8092`）。该配置属于当前运行环境，不写入 Release JSON。
+
+   当前仓库可复现的本地方式是在未跟踪的 `app/server/.env` 中加入。版本 map 的键包含点号，
+   因此必须使用 Spring 的方括号 map-key 记法：
+
+   ```bash
+   export SPRING_APPLICATION_JSON='{"celanworksmith":{"action-server":{"adapters":{"demo-action-server":{"versions":{"[1.0.0]":{"url":"http://127.0.0.1:8092","timeout-millis":3000}}}}}}}'
+   ```
+
+2. 启动后端和 Demo Action Server。可使用仓库模板和启动脚本：
+
+   ```bash
+   install -Dm644 scripts/migration/cw-demo-action-server.service ~/.config/systemd/user/cw-demo-action-server.service
+   systemctl --user daemon-reload
+   systemctl --user enable --now cw-demo-action-server
+   ./app/server/scripts/start-dev-server.sh
+   ```
+
+   已运行用户服务时，也可执行 `systemctl --user restart cw-backend`，并检查：
+
+   ```bash
+   curl -fsS http://127.0.0.1:8092/actuator/health
+   curl -fsS http://127.0.0.1:8081/api/v1/health
+   ```
+
+   创建一个全新的工作区及 App；不要为该工作区新增
+   Action Server 配置，也不要复制其他工作区的绑定记录。
+3. 导入未修改的
+   `docs/superpowers/fixtures/ontology-model-release-demo-actions-1.2.0.json`，并确认
+   Release 中的 Action 元数据声明 `demo-action-server@1.0.0`。
+4. 注入 Demo Runtime 数据。仓库提供以下可重复执行的命令：
+
+   ```bash
+   node scripts/celanworksmith/generate-business-core-runtime-data.mjs
+   ./scripts/migration/seed-runtime-data.sh "$PWD"
+   ```
+
+   创建 `ApplyContractChange` 原生 Ontology Action Query，
+   选择单个合同并执行。解析器应使用全局部署配置解析
+   `demo-action-server@1.0.0`，请求成功并返回 `auditId`。
+5. 检查该新工作区的持久化配置和导入快照：不应出现 workspace-specific Action
+   Server URL、凭据或 endpoint 覆盖项。刷新合同查询，确认变更已写入并可由返回的
+   `auditId` 在 Demo Action Server 审计记录中定位。
+
+2026-09-16 手工复验：多个新工作区分别导入相同的 1.2.0 Release，并成功执行
+`ApplyContractChange`。该结果证明 Demo 路由只依赖
+`demo-action-server@1.0.0` 的部署级配置，不依赖预先存在的工作区绑定。
+
+### Action 行为验收
 
 1. 在本地 Appsmith 工作区使用管理员绑定的 `business` Demo Runtime，导入上述
    Release JSON。成功结果应创建不可变的 1.2.0 metadata snapshot，并在 Action

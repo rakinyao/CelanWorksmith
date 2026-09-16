@@ -470,12 +470,67 @@ class OntologyFunctionLinkActionExecutorTest {
     }
 
     @Test
+    void resolvesActionServerUsingReleaseAdapterTuple() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+        String[] resolved = new String[3];
+        OntologyPlugin.OntologyPluginExecutor executor =
+                new OntologyPlugin.OntologyPluginExecutor(gateway, (workspaceId, adapterId, adapterVersion) -> {
+                    resolved[0] = workspaceId;
+                    resolved[1] = adapterId;
+                    resolved[2] = adapterVersion;
+                    return Mono.just(actionServer);
+                });
+        ActionConfiguration action = new ActionConfiguration();
+        action.setFormData(Map.of(
+                "operation", "ACTION_QUERY",
+                "queryMode", "BUILDER",
+                "actionId", "ApplyContractChange",
+                "objectTypeId", "contract",
+                "target", Map.of("source", "SINGLE_OBJECT", "objectId", "CT001"),
+                "parameters", Map.of("changeAmount", new java.math.BigDecimal("1250.50"), "changeReason", "Approved")));
+
+        ActionExecutionResult result =
+                executor.execute(datasource(), null, action).block();
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals("workspace-1", resolved[0]);
+        assertEquals("demo-action-server", resolved[1]);
+        assertEquals("1.0.0", resolved[2]);
+    }
+
+    @Test
+    void normalizesTemplateEvaluatedDecimalActionParametersBeforeExecution() {
+        RecordingGateway gateway = new RecordingGateway();
+        RecordingActionServer actionServer = new RecordingActionServer();
+
+        ActionExecutionResult result = execute(
+                gateway,
+                actionServer,
+                "ACTION_QUERY",
+                Map.of(
+                        "actionId",
+                        "ApplyContractChange",
+                        "objectTypeId",
+                        "contract",
+                        "target",
+                        Map.of("source", "SINGLE_OBJECT", "objectId", "CT001"),
+                        "parameters",
+                        Map.of("changeAmount", "1000.0", "changeReason", "Approved scope expansion")));
+
+        assertTrue(result.getIsExecutionSuccess());
+        assertEquals(
+                new java.math.BigDecimal("1000.0"),
+                actionServer.request.parameters().get("changeAmount"));
+    }
+
+    @Test
     void rejectsContractChangeMultipleObjectTargetBeforeResolvingActionServer() {
         RecordingGateway gateway = new RecordingGateway();
         RecordingActionServer actionServer = new RecordingActionServer();
         int[] resolverCalls = {0};
         OntologyPlugin.OntologyPluginExecutor executor =
-                new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> {
+                new OntologyPlugin.OntologyPluginExecutor(gateway, (workspaceId, adapterId, adapterVersion) -> {
                     resolverCalls[0]++;
                     return Mono.just(actionServer);
                 });
@@ -708,7 +763,7 @@ class OntologyFunctionLinkActionExecutorTest {
         RecordingActionServer actionServer = new RecordingActionServer();
         int[] resolverCalls = {0};
         OntologyPlugin.OntologyPluginExecutor executor =
-                new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> {
+                new OntologyPlugin.OntologyPluginExecutor(gateway, (workspaceId, adapterId, adapterVersion) -> {
                     resolverCalls[0]++;
                     return Mono.just(actionServer);
                 });
@@ -948,7 +1003,8 @@ class OntologyFunctionLinkActionExecutorTest {
             Map<String, Object> definition) {
         OntologyPlugin.OntologyPluginExecutor executor = actionServer == null
                 ? new OntologyPlugin.OntologyPluginExecutor(gateway)
-                : new OntologyPlugin.OntologyPluginExecutor(gateway, workspaceId -> Mono.just(actionServer));
+                : new OntologyPlugin.OntologyPluginExecutor(
+                        gateway, (workspaceId, adapterId, adapterVersion) -> Mono.just(actionServer));
         ActionConfiguration action = new ActionConfiguration();
         if ("FUNCTION_QUERY".equals(operation)) {
             Map<String, Object> formData = new LinkedHashMap<>();
@@ -1094,7 +1150,9 @@ class OntologyFunctionLinkActionExecutorTest {
                                 List.of(
                                         new PropertyMetadata("changeAmount", "decimal", false, true),
                                         new PropertyMetadata("changeReason", "string", false, true)),
-                                true),
+                                true,
+                                "demo-action-server",
+                                "1.0.0"),
                         new ActionMetadata(
                                 "notifySupplier", "Notify supplier", List.of("Supplier"), 1, false, List.of(), false)));
         private Map<String, Object> functionParameters;

@@ -245,6 +245,8 @@ public class OntologySnapshotService {
         canonical.put("atomic", action.atomic());
         canonical.put("parameters", canonicalProperties(action.parameters()));
         canonical.put("requiresConfirmation", action.requiresConfirmation());
+        canonical.put("adapterId", action.adapterId());
+        canonical.put("adapterVersion", action.adapterVersion());
         return canonical;
     }
 

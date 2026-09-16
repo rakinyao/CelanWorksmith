@@ -121,11 +121,13 @@ public class CelanWorksmithConfiguration {
     public WorkspaceActionServerConfigurationResolver workspaceActionServerConfigurationResolver(
             WorkspaceActionServerProperties properties) {
         WebClient webClient = WebClient.builder().build();
-        return workspaceId -> Optional.ofNullable(properties.getWorkspaces().get(workspaceId))
+        return (workspaceId, adapterId, adapterVersion) -> Optional.ofNullable(
+                        properties.getAdapters().get(adapterId))
+                .map(adapter -> adapter.getVersions().get(adapterVersion))
                 .map(endpoint -> reactor.core.publisher.Mono.<OntologyActionServerClient>just(
                         new HttpOntologyActionServerClient(webClient, endpoint)))
                 .orElseGet(() -> reactor.core.publisher.Mono.error(new IllegalStateException(
-                        "Ontology Action Server is not configured for workspace: " + workspaceId)));
+                        "Ontology Action Server adapter is not configured: " + adapterId + "@" + adapterVersion)));
     }
 
     @Bean

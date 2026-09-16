@@ -130,7 +130,9 @@ public final class OntologyModelReleaseMapper {
                                         parameter.enumValues(),
                                         parameter.referenceTarget()))
                                 .toList(),
-                        action.requiresConfirmation()))
+                        action.requiresConfirmation(),
+                        action.implementation().adapterId(),
+                        action.implementation().adapterVersion()))
                 .toList();
         return new OntologyProjectDefinition(
                 release.release().modelId(),

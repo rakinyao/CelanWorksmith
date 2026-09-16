@@ -42,7 +42,9 @@ public final class OntologyRuntimeSnapshotProjection {
                                 action.parameters().stream()
                                         .map(OntologyRuntimeSnapshotProjection::propertyMetadata)
                                         .toList(),
-                                action.requiresConfirmation()))
+                                action.requiresConfirmation(),
+                                action.adapterId(),
+                                action.adapterVersion()))
                         .toList());
     }
 

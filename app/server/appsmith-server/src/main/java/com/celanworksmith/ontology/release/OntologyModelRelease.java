@@ -109,6 +109,8 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
         }
     }
 
+    public record ActionImplementation(String adapterId, String adapterVersion) {}
+
     public record Action(
             String domain,
             String name,
@@ -118,7 +120,8 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
             int maxItems,
             boolean atomic,
             boolean requiresConfirmation,
-            List<Parameter> parameters)
+            List<Parameter> parameters,
+            ActionImplementation implementation)
             implements Element {
         @Override
         public String kind() {
@@ -129,6 +132,7 @@ public record OntologyModelRelease(String format, int formatVersion, Release rel
             displayName = Map.copyOf(displayName);
             ownerObjectTypeIds = List.copyOf(ownerObjectTypeIds);
             parameters = List.copyOf(parameters);
+            if (implementation == null) throw new IllegalArgumentException("Release Action implementation is required");
         }
     }
 

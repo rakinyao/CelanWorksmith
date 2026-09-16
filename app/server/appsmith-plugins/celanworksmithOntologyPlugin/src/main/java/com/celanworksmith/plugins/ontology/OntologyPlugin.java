@@ -50,8 +50,8 @@ public class OntologyPlugin extends BasePlugin {
         public OntologyPluginExecutor(OntologyRuntimeGateway runtimeGateway) {
             this(
                     runtimeGateway,
-                    workspaceId -> Mono.error(new IllegalStateException(
-                            "Ontology Action Server is not configured for workspace: " + workspaceId)));
+                    (workspaceId, adapterId, adapterVersion) -> Mono.error(new IllegalStateException(
+                            "Ontology Action Server adapter is not configured: " + adapterId + "@" + adapterVersion)));
         }
 
         public OntologyPluginExecutor(
@@ -622,6 +622,11 @@ public class OntologyPlugin extends BasePlugin {
             validateSnapshotPin(datasourceConfiguration, snapshot);
             OntologyQueryValidator.ValidatedCapabilityQuery validatedQuery =
                     queryValidator.validateActionQuery(configuration, snapshot);
+            OntologyRuntimeGateway.ActionMetadata actionMetadata = snapshot.actions().stream()
+                    .filter(action -> validatedQuery.capabilityId().equals(action.id()))
+                    .findFirst()
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("Unknown ontology action: " + validatedQuery.capabilityId()));
             OntologyActionServerClient.Request request = new OntologyActionServerClient.Request(
                     datasourceConfiguration.workspaceId(),
                     datasourceConfiguration.projectId(),
@@ -642,7 +647,10 @@ public class OntologyPlugin extends BasePlugin {
                             snapshot,
                             validatedQuery.targets())
                     .then(Mono.defer(() -> actionServerResolver
-                            .resolveRequired(datasourceConfiguration.workspaceId())
+                            .resolveRequired(
+                                    datasourceConfiguration.workspaceId(),
+                                    actionMetadata.adapterId(),
+                                    actionMetadata.adapterVersion())
                             .flatMap(client -> client.execute(request))))
                     .map(this::actionSuccessResult)
                     .onErrorMap(OntologyActionServerClient.DomainException.class, this::actionServerFailure);

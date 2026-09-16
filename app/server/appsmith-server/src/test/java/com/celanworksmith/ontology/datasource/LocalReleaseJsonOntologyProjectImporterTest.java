@@ -50,13 +50,15 @@ class LocalReleaseJsonOntologyProjectImporterTest {
                     assertThat(snapshot.projectVersion()).isEqualTo("1.2.0");
                     assertThat(snapshot.sourceReleaseId()).isEqualTo("business-core-demo@1.2.0");
                     assertThat(snapshot.releaseDigest())
-                            .isEqualTo("sha256:8f6e4113593857c48213d6c32a1715eb132ec75addadae387e91d74f0719e7ad");
+                            .isEqualTo("sha256:1780b0163940006b4e0026ff56c476f55a09e044b2aebe5164b8d1f37419131e");
                     assertThat(snapshot.definition().actions()).singleElement().satisfies(action -> {
                         assertThat(action.id()).isEqualTo("ApplyContractChange");
                         assertThat(action.ownerObjectTypeIds()).containsExactly("contract");
                         assertThat(action.maxItems()).isEqualTo(1);
                         assertThat(action.atomic()).isTrue();
                         assertThat(action.requiresConfirmation()).isTrue();
+                        assertThat(action.adapterId()).isEqualTo("demo-action-server");
+                        assertThat(action.adapterVersion()).isEqualTo("1.0.0");
                         assertThat(action.parameters())
                                 .extracting(parameter -> parameter.id())
                                 .containsExactly("changeAmount", "changeReason");

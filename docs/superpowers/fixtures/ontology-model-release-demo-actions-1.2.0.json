@@ -11,7 +11,7 @@
       "compatibility": "BACKWARD_COMPATIBLE",
       "changes": []
     },
-    "release_digest": "sha256:8f6e4113593857c48213d6c32a1715eb132ec75addadae387e91d74f0719e7ad"
+    "release_digest": "sha256:1780b0163940006b4e0026ff56c476f55a09e044b2aebe5164b8d1f37419131e"
   },
   "elements": [
     {
@@ -4266,6 +4266,10 @@
         },
         "atomic": true,
         "requires_confirmation": true,
+        "implementation": {
+          "adapter_id": "demo-action-server",
+          "adapter_version": "1.0.0"
+        },
         "parameters": [
           {
             "name": "changeAmount",

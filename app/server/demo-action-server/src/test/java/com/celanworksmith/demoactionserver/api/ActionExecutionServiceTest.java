@@ -113,7 +113,7 @@ class ActionExecutionServiceTest {
     }
 
     @Test
-    void rejectsAnyConfiguredIdentityOrSnapshotContextMismatchBeforeAuditCreation() {
+    void rejectsUnsupportedCapabilityOrReleaseBeforeAuditCreation() {
         AtomicInteger handlerCalls = new AtomicInteger();
         ActionExecutionService service = service(handler((request, auditId) -> {
             handlerCalls.incrementAndGet();
@@ -121,18 +121,8 @@ class ActionExecutionServiceTest {
         }));
 
         for (ExecuteRequest invalidRequest : List.of(
-                request("other-workspace", "project-1", "1.0.0", "datasource-1", context()),
-                request("workspace-1", "other-project", "1.0.0", "datasource-1", context()),
-                request("workspace-1", "project-1", "2.0.0", "datasource-1", context()),
-                request("workspace-1", "project-1", "1.0.0", "other-datasource", context()),
-                request("workspace-1", "project-1", "1.0.0", "datasource-1", null),
-                request("workspace-1", "project-1", "1.0.0", "datasource-1", Map.of("metadataDigest", "sha256:abc")),
-                request(
-                        "workspace-1",
-                        "project-1",
-                        "1.0.0",
-                        "datasource-1",
-                        Map.of("metadataSnapshotId", "snapshot-1")))) {
+                request("workspace-1", "project-1", "1.0.0", "datasource-1", context()),
+                request("workspace-1", "project-1", "2.0.0", "datasource-1", context()))) {
             StepVerifier.create(service.execute(invalidRequest))
                     .assertNext(result -> {
                         DomainFailure failure = ((ActionExecutionService.ExecutionResult.Failure) result).response();
@@ -147,7 +137,7 @@ class ActionExecutionServiceTest {
     }
 
     @Test
-    void rejectsMismatchedConfiguredPinBeforeReplayingAnyStoredAuditState() {
+    void rejectsUnsupportedReleaseBeforeReplayingAnyStoredAuditState() {
         AtomicInteger handlerCalls = new AtomicInteger();
         ActionExecutionService service = service(handler((request, auditId) -> {
             handlerCalls.incrementAndGet();
@@ -305,7 +295,6 @@ class ActionExecutionServiceTest {
         when(auditStore.markSucceeded(anyString(), any(), anyString(), any(), any()))
                 .thenAnswer(invocation -> Mono.just(runningAudit(invocation.getArgument(0))));
         DemoActionServerRequestProperties release12Properties = requestProperties();
-        release12Properties.setProjectVersion(DemoActionServerRequestProperties.DEMO_RELEASE_VERSION);
         ActionExecutionService service = service(
                 handler("ApplyContractChange", (request, auditId) -> Mono.just(success(auditId, "contract", "C001"))),
                 release12Properties);
@@ -484,7 +473,6 @@ class ActionExecutionServiceTest {
     @Test
     void rejectsDifferentStringAmountButReplaysEquivalentNumericApplyAmount() {
         DemoActionServerRequestProperties release12Properties = requestProperties();
-        release12Properties.setProjectVersion(DemoActionServerRequestProperties.DEMO_RELEASE_VERSION);
         ActionExecutionAuditDocument stored = succeededApplyAudit(
                 "audit-apply", "apply-key", "C001", Map.of("changeAmount", "1.00", "changeReason", "Scope"));
         when(auditStore.findByIdempotencyKey("apply-key")).thenReturn(Mono.just(stored), Mono.just(stored));
@@ -551,7 +539,7 @@ class ActionExecutionServiceTest {
 
     private static DemoActionHandler handler(
             java.util.function.BiFunction<ExecuteRequest, String, Mono<ExecuteSuccess>> behavior) {
-        return handler("UpdateProductionSchedule", behavior);
+        return handler("ApplyContractChange", behavior);
     }
 
     private static DemoActionHandler handler(
@@ -570,18 +558,11 @@ class ActionExecutionServiceTest {
     }
 
     private static DemoActionServerRequestProperties requestProperties() {
-        DemoActionServerRequestProperties properties = new DemoActionServerRequestProperties();
-        properties.setWorkspaceId("workspace-1");
-        properties.setProjectId("project-1");
-        properties.setProjectVersion("1.0.0");
-        properties.setDatasourceId("datasource-1");
-        properties.setMetadataSnapshotId("snapshot-1");
-        properties.setMetadataDigest("sha256:abc");
-        return properties;
+        return new DemoActionServerRequestProperties();
     }
 
     private static ExecuteRequest request() {
-        return request("workspace-1", "project-1", "1.0.0", "datasource-1", context());
+        return request("workspace-1", "project-1", "1.2.0", "datasource-1", context());
     }
 
     private static ExecuteRequest request(
@@ -596,10 +577,10 @@ class ActionExecutionServiceTest {
                 projectId,
                 projectVersion,
                 datasourceId,
-                "UpdateProductionSchedule",
-                new OntologyObjectSet("PurchaseOrder", List.of("PO001")),
+                "ApplyContractChange",
+                new OntologyObjectSet("contract", List.of("PO001")),
                 false,
-                Map.of("newScheduleDate", "2026-09-01T00:00:00Z"),
+                Map.of("changeAmount", "1.00", "changeReason", "Correction"),
                 context,
                 "key-1");
     }
@@ -613,12 +594,12 @@ class ActionExecutionServiceTest {
                 "v1",
                 "workspace-1",
                 "project-1",
-                "1.0.0",
+                "1.2.0",
                 "datasource-1",
-                "UpdateProductionSchedule",
-                new OntologyObjectSet("PurchaseOrder", objectIds),
+                "ApplyContractChange",
+                new OntologyObjectSet("contract", objectIds),
                 atomic,
-                Map.of("newScheduleDate", "2026-09-01T00:00:00Z"),
+                Map.of("changeAmount", "1.00", "changeReason", "Correction"),
                 context(),
                 idempotencyKey);
     }
@@ -633,17 +614,18 @@ class ActionExecutionServiceTest {
                 "key-1",
                 "workspace-1",
                 "project-1",
-                "1.0.0",
+                "1.2.0",
                 "datasource-1",
-                "UpdateProductionSchedule",
-                "PurchaseOrder",
+                "ApplyContractChange",
+                "contract",
                 "PO001",
                 Instant.parse("2026-08-25T00:00:00Z"),
                 null,
                 "RUNNING",
                 null,
                 List.of(),
-                List.of());
+                List.of(),
+                Map.of("changeAmount", "1.00", "changeReason", "Correction"));
     }
 
     private static ActionExecutionAuditDocument failedAudit(String auditId, DomainFailure failure) {
@@ -663,7 +645,8 @@ class ActionExecutionServiceTest {
                 "FAILED",
                 failure,
                 List.of(),
-                List.of());
+                List.of(),
+                runningAudit.parameterSummary());
     }
 
     private static ActionExecutionAuditDocument succeededAudit(String auditId) {
@@ -676,10 +659,10 @@ class ActionExecutionServiceTest {
                 idempotencyKey,
                 "workspace-1",
                 "project-1",
-                "1.0.0",
+                "1.2.0",
                 "datasource-1",
-                "UpdateProductionSchedule",
-                "PurchaseOrder",
+                "ApplyContractChange",
+                "contract",
                 objectId,
                 Instant.parse("2026-08-25T00:00:00Z"),
                 null,
@@ -748,7 +731,7 @@ class ActionExecutionServiceTest {
     }
 
     private static ExecuteSuccess success(String auditId, String objectId) {
-        return success(auditId, "PurchaseOrder", objectId);
+        return success(auditId, "contract", objectId);
     }
 
     private static ExecuteSuccess success(String auditId, String objectTypeId, String objectId) {

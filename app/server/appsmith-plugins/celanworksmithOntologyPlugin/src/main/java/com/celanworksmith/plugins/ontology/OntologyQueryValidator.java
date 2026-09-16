@@ -195,12 +195,12 @@ final class OntologyQueryValidator {
                 throw new IllegalArgumentException(
                         "Ontology " + operationName + " parameter is not writable: " + parameterId);
             }
-            JsonNode value = objectMapper.valueToTree(entry.getValue());
+            JsonNode value = normalizeValue(objectMapper.valueToTree(entry.getValue()), parameter.dataType());
             if (!matchesType(value, parameter.dataType())) {
                 throw new IllegalArgumentException("Ontology " + operationName + " parameter " + parameterId
                         + " must be an " + parameter.dataType().toLowerCase(java.util.Locale.ROOT));
             }
-            parameters.put(parameterId, entry.getValue());
+            parameters.put(parameterId, normalizedParameterValue(value, parameter.dataType(), entry.getValue()));
         }
         for (PropertyMetadata parameter : visibleParameters) {
             if (parameter.required()
@@ -451,6 +451,18 @@ final class OntologyQueryValidator {
         } catch (NumberFormatException exception) {
             return value;
         }
+    }
+
+    private Object normalizedParameterValue(JsonNode value, String dataType, Object originalValue) {
+        if (!(originalValue instanceof String)) {
+            return originalValue;
+        }
+        return switch (dataType) {
+            case "integer" -> value.bigIntegerValue();
+            case "number", "decimal" -> value.decimalValue();
+            case "boolean" -> value.booleanValue();
+            default -> originalValue;
+        };
     }
 
     private static boolean isBlank(String value) {

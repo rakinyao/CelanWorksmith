@@ -110,7 +110,9 @@ public interface OntologyRuntimeGateway {
             Integer maxItems,
             boolean atomic,
             List<PropertyMetadata> parameters,
-            boolean requiresConfirmation) {
+            boolean requiresConfirmation,
+            String adapterId,
+            String adapterVersion) {
         public ActionMetadata {
             ownerObjectTypeIds = immutableList(ownerObjectTypeIds);
             parameters = immutableList(parameters);
@@ -120,14 +122,25 @@ public interface OntologyRuntimeGateway {
                 String id,
                 String displayName,
                 List<String> ownerObjectTypeIds,
+                Integer maxItems,
+                boolean atomic,
+                List<PropertyMetadata> parameters,
+                boolean requiresConfirmation) {
+            this(id, displayName, ownerObjectTypeIds, maxItems, atomic, parameters, requiresConfirmation, null, null);
+        }
+
+        public ActionMetadata(
+                String id,
+                String displayName,
+                List<String> ownerObjectTypeIds,
                 boolean atomic,
                 List<PropertyMetadata> parameters) {
-            this(id, displayName, ownerObjectTypeIds, null, atomic, parameters, false);
+            this(id, displayName, ownerObjectTypeIds, null, atomic, parameters, false, null, null);
         }
 
         public ActionMetadata(
                 String id, List<String> ownerObjectTypeIds, boolean atomic, List<PropertyMetadata> parameters) {
-            this(id, id, ownerObjectTypeIds, null, atomic, parameters, false);
+            this(id, id, ownerObjectTypeIds, null, atomic, parameters, false, null, null);
         }
     }
 

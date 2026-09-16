@@ -70,6 +70,22 @@ class OntologySnapshotServiceTest {
     }
 
     @Test
+    void includesActionServerAdapterBindingInMetadataDigest() {
+        OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
+        when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+        OntologySnapshotService service = new OntologySnapshotService(repository, FIXED_CLOCK);
+
+        OntologyMetadataSnapshot one = service.createSnapshot(
+                        importedProject("demo", "action-adapter-1", definitionWithActionAdapter("1.0.0")))
+                .block();
+        OntologyMetadataSnapshot two = service.createSnapshot(
+                        importedProject("demo", "action-adapter-2", definitionWithActionAdapter("2.0.0")))
+                .block();
+
+        assertThat(one.metadataDigest()).isNotEqualTo(two.metadataDigest());
+    }
+
+    @Test
     void returnsOnlyThePersistedImmutableSnapshotWhenDigestMatches() {
         OntologyMetadataSnapshotRepository repository = mock(OntologyMetadataSnapshotRepository.class);
         when(repository.insert(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
@@ -204,6 +220,27 @@ class OntologySnapshotServiceTest {
                         maxItems,
                         List.of(),
                         true)));
+    }
+
+    private OntologyProjectDefinition definitionWithActionAdapter(String adapterVersion) {
+        OntologyProjectDefinition base = definitionInSourceOrder();
+        return new OntologyProjectDefinition(
+                base.projectId(),
+                base.version(),
+                base.schemaVersion(),
+                base.objectTypes(),
+                base.linkTypes(),
+                base.functions(),
+                List.of(new ActionTypeDTO(
+                        "ApplyContractChange",
+                        "Apply contract change",
+                        List.of("contract"),
+                        true,
+                        1,
+                        List.of(),
+                        true,
+                        "demo-action-server",
+                        adapterVersion)));
     }
 
     private ObjectTypeDTO object(String id, String propertyId, String dataType) {

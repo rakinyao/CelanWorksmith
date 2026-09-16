@@ -15,17 +15,32 @@ class WorkspaceActionServerPropertiesTest {
             new ApplicationContextRunner().withUserConfiguration(PropertiesConfiguration.class);
 
     @Test
-    void bindsConfiguredWorkspaceEndpoint() {
+    void bindsConfiguredAdapterVersionEndpoint() {
         contextRunner
                 .withPropertyValues(
-                        "celanworksmith.action-server.workspaces.workspace-1.url=http://localhost:8089",
-                        "celanworksmith.action-server.workspaces.workspace-1.timeout-millis=3000")
+                        "celanworksmith.action-server.adapters.demo-action-server.versions.[1.0.0].url=http://localhost:8089",
+                        "celanworksmith.action-server.adapters.demo-action-server.versions.[1.0.0].timeout-millis=3000")
                 .run(context -> {
                     var properties = context.getBean(WorkspaceActionServerProperties.class);
-                    assertThat(properties.getWorkspaces()).containsKey("workspace-1");
-                    assertThat(properties.getWorkspaces().get("workspace-1").getUrl())
+                    assertThat(properties.getAdapters()).containsKey("demo-action-server");
+                    assertThat(properties
+                                    .getAdapters()
+                                    .get("demo-action-server")
+                                    .getVersions())
+                            .containsKey("1.0.0");
+                    assertThat(properties
+                                    .getAdapters()
+                                    .get("demo-action-server")
+                                    .getVersions()
+                                    .get("1.0.0")
+                                    .getUrl())
                             .isEqualTo("http://localhost:8089");
-                    assertThat(properties.getWorkspaces().get("workspace-1").getTimeoutMillis())
+                    assertThat(properties
+                                    .getAdapters()
+                                    .get("demo-action-server")
+                                    .getVersions()
+                                    .get("1.0.0")
+                                    .getTimeoutMillis())
                             .isEqualTo(3000);
                 });
     }
@@ -34,8 +49,8 @@ class WorkspaceActionServerPropertiesTest {
     void rejectsBlankUrl() {
         contextRunner
                 .withPropertyValues(
-                        "celanworksmith.action-server.workspaces.workspace-1.url=",
-                        "celanworksmith.action-server.workspaces.workspace-1.timeout-millis=3000")
+                        "celanworksmith.action-server.adapters.demo-action-server.versions.[1.0.0].url=",
+                        "celanworksmith.action-server.adapters.demo-action-server.versions.[1.0.0].timeout-millis=3000")
                 .run(context -> assertThat(context.getStartupFailure()).isNotNull());
     }
 
@@ -43,27 +58,35 @@ class WorkspaceActionServerPropertiesTest {
     void rejectsNonPositiveTimeout() {
         contextRunner
                 .withPropertyValues(
-                        "celanworksmith.action-server.workspaces.workspace-1.url=http://localhost:8089",
-                        "celanworksmith.action-server.workspaces.workspace-1.timeout-millis=0")
+                        "celanworksmith.action-server.adapters.demo-action-server.versions.[1.0.0].url=http://localhost:8089",
+                        "celanworksmith.action-server.adapters.demo-action-server.versions.[1.0.0].timeout-millis=0")
                 .run(context -> assertThat(context.getStartupFailure()).isNotNull());
     }
 
     @Test
-    void resolverReturnsClientForConfiguredWorkspaceAndFailsUnknownWorkspace() {
+    void resolverReturnsClientForAnyWorkspaceAndFailsUnknownAdapterVersion() {
         var properties = new WorkspaceActionServerProperties();
-        properties
-                .getWorkspaces()
-                .put("workspace-1", new WorkspaceActionServerProperties.Endpoint("http://localhost:8089", 3000));
+        var adapter = new WorkspaceActionServerProperties.Adapter();
+        adapter.getVersions().put("1.0.0", new WorkspaceActionServerProperties.Endpoint("http://localhost:8089", 3000));
+        properties.getAdapters().put("demo-action-server", adapter);
         WorkspaceActionServerConfigurationResolver resolver =
                 new CelanWorksmithConfiguration().workspaceActionServerConfigurationResolver(properties);
 
-        StepVerifier.create(resolver.resolveRequired("workspace-1"))
+        StepVerifier.create(resolver.resolveRequired("workspace-a", "demo-action-server", "1.0.0"))
                 .assertNext(client -> assertThat(client).isInstanceOf(HttpOntologyActionServerClient.class))
                 .verifyComplete();
-        StepVerifier.create(resolver.resolveRequired("unknown"))
+        StepVerifier.create(resolver.resolveRequired("workspace-b", "demo-action-server", "1.0.0"))
+                .assertNext(client -> assertThat(client).isInstanceOf(HttpOntologyActionServerClient.class))
+                .verifyComplete();
+        StepVerifier.create(resolver.resolveRequired("workspace-a", "unknown", "1.0.0"))
                 .expectErrorSatisfies(error -> assertThat(error)
                         .isInstanceOf(IllegalStateException.class)
-                        .hasMessage("Ontology Action Server is not configured for workspace: unknown"))
+                        .hasMessage("Ontology Action Server adapter is not configured: unknown@1.0.0"))
+                .verify();
+        StepVerifier.create(resolver.resolveRequired("workspace-a", "demo-action-server", "9.9.9"))
+                .expectErrorSatisfies(error -> assertThat(error)
+                        .isInstanceOf(IllegalStateException.class)
+                        .hasMessage("Ontology Action Server adapter is not configured: demo-action-server@9.9.9"))
                 .verify();
     }
 

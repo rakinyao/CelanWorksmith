@@ -1,7 +1,6 @@
 package com.celanworksmith.demoactionserver.handler;
 
 import com.celanworksmith.demoactionserver.api.ActionExecutionService.DeclaredDomainException;
-import com.celanworksmith.demoactionserver.runtime.DemoRuntimeObjectDocument;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedObject;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ChangedProperty;
@@ -9,7 +8,9 @@ import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.Domai
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteRequest;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.ExecuteSuccess;
 import com.celanworksmith.ontology.datasource.OntologyActionServerProtocol.TargetOutcome;
+import org.bson.Document;
 import org.bson.types.Decimal128;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -35,6 +36,7 @@ public class ApplyContractChangeHandler implements DemoActionHandler {
     private final ReactiveMongoTemplate mongoTemplate;
     private final Clock clock;
 
+    @Autowired
     public ApplyContractChangeHandler(ReactiveMongoTemplate mongoTemplate) {
         this(mongoTemplate, Clock.systemUTC());
     }
@@ -76,17 +78,14 @@ public class ApplyContractChangeHandler implements DemoActionHandler {
         }
 
         return mongoTemplate
-                .findOne(
-                        Query.query(Criteria.where("_id").is(targetObjectId)),
-                        DemoRuntimeObjectDocument.class,
-                        CONTRACTS)
+                .findOne(Query.query(Criteria.where("_id").is(targetObjectId)), Document.class, CONTRACTS)
                 .switchIfEmpty(
                         domainFailure(auditId, TARGET_NOT_FOUND, "Contract " + targetObjectId + " was not found."))
                 .flatMap(contract -> applyChange(contract, targetObjectId, changeAmount, auditId));
     }
 
     private Mono<ExecuteSuccess> applyChange(
-            DemoRuntimeObjectDocument contract, String targetObjectId, BigDecimal changeAmount, String auditId) {
+            Document contract, String targetObjectId, BigDecimal changeAmount, String auditId) {
         BigDecimal previousChangeAmount = decimalProperty(contract, "change_amount");
         BigDecimal previousCurrentAmount = decimalProperty(contract, "current_amount");
         if (previousChangeAmount == null || previousCurrentAmount == null) {
@@ -101,15 +100,15 @@ public class ApplyContractChangeHandler implements DemoActionHandler {
 
         String latestChangeAt = Instant.now(clock).toString();
         Update update = new Update()
-                .set("properties.change_amount", nextChangeAmount)
-                .set("properties.current_amount", nextCurrentAmount)
-                .set("properties.latest_change_at", latestChangeAt);
+                .set("change_amount", nextChangeAmount)
+                .set("current_amount", nextCurrentAmount)
+                .set("latest_change_at", latestChangeAt);
         return mongoTemplate
                 .findAndModify(
                         Query.query(Criteria.where("_id").is(targetObjectId)),
                         update,
                         FindAndModifyOptions.options().returnNew(true),
-                        DemoRuntimeObjectDocument.class,
+                        Document.class,
                         CONTRACTS)
                 .switchIfEmpty(
                         domainFailure(auditId, TARGET_NOT_FOUND, "Contract " + targetObjectId + " was not found."))
@@ -145,8 +144,15 @@ public class ApplyContractChangeHandler implements DemoActionHandler {
         return parseDecimal(request.parameters().get(name));
     }
 
-    private static BigDecimal decimalProperty(DemoRuntimeObjectDocument object, String name) {
-        return parseDecimal(object.getProperties().get(name));
+    private static BigDecimal decimalProperty(Document object, String name) {
+        Object value = object.get(name);
+        if (value instanceof Double decimal && Double.isFinite(decimal)) {
+            return BigDecimal.valueOf(decimal);
+        }
+        if (value instanceof Float decimal && Float.isFinite(decimal)) {
+            return new BigDecimal(decimal.toString());
+        }
+        return parseDecimal(value);
     }
 
     private static BigDecimal parseDecimal(Object value) {

@@ -14,14 +14,26 @@ import java.util.Map;
 @Validated
 @ConfigurationProperties(prefix = "celanworksmith.action-server")
 public class WorkspaceActionServerProperties {
-    @Valid private Map<String, Endpoint> workspaces = new LinkedHashMap<>();
+    @Valid private Map<String, Adapter> adapters = new LinkedHashMap<>();
 
-    public Map<String, Endpoint> getWorkspaces() {
-        return workspaces;
+    public Map<String, Adapter> getAdapters() {
+        return adapters;
     }
 
-    public void setWorkspaces(Map<String, Endpoint> workspaces) {
-        this.workspaces = workspaces == null ? new LinkedHashMap<>() : workspaces;
+    public void setAdapters(Map<String, Adapter> adapters) {
+        this.adapters = adapters == null ? new LinkedHashMap<>() : adapters;
+    }
+
+    public static class Adapter {
+        @Valid private Map<String, Endpoint> versions = new LinkedHashMap<>();
+
+        public Map<String, Endpoint> getVersions() {
+            return versions;
+        }
+
+        public void setVersions(Map<String, Endpoint> versions) {
+            this.versions = versions == null ? new LinkedHashMap<>() : versions;
+        }
     }
 
     public static class Endpoint {

@@ -101,6 +101,8 @@ class OntologyModelReleaseMapperTest {
             assertThat(action.maxItems()).isEqualTo(1);
             assertThat(action.atomic()).isTrue();
             assertThat(action.requiresConfirmation()).isTrue();
+            assertThat(action.adapterId()).isEqualTo("demo-action-server");
+            assertThat(action.adapterVersion()).isEqualTo("1.0.0");
             assertThat(action.parameters()).extracting(PropertyDTO::id).containsExactly("changeAmount", "changeReason");
         });
     }

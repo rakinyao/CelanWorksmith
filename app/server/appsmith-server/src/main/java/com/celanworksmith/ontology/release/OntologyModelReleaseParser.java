@@ -16,8 +16,10 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public final class OntologyModelReleaseParser {
-    private static final Pattern SEMVER = Pattern.compile(
-            "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$");
+    private static final Pattern SEMVER = Pattern.compile("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)"
+            + "(?:-(?:0|[1-9]\\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)"
+            + "(?:\\.(?:0|[1-9]\\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?"
+            + "(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$");
     private static final Set<String> FIELD_TYPES =
             Set.of("string", "integer", "decimal", "boolean", "date", "timestamp", "json", "reference");
     private static final Set<String> CARDINALITIES = Set.of("ONE_TO_ONE", "ONE_TO_MANY", "MANY_TO_ONE", "MANY_TO_MANY");
@@ -185,7 +187,8 @@ public final class OntologyModelReleaseParser {
                         "target",
                         "atomic",
                         "requires_confirmation",
-                        "parameters"),
+                        "parameters",
+                        "implementation"),
                 "Release Action spec");
         Map<String, String> displayName =
                 localized(object(spec, "display_name", "Release Action display name is required"));
@@ -204,6 +207,15 @@ public final class OntologyModelReleaseParser {
         require(atomicNode.isBoolean(), "Release Action atomic is required");
         JsonNode confirmationNode = spec.path("requires_confirmation");
         require(confirmationNode.isBoolean(), "Release Action requires_confirmation is required");
+
+        JsonNode implementation = object(spec, "implementation", "Release Action implementation is required");
+        requireOnlyKeys(implementation, Set.of("adapter_id", "adapter_version"), "Release Action implementation");
+        String adapterId =
+                nonblank(implementation, "adapter_id", "Release Action implementation adapter ID is required");
+        String adapterVersion = semver(
+                implementation,
+                "adapter_version",
+                "Release Action implementation adapter version must be strict SemVer");
 
         List<OntologyModelRelease.Parameter> parameters = new ArrayList<>();
         Set<String> parameterNames = new HashSet<>();
@@ -256,7 +268,8 @@ public final class OntologyModelReleaseParser {
                 maxItems.intValue(),
                 atomicNode.asBoolean(),
                 confirmationNode.asBoolean(),
-                parameters);
+                parameters,
+                new OntologyModelRelease.ActionImplementation(adapterId, adapterVersion));
     }
 
     private OntologyModelRelease.EntitySet parseEntity(JsonNode node, String domain, String name, String version) {

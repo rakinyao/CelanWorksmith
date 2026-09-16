@@ -64,6 +64,8 @@ class OntologyModelReleaseParserTest {
                     assertThat(parsed.maxItems()).isEqualTo(1);
                     assertThat(parsed.atomic()).isTrue();
                     assertThat(parsed.requiresConfirmation()).isTrue();
+                    assertThat(parsed.implementation().adapterId()).isEqualTo("demo-action-server");
+                    assertThat(parsed.implementation().adapterVersion()).isEqualTo("1.0.0");
                     assertThat(parsed.parameters())
                             .extracting(OntologyModelRelease.Parameter::name)
                             .containsExactly("changeAmount", "changeReason");
@@ -81,6 +83,48 @@ class OntologyModelReleaseParserTest {
         }
         assertThatThrownBy(() -> parser.parse(signed(document)))
                 .hasMessageContaining("Action max_items must be positive");
+    }
+
+    @Test
+    void rejectsAnActionWithoutImplementation() throws Exception {
+        ObjectNode document = (ObjectNode) objectMapper.readTree(actionFixtureBytes());
+        for (JsonNode element : document.path("elements")) {
+            if ("action".equals(element.path("kind").asText())) {
+                ((ObjectNode) element.path("spec")).remove("implementation");
+                break;
+            }
+        }
+
+        assertThatThrownBy(() -> parser.parse(signed(document)))
+                .hasMessageContaining("Release Action implementation is required");
+    }
+
+    @Test
+    void rejectsAnActionWithNonSemverAdapterVersion() throws Exception {
+        ObjectNode document = (ObjectNode) objectMapper.readTree(actionFixtureBytes());
+        for (JsonNode element : document.path("elements")) {
+            if ("action".equals(element.path("kind").asText())) {
+                ((ObjectNode) element.at("/spec/implementation")).put("adapter_version", "v1");
+                break;
+            }
+        }
+
+        assertThatThrownBy(() -> parser.parse(signed(document)))
+                .hasMessageContaining("Action implementation adapter version must be strict SemVer");
+    }
+
+    @Test
+    void rejectsAnActionWithLeadingZeroNumericPrereleaseAdapterVersion() throws Exception {
+        ObjectNode document = (ObjectNode) objectMapper.readTree(actionFixtureBytes());
+        for (JsonNode element : document.path("elements")) {
+            if ("action".equals(element.path("kind").asText())) {
+                ((ObjectNode) element.at("/spec/implementation")).put("adapter_version", "1.0.0-01");
+                break;
+            }
+        }
+
+        assertThatThrownBy(() -> parser.parse(signed(document)))
+                .hasMessageContaining("Action implementation adapter version must be strict SemVer");
     }
 
     @Test
