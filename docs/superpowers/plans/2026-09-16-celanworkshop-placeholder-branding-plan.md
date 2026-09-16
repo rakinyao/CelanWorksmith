@@ -4,7 +4,7 @@
 
 **Goal:** Replace Appsmith default user-visible branding with the CelanWorkshop / 沧澜工坊 placeholder brand and local assets.
 
-**Architecture:** A local teal `C` raster mark supplies default Logo and favicon assets. The existing organization branding reducer remains the sole source of runtime overrides; only its default values change. React page components render accurate, accessible CelanWorkshop text where space permits, while public HTML and email templates receive equivalent static markup without remote Appsmith Logo dependencies.
+**Architecture:** A local teal `C` SVG source mark is rendered into default PNG Logo and ICO favicon assets. The existing organization branding reducer remains the sole source of runtime overrides; only its default values change. React page components render accurate, accessible CelanWorkshop text where space permits, while public HTML and email templates receive equivalent static markup without remote Appsmith Logo dependencies.
 
 **Tech Stack:** React, TypeScript, Jest, static HTML, Java email templates, PNG/ICO raster assets, Playwright.
 
@@ -24,6 +24,7 @@
 
 | Path | Responsibility |
 | --- | --- |
+| `app/client/src/assets/svg/celanworkshop-mark.svg` | Canonical vector source for the teal `C` mark. |
 | `app/client/src/assets/images/celanworkshop_logo_square.png` | Generated transparent teal `C` mark for compact UI use. |
 | `app/client/src/assets/images/celanworkshop_logo.png` | Generated transparent mark for standard image-logo consumers. |
 | `app/client/public/static/img/celanworkshop-favicon.ico` | Browser favicon containing the teal `C` mark. |
@@ -41,6 +42,7 @@
 **Files:**
 - Create: `app/client/src/assets/images/celanworkshop_logo_square.png`
 - Create: `app/client/src/assets/images/celanworkshop_logo.png`
+- Create: `app/client/src/assets/svg/celanworkshop-mark.svg`
 - Create: `app/client/public/static/img/celanworkshop-favicon.ico`
 - Create: `app/client/public/static/img/celanworkshop-logo.png`
 - Modify: `app/client/src/utils/BrandingUtils.ts:20-30`
@@ -51,25 +53,13 @@
 - Consumes: existing `getAssetUrl(src)` and `createBrandColorsFromPrimaryColor(brand)` helpers.
 - Produces: `CELANWORKSHOP_BRAND_PRIMARY_COLOR`, `CELANWORKSHOP_BRAND_FAVICON_URL`, and `CELANWORKSHOP_BRAND_LOGO_URL`; `defaultBrandingConfig` remains the override base.
 
-- [ ] **Step 1: Generate the mark source asset**
+- [ ] **Step 1: Create the canonical mark source asset**
 
-Use the image generation tool to create a transparent 1024px square PNG with this exact prompt:
-
-```text
-Use case: logo-brand
-Asset type: SaaS developer-tool placeholder brand mark
-Primary request: a single abstract capital C mark for CelanWorkshop, inspired by a calm ocean current and a workshop-built object
-Style/medium: flat vector-friendly raster mark, no gradients, no shadows
-Color palette: solid #0E7490 on genuine transparent background
-Composition/framing: centered, generous transparent padding, legible at 16px
-Text (verbatim): ""
-Constraints: one symbol only; no letters other than the abstract C shape; no border; no watermark
-Avoid: Appsmith orange, purple, black background, photorealism, extra symbols
-```
+Create `celanworkshop-mark.svg` with a transparent canvas, a single rounded abstract `C` built from teal `#0E7490` paths, and no text, border, gradient or external reference. The mark must remain legible at 16px and have at least 12% transparent padding on all sides.
 
 - [ ] **Step 2: Inspect and derive runtime assets**
 
-Inspect the PNG at 32px and 24px. Save the accepted transparent mark as `celanworkshop_logo_square.png`; create `celanworkshop_logo.png` and `public/static/img/celanworkshop-logo.png` from the same accepted mark without introducing a white background. Create a multi-size ICO at `public/static/img/celanworkshop-favicon.ico` with 16px, 32px and 48px images.
+Render the SVG at 1024px, inspect it at 32px and 24px, and save the accepted transparent output as `celanworkshop_logo_square.png`. Create `celanworkshop_logo.png` and `public/static/img/celanworkshop-logo.png` from the same source without introducing a white background. Create a multi-size ICO at `public/static/img/celanworkshop-favicon.ico` with 16px, 32px and 48px images.
 
 - [ ] **Step 3: Write the failing default-branding test**
 
@@ -113,7 +103,7 @@ Expected: Jest passes; `file` identifies an ICO file.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add app/client/src/assets/images/celanworkshop_logo_square.png app/client/src/assets/images/celanworkshop_logo.png app/client/public/static/img/celanworkshop-favicon.ico app/client/public/static/img/celanworkshop-logo.png app/client/src/utils/BrandingUtils.ts app/client/src/utils/BrandingUtils.test.ts app/client/src/ce/reducers/organizationReducer.ts
+git add app/client/src/assets/svg/celanworkshop-mark.svg app/client/src/assets/images/celanworkshop_logo_square.png app/client/src/assets/images/celanworkshop_logo.png app/client/public/static/img/celanworkshop-favicon.ico app/client/public/static/img/celanworkshop-logo.png app/client/src/utils/BrandingUtils.ts app/client/src/utils/BrandingUtils.test.ts app/client/src/ce/reducers/organizationReducer.ts
 git commit -m "feat(brand): add CelanWorkshop default assets"
 ```
 
