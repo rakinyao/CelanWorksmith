@@ -396,6 +396,12 @@ const enUS = {
         download: "Download",
         pagination: "Pagination",
         csvSeparator: "CSV separator",
+        visible: "Visible",
+        disabled: "Disabled",
+        label: "Label",
+        displayDateFormat: "Display Date Format",
+        cellBackgroundColor: "Cell background color",
+        headerRowColor: "Header row color",
       },
     },
     select: {

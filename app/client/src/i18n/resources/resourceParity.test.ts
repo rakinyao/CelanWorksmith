@@ -54,11 +54,63 @@ describe("locale resources", () => {
     expect(i18n.t("widgetProperty.button.label", { lng: "zh-CN" })).toBe(
       "按钮文本",
     );
-    expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(41);
+    expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(47);
     expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(17);
     expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(21);
     expect(flattenKeys(enUS.widgetProperty.input.labels).length).toBe(37);
     expect(flattenKeys(enUS.widgetProperty.button.labels).length).toBe(27);
+    const requiredTableLabels = [
+      "columnControl",
+      "columnType",
+      "plainText",
+      "url",
+      "image",
+      "video",
+      "date",
+      "button",
+      "menuButton",
+      "iconButton",
+      "displayText",
+      "computedValue",
+      "compact",
+      "originalDateFormat",
+      "textAlign",
+      "textSize",
+      "fontStyle",
+      "verticalAlignment",
+      "cellBackground",
+      "buttonProperties",
+      "iconAlignment",
+      "iconColor",
+      "menuColor",
+      "menuVariant",
+      "primaryKeyColumn",
+      "defaultSearchText",
+      "defaultSelectedRow",
+      "defaultRowHeight",
+      "short",
+      "tall",
+      "serverSidePagination",
+      "totalRecordCount",
+      "sortable",
+      "enableMultiRowSelection",
+      "enableClientSideSearch",
+      "headerOptions",
+      "search",
+      "filters",
+      "download",
+      "pagination",
+      "csvSeparator",
+      "visible",
+      "disabled",
+      "label",
+      "displayDateFormat",
+      "cellBackgroundColor",
+      "headerRowColor",
+    ];
+    const tableLabels = flattenKeys(enUS.widgetProperty.table.labels);
+
+    for (const key of requiredTableLabels) expect(tableLabels).toContain(key);
   });
 
   it("provide localized brand and ontology entry points", () => {

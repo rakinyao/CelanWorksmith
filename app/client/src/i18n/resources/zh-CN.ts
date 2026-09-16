@@ -387,6 +387,12 @@ const zhCN = {
         download: "下载",
         pagination: "分页",
         csvSeparator: "CSV 分隔符",
+        visible: "可见",
+        disabled: "禁用",
+        label: "标签",
+        displayDateFormat: "显示日期格式",
+        cellBackgroundColor: "单元格背景颜色",
+        headerRowColor: "表头行颜色",
       },
     },
     select: {
