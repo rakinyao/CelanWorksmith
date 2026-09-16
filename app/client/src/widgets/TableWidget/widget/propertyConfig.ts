@@ -1834,3 +1834,6 @@ export function getTablePropertyPaneConfig(): PropertyPaneConfig[] {
   },
 ] as PropertyPaneConfig[];
 }
+
+// Preserve the legacy array export for utility consumers that inspect static config.
+export default getTablePropertyPaneConfig();
