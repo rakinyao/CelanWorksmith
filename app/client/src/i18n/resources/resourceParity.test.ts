@@ -55,8 +55,8 @@ describe("locale resources", () => {
       "按钮文本",
     );
     expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(47);
-    expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(17);
-    expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(21);
+    expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(23);
+    expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(30);
     expect(flattenKeys(enUS.widgetProperty.input.labels).length).toBe(37);
     expect(flattenKeys(enUS.widgetProperty.button.labels).length).toBe(27);
     const requiredTableLabels = [

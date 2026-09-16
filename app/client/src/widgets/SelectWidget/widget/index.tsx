@@ -56,6 +56,7 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import type { DynamicPath } from "utils/DynamicBindingUtils";
+import i18n from "i18n";
 
 class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
   constructor(props: SelectWidgetProps) {
@@ -251,15 +252,17 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    const selectText = (key: string) => i18n.t(`widgetProperty.select.${key}`);
+
     return [
       {
-        sectionName: "Data",
+        sectionName: selectText("sections.data"),
         children: [
           {
             helpText:
               "Takes in an array of objects to display options. Bind data from an API using {{}}",
             propertyName: "sourceData",
-            label: "Source Data",
+            label: selectText("optionData"),
             controlType: "ONE_CLICK_BINDING_CONTROL",
             controlConfig: {
               aliases: [
@@ -305,7 +308,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
             helpText:
               "Choose or set a field from source data as the display label",
             propertyName: "optionLabel",
-            label: "Label key",
+            label: selectText("labels.labelKey"),
             controlType: "DROP_DOWN",
             customJSControl: "WRAPPED_CODE_EDITOR",
             controlConfig: {
@@ -337,7 +340,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           {
             helpText: "Choose or set a field from source data as the value",
             propertyName: "optionValue",
-            label: "Value key",
+            label: selectText("labels.valueKey"),
             controlType: "DROP_DOWN",
             customJSControl: "WRAPPED_CODE_EDITOR",
             controlConfig: {
@@ -369,7 +372,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           {
             helpText: "Selects the option with value by default",
             propertyName: "defaultOptionValue",
-            label: "Default selected value",
+            label: selectText("labels.defaultSelectedValue"),
             controlType: "WRAPPED_CODE_EDITOR",
             controlConfig: {
               wrapperCode: {
@@ -402,12 +405,12 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Label",
+        sectionName: selectText("sections.label"),
         children: [
           {
             helpText: "Sets the label text of the widget",
             propertyName: "labelText",
-            label: "Text",
+            label: selectText("labels.text"),
             controlType: "INPUT_TEXT",
             placeholderText: "Enter label text",
             isBindProperty: true,
@@ -417,13 +420,13 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           {
             helpText: "Sets the label position of the widget",
             propertyName: "labelPosition",
-            label: "Position",
+            label: selectText("labels.position"),
             controlType: "ICON_TABS",
             fullWidth: true,
             options: [
-              { label: "Left", value: LabelPosition.Left },
-              { label: "Top", value: LabelPosition.Top },
-              { label: "Auto", value: LabelPosition.Auto },
+              { label: selectText("labels.left"), value: LabelPosition.Left },
+              { label: selectText("labels.top"), value: LabelPosition.Top },
+              { label: selectText("labels.auto"), value: LabelPosition.Auto },
             ],
             hidden: isAutoLayout,
             defaultValue: LabelPosition.Top,
@@ -434,7 +437,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           {
             helpText: "Sets the label alignment of the widget",
             propertyName: "labelAlignment",
-            label: "Alignment",
+            label: selectText("labels.alignment"),
             controlType: "LABEL_ALIGNMENT_OPTIONS",
             fullWidth: false,
             options: [
@@ -458,7 +461,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
             helpText:
               "Sets the label width of the widget as the number of columns",
             propertyName: "labelWidth",
-            label: "Width (in columns)",
+            label: selectText("labels.widthInColumns"),
             controlType: "NUMERIC_INPUT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -477,11 +480,11 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Search & filters",
+        sectionName: selectText("sections.searchAndFilters"),
         children: [
           {
             propertyName: "isFilterable",
-            label: "Allow searching",
+            label: selectText("labels.filterable"),
             helpText: "Makes the dropdown list filterable",
             controlType: "SWITCH",
             isJSConvertible: true,
@@ -492,7 +495,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           {
             helpText: "Enables server side filtering of the data",
             propertyName: "serverSideFiltering",
-            label: "Server side filtering",
+            label: selectText("labels.serverSideFiltering"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -513,11 +516,11 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Validations",
+        sectionName: selectText("sections.validations"),
         children: [
           {
             propertyName: "isRequired",
-            label: "Required",
+            label: selectText("labels.required"),
             helpText: "Makes input to the widget mandatory",
             controlType: "SWITCH",
             isJSConvertible: true,
@@ -528,12 +531,12 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "General",
+        sectionName: selectText("sections.general"),
         children: [
           {
             helpText: "Show help text or details about current selection",
             propertyName: "labelTooltip",
-            label: "Tooltip",
+            label: selectText("labels.tooltip"),
             controlType: "INPUT_TEXT",
             placeholderText: "Add tooltip text here",
             isBindProperty: true,
@@ -543,7 +546,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           {
             helpText: "Sets a Placeholder Text",
             propertyName: "placeholderText",
-            label: "Placeholder",
+            label: selectText("labels.placeholder"),
             controlType: "INPUT_TEXT",
             placeholderText: "Enter placeholder text",
             isBindProperty: true,
@@ -553,7 +556,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           {
             helpText: "Controls the visibility of the widget",
             propertyName: "isVisible",
-            label: "Visible",
+            label: selectText("labels.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -562,7 +565,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           },
           {
             propertyName: "isDisabled",
-            label: "Disabled",
+            label: selectText("labels.disabled"),
             helpText: "Disables input to this widget",
             controlType: "SWITCH",
             isJSConvertible: true,
@@ -572,7 +575,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: selectText("labels.animateLoading"),
             controlType: "SWITCH",
             helpText: "Controls the loading of the widget",
             defaultValue: true,
@@ -583,7 +586,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
           },
           {
             propertyName: "rtl",
-            label: "Enable RTL",
+            label: selectText("labels.enableRtl"),
             helpText: "Enables right to left text direction",
             controlType: "SWITCH",
             isJSConvertible: true,
@@ -599,7 +602,7 @@ class SelectWidget extends BaseWidget<SelectWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: selectText("sections.events"),
         children: [
           {
             helpText: "when a user selects an option",

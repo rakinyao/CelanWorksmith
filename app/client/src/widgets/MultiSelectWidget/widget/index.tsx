@@ -28,6 +28,7 @@ import {
 } from "widgets/WidgetUtils";
 import MultiSelectComponent from "../component";
 import IconSVG from "../icon.svg";
+import i18n from "i18n";
 
 function defaultOptionValueValidation(value: unknown): ValidationResponse {
   let values: string[] = [];
@@ -143,15 +144,18 @@ class MultiSelectWidget extends BaseWidget<
   }
 
   static getPropertyPaneConfig() {
+    const multiSelectText = (key: string) =>
+      i18n.t(`widgetProperty.multiSelect.${key}`);
+
     return [
       {
-        sectionName: "General",
+        sectionName: multiSelectText("sections.general"),
         children: [
           {
             helpText:
               "Allows users to select multiple options. Values must be unique",
             propertyName: "options",
-            label: "Options",
+            label: multiSelectText("options"),
             controlType: "INPUT_TEXT",
             placeholderText: '[{ "label": "Option1", "value": "Option2" }]',
             isBindProperty: true,
@@ -192,7 +196,7 @@ class MultiSelectWidget extends BaseWidget<
           {
             helpText: "Selects the option with value by default",
             propertyName: "defaultOptionValue",
-            label: "Default value",
+            label: multiSelectText("labels.defaultValue"),
             controlType: "INPUT_TEXT",
             placeholderText: "[GREEN]",
             isBindProperty: true,
@@ -212,7 +216,7 @@ class MultiSelectWidget extends BaseWidget<
           {
             helpText: "Sets a Placeholder Text",
             propertyName: "placeholderText",
-            label: "Placeholder",
+            label: multiSelectText("labels.placeholder"),
             controlType: "INPUT_TEXT",
             placeholderText: "Search",
             isBindProperty: true,
@@ -221,7 +225,7 @@ class MultiSelectWidget extends BaseWidget<
           },
           {
             propertyName: "isRequired",
-            label: "Required",
+            label: multiSelectText("labels.required"),
             helpText: "Makes input to the widget mandatory",
             controlType: "SWITCH",
             isJSConvertible: true,
@@ -232,7 +236,7 @@ class MultiSelectWidget extends BaseWidget<
           {
             helpText: "Controls the visibility of the widget",
             propertyName: "isVisible",
-            label: "Visible",
+            label: multiSelectText("labels.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -241,7 +245,7 @@ class MultiSelectWidget extends BaseWidget<
           },
           {
             propertyName: "isDisabled",
-            label: "Disabled",
+            label: multiSelectText("labels.disabled"),
             helpText: "Disables input to this widget",
             controlType: "SWITCH",
             isJSConvertible: true,
@@ -251,7 +255,7 @@ class MultiSelectWidget extends BaseWidget<
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: multiSelectText("labels.animateLoading"),
             controlType: "SWITCH",
             helpText: "Controls the loading of the widget",
             defaultValue: true,
@@ -263,7 +267,7 @@ class MultiSelectWidget extends BaseWidget<
           {
             helpText: "Enables server side filtering of the data",
             propertyName: "serverSideFiltering",
-            label: "Server side filtering",
+            label: multiSelectText("labels.serverSideFiltering"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -274,7 +278,7 @@ class MultiSelectWidget extends BaseWidget<
             helpText:
               "Controls the visibility of select all option in dropdown.",
             propertyName: "allowSelectAll",
-            label: "Allow select all",
+            label: multiSelectText("labels.allowSelectAll"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -284,12 +288,12 @@ class MultiSelectWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Label",
+        sectionName: multiSelectText("sections.label"),
         children: [
           {
             helpText: "Sets the label text of the widget",
             propertyName: "labelText",
-            label: "Text",
+            label: multiSelectText("labels.text"),
             controlType: "INPUT_TEXT",
             placeholderText: "Enter label text",
             isBindProperty: true,
@@ -299,12 +303,21 @@ class MultiSelectWidget extends BaseWidget<
           {
             helpText: "Sets the label position of the widget",
             propertyName: "labelPosition",
-            label: "Position",
+            label: multiSelectText("labels.position"),
             controlType: "DROP_DOWN",
             options: [
-              { label: "Left", value: LabelPosition.Left },
-              { label: "Top", value: LabelPosition.Top },
-              { label: "Auto", value: LabelPosition.Auto },
+              {
+                label: multiSelectText("labels.left"),
+                value: LabelPosition.Left,
+              },
+              {
+                label: multiSelectText("labels.top"),
+                value: LabelPosition.Top,
+              },
+              {
+                label: multiSelectText("labels.auto"),
+                value: LabelPosition.Auto,
+              },
             ],
             defaultValue: LabelPosition.Top,
             isBindProperty: false,
@@ -314,7 +327,7 @@ class MultiSelectWidget extends BaseWidget<
           {
             helpText: "Sets the label alignment of the widget",
             propertyName: "labelAlignment",
-            label: "Alignment",
+            label: multiSelectText("labels.alignment"),
             controlType: "LABEL_ALIGNMENT_OPTIONS",
             fullWidth: false,
             options: [
@@ -338,7 +351,7 @@ class MultiSelectWidget extends BaseWidget<
             helpText:
               "Sets the label width of the widget as the number of columns",
             propertyName: "labelWidth",
-            label: "Width (in columns)",
+            label: multiSelectText("labels.widthInColumns"),
             controlType: "NUMERIC_INPUT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -357,11 +370,11 @@ class MultiSelectWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Styles",
+        sectionName: multiSelectText("sections.styles"),
         children: [
           {
             propertyName: "accentColor",
-            label: "Accent color",
+            label: multiSelectText("labels.accentColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -371,7 +384,7 @@ class MultiSelectWidget extends BaseWidget<
           },
           {
             propertyName: "labelTextColor",
-            label: "Label text color",
+            label: multiSelectText("labels.labelTextColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -380,7 +393,7 @@ class MultiSelectWidget extends BaseWidget<
           },
           {
             propertyName: "labelTextSize",
-            label: "Label text size",
+            label: multiSelectText("labels.labelTextSize"),
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
             options: [
@@ -422,7 +435,7 @@ class MultiSelectWidget extends BaseWidget<
           },
           {
             propertyName: "labelStyle",
-            label: "Label Font Style",
+            label: multiSelectText("labels.labelFontStyle"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -442,7 +455,7 @@ class MultiSelectWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Actions",
+        sectionName: multiSelectText("sections.actions"),
         children: [
           {
             helpText: "when a user selects an option",
@@ -469,12 +482,12 @@ class MultiSelectWidget extends BaseWidget<
       },
 
       {
-        sectionName: "Styles",
+        sectionName: multiSelectText("sections.styles"),
         children: [
           {
             propertyName: "backgroundColor",
             helpText: "Sets the background color of the widget",
-            label: "Background color",
+            label: multiSelectText("labels.backgroundColor"),
             controlType: "COLOR_PICKER",
             isBindProperty: false,
             isTriggerProperty: false,
