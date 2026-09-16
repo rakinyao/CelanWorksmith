@@ -54,7 +54,7 @@ import {
   CompactModeTypes,
   SortOrderTypes,
 } from "../component/Constants";
-import tablePropertyPaneConfig from "./propertyConfig";
+import { getTablePropertyPaneConfig } from "./propertyConfig";
 import type { BatchPropertyUpdatePayload } from "actions/controlActions";
 import type { IconName } from "@blueprintjs/icons";
 import { getCellProperties } from "./getTableColumns";
@@ -381,7 +381,7 @@ class TableWidget extends BaseWidget<TableWidgetProps, WidgetState> {
     throw new Error("Method not implemented.");
   }
   static getPropertyPaneConfig() {
-    return tablePropertyPaneConfig;
+    return getTablePropertyPaneConfig();
   }
 
   static getStylesheetConfig(): Stylesheet {

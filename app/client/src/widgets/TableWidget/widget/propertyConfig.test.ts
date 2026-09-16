@@ -1,4 +1,13 @@
 import TableWidget from "./index";
+import i18n from "i18n";
+
+beforeEach(async () => {
+  await i18n.changeLanguage("en-US");
+});
+
+afterEach(async () => {
+  await i18n.changeLanguage("en-US");
+});
 
 describe("unit test case for property config pane", () => {
   it("case: check tooltip text for total record count property exists", () => {
@@ -19,5 +28,20 @@ describe("unit test case for property config pane", () => {
     expect(totalRecordsCount.helpText).toEqual(
       "It stores the total no. of rows in the table. Helps in calculating the no. of pages that further allows to enable or disable the next/previous control in pagination.",
     );
+  });
+
+  it("localizes table display fields but preserves technical event labels", async () => {
+    await i18n.changeLanguage("zh-CN");
+    const config = TableWidget.getPropertyPaneConfig();
+    const general = config.find((section) => section.sectionName === "常规");
+    const events = config.find((section) => section.sectionName === "事件");
+
+    expect(
+      general?.children.find((child) => child.propertyName === "tableData")
+        ?.label,
+    ).toBe("表格数据");
+    expect(
+      events?.children.find((child) => child.propertyName === "onSort")?.label,
+    ).toBe("onSort");
   });
 });
