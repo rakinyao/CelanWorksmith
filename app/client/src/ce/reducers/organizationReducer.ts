@@ -4,9 +4,9 @@ import {
   ReduxActionTypes,
 } from "ee/constants/ReduxActionConstants";
 import {
-  APPSMITH_BRAND_FAVICON_URL,
-  APPSMITH_BRAND_LOGO_URL,
-  APPSMITH_BRAND_PRIMARY_COLOR,
+  CELANWORKSHOP_BRAND_FAVICON_URL,
+  CELANWORKSHOP_BRAND_LOGO_URL,
+  CELANWORKSHOP_BRAND_PRIMARY_COLOR,
   createBrandColorsFromPrimaryColor,
 } from "utils/BrandingUtils";
 import { createReducer } from "utils/ReducerUtils";
@@ -27,11 +27,11 @@ export interface OrganizationReduxState<T> {
 }
 
 export const defaultBrandingConfig = {
-  brandFaviconUrl: APPSMITH_BRAND_FAVICON_URL,
+  brandFaviconUrl: CELANWORKSHOP_BRAND_FAVICON_URL,
   brandColors: {
-    ...createBrandColorsFromPrimaryColor(APPSMITH_BRAND_PRIMARY_COLOR),
+    ...createBrandColorsFromPrimaryColor(CELANWORKSHOP_BRAND_PRIMARY_COLOR),
   },
-  brandLogoUrl: APPSMITH_BRAND_LOGO_URL,
+  brandLogoUrl: CELANWORKSHOP_BRAND_LOGO_URL,
 };
 
 // TODO: Fix this the next time the file is edited

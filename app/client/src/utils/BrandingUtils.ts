@@ -9,25 +9,26 @@ import {
   ADMIN_BRANDING_FAVICON_DIMENSION_ERROR,
 } from "ee/constants/messages";
 import { toast } from "@appsmith/ads";
-import { ASSETS_CDN_URL } from "constants/ThirdPartyConstants";
 import { getAssetUrl } from "ee/utils/airgapHelpers";
 import { LightModeTheme } from "@appsmith/wds-theming";
 
 const FAVICON_MAX_WIDTH = 48;
 const FAVICON_MAX_HEIGHT = 48;
-const DEFAULT_BRANDING_PRIMARY_COLOR = "#E15615";
 
-export const APPSMITH_BRAND_PRIMARY_COLOR =
-  getComputedStyle(document.documentElement).getPropertyValue(
-    "--ads-v2-color-bg-brand",
-  ) || DEFAULT_BRANDING_PRIMARY_COLOR;
-export const APPSMITH_BRAND_BG_COLOR = "#F1F5F9";
-export const APPSMITH_BRAND_FAVICON_URL = getAssetUrl(
-  `${ASSETS_CDN_URL}/appsmith-favicon-orange.ico`,
+export const CELANWORKSHOP_BRAND_PRIMARY_COLOR = "#0E7490";
+export const CELANWORKSHOP_BRAND_BG_COLOR = "#F1F5F9";
+export const CELANWORKSHOP_BRAND_FAVICON_URL = getAssetUrl(
+  "/static/img/celanworkshop-favicon.ico",
 );
-export const APPSMITH_BRAND_LOGO_URL = getAssetUrl(
-  `${ASSETS_CDN_URL}/appsmith-logo-no-margin.png`,
+export const CELANWORKSHOP_BRAND_LOGO_URL = getAssetUrl(
+  "/static/img/celanworkshop-logo.png",
 );
+
+// Keep the legacy names available to modules that still reference them.
+export const APPSMITH_BRAND_PRIMARY_COLOR = CELANWORKSHOP_BRAND_PRIMARY_COLOR;
+export const APPSMITH_BRAND_BG_COLOR = CELANWORKSHOP_BRAND_BG_COLOR;
+export const APPSMITH_BRAND_FAVICON_URL = CELANWORKSHOP_BRAND_FAVICON_URL;
+export const APPSMITH_BRAND_LOGO_URL = CELANWORKSHOP_BRAND_LOGO_URL;
 
 /**
  * create brand colors from primary color
@@ -35,7 +36,7 @@ export const APPSMITH_BRAND_LOGO_URL = getAssetUrl(
  * @param brand
  */
 export function createBrandColorsFromPrimaryColor(
-  brand: string = DEFAULT_BRANDING_PRIMARY_COLOR,
+  brand: string = CELANWORKSHOP_BRAND_PRIMARY_COLOR,
 ) {
   const hsl = tinycolor(brand).toHsl();
   const hue = hsl.h;
@@ -49,23 +50,23 @@ export function createBrandColorsFromPrimaryColor(
     size: "small",
   });
 
-  // if the brand color is not readable or the color is appsmith orange, use white as the text color
-  if (isReadable === false || brand === APPSMITH_BRAND_PRIMARY_COLOR) {
+  // if the brand color is not readable or the default color, use white as the text color
+  if (isReadable === false || brand === CELANWORKSHOP_BRAND_PRIMARY_COLOR) {
     textColor = "#fff";
   }
 
   let bgColor = `#${tinycolor(`hsl ${hue} ${saturation} ${98}}`).toHex()}`;
 
-  // if the primary color is appsmith orange, use gray shade for the bg color
-  if (brand === APPSMITH_BRAND_PRIMARY_COLOR) {
-    bgColor = APPSMITH_BRAND_BG_COLOR;
+  // if the primary color is the default, use a gray shade for the bg color
+  if (brand === CELANWORKSHOP_BRAND_PRIMARY_COLOR) {
+    bgColor = CELANWORKSHOP_BRAND_BG_COLOR;
   }
 
   const disabledColor = `#${tinycolor(
     `hsl ${hue} ${saturation} ${92}}`,
   ).toHex()}`;
   const hoverColor =
-    brand === APPSMITH_BRAND_PRIMARY_COLOR
+    brand === CELANWORKSHOP_BRAND_PRIMARY_COLOR
       ? getComputedStyle(document.documentElement).getPropertyValue(
           "--ads-v2-color-bg-brand-emphasis",
         )
@@ -73,7 +74,7 @@ export function createBrandColorsFromPrimaryColor(
 
   // get active color from color algorithm
   const activeColor =
-    brand === APPSMITH_BRAND_PRIMARY_COLOR
+    brand === CELANWORKSHOP_BRAND_PRIMARY_COLOR
       ? getComputedStyle(document.documentElement).getPropertyValue(
           "--ads-v2-color-bg-brand-emphasis-plus",
         )
