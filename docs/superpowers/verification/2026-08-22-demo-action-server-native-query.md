@@ -1,5 +1,11 @@
 # Demo Action Server Native Query Verification
 
+> **Historical routing note (2026-09-16):** This record documents the original workspace-pinned
+> Demo Action Server. The active Demo route is deployment-level
+> `adapter_id + adapter_version` routing; see
+> [2026-09-14-demo-contract-change-action.md](2026-09-14-demo-contract-change-action.md).
+> Do not configure the fixed workspace/project/datasource/snapshot environment variables described below.
+
 ## Scope And Status
 
 This checkpoint preserves the native Appsmith Ontology Query pipeline. It

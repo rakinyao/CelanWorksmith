@@ -1,5 +1,10 @@
 # Demo Action Server and Native Query Implementation Plan
 
+> **Historical routing note (2026-09-16):** The workspace-keyed routing described in this plan
+> has been superseded by deployment-level `adapter_id + adapter_version` routing. The active
+> replacement is [2026-09-15-demo-action-server-registration-routing-plan.md](2026-09-15-demo-action-server-registration-routing-plan.md).
+> Do not use this plan's `celanworksmith.action-server.workspaces` configuration examples.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make native Ontology Action Queries execute one mutable Demo action through an independently deployable, replaceable HTTP Action Server, while making the Demo Mongo Function Query usable.
