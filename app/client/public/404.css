@@ -34,14 +34,42 @@ html {
   font-size: 10px;
 }
 
-.appsmith-logo {
+.celanworkshop-logo {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
-.appsmith-logo svg {
-  max-width: 110px;
-  width: 110px;
+.celanworkshop-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background-color: #0E7490;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.celanworkshop-wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.celanworkshop-name {
+  color: #182026;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.celanworkshop-native {
+  color: #64748B;
+  font-size: 10px;
+  margin-top: 2px;
 }
 
 .main {
