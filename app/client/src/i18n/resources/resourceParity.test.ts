@@ -38,6 +38,24 @@ describe("locale resources", () => {
     expect(flattenKeys(enUS).sort()).toEqual(flattenKeys(zhCN).sort());
   });
 
+  it("keeps widget property resources in parity and translates Chinese copy", () => {
+    expect(flattenKeys(enUS.widgetProperty).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty).sort(),
+    );
+    expect(i18n.t("widgetProperty.table.tableData", { lng: "zh-CN" })).toBe(
+      "表格数据",
+    );
+    expect(i18n.t("widgetProperty.select.options", { lng: "zh-CN" })).toBe(
+      "选项",
+    );
+    expect(i18n.t("widgetProperty.input.dataType", { lng: "zh-CN" })).toBe(
+      "数据类型",
+    );
+    expect(i18n.t("widgetProperty.button.label", { lng: "zh-CN" })).toBe(
+      "按钮文本",
+    );
+  });
+
   it("provide localized brand and ontology entry points", () => {
     expect(i18n.t("brand.name", { lng: "en-US" })).toBe("CelanWorkshop");
     expect(i18n.t("brand.name", { lng: "zh-CN" })).toBe("沧澜工坊");

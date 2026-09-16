@@ -349,6 +349,31 @@ const enUS = {
     importEmpty: "No ontology datasource imported yet.",
     importedSummary: "Imported {{name}} version {{version}}.",
   },
+  widgetProperty: {
+    table: {
+      general: "General",
+      tableData: "Table data",
+      columns: "Columns",
+    },
+    select: {
+      data: "Data",
+      options: "Options",
+      optionData: "Option data",
+    },
+    multiSelect: {
+      general: "General",
+      options: "Options",
+    },
+    input: {
+      general: "General",
+      dataType: "Data type",
+      text: "Text",
+    },
+    button: {
+      basic: "Basic",
+      label: "Label",
+    },
+  },
   ontologyCapabilityTarget: {
     source: "Target source",
     widget: "Target widget",

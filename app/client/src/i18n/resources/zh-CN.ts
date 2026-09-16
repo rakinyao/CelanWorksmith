@@ -340,6 +340,31 @@ const zhCN = {
     importEmpty: "尚未导入本体数据源。",
     importedSummary: "已导入 {{name}}，版本 {{version}}。",
   },
+  widgetProperty: {
+    table: {
+      general: "常规",
+      tableData: "表格数据",
+      columns: "列",
+    },
+    select: {
+      data: "数据",
+      options: "选项",
+      optionData: "选项数据",
+    },
+    multiSelect: {
+      general: "常规",
+      options: "选项",
+    },
+    input: {
+      general: "常规",
+      dataType: "数据类型",
+      text: "文本",
+    },
+    button: {
+      basic: "基础",
+      label: "按钮文本",
+    },
+  },
   ontologyCapabilityTarget: {
     source: "目标来源",
     widget: "目标组件",
