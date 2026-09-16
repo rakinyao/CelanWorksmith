@@ -54,6 +54,7 @@ describe("locale resources", () => {
     expect(i18n.t("widgetProperty.button.label", { lng: "zh-CN" })).toBe(
       "按钮文本",
     );
+    expect(flattenKeys(enUS.widgetProperty.labels).length).toBeGreaterThan(60);
   });
 
   it("provide localized brand and ontology entry points", () => {
