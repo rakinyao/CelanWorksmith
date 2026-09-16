@@ -15,6 +15,15 @@ describe("Select property pane localization", () => {
       data?.children.find((child) => child.propertyName === "sourceData")
         ?.label,
     ).toBe("选项数据");
+    const filters = config.find(
+      (section) => section.sectionName === "搜索和筛选",
+    );
+
+    expect(
+      filters?.children.find(
+        (child) => child.propertyName === "serverSideFiltering",
+      )?.label,
+    ).toBe("服务端筛选");
     expect(
       config
         .flatMap((section) => section.children)

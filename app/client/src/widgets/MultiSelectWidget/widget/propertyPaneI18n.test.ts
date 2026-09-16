@@ -17,6 +17,12 @@ describe("MultiSelect property pane localization", () => {
       general?.children.find((child) => child.propertyName === "options")
         ?.label,
     ).toBe("选项");
+    const label = config.find((section) => section.sectionName === "标签");
+
+    expect(
+      label?.children.find((child) => child.propertyName === "labelPosition")
+        ?.label,
+    ).toBe("位置");
     expect(
       config
         .flatMap((section) => section.children)
