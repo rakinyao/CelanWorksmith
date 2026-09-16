@@ -1,4 +1,5 @@
 import TableWidget from "./index";
+import tablePropertyPaneConfig from "./propertyConfig";
 import i18n from "i18n";
 
 beforeEach(async () => {
@@ -8,6 +9,15 @@ beforeEach(async () => {
 afterEach(async () => {
   await i18n.changeLanguage("en-US");
 });
+
+interface TestPropertyConfig {
+  sectionName?: string;
+  propertyName?: string;
+  label?: string;
+  children?: TestPropertyConfig[];
+  panelConfig?: { children?: TestPropertyConfig[] };
+  options?: Array<{ label?: string; value?: string }>;
+}
 
 describe("unit test case for property config pane", () => {
   it("case: check tooltip text for total record count property exists", () => {
@@ -32,16 +42,38 @@ describe("unit test case for property config pane", () => {
 
   it("localizes table display fields but preserves technical event labels", async () => {
     await i18n.changeLanguage("zh-CN");
-    const config = TableWidget.getPropertyPaneConfig();
+    const config =
+      TableWidget.getPropertyPaneConfig() as unknown as TestPropertyConfig[];
     const general = config.find((section) => section.sectionName === "常规");
     const events = config.find((section) => section.sectionName === "事件");
 
     expect(
-      general?.children.find((child) => child.propertyName === "tableData")
+      general?.children?.find((child) => child.propertyName === "tableData")
         ?.label,
     ).toBe("表格数据");
     expect(
-      events?.children.find((child) => child.propertyName === "onSort")?.label,
+      events?.children?.find((child) => child.propertyName === "onSort")?.label,
     ).toBe("onSort");
+
+    const columns = general?.children?.find(
+      (child) => child.propertyName === "primaryColumns",
+    );
+    const columnControl = columns?.panelConfig?.children?.find(
+      (section) => section.sectionName === "列控件",
+    );
+    const columnType = columnControl?.children?.find(
+      (child) => child.propertyName === "columnType",
+    );
+
+    expect(columnType?.label).toBe("列类型");
+    expect(columnType?.propertyName).toBe("columnType");
+    expect(
+      columnType?.options?.find((option) => option.value === "text"),
+    ).toEqual(expect.objectContaining({ label: "纯文本", value: "text" }));
+  });
+
+  it("keeps the legacy default property config export as an array", () => {
+    expect(Array.isArray(tablePropertyPaneConfig)).toBe(true);
+    expect(tablePropertyPaneConfig.length).toBeGreaterThan(0);
   });
 });

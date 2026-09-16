@@ -43,6 +43,7 @@ import type {
   PasteDestinationInfo,
 } from "layoutSystems/anvil/utils/paste/types";
 import { call } from "redux-saga/effects";
+import i18n from "i18n";
 import type {
   DerivedPropertiesMap,
   WidgetCreationException,
@@ -314,7 +315,12 @@ export class WidgetFactory {
 
   @memoize
   @freeze
-  private static getWidgetPropertyPaneConfigWithMemo(type: WidgetType) {
+  private static getWidgetPropertyPaneConfigWithMemo(
+    type: WidgetType,
+    locale: string,
+  ) {
+    // Locale is part of the memoization key for locale-sensitive widget configs.
+    void locale;
     const widget = WidgetFactory.widgetsMap.get(type);
 
     const propertyPaneConfig = widget?.getPropertyPaneConfig();
@@ -336,13 +342,12 @@ export class WidgetFactory {
     }
   }
 
-  @memoize
   static getWidgetPropertyPaneConfig(
     type: WidgetType,
     widgetProperties: WidgetProps,
   ): readonly PropertyPaneConfig[] {
     const propertyPaneConfig =
-      WidgetFactory.getWidgetPropertyPaneConfigWithMemo(type);
+      WidgetFactory.getWidgetPropertyPaneConfigWithMemo(type, i18n.language);
 
     if (Array.isArray(propertyPaneConfig) && propertyPaneConfig.length > 0) {
       return propertyPaneConfig;
