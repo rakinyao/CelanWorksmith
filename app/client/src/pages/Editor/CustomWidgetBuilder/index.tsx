@@ -67,7 +67,7 @@ export default function CustomWidgetBuilder() {
     <CustomWidgetBuilderContext.Provider value={context}>
       <Helmet>
         <meta charSet="utf-8" />
-        <title>{`${context.name} | Builder | Appsmith`}</title>
+        <title>{`${context.name} | Builder | CelanWorkshop`}</title>
       </Helmet>
       <Header />
       {loading ? (

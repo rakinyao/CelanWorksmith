@@ -65,20 +65,10 @@ export function createBrandColorsFromPrimaryColor(
   const disabledColor = `#${tinycolor(
     `hsl ${hue} ${saturation} ${92}}`,
   ).toHex()}`;
-  const hoverColor =
-    brand === CELANWORKSHOP_BRAND_PRIMARY_COLOR
-      ? getComputedStyle(document.documentElement).getPropertyValue(
-          "--ads-v2-color-bg-brand-emphasis",
-        )
-      : darkenColor(brand);
+  const hoverColor = darkenColor(brand);
 
   // get active color from color algorithm
-  const activeColor =
-    brand === CELANWORKSHOP_BRAND_PRIMARY_COLOR
-      ? getComputedStyle(document.documentElement).getPropertyValue(
-          "--ads-v2-color-bg-brand-emphasis-plus",
-        )
-      : lightTheme.bgAccentActive.toString({ format: "hex" });
+  const activeColor = lightTheme.bgAccentActive.toString({ format: "hex" });
 
   return {
     primary: brand,
