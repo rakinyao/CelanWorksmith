@@ -2,6 +2,11 @@ import InputWidget, { defaultValueValidation } from "./index";
 import type { InputWidgetProps } from "./index";
 import _ from "lodash";
 import "@testing-library/jest-dom";
+import i18n from "i18n";
+
+afterEach(async () => {
+  await i18n.changeLanguage("en-US");
+});
 
 const defaultInputWidgetProps: InputWidgetProps = {
   backgroundColor: "",
@@ -137,5 +142,25 @@ describe("#defaultValueValidation", () => {
       parsed: undefined,
       messages: [{ name: "", message: "" }],
     });
+  });
+});
+
+describe("Input property pane localization", () => {
+  it("localizes display fields while preserving technical event labels", async () => {
+    await i18n.changeLanguage("zh-CN");
+    const config = InputWidget.getPropertyPaneConfig();
+    const inputType = config
+      .flatMap((section) => section.children)
+      .find((child) => child.propertyName === "inputType");
+
+    expect(inputType?.label).toBe("数据类型");
+    expect(
+      inputType?.options?.find((option) => option.value === "TEXT")?.label,
+    ).toBe("文本");
+    expect(
+      config
+        .flatMap((section) => section.children)
+        .find((child) => child.propertyName === "onTextChanged")?.label,
+    ).toBe("onTextChanged");
   });
 });

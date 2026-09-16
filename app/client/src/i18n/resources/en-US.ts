@@ -622,6 +622,53 @@ const enUS = {
         styles: "Styles",
         backgroundColor: "Background color",
       },
+      sections: {
+        general: "General",
+        label: "Label",
+        events: "Events",
+        labelStyles: "Label styles",
+        iconOptions: "Icon Options",
+        styles: "Styles",
+      },
+      help: {
+        inputType: "Changes the type of data captured in the input",
+        allowCurrencyChange: "Search by currency or country",
+        phoneNumberCountryCode: "Changes the country code",
+        currencyCountryCode: "Changes the type of currency",
+        decimalsInCurrency: "No. of decimals in currency input",
+        maxChars: "Sets maximum allowed text length",
+        defaultText:
+          "Sets the default text of the widget. The text is updated if the default text changes",
+        regex:
+          "Adds a validation to the input which displays an error on failure",
+        validation: "Sets the input validity based on a JS expression",
+        errorMessage:
+          "The error message to display if the regex or valid property check fails",
+        placeholderText: "Sets a placeholder text for the input",
+        tooltip: "Show help text or details about current input",
+        isRequired: "Makes input to the widget mandatory",
+        isVisible: "Controls the visibility of the widget",
+        isDisabled: "Disables input to this widget",
+        animateLoading: "Controls the loading of the widget",
+        resetOnSubmit: "Clears the input value after submit",
+        autoFocus: "Focus input automatically on load",
+        isSpellCheck:
+          "Defines whether the text input may be checked for spelling errors",
+        label: "Sets the label text of the widget",
+        labelPosition: "Sets the label position of the widget",
+        labelAlignment: "Sets the label alignment of the widget",
+        labelWidth:
+          "Sets the label width of the widget as the number of columns",
+        onTextChanged: "when the text is changed",
+        onSubmit: "on submit (when the enter key is pressed)",
+        iconName: "Sets the icon to be used in input field",
+        iconAlign: "Sets the icon alignment of input field",
+        backgroundColor: "Sets the background color of the widget",
+      },
+      placeholders: {
+        searchByCodeOrCountryName: "Search by code or country name",
+        searchByCodeOrName: "Search by code or name",
+      },
     },
     button: {
       basic: "Basic",

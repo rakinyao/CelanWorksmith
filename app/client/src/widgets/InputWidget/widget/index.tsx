@@ -47,6 +47,7 @@ import {
 import type { InputType } from "../constants";
 import { InputTypes } from "../constants";
 import IconSVG from "../icon.svg";
+import i18n from "i18n";
 
 export const getEffectiveInputType = (props: InputWidgetProps): InputType => {
   return props.inputType;
@@ -299,38 +300,40 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneConfig() {
+    const inputText = (key: string) => i18n.t(`widgetProperty.input.${key}`);
+
     return [
       {
-        sectionName: "General",
+        sectionName: inputText("sections.general"),
         children: [
           {
-            helpText: "Changes the type of data captured in the input",
+            helpText: inputText("help.inputType"),
             propertyName: "inputType",
-            label: "Data type",
+            label: inputText("labels.dataType"),
             controlType: "DROP_DOWN",
             options: [
               {
-                label: "Text",
+                label: inputText("text"),
                 value: "TEXT",
               },
               {
-                label: "Number",
+                label: inputText("labels.number"),
                 value: "NUMBER",
               },
               {
-                label: "Password",
+                label: inputText("labels.password"),
                 value: "PASSWORD",
               },
               {
-                label: "Email",
+                label: inputText("labels.email"),
                 value: "EMAIL",
               },
               {
-                label: "Currency",
+                label: inputText("labels.currency"),
                 value: "CURRENCY",
               },
               {
-                label: "Phone Number",
+                label: inputText("labels.phoneNumber"),
                 value: "PHONE_NUMBER",
               },
             ],
@@ -339,8 +342,8 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
           },
           {
             propertyName: "allowCurrencyChange",
-            label: "Allow currency change",
-            helpText: "Search by currency or country",
+            label: inputText("labels.allowCurrencyChange"),
+            helpText: inputText("help.allowCurrencyChange"),
             controlType: "SWITCH",
             isJSConvertible: false,
             isBindProperty: true,
@@ -352,13 +355,15 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             dependencies: ["inputType"],
           },
           {
-            helpText: "Changes the country code",
+            helpText: inputText("help.phoneNumberCountryCode"),
             propertyName: "phoneNumberCountryCode",
-            label: "Default country code",
+            label: inputText("labels.defaultCountryCode"),
             enableSearch: true,
             dropdownHeight: "195px",
             controlType: "DROP_DOWN",
-            searchPlaceholderText: "Search by code or country name",
+            searchPlaceholderText: inputText(
+              "placeholders.searchByCodeOrCountryName",
+            ),
             options: ISDCodeDropdownOptions,
             hidden: (props: InputWidgetProps) => {
               return props.inputType !== InputTypes.PHONE_NUMBER;
@@ -368,13 +373,13 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             isTriggerProperty: false,
           },
           {
-            helpText: "Changes the type of currency",
+            helpText: inputText("help.currencyCountryCode"),
             propertyName: "currencyCountryCode",
-            label: "Currency",
+            label: inputText("labels.currency"),
             enableSearch: true,
             dropdownHeight: "195px",
             controlType: "DROP_DOWN",
-            searchPlaceholderText: "Search by code or name",
+            searchPlaceholderText: inputText("placeholders.searchByCodeOrName"),
             options: CurrencyDropdownOptions,
             hidden: (props: InputWidgetProps) => {
               return props.inputType !== InputTypes.CURRENCY;
@@ -384,9 +389,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             isTriggerProperty: false,
           },
           {
-            helpText: "No. of decimals in currency input",
+            helpText: inputText("help.decimalsInCurrency"),
             propertyName: "decimalsInCurrency",
-            label: "Decimals",
+            label: inputText("labels.decimals"),
             controlType: "DROP_DOWN",
             options: [
               {
@@ -406,9 +411,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             isTriggerProperty: false,
           },
           {
-            helpText: "Sets maximum allowed text length",
+            helpText: inputText("help.maxChars"),
             propertyName: "maxChars",
-            label: "Max Chars",
+            label: inputText("labels.maxChars"),
             controlType: "INPUT_TEXT",
             placeholderText: "255",
             isBindProperty: true,
@@ -420,10 +425,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             dependencies: ["inputType"],
           },
           {
-            helpText:
-              "Sets the default text of the widget. The text is updated if the default text changes",
+            helpText: inputText("help.defaultText"),
             propertyName: "defaultText",
-            label: "Default Text",
+            label: inputText("labels.defaultText"),
             controlType: "INPUT_TEXT",
             placeholderText: "John Doe",
             isBindProperty: true,
@@ -442,10 +446,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             dependencies: ["inputType"],
           },
           {
-            helpText:
-              "Adds a validation to the input which displays an error on failure",
+            helpText: inputText("help.regex"),
             propertyName: "regex",
-            label: "Regex",
+            label: inputText("labels.regex"),
             controlType: "INPUT_TEXT",
             placeholderText: "^\\w+@[a-zA-Z_]+?\\.[a-zA-Z]{2,3}$",
             inputType: "TEXT",
@@ -454,9 +457,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.REGEX },
           },
           {
-            helpText: "Sets the input validity based on a JS expression",
+            helpText: inputText("help.validation"),
             propertyName: "validation",
-            label: "Valid",
+            label: inputText("labels.valid"),
             controlType: "INPUT_TEXT",
             placeholderText: "{{ Input1.text.length > 0 }}",
             inputType: "TEXT",
@@ -465,10 +468,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText:
-              "The error message to display if the regex or valid property check fails",
+            helpText: inputText("help.errorMessage"),
             propertyName: "errorMessage",
-            label: "Error message",
+            label: inputText("labels.errorMessage"),
             controlType: "INPUT_TEXT",
             placeholderText: "Not a valid email!",
             inputType: "TEXT",
@@ -477,9 +479,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets a placeholder text for the input",
+            helpText: inputText("help.placeholderText"),
             propertyName: "placeholderText",
-            label: "Placeholder",
+            label: inputText("labels.placeholder"),
             controlType: "INPUT_TEXT",
             placeholderText: "Placeholder",
             isBindProperty: true,
@@ -487,9 +489,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Show help text or details about current input",
+            helpText: inputText("help.tooltip"),
             propertyName: "tooltip",
-            label: "Tooltip",
+            label: inputText("labels.tooltip"),
             controlType: "INPUT_TEXT",
             placeholderText: "Passwords must be atleast 6 chars",
             isBindProperty: true,
@@ -498,8 +500,8 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
           },
           {
             propertyName: "isRequired",
-            label: "Required",
-            helpText: "Makes input to the widget mandatory",
+            label: inputText("labels.required"),
+            helpText: inputText("help.isRequired"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -507,9 +509,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Controls the visibility of the widget",
+            helpText: inputText("help.isVisible"),
             propertyName: "isVisible",
-            label: "Visible",
+            label: inputText("labels.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -517,9 +519,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Disables input to this widget",
+            helpText: inputText("help.isDisabled"),
             propertyName: "isDisabled",
-            label: "Disabled",
+            label: inputText("labels.disabled"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -528,9 +530,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: inputText("labels.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: inputText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -538,9 +540,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Clears the input value after submit",
+            helpText: inputText("help.resetOnSubmit"),
             propertyName: "resetOnSubmit",
-            label: "Reset on submit",
+            label: inputText("labels.resetOnSubmit"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -548,9 +550,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Focus input automatically on load",
+            helpText: inputText("help.autoFocus"),
             propertyName: "autoFocus",
-            label: "Auto focus",
+            label: inputText("labels.autoFocus"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -559,9 +561,8 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
           },
           {
             propertyName: "isSpellCheck",
-            label: "Spellcheck",
-            helpText:
-              "Defines whether the text input may be checked for spelling errors",
+            label: inputText("labels.spellcheck"),
+            helpText: inputText("help.isSpellCheck"),
             controlType: "SWITCH",
             isJSConvertible: false,
             isBindProperty: true,
@@ -575,12 +576,12 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Label",
+        sectionName: inputText("sections.label"),
         children: [
           {
-            helpText: "Sets the label text of the widget",
+            helpText: inputText("help.label"),
             propertyName: "label",
-            label: "Text",
+            label: inputText("text"),
             controlType: "INPUT_TEXT",
             placeholderText: "Name:",
             isBindProperty: true,
@@ -588,14 +589,17 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label position of the widget",
+            helpText: inputText("help.labelPosition"),
             propertyName: "labelPosition",
-            label: "Position",
+            label: inputText("labels.position"),
             controlType: "DROP_DOWN",
             options: [
-              { label: "Left", value: LabelPosition.Left },
-              { label: "Top", value: LabelPosition.Top },
-              { label: "Auto", value: LabelPosition.Auto },
+              {
+                label: inputText("labels.left"),
+                value: LabelPosition.Left,
+              },
+              { label: inputText("labels.top"), value: LabelPosition.Top },
+              { label: inputText("labels.auto"), value: LabelPosition.Auto },
             ],
             defaultValue: LabelPosition.Top,
             isBindProperty: false,
@@ -603,9 +607,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label alignment of the widget",
+            helpText: inputText("help.labelAlignment"),
             propertyName: "labelAlignment",
-            label: "Alignment",
+            label: inputText("labels.alignment"),
             controlType: "LABEL_ALIGNMENT_OPTIONS",
             fullWidth: false,
             options: [
@@ -626,10 +630,9 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             dependencies: ["labelPosition"],
           },
           {
-            helpText:
-              "Sets the label width of the widget as the number of columns",
+            helpText: inputText("help.labelWidth"),
             propertyName: "labelWidth",
-            label: "Width (in columns)",
+            label: inputText("labels.widthInColumns"),
             controlType: "NUMERIC_INPUT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -648,10 +651,10 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: inputText("sections.events"),
         children: [
           {
-            helpText: "when the text is changed",
+            helpText: inputText("help.onTextChanged"),
             propertyName: "onTextChanged",
             label: "onTextChanged",
             controlType: "ACTION_SELECTOR",
@@ -660,7 +663,7 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
             isTriggerProperty: true,
           },
           {
-            helpText: "on submit (when the enter key is pressed)",
+            helpText: inputText("help.onSubmit"),
             propertyName: "onSubmit",
             label: "onSubmit",
             controlType: "ACTION_SELECTOR",
@@ -671,11 +674,11 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Label styles",
+        sectionName: inputText("sections.labelStyles"),
         children: [
           {
             propertyName: "labelTextColor",
-            label: "Text color",
+            label: inputText("labels.textColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -689,7 +692,7 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelTextSize",
-            label: "Text size",
+            label: inputText("labels.textSize"),
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
             options: [
@@ -731,7 +734,7 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelStyle",
-            label: "Label Font Style",
+            label: inputText("labels.labelFontStyle"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -751,7 +754,7 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Icon Options",
+        sectionName: inputText("sections.iconOptions"),
         hidden: (props: InputWidgetProps) => {
           const { inputType } = props;
 
@@ -761,8 +764,8 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         children: [
           {
             propertyName: "iconName",
-            label: "Icon",
-            helpText: "Sets the icon to be used in input field",
+            label: inputText("labels.icon"),
+            helpText: inputText("help.iconName"),
             controlType: "ICON_SELECT",
             isBindProperty: false,
             isTriggerProperty: false,
@@ -770,8 +773,8 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
           },
           {
             propertyName: "iconAlign",
-            label: "Icon alignment",
-            helpText: "Sets the icon alignment of input field",
+            label: inputText("labels.iconAlignment"),
+            helpText: inputText("help.iconAlign"),
             controlType: "ICON_TABS",
             defaultValue: "left",
             options: [
@@ -793,12 +796,12 @@ class InputWidget extends BaseWidget<InputWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Styles",
+        sectionName: inputText("sections.styles"),
         children: [
           {
             propertyName: "backgroundColor",
-            helpText: "Sets the background color of the widget",
-            label: "Background color",
+            helpText: inputText("help.backgroundColor"),
+            label: inputText("labels.backgroundColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
