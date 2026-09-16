@@ -22,6 +22,7 @@ const zhCN = {
   brand: {
     name: "沧澜工坊",
     displayVersion: "沧澜工坊 {{edition}} {{version}}",
+    logoTooltip: "返回 $t(brand.name) 首页",
   },
   workspace: {
     heading: "工作区",

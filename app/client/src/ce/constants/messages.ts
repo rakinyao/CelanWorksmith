@@ -1507,7 +1507,7 @@ export const WELCOME_FORM_SUBMIT_LABEL = () => "Make your first app";
 //help tooltips
 export const ACCOUNT_TOOLTIP = () => i18n.t("navigation.account");
 export const RENAME_APPLICATION_TOOLTIP = () => "Rename application";
-export const LOGO_TOOLTIP = () => "Back to homepage";
+export const LOGO_TOOLTIP = () => i18n.t("brand.logoTooltip");
 export const ADD_PAGE_TOOLTIP = () => "Add a new page";
 export const ADD_DATASOURCE_TOOLTIP = () =>
   "Add datasource or create new query";

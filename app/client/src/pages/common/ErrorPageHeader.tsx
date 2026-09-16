@@ -20,6 +20,8 @@ import { get } from "lodash";
 import { getAssetUrl } from "ee/utils/airgapHelpers";
 import { getCurrentApplication } from "ee/selectors/applicationSelectors";
 
+const DEFAULT_BRAND_LOGO_URL = "/static/img/celanworkshop-logo.png";
+
 const StyledPageHeader = styled(StyledHeader)`
   box-shadow: none;
   justify-content: normal;
@@ -77,7 +79,7 @@ export function ErrorPageHeader(props: ErrorPageHeaderProps) {
   return (
     <StyledPageHeader>
       <HeaderSection>
-        {organizationConfig.brandLogoUrl && (
+        {(organizationConfig?.brandLogoUrl || DEFAULT_BRAND_LOGO_URL) && (
           <Link
             className="t--appsmith-logo"
             onClick={() => {
@@ -86,9 +88,11 @@ export function ErrorPageHeader(props: ErrorPageHeaderProps) {
             to={APPLICATIONS_URL}
           >
             <img
-              alt="Logo"
+              alt="CelanWorkshop logo"
               className="h-6"
-              src={getAssetUrl(organizationConfig.brandLogoUrl)}
+              src={getAssetUrl(
+                organizationConfig?.brandLogoUrl || DEFAULT_BRAND_LOGO_URL,
+              )}
             />
           </Link>
         )}

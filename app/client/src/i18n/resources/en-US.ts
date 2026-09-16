@@ -22,6 +22,7 @@ const enUS = {
   brand: {
     name: "CelanWorkshop",
     displayVersion: "CelanWorkshop {{edition}} {{version}}",
+    logoTooltip: "Back to $t(brand.name) homepage",
   },
   workspace: {
     heading: "Workspaces",

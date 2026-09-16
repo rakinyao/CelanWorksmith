@@ -25,7 +25,7 @@ import { getThemeDetails, ThemeMode } from "selectors/themeSelectors";
 import { getSearchQuery } from "utils/helpers";
 import { getSelectedAppTheme } from "selectors/appThemingSelectors";
 import { useSelector } from "react-redux";
-import BrandingBadge from "./BrandingBadge";
+import { DesktopBrandingBadgeContainer } from "./BrandingBadge";
 import { setAppViewHeaderHeight } from "actions/appViewActions";
 import { CANVAS_SELECTOR } from "constants/WidgetConstants";
 import { fetchPublishedPageResources } from "actions/pageActions";
@@ -281,16 +281,7 @@ function AppViewer(props: Props) {
             {isInitialized && <AppViewerPageContainer />}
           </AppViewerBody>
           <div className={"fixed hidden right-8 z-3 md:flex bottom-4"}>
-            {!hideWatermark && (
-              <a
-                className="hover:no-underline"
-                href="https://appsmith.com"
-                rel="noreferrer"
-                target="_blank"
-              >
-                <BrandingBadge />
-              </a>
-            )}
+            {!hideWatermark && <DesktopBrandingBadgeContainer />}
           </div>
         </AppViewerBodyContainer>
       </EditorContextProvider>
