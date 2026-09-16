@@ -54,7 +54,11 @@ describe("locale resources", () => {
     expect(i18n.t("widgetProperty.button.label", { lng: "zh-CN" })).toBe(
       "按钮文本",
     );
-    expect(flattenKeys(enUS.widgetProperty.labels).length).toBeGreaterThan(60);
+    expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(41);
+    expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(17);
+    expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(21);
+    expect(flattenKeys(enUS.widgetProperty.input.labels).length).toBe(37);
+    expect(flattenKeys(enUS.widgetProperty.button.labels).length).toBe(27);
   });
 
   it("provide localized brand and ontology entry points", () => {
