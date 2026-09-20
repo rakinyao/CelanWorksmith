@@ -1,48 +1,52 @@
 import { updateCustomColumnAliasOnLabelChange } from "../../propertyUtils";
 import Alignment from "./Alignment";
-import Basic from "./Basic";
+import { getTableV2ColumnBasicConfig } from "./Basic";
 import BorderAndShadow from "./BorderAndShadow";
 import Color from "./Color";
-import Data from "./Data";
+import { getTableV2ColumnDataConfig } from "./Data";
 import DateProperties from "./DateProperties";
 import DiscardButtonproperties, {
   discardButtonStyleConfig,
 } from "./DiscardButtonproperties";
-import Events from "./Events";
-import General, { GeneralStyle } from "./General";
+import { getTableV2ColumnEventsConfig } from "./Events";
+import { getTableV2ColumnGeneralConfig, GeneralStyle } from "./General";
 import Icon from "./Icon";
 import SaveButtonProperties, {
   saveButtonStyleConfig,
 } from "./SaveButtonProperties";
-import Select from "./Select";
+import { getTableV2ColumnSelectConfig } from "./Select";
 import TextFormatting from "./TextFormatting";
-import Validations from "./Validation";
+import { getTableV2ColumnValidationConfig } from "./Validation";
 
-export default {
-  editableTitle: true,
-  titlePropertyName: "label",
-  panelIdPropertyName: "id",
-  dependencies: ["primaryColumns", "columnOrder"],
-  contentChildren: [
-    Data,
-    Basic,
-    General,
-    Validations,
-    SaveButtonProperties,
-    DiscardButtonproperties,
-    Select,
-    Events,
-    DateProperties,
-  ],
-  styleChildren: [
-    GeneralStyle,
-    Icon,
-    Alignment,
-    TextFormatting,
-    Color,
-    saveButtonStyleConfig,
-    discardButtonStyleConfig,
-    BorderAndShadow,
-  ],
-  updateHook: updateCustomColumnAliasOnLabelChange,
-};
+export function getTableV2ColumnPanelConfig() {
+  return {
+    editableTitle: true,
+    titlePropertyName: "label",
+    panelIdPropertyName: "id",
+    dependencies: ["primaryColumns", "columnOrder"],
+    contentChildren: [
+      getTableV2ColumnDataConfig(),
+      getTableV2ColumnBasicConfig(),
+      getTableV2ColumnGeneralConfig(),
+      getTableV2ColumnValidationConfig(),
+      SaveButtonProperties,
+      DiscardButtonproperties,
+      getTableV2ColumnSelectConfig(),
+      getTableV2ColumnEventsConfig(),
+      DateProperties,
+    ],
+    styleChildren: [
+      GeneralStyle,
+      Icon,
+      Alignment,
+      TextFormatting,
+      Color,
+      saveButtonStyleConfig,
+      discardButtonStyleConfig,
+      BorderAndShadow,
+    ],
+    updateHook: updateCustomColumnAliasOnLabelChange,
+  };
+}
+
+export default getTableV2ColumnPanelConfig();

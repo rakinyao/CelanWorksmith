@@ -2,9 +2,20 @@ import i18n from "i18n";
 import { getTableV2ContentConfig } from "../contentConfig";
 import { getTableV2StyleConfig } from "../styleConfig";
 import type { TableWidgetProps } from "../../../constants";
+import { ColumnTypes } from "../../../constants";
 import type { PropertyPaneSectionConfig } from "constants/PropertyControlConstants";
 
 const getContentConfig = () => getTableV2ContentConfig();
+
+interface TestConfig {
+  sectionName?: string;
+  propertyName?: string;
+  label?: string;
+  helpText?: string;
+  children?: TestConfig[];
+  panelConfig?: { contentChildren?: TestConfig[] };
+  options?: Array<{ label?: string; value?: unknown }>;
+}
 
 beforeEach(async () => {
   await i18n.changeLanguage("en-US");
@@ -170,6 +181,38 @@ describe("TableWidgetV2 contentConfig tests", () => {
         .flatMap((section) => section.children ?? [])
         .find((child) => child.propertyName === "onPageChange")?.label,
     ).toBe("onPageChange");
+  });
+
+  it("resolves column content and event copy from the current locale", async () => {
+    await i18n.changeLanguage("zh-CN");
+    const content = getContentConfig();
+    const data = content.find((section) => section.sectionName === "数据");
+    const primaryColumns = data?.children?.find(
+      (child) => child.propertyName === "primaryColumns",
+    ) as TestConfig;
+    const panelConfig = primaryColumns?.panelConfig;
+    const columnData = panelConfig?.contentChildren?.find(
+      (section) => section.sectionName === "数据",
+    );
+    const columnType = columnData?.children?.find(
+      (child) => child.propertyName === "columnType",
+    );
+    const plainText = columnType?.options?.find(
+      (option) => option.value === ColumnTypes.TEXT,
+    );
+    const events = panelConfig?.contentChildren?.find(
+      (section) => section.sectionName === "事件",
+    );
+    const onClick = events?.children?.find(
+      (child) => child.propertyName === "onClick",
+    );
+
+    expect(columnData?.sectionName).toBe("数据");
+    expect(columnType?.label).toBe("列类型");
+    expect(plainText?.label).toBe("纯文本");
+    expect(plainText?.value).toBe(ColumnTypes.TEXT);
+    expect(onClick?.label).toBe("onClick");
+    expect(onClick?.helpText).toBe("用户点击图片时");
   });
 
   it("resolves style section names from the current locale", async () => {

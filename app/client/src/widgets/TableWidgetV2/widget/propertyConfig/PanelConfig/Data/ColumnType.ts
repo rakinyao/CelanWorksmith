@@ -11,81 +11,88 @@ import {
   updateNumberColumnTypeTextAlignment,
   updateThemeStylesheetsInColumns,
 } from "../../../propertyUtils";
-const ColumnTypeOptions = [
-  {
-    label: "Button",
-    value: ColumnTypes.BUTTON,
-  },
-  {
-    label: "Checkbox",
-    value: ColumnTypes.CHECKBOX,
-  },
-  {
-    label: "Currency",
-    value: ColumnTypes.CURRENCY,
-  },
-  {
-    label: "Date",
-    value: ColumnTypes.DATE,
-  },
-  {
-    label: "HTML",
-    value: ColumnTypes.HTML,
-  },
-  {
-    label: "Icon button",
-    value: ColumnTypes.ICON_BUTTON,
-  },
-  {
-    label: "Image",
-    value: ColumnTypes.IMAGE,
-  },
-  {
-    label: "Menu button",
-    value: ColumnTypes.MENU_BUTTON,
-  },
-  {
-    label: "Number",
-    value: ColumnTypes.NUMBER,
-  },
-  {
-    label: "Plain text",
-    value: ColumnTypes.TEXT,
-  },
-  {
-    label: "Select",
-    value: ColumnTypes.SELECT,
-  },
-  {
-    label: "Switch",
-    value: ColumnTypes.SWITCH,
-  },
-  {
-    label: "URL",
-    value: ColumnTypes.URL,
-  },
-  {
-    label: "Video",
-    value: ColumnTypes.VIDEO,
-  },
-];
+import i18n from "i18n";
 
-export const columnTypeConfig = {
-  propertyName: "columnType",
-  label: "Column type",
-  helpText:
-    "Type of column to be shown corresponding to the data of the column",
-  controlType: "DROP_DOWN",
-  options: ColumnTypeOptions,
-  updateHook: composePropertyUpdateHook([
-    updateNumberColumnTypeTextAlignment,
-    updateThemeStylesheetsInColumns,
-    updateMenuItemsSource,
-    updateCurrencyDefaultValues,
-  ]),
-  dependencies: ["primaryColumns", "columnOrder", "childStylesheet"],
-  isBindProperty: false,
-  isTriggerProperty: false,
-  hidden: (props: TableWidgetProps, propertyPath: string) =>
-    showByColumnType(props, propertyPath, [ColumnTypes.EDIT_ACTIONS]),
-};
+const tableV2Text = (key: string) => i18n.t(`widgetProperty.tableV2.${key}`);
+
+export function getTableV2ColumnTypeOptions() {
+  return [
+    {
+      label: tableV2Text("option.button"),
+      value: ColumnTypes.BUTTON,
+    },
+    {
+      label: tableV2Text("option.checkbox"),
+      value: ColumnTypes.CHECKBOX,
+    },
+    {
+      label: tableV2Text("option.currency"),
+      value: ColumnTypes.CURRENCY,
+    },
+    {
+      label: tableV2Text("column.date"),
+      value: ColumnTypes.DATE,
+    },
+    {
+      label: tableV2Text("option.html"),
+      value: ColumnTypes.HTML,
+    },
+    {
+      label: tableV2Text("option.iconButton"),
+      value: ColumnTypes.ICON_BUTTON,
+    },
+    {
+      label: tableV2Text("option.image"),
+      value: ColumnTypes.IMAGE,
+    },
+    {
+      label: tableV2Text("option.menuButton"),
+      value: ColumnTypes.MENU_BUTTON,
+    },
+    {
+      label: tableV2Text("option.number"),
+      value: ColumnTypes.NUMBER,
+    },
+    {
+      label: tableV2Text("option.plainText"),
+      value: ColumnTypes.TEXT,
+    },
+    {
+      label: tableV2Text("option.select"),
+      value: ColumnTypes.SELECT,
+    },
+    {
+      label: tableV2Text("option.switch"),
+      value: ColumnTypes.SWITCH,
+    },
+    {
+      label: tableV2Text("column.url"),
+      value: ColumnTypes.URL,
+    },
+    {
+      label: tableV2Text("option.video"),
+      value: ColumnTypes.VIDEO,
+    },
+  ];
+}
+
+export function getTableV2ColumnTypeConfig() {
+  return {
+    propertyName: "columnType",
+    label: tableV2Text("column.columnType"),
+    helpText: tableV2Text("help.columnType"),
+    controlType: "DROP_DOWN",
+    options: getTableV2ColumnTypeOptions(),
+    updateHook: composePropertyUpdateHook([
+      updateNumberColumnTypeTextAlignment,
+      updateThemeStylesheetsInColumns,
+      updateMenuItemsSource,
+      updateCurrencyDefaultValues,
+    ]),
+    dependencies: ["primaryColumns", "columnOrder", "childStylesheet"],
+    isBindProperty: false,
+    isTriggerProperty: false,
+    hidden: (props: TableWidgetProps, propertyPath: string) =>
+      showByColumnType(props, propertyPath, [ColumnTypes.EDIT_ACTIONS]),
+  };
+}

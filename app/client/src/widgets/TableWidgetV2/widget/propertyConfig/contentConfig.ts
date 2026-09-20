@@ -25,7 +25,7 @@ import {
   updateInlineEditingSaveOptionHook,
   updateSearchSortFilterOnInfiniteScrollChange,
 } from "../propertyUtils";
-import panelConfig from "./PanelConfig";
+import { getTableV2ColumnPanelConfig } from "./PanelConfig";
 
 const tableV2Text = (key: string) => i18n.t(`widgetProperty.tableV2.${key}`);
 
@@ -104,7 +104,7 @@ export function getTableV2ContentConfig(): PropertyPaneConfig[] {
               },
             },
           },
-          panelConfig,
+          panelConfig: getTableV2ColumnPanelConfig(),
         },
         {
           propertyName: "inlineEditingSaveOption",

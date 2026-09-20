@@ -1,4 +1,5 @@
 import { ValidationTypes } from "constants/WidgetValidation";
+import i18n from "i18n";
 import type { TableWidgetProps } from "widgets/TableWidgetV2/constants";
 import { ColumnTypes } from "widgets/TableWidgetV2/constants";
 import { get } from "lodash";
@@ -14,164 +15,169 @@ import { composePropertyUpdateHook } from "widgets/WidgetUtils";
 import { ButtonVariantTypes } from "components/constants";
 import { StickyType } from "widgets/TableWidgetV2/component/Constants";
 
-export default {
-  sectionName: "General",
-  children: [
-    {
-      propertyName: "isCellVisible",
-      dependencies: ["primaryColumns", "columnType"],
-      label: "Visible",
-      helpText: "Controls the visibility of the cell in the column",
-      defaultValue: true,
-      controlType: "SWITCH",
-      customJSControl: "TABLE_COMPUTE_VALUE",
-      isJSConvertible: true,
-      isBindProperty: true,
-      isTriggerProperty: false,
-      validation: {
-        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
-        params: {
-          type: ValidationTypes.BOOLEAN,
-        },
-      },
-    },
-    {
-      propertyName: "isDisabled",
-      label: "Disabled",
-      helpText: "Controls the disabled state of the button",
-      defaultValue: false,
-      controlType: "SWITCH",
-      customJSControl: "TABLE_COMPUTE_VALUE",
-      isJSConvertible: true,
-      isBindProperty: true,
-      isTriggerProperty: false,
-      validation: {
-        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
-        params: {
-          type: ValidationTypes.BOOLEAN,
-        },
-      },
-      dependencies: ["primaryColumns", "columnOrder"],
-      hidden: (props: TableWidgetProps, propertyPath: string) => {
-        return hideByColumnType(props, propertyPath, [
-          ColumnTypes.ICON_BUTTON,
-          ColumnTypes.MENU_BUTTON,
-          ColumnTypes.BUTTON,
-        ]);
-      },
-    },
-    {
-      propertyName: "isCompact",
-      helpText: "Decides if menu items will consume lesser space",
-      label: "Compact",
-      controlType: "SWITCH",
-      customJSControl: "TABLE_COMPUTE_VALUE",
-      isJSConvertible: true,
-      isBindProperty: true,
-      validation: {
-        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
-        params: {
-          type: ValidationTypes.BOOLEAN,
-        },
-      },
-      isTriggerProperty: false,
-      dependencies: ["primaryColumns", "columnOrder"],
-      hidden: (props: TableWidgetProps, propertyPath: string) => {
-        return hideByColumnType(props, propertyPath, [ColumnTypes.MENU_BUTTON]);
-      },
-    },
-    {
-      propertyName: "allowCellWrapping",
-      dependencies: ["primaryColumns", "columnType"],
-      label: "Cell wrapping",
-      helpText: "Allows content of the cell to be wrapped",
-      defaultValue: false,
-      controlType: "SWITCH",
-      customJSControl: "TABLE_COMPUTE_VALUE",
-      isJSConvertible: true,
-      isBindProperty: true,
-      isTriggerProperty: false,
-      validation: {
-        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
-        params: {
-          type: ValidationTypes.BOOLEAN,
-        },
-      },
-      hidden: (props: TableWidgetProps, propertyPath: string) => {
-        return hideByColumnType(props, propertyPath, [
-          ColumnTypes.TEXT,
-          ColumnTypes.NUMBER,
-          ColumnTypes.URL,
-        ]);
-      },
-    },
-    {
-      propertyName: "isCellEditable",
-      dependencies: [
-        "primaryColumns",
-        "columnOrder",
-        "columnType",
-        "childStylesheet",
-        "inlineEditingSaveOption",
-      ],
-      label: "Editable",
-      helpText: "Controls the cell's editablity",
-      defaultValue: false,
-      controlType: "SWITCH",
-      customJSControl: "TABLE_COMPUTE_VALUE",
-      isJSConvertible: true,
-      isBindProperty: true,
-      isTriggerProperty: false,
-      updateHook: composePropertyUpdateHook([
-        updateColumnLevelEditability,
-        updateInlineEditingOptionDropdownVisibilityHook,
-      ]),
-      validation: {
-        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
-        params: {
-          type: ValidationTypes.BOOLEAN,
-        },
-      },
-      hidden: (props: TableWidgetProps, propertyPath: string) => {
-        const baseProperty = getBasePropertyPath(propertyPath);
-        const columnType = get(props, `${baseProperty}.columnType`, "");
-        const isDerived = get(props, `${baseProperty}.isDerived`, false);
+const tableV2Text = (key: string) => i18n.t(`widgetProperty.tableV2.${key}`);
 
-        return (
-          !isColumnTypeEditable(columnType, props.infiniteScrollEnabled) ||
-          isDerived
-        );
+export function getTableV2ColumnGeneralConfig() {
+  return {
+    sectionName: tableV2Text("column.general"),
+    children: [
+      {
+        propertyName: "isCellVisible",
+        dependencies: ["primaryColumns", "columnType"],
+        label: tableV2Text("column.visible"),
+        helpText: tableV2Text("help.cellVisibility"),
+        defaultValue: true,
+        controlType: "SWITCH",
+        customJSControl: "TABLE_COMPUTE_VALUE",
+        isJSConvertible: true,
+        isBindProperty: true,
+        isTriggerProperty: false,
+        validation: {
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
+          params: {
+            type: ValidationTypes.BOOLEAN,
+          },
+        },
       },
-    },
-    {
-      propertyName: "sticky",
-      helpText:
-        "Choose column that needs to be frozen left or right of the table",
-      controlType: "ICON_TABS",
-      defaultValue: StickyType.NONE,
-      label: "Column freeze",
-      fullWidth: true,
-      isBindProperty: true,
-      isTriggerProperty: false,
-      dependencies: ["primaryColumns", "columnOrder"],
-      options: [
-        {
-          startIcon: "contract-left-line",
-          value: StickyType.LEFT,
+      {
+        propertyName: "isDisabled",
+        label: tableV2Text("column.disabled"),
+        helpText: tableV2Text("help.disabledButtonState"),
+        defaultValue: false,
+        controlType: "SWITCH",
+        customJSControl: "TABLE_COMPUTE_VALUE",
+        isJSConvertible: true,
+        isBindProperty: true,
+        isTriggerProperty: false,
+        validation: {
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
+          params: {
+            type: ValidationTypes.BOOLEAN,
+          },
         },
-        {
-          startIcon: "column-freeze",
-          value: StickyType.NONE,
+        dependencies: ["primaryColumns", "columnOrder"],
+        hidden: (props: TableWidgetProps, propertyPath: string) => {
+          return hideByColumnType(props, propertyPath, [
+            ColumnTypes.ICON_BUTTON,
+            ColumnTypes.MENU_BUTTON,
+            ColumnTypes.BUTTON,
+          ]);
         },
-        {
-          startIcon: "contract-right-line",
-          value: StickyType.RIGHT,
+      },
+      {
+        propertyName: "isCompact",
+        helpText: tableV2Text("help.menuCompact"),
+        label: tableV2Text("column.compact"),
+        controlType: "SWITCH",
+        customJSControl: "TABLE_COMPUTE_VALUE",
+        isJSConvertible: true,
+        isBindProperty: true,
+        validation: {
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
+          params: {
+            type: ValidationTypes.BOOLEAN,
+          },
         },
-      ],
-      updateHook: updateColumnOrderWhenFrozen,
-    },
-  ],
-};
+        isTriggerProperty: false,
+        dependencies: ["primaryColumns", "columnOrder"],
+        hidden: (props: TableWidgetProps, propertyPath: string) => {
+          return hideByColumnType(props, propertyPath, [
+            ColumnTypes.MENU_BUTTON,
+          ]);
+        },
+      },
+      {
+        propertyName: "allowCellWrapping",
+        dependencies: ["primaryColumns", "columnType"],
+        label: tableV2Text("column.cellWrapping"),
+        helpText: tableV2Text("help.cellWrapping"),
+        defaultValue: false,
+        controlType: "SWITCH",
+        customJSControl: "TABLE_COMPUTE_VALUE",
+        isJSConvertible: true,
+        isBindProperty: true,
+        isTriggerProperty: false,
+        validation: {
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
+          params: {
+            type: ValidationTypes.BOOLEAN,
+          },
+        },
+        hidden: (props: TableWidgetProps, propertyPath: string) => {
+          return hideByColumnType(props, propertyPath, [
+            ColumnTypes.TEXT,
+            ColumnTypes.NUMBER,
+            ColumnTypes.URL,
+          ]);
+        },
+      },
+      {
+        propertyName: "isCellEditable",
+        dependencies: [
+          "primaryColumns",
+          "columnOrder",
+          "columnType",
+          "childStylesheet",
+          "inlineEditingSaveOption",
+        ],
+        label: tableV2Text("column.editable"),
+        helpText: tableV2Text("help.editable"),
+        defaultValue: false,
+        controlType: "SWITCH",
+        customJSControl: "TABLE_COMPUTE_VALUE",
+        isJSConvertible: true,
+        isBindProperty: true,
+        isTriggerProperty: false,
+        updateHook: composePropertyUpdateHook([
+          updateColumnLevelEditability,
+          updateInlineEditingOptionDropdownVisibilityHook,
+        ]),
+        validation: {
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
+          params: {
+            type: ValidationTypes.BOOLEAN,
+          },
+        },
+        hidden: (props: TableWidgetProps, propertyPath: string) => {
+          const baseProperty = getBasePropertyPath(propertyPath);
+          const columnType = get(props, `${baseProperty}.columnType`, "");
+          const isDerived = get(props, `${baseProperty}.isDerived`, false);
+
+          return (
+            !isColumnTypeEditable(columnType, props.infiniteScrollEnabled) ||
+            isDerived
+          );
+        },
+      },
+      {
+        propertyName: "sticky",
+        helpText: tableV2Text("help.columnFreezeDirection"),
+        controlType: "ICON_TABS",
+        defaultValue: StickyType.NONE,
+        label: tableV2Text("column.columnFreeze"),
+        fullWidth: true,
+        isBindProperty: true,
+        isTriggerProperty: false,
+        dependencies: ["primaryColumns", "columnOrder"],
+        options: [
+          {
+            startIcon: "contract-left-line",
+            value: StickyType.LEFT,
+          },
+          {
+            startIcon: "column-freeze",
+            value: StickyType.NONE,
+          },
+          {
+            startIcon: "contract-right-line",
+            value: StickyType.RIGHT,
+          },
+        ],
+        updateHook: updateColumnOrderWhenFrozen,
+      },
+    ],
+  };
+}
 
 export const GeneralStyle = {
   sectionName: "General",
