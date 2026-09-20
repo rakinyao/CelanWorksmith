@@ -53,5 +53,3 @@ export function getTableV2ColumnPanelConfig() {
     updateHook: updateCustomColumnAliasOnLabelChange,
   };
 }
-
-export default getTableV2ColumnPanelConfig();

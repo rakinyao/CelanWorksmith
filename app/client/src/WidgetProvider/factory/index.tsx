@@ -488,10 +488,15 @@ export class WidgetFactory {
   static getWidgetPropertyPaneSearchConfig(
     type: WidgetType,
     widgetProperties: WidgetProps,
+    locale?: string,
   ): readonly PropertyPaneConfig[] {
     const config = generatePropertyPaneSearchConfig(
-      WidgetFactory.getWidgetPropertyPaneContentConfig(type, widgetProperties),
-      WidgetFactory.getWidgetPropertyPaneStyleConfig(type),
+      WidgetFactory.getWidgetPropertyPaneContentConfig(
+        type,
+        widgetProperties,
+        locale,
+      ),
+      WidgetFactory.getWidgetPropertyPaneStyleConfig(type, locale),
     );
 
     if (config) {

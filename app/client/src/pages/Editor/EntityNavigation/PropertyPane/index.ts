@@ -11,6 +11,7 @@ import type {
   PropertyPaneNavigationConfig,
 } from "../types";
 import WidgetFactory from "WidgetProvider/factory";
+import i18n from "i18n";
 import {
   getPropertyPanePanelNavigationConfig,
   getSectionId,
@@ -74,9 +75,13 @@ export default class PropertyPaneNavigation extends PaneNavigation {
       WidgetFactory.getWidgetPropertyPaneContentConfig(
         this.widget?.type,
         this.widget,
+        i18n.language,
       );
     const propertyPaneStyleConfig =
-      WidgetFactory.getWidgetPropertyPaneStyleConfig(this.widget?.type);
+      WidgetFactory.getWidgetPropertyPaneStyleConfig(
+        this.widget?.type,
+        i18n.language,
+      );
     const widgetProps: WidgetProps | undefined = yield select(
       getWidgetPropsForPropertyPane,
     );

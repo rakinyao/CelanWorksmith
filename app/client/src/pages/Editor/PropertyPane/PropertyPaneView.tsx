@@ -20,6 +20,7 @@ import {
 import { AB_TESTING_EVENT_KEYS } from "ee/entities/FeatureFlag";
 import AnalyticsUtil from "ee/utils/AnalyticsUtil";
 import WidgetFactory from "WidgetProvider/factory";
+import i18n from "i18n";
 import { copyWidget, deleteSelectedWidget } from "actions/widgetActions";
 import { EditorTheme } from "components/editorComponents/CodeEditor/EditorConfig";
 import { PROPERTY_PANE_ID } from "components/editorComponents/PropertyPaneSidebar";
@@ -273,10 +274,12 @@ function PropertyPaneView(
     WidgetFactory.getWidgetPropertyPaneContentConfig(
       widgetProperties.type,
       widgetProperties,
+      i18n.language,
     ).length;
 
   const isStyleConfigAvailable = WidgetFactory.getWidgetPropertyPaneStyleConfig(
     widgetProperties.type,
+    i18n.language,
   ).length;
 
   return (
@@ -322,6 +325,7 @@ function PropertyPaneView(
                 config={WidgetFactory.getWidgetPropertyPaneSearchConfig(
                   widgetProperties.type,
                   widgetProperties,
+                  i18n.language,
                 )}
                 id={widgetProperties.widgetId}
                 panel={panel}
@@ -337,6 +341,7 @@ function PropertyPaneView(
                       config={WidgetFactory.getWidgetPropertyPaneContentConfig(
                         widgetProperties.type,
                         widgetProperties,
+                        i18n.language,
                       )}
                       id={widgetProperties.widgetId}
                       panel={panel}
@@ -350,6 +355,7 @@ function PropertyPaneView(
                     <PropertyControlsGenerator
                       config={WidgetFactory.getWidgetPropertyPaneStyleConfig(
                         widgetProperties.type,
+                        i18n.language,
                       )}
                       id={widgetProperties.widgetId}
                       panel={panel}

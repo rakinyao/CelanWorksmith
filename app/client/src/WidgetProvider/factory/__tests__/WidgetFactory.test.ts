@@ -98,4 +98,53 @@ describe("WidgetFactory Cache Tests", () => {
       clearAllWidgetFactoryCache();
     }
   });
+
+  it("refreshes direct TableWidgetV2 content, style, and search configs by locale", async () => {
+    WidgetFactory.widgetsMap.set(TableWidgetV2.type, TableWidgetV2);
+    clearAllWidgetFactoryCache();
+
+    try {
+      await i18n.changeLanguage("en-US");
+      const englishContent = WidgetFactory.getWidgetPropertyPaneContentConfig(
+        TableWidgetV2.type,
+        {} as never,
+        i18n.language,
+      );
+      const englishStyle = WidgetFactory.getWidgetPropertyPaneStyleConfig(
+        TableWidgetV2.type,
+        i18n.language,
+      );
+      const englishSearch = WidgetFactory.getWidgetPropertyPaneSearchConfig(
+        TableWidgetV2.type,
+        {} as never,
+        i18n.language,
+      );
+
+      await i18n.changeLanguage("zh-CN");
+      const chineseContent = WidgetFactory.getWidgetPropertyPaneContentConfig(
+        TableWidgetV2.type,
+        {} as never,
+        i18n.language,
+      );
+      const chineseStyle = WidgetFactory.getWidgetPropertyPaneStyleConfig(
+        TableWidgetV2.type,
+        i18n.language,
+      );
+      const chineseSearch = WidgetFactory.getWidgetPropertyPaneSearchConfig(
+        TableWidgetV2.type,
+        {} as never,
+        i18n.language,
+      );
+
+      expect(firstSectionName(englishContent)).toBe("Data");
+      expect(firstStyleSectionName(englishStyle)).toBe("General");
+      expect(firstSectionName(englishSearch)).toBe("Data");
+      expect(firstSectionName(chineseContent)).toBe("数据");
+      expect(firstStyleSectionName(chineseStyle)).toBe("常规");
+      expect(firstSectionName(chineseSearch)).toBe("数据");
+    } finally {
+      await i18n.changeLanguage("en-US");
+      clearAllWidgetFactoryCache();
+    }
+  });
 });
