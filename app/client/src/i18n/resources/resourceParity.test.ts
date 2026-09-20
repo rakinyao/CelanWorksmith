@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+import ts from "typescript";
 import i18n from "i18n";
 import { APPSMITH_DISPLAY_VERSION } from "ee/constants/messages";
 import enUS from "./en-US";
@@ -10,6 +13,124 @@ function flattenKeys(value: unknown, prefix = ""): string[] {
 
   return Object.entries(value).flatMap(([key, child]) =>
     flattenKeys(child, prefix ? `${prefix}.${key}` : key),
+  );
+}
+
+interface ResourceLeaf {
+  path: string;
+  value: string;
+}
+
+function flattenResourceLeaves(value: unknown, prefix = ""): ResourceLeaf[] {
+  if (typeof value === "string") return [{ path: prefix, value }];
+
+  if (value === null || typeof value !== "object") return [];
+
+  return Object.entries(value).flatMap(([key, child]) =>
+    flattenResourceLeaves(child, prefix ? `${prefix}.${key}` : key),
+  );
+}
+
+function getPropertyName(node: ts.ObjectLiteralElementLike) {
+  if (!ts.isPropertyAssignment(node)) return;
+
+  return ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)
+    ? node.name.text
+    : undefined;
+}
+
+function getStringLiteral(node: ts.Expression) {
+  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+    ? node.text
+    : undefined;
+}
+
+function getTableV2ConfigFiles(directory: string): string[] {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) return getTableV2ConfigFiles(entryPath);
+
+    return entry.isFile() && entry.name.endsWith(".ts") ? [entryPath] : [];
+  });
+}
+
+const presentationFields = new Set([
+  "sectionName",
+  "label",
+  "helpText",
+  "helperText",
+  "placeholderText",
+  "searchPlaceholderText",
+]);
+
+const allowedTableV2PresentationExclusions = new Map([
+  ["onPageChange", "technical event identifier"],
+  ["onPageSizeChange", "technical event identifier"],
+  ["onTableFilterUpdate", "technical event identifier"],
+  ["onSearchTextChanged", "technical event identifier"],
+  ["onRowSelected", "technical event identifier"],
+  ["onSort", "technical event identifier"],
+  ["onSave", "technical event identifier"],
+  ["onDiscard", "technical event identifier"],
+  ["onClick", "technical event identifier"],
+  ["onSubmit", "technical event identifier"],
+  ["onOptionChange", "technical event identifier"],
+  ["onChange", "technical event identifier"],
+  ["onCheckChange", "technical event identifier"],
+  ["onFilterUpdate", "technical event identifier"],
+  ["onDateSelected", "technical event identifier"],
+  ['[{ "name": "John" }]', "example data"],
+  ["{{appsmith.user.name}}", "binding expression example"],
+  ["[0]", "example persisted selection"],
+  ["{{Query1.data}}", "binding expression example"],
+  ["{{currentItem.name}}", "binding expression example"],
+  [
+    "{{(tableData, columnId, order) => { /* Return sorted table data */ }}}",
+    "binding expression example",
+  ],
+  ["^\\w+@[a-zA-Z_]+?\\.[a-zA-Z]{2,3}$", "regular expression example"],
+  ["1", "numeric default example"],
+  ["100", "numeric default example"],
+  ["#FFFFFF / Gray / rgb(255, 99, 71)", "color-format example"],
+]);
+
+function getTableV2PresentationLiterals() {
+  const propertyConfigDirectory = path.resolve(
+    __dirname,
+    "../../widgets/TableWidgetV2/widget/propertyConfig",
+  );
+  const sourceFiles = [
+    path.join(propertyConfigDirectory, "contentConfig.ts"),
+    path.join(propertyConfigDirectory, "styleConfig.ts"),
+    ...getTableV2ConfigFiles(path.join(propertyConfigDirectory, "PanelConfig")),
+  ];
+  const literals = new Set<string>();
+
+  for (const sourceFile of sourceFiles) {
+    const source = ts.createSourceFile(
+      sourceFile,
+      fs.readFileSync(sourceFile, "utf8"),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+
+    const visit = (node: ts.Node) => {
+      if (ts.isPropertyAssignment(node)) {
+        const name = getPropertyName(node);
+        const value = getStringLiteral(node.initializer);
+
+        if (name && value && presentationFields.has(name)) literals.add(value);
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+  }
+
+  return [...literals].filter(
+    (literal) => !allowedTableV2PresentationExclusions.has(literal),
   );
 }
 
@@ -127,464 +248,38 @@ describe("locale resources", () => {
       i18n.t("widgetProperty.tableV2.style.textFormatting", { lng: "zh-CN" }),
     ).toBe("文本格式");
 
-    const requiredTableV2Paths = Object.entries({
-      content: [
-        "data",
-        "tableData",
-        "columns",
-        "updateMode",
-        "pagination",
-        "showPagination",
-        "serverSidePagination",
-        "infiniteScroll",
-        "totalRecords",
-        "searchAndFilters",
-        "allowSearching",
-        "clientSideSearch",
-        "serverSideFiltering",
-        "defaultSearchText",
-        "allowFiltering",
-        "rowSelection",
-        "defaultSelectedRows",
-        "defaultSelectedRow",
-        "enableMultiRowSelection",
-        "sorting",
-        "columnSorting",
-        "customSortFunctionData",
-        "addingRow",
-        "allowAddingRow",
-        "defaultValues",
-        "general",
-        "visible",
-        "animateLoading",
-        "customLoadingState",
-        "isLoadingValue",
-        "allowDownload",
-        "allowColumnFreeze",
-        "csvSeparator",
-        "sections",
-        "dateSettings",
-        "firstDayOfWeek",
-        "showShortcuts",
-        "validations",
-        "selection",
-      ],
-      style: [
-        "general",
-        "defaultRowHeight",
-        "textFormatting",
-        "textSize",
-        "emphasis",
-        "textAlign",
-        "verticalAlignment",
-        "color",
-        "cellBackgroundColor",
-        "headerRowColor",
-        "headerTextColor",
-        "oddRowColor",
-        "evenRowColor",
-        "accentColor",
-        "textColor",
-        "borderAndShadow",
-        "cellBorders",
-        "borderRadius",
-        "boxShadow",
-        "borderColor",
-        "borderWidth",
-        "headerOptions",
-        "borders",
-      ],
-      column: [
-        "data",
-        "style",
-        "basic",
-        "propertyName",
-        "columnType",
-        "displayText",
-        "computedValue",
-        "dateFormat",
-        "displayFormat",
-        "currency",
-        "decimalsAllowed",
-        "thousandSeparator",
-        "notation",
-        "general",
-        "visible",
-        "disabled",
-        "compact",
-        "cellWrapping",
-        "editable",
-        "columnFreeze",
-        "alignment",
-        "horizontalAlignment",
-        "verticalAlignment",
-        "textFormatting",
-        "textSize",
-        "emphasis",
-        "textAlign",
-        "button",
-        "checkbox",
-        "html",
-        "iconButton",
-        "image",
-        "menuButton",
-        "number",
-        "plainText",
-        "select",
-        "switch",
-        "url",
-        "video",
-        "date",
-        "icon",
-        "dateSettings",
-        "firstDayOfWeek",
-        "showShortcuts",
-      ],
-      validation: [
-        "validation",
-        "regex",
-        "valid",
-        "errorMessage",
-        "required",
-        "minDate",
-        "maxDate",
-        "min",
-        "max",
-        "date",
-        "number",
-      ],
-      menu: [
-        "basic",
-        "general",
-        "menuItems",
-        "menuItemsSource",
-        "sourceData",
-        "configure",
-        "configureMenuItems",
-        "label",
-        "text",
-        "visible",
-        "disabled",
-        "icon",
-        "position",
-        "color",
-        "iconColor",
-        "backgroundColor",
-        "textColor",
-        "events",
-        "buttonVariant",
-        "buttonColor",
-        "borderRadius",
-        "boxShadow",
-        "iconOptions",
-        "dateSettings",
-        "selectProperties",
-        "validations",
-      ],
-      help: [
-        "tableData",
-        "infiniteScrollDisabled",
-        "columns",
-        "updateMode",
-        "primaryKeyColumn",
-        "showPagination",
-        "serverSidePagination",
-        "infiniteScroll",
-        "totalRecords",
-        "onPageChange",
-        "onPageSizeChange",
-        "allowSearching",
-        "clientSideSearch",
-        "serverSideFiltering",
-        "onTableFilterUpdate",
-        "defaultSearchText",
-        "onSearchTextChanged",
-        "allowFiltering",
-        "defaultSelectedRows",
-        "defaultSelectedRow",
-        "enableMultiRowSelection",
-        "onRowSelected",
-        "columnSorting",
-        "customSortFunctionHelper",
-        "customSortFunction",
-        "onSort",
-        "allowAddingRow",
-        "addNewRowSave",
-        "addNewRowDiscard",
-        "defaultNewRow",
-        "onSave",
-        "onDiscard",
-        "visible",
-        "animateLoading",
-        "customLoadingState",
-        "allowDownload",
-        "allowColumnFreeze",
-        "csvSeparator",
-        "onClick",
-        "onSubmit",
-        "onOptionChange",
-        "onChange",
-        "onCheckChange",
-        "onFilterUpdate",
-        "onDateSelected",
-        "regex",
-        "valid",
-        "errorMessage",
-        "required",
-        "minDate",
-        "maxDate",
-        "min",
-        "max",
-        "menuLabel",
-        "menuVisible",
-        "menuDisabled",
-        "menuOnClick",
-        "menuIcon",
-        "menuIconAlignment",
-        "menuIconColor",
-        "menuBackgroundColor",
-        "menuTextColor",
-        "propertyName",
-        "displayText",
-        "computedValue",
-        "dateFormat",
-        "displayFormat",
-        "currency",
-        "decimalsAllowed",
-        "thousandSeparator",
-        "notation",
-        "textSize",
-        "emphasis",
-        "textAlign",
-        "verticalAlignment",
-        "cellBackground",
-        "headerRowColor",
-        "headerTextColor",
-        "oddRowColor",
-        "evenRowColor",
-        "buttonColor",
-        "buttonVariant",
-        "borderRadius",
-        "boxShadow",
-        "borderColor",
-        "borderWidth",
-        "menuItems",
-        "menuItemsSource",
-        "sourceData",
-        "configureMenuItems",
-        "menuConfigure",
-        "menuText",
-        "selectOptions",
-        "selectSortBy",
-        "selectTopRow",
-        "selectNewRowOptions",
-        "selectPlaceholder",
-        "selectFilterable",
-        "selectResetFilter",
-        "selectServerFiltering",
-        "dataSection",
-        "paginationSection",
-        "searchFiltersSection",
-        "rowSelectionSection",
-        "sortingSection",
-        "addingRowSection",
-        "alignmentSection",
-        "basicSection",
-        "colorSection",
-        "dateSettingsSection",
-        "discardButtonSection",
-        "eventsSection",
-        "iconSection",
-        "labelSection",
-        "saveButtonSection",
-        "selectPropertiesSection",
-        "validationSection",
-        "textFormattingSection",
-        "borderShadowSection",
-        "primaryKeyColumnLabel",
-        "buttonIconLabel",
-        "buttonTextLabel",
-        "menuItemsSourceLabel",
-        "sourceDataLabel",
-        "configureLabel",
-        "configureMenuItemsLabel",
-        "menuItemsLabel",
-        "menuTextLabel",
-        "menuVisibleLabel",
-        "menuDisabledLabel",
-        "menuIconLabel",
-        "menuPositionLabel",
-        "menuTextColorLabel",
-        "menuBackgroundColorLabel",
-        "menuIconColorLabel",
-        "buttonColorLabel",
-        "cellBackgroundLabel",
-        "saveTextLabel",
-        "saveVisibleLabel",
-        "saveDisabledLabel",
-        "saveButtonColorLabel",
-        "saveButtonVariantLabel",
-        "saveBorderRadiusLabel",
-        "saveIconLabel",
-        "savePositionLabel",
-        "discardTextLabel",
-        "discardVisibleLabel",
-        "discardDisabledLabel",
-        "discardButtonColorLabel",
-        "discardButtonVariantLabel",
-        "discardBorderRadiusLabel",
-        "discardIconLabel",
-        "discardPositionLabel",
-        "firstDayOfWeekLabel",
-        "showShortcutsLabel",
-        "selectOptionsLabel",
-        "selectSortByLabel",
-        "selectUseTopRowLabel",
-        "selectNewRowOptionsLabel",
-        "selectPlaceholderLabel",
-        "selectFilterableLabel",
-        "selectResetFilterLabel",
-        "selectServerFilteringLabel",
-        "imageSizeLabel",
-        "defaultOptionLabel",
-        "mediumOptionLabel",
-        "largeOptionLabel",
-        "saveButtonText",
-        "saveButtonClick",
-        "saveButtonVisible",
-        "saveButtonDisabled",
-        "saveButtonColor",
-        "saveButtonVariant",
-        "saveButtonRadius",
-        "saveActionIcon",
-        "saveActionPosition",
-        "discardButtonText",
-        "discardButtonClick",
-        "discardButtonVisible",
-        "discardButtonDisabled",
-        "discardButtonColor",
-        "discardButtonVariant",
-        "discardButtonRadius",
-        "discardActionIcon",
-        "discardActionPosition",
-        "dateFirstDay",
-        "dateShortcuts",
-        "buttonIconHelp",
-        "buttonTextHelp",
-        "menuSourceHelp",
-        "menuDataHelp",
-        "menuConfigureHelp",
-        "menuTextHelp",
-        "menuVisibleHelp",
-        "menuDisabledHelp",
-        "menuIconHelp",
-        "menuPositionHelp",
-        "menuTextColorHelp",
-        "menuBackgroundColorHelp",
-        "menuIconColorHelp",
-        "buttonColorHelp",
-        "cellBackgroundHelp",
-        "disabledButtonState",
-        "cellWrapping",
-        "cellBorders",
-        "editable",
-        "columnFreeze",
-        "columnFreezeDirection",
-        "menuButtonVariant",
-        "imageSize",
-        "menuColor",
-        "textColor",
-        "columnType",
-        "columnAliasChange",
-        "currencyThousandSeparator",
-        "menuButtonIcon",
-        "selectUseTopRow",
-        "selectNewRowOptions",
-        "validationRegex",
-        "validationErrorMessage",
-        "menuBindingLabel",
-        "menuBindingVisible",
-        "menuBindingDisabled",
-        "menuBindingOnClick",
-        "menuBindingIcon",
-        "menuBindingIconAlignment",
-        "menuBindingIconColor",
-        "menuBindingBackgroundColor",
-        "menuBindingTextColor",
-      ],
-      placeholder: [
-        "menuLabel",
-        "totalRecords",
-        "csvSeparator",
-        "placeholder",
-        "borderWidth",
-        "currencySearch",
-        "validationErrorMessage",
-      ],
-      option: [
-        "singleRow",
-        "multiRow",
-        "primary",
-        "secondary",
-        "tertiary",
-        "static",
-        "dynamic",
-        "default",
-        "short",
-        "tall",
-        "noBorders",
-        "horizontalBordersOnly",
-        "standard",
-        "compact",
-        "label",
-        "value",
-        "medium",
-        "large",
-        "checkbox",
-        "currency",
-        "html",
-        "iconButton",
-        "image",
-        "menuButton",
-        "number",
-        "plainText",
-        "select",
-        "switch",
-        "url",
-        "video",
-        "unixTimestampSeconds",
-        "unixTimestampMilliseconds",
-        "yyyyMmDd",
-        "yyyyMmDdHm",
-        "iso8601",
-        "yyyyMmDdThhMmSs",
-        "yyyyMmDdHhMmSs",
-        "doMmmYyyy",
-        "ddMmYyyy",
-        "ddMmYyyyHm",
-        "lll",
-        "ll",
-        "dMmmmYyyy",
-        "hMmADdMmmmYyyy",
-        "mmDdYyyy",
-        "ddMmYyyyHyphen",
-        "mmDdYyyySlash",
-        "ddMmYy",
-        "mmDdYy",
-        "zero",
-        "one",
-        "two",
-      ],
-    }).flatMap(([group, keys]) => keys.map((key) => `${group}.${key}`));
+    const englishResources = flattenResourceLeaves(enUS.widgetProperty.tableV2);
+    const chineseResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.tableV2).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+    const resourcePathsByEnglishValue = new Map<string, string[]>();
 
-    for (const path of requiredTableV2Paths) {
-      const key = `widgetProperty.tableV2.${path}`;
-
-      expect(i18n.t(key, { lng: "en-US" })).not.toBe(key);
-      expect(i18n.t(key, { lng: "zh-CN" })).not.toBe(key);
+    for (const resource of englishResources) {
+      resourcePathsByEnglishValue.set(resource.value, [
+        ...(resourcePathsByEnglishValue.get(resource.value) ?? []),
+        resource.path,
+      ]);
     }
-  });
 
+    const unmappedLiterals = getTableV2PresentationLiterals().filter(
+      (literal) => !resourcePathsByEnglishValue.has(literal),
+    );
+
+    expect(unmappedLiterals).toEqual([]);
+
+    for (const literal of getTableV2PresentationLiterals()) {
+      for (const resourcePath of resourcePathsByEnglishValue.get(literal) ??
+        []) {
+        expect(chineseResources.get(resourcePath)).toBeDefined();
+      }
+    }
+
+    expect(enUS.widgetProperty.tableV2.menu).not.toHaveProperty("onClick");
+    expect(zhCN.widgetProperty.tableV2.menu).not.toHaveProperty("onClick");
+  });
   it("provide localized brand and ontology entry points", () => {
     expect(i18n.t("brand.name", { lng: "en-US" })).toBe("CelanWorkshop");
     expect(i18n.t("brand.name", { lng: "zh-CN" })).toBe("沧澜工坊");
