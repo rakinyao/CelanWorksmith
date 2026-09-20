@@ -1,9 +1,22 @@
-import contentConfig from "../contentConfig";
+import i18n from "i18n";
+import { getTableV2ContentConfig } from "../contentConfig";
+import { getTableV2StyleConfig } from "../styleConfig";
 import type { TableWidgetProps } from "../../../constants";
 import type { PropertyPaneSectionConfig } from "constants/PropertyControlConstants";
 
+const getContentConfig = () => getTableV2ContentConfig();
+
+beforeEach(async () => {
+  await i18n.changeLanguage("en-US");
+});
+
+afterEach(async () => {
+  await i18n.changeLanguage("en-US");
+});
+
 describe("TableWidgetV2 contentConfig tests", () => {
   it("exposes the native table data and column controls", () => {
+    const contentConfig = getContentConfig();
     const dataSection = contentConfig.find(
       (section) =>
         (section as PropertyPaneSectionConfig).sectionName === "Data",
@@ -23,6 +36,7 @@ describe("TableWidgetV2 contentConfig tests", () => {
   });
 
   it("keeps the native Data section expanded by default", () => {
+    const contentConfig = getContentConfig();
     const dataSection = contentConfig.find(
       (section) =>
         (section as PropertyPaneSectionConfig).sectionName === "Data",
@@ -32,6 +46,7 @@ describe("TableWidgetV2 contentConfig tests", () => {
   });
 
   it("should disable relevant sections when infinite scroll is enabled", () => {
+    const contentConfig = getContentConfig();
     const sectionsToCheck = ["Search & filters", "Sorting", "Adding a row"];
 
     const disabledHelpText =
@@ -113,6 +128,7 @@ describe("TableWidgetV2 contentConfig tests", () => {
   });
 
   it("should have proper update hooks for infiniteScrollEnabled property", () => {
+    const contentConfig = getContentConfig();
     const paginationSection = contentConfig.find(
       (section) =>
         (section as PropertyPaneSectionConfig).sectionName === "Pagination",
@@ -138,5 +154,31 @@ describe("TableWidgetV2 contentConfig tests", () => {
         expect(infiniteScrollProperty.dependencies).toContain("primaryColumns");
       }
     }
+  });
+
+  it("resolves top-level display fields from the current locale", async () => {
+    await i18n.changeLanguage("zh-CN");
+    const content = getContentConfig();
+    const data = content.find((section) => section.sectionName === "数据");
+
+    expect(
+      data?.children?.find((child) => child.propertyName === "tableData")
+        ?.label,
+    ).toBe("表格数据");
+    expect(
+      content
+        .flatMap((section) => section.children ?? [])
+        .find((child) => child.propertyName === "onPageChange")?.label,
+    ).toBe("onPageChange");
+  });
+
+  it("resolves style section names from the current locale", async () => {
+    await i18n.changeLanguage("zh-CN");
+
+    expect(
+      getTableV2StyleConfig().some(
+        (section) => section.sectionName === "文本格式",
+      ),
+    ).toBe(true);
   });
 });

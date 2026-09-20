@@ -113,8 +113,8 @@ import {
 import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import derivedProperties from "./parseDerivedProperties";
-import contentConfig from "./propertyConfig/contentConfig";
-import styleConfig from "./propertyConfig/styleConfig";
+import { getTableV2ContentConfig } from "./propertyConfig/contentConfig";
+import { getTableV2StyleConfig } from "./propertyConfig/styleConfig";
 import type { getColumns } from "./reactTableUtils/getColumnsPureFn";
 import { getMemoiseGetColumnsWithLocalStorageFn } from "./reactTableUtils/getColumnsPureFn";
 import type {
@@ -415,11 +415,11 @@ class TableWidgetV2 extends BaseWidget<TableWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
-    return contentConfig;
+    return getTableV2ContentConfig();
   }
 
   static getPropertyPaneStyleConfig() {
-    return styleConfig;
+    return getTableV2StyleConfig();
   }
 
   constructor(props: TableWidgetProps) {
