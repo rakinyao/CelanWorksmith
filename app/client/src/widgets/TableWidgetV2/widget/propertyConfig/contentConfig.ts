@@ -145,7 +145,7 @@ export function getTableV2ContentConfig(): PropertyPaneConfig[] {
           helpText: tableV2Text("help.primaryKeyColumn"),
           propertyName: "primaryColumnId",
           dependencies: ["primaryColumns"],
-          label: tableV2Text("help.primaryKeyColumn"),
+          label: tableV2Text("help.primaryKeyColumnLabel"),
           controlType: "PRIMARY_COLUMNS_DROPDOWN",
           isBindProperty: true,
           isTriggerProperty: false,

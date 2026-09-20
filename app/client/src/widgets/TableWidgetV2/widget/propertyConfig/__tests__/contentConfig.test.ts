@@ -181,6 +181,15 @@ describe("TableWidgetV2 contentConfig tests", () => {
         .flatMap((section) => section.children ?? [])
         .find((child) => child.propertyName === "onPageChange")?.label,
     ).toBe("onPageChange");
+
+    const primaryColumn = data?.children?.find(
+      (child) => child.propertyName === "primaryColumnId",
+    );
+
+    expect(primaryColumn?.label).toBe("主键列");
+    expect(primaryColumn?.helpText).toBe(
+      "分配唯一列，以根据值维护 selectedRows 和 triggeredRows",
+    );
   });
 
   it("resolves column content and event copy from the current locale", async () => {
