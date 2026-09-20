@@ -27,22 +27,22 @@ export function getTableV2ColumnTextFormattingConfig() {
         customJSControl: "TABLE_COMPUTE_VALUE",
         options: [
           {
-            label: "S",
+            label: tableV2Text("option.s"),
             value: "0.875rem",
             subText: "0.875rem",
           },
           {
-            label: "M",
+            label: tableV2Text("option.m"),
             value: "1rem",
             subText: "1rem",
           },
           {
-            label: "L",
+            label: tableV2Text("option.l"),
             value: "1.25rem",
             subText: "1.25rem",
           },
           {
-            label: "XL",
+            label: tableV2Text("option.xl"),
             value: "1.875rem",
             subText: "1.875rem",
           },

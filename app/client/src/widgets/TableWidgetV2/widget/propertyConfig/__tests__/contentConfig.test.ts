@@ -253,6 +253,9 @@ describe("TableWidgetV2 contentConfig tests", () => {
     const textAlign = textFormatting?.children?.find(
       (child) => child.propertyName === "horizontalAlignment",
     );
+    const textSize = textFormatting?.children?.find(
+      (child) => child.propertyName === "textSize",
+    );
     const leftOption = textAlign?.options?.find(
       (option) => option.value === "LEFT",
     );
@@ -272,6 +275,18 @@ describe("TableWidgetV2 contentConfig tests", () => {
     expect(textFormatting).toBeDefined();
     expect(generalStyle?.children?.[0]?.label).toBe("按钮变体");
     expect(textAlign?.label).toBe("文本对齐");
+    expect(textSize?.options?.map((option) => option.label)).toEqual([
+      "S",
+      "M",
+      "L",
+      "XL",
+    ]);
+    expect(textSize?.options?.map((option) => option.value)).toEqual([
+      "0.875rem",
+      "1rem",
+      "1.25rem",
+      "1.875rem",
+    ]);
     expect(leftOption?.value).toBe("LEFT");
     expect(saveLabel?.label).toBe("文本");
     expect(saveLabel?.propertyName).toBe("saveActionLabel");
