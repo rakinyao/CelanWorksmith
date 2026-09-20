@@ -184,6 +184,31 @@ describe("locale resources", () => {
     expect(
       i18n.t("widgetProperty.button.placeholders.text", { lng: "zh-CN" }),
     ).toBe("提交");
+    expect(flattenKeys(enUS.widgetProperty.text).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.text).sort(),
+    );
+    expect(
+      i18n.t("widgetProperty.text.content.overflowText", { lng: "zh-CN" }),
+    ).toBe("文本溢出");
+    expect(i18n.t("widgetProperty.text.option.scroll", { lng: "zh-CN" })).toBe(
+      "滚动",
+    );
+    const textResources = flattenResourceLeaves(enUS.widgetProperty.text);
+    const chineseTextResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.text).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of textResources) {
+      const path = `widgetProperty.text.${resource.path}`;
+
+      expect(chineseTextResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(47);
     expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(24);
     expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(34);

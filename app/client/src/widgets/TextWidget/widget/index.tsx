@@ -34,8 +34,10 @@ import type {
 import { get } from "lodash";
 import type { DynamicPath } from "utils/DynamicBindingUtils";
 import { isDynamicValue } from "utils/DynamicBindingUtils";
+import i18n from "i18n";
 
 const MAX_HTML_PARSING_LENGTH = 1000;
+const textText = (path: string) => i18n.t(`widgetProperty.text.${path}`);
 
 class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
   static type = "TEXT_WIDGET";
@@ -166,16 +168,20 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    return getTextPropertyPaneContentConfig();
+  }
+
+  static getTextPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "General",
+        sectionName: textText("content.general"),
         children: [
           {
             propertyName: "text",
-            helpText: "Sets the text of the widget",
-            label: "Text",
+            helpText: textText("help.text"),
+            label: textText("content.text"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Name:",
+            placeholderText: textText("placeholder.text"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: {
@@ -185,21 +191,21 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "overflow",
-            label: "Overflow Text",
-            helpText: "Controls the text behavior when length of text exceeds",
+            label: textText("content.overflowText"),
+            helpText: textText("help.overflowText"),
             controlType: "ICON_TABS",
             fullWidth: true,
             options: [
               {
-                label: "Scroll",
+                label: textText("option.scroll"),
                 value: OverflowTypes.SCROLL,
               },
               {
-                label: "Truncate",
+                label: textText("option.truncate"),
                 value: OverflowTypes.TRUNCATE,
               },
               {
-                label: "None",
+                label: textText("option.none"),
                 value: OverflowTypes.NONE,
               },
             ],
@@ -209,8 +215,8 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "isVisible",
-            helpText: "Controls the visibility of the widget",
-            label: "Visible",
+            helpText: textText("help.visible"),
+            label: textText("content.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -219,9 +225,9 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: textText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: textText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -230,8 +236,8 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "disableLink",
-            helpText: "Controls parsing text as Link",
-            label: "Disable link",
+            helpText: textText("help.disableLink"),
+            label: textText("content.disableLink"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -252,54 +258,58 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneStyleConfig() {
+    return getTextPropertyPaneStyleConfig();
+  }
+
+  static getTextPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "General",
+        sectionName: textText("style.general"),
         children: [
           {
             propertyName: "fontFamily",
-            label: "Font family",
-            helpText: "Controls the font family being used",
+            label: textText("style.fontFamily"),
+            helpText: textText("help.fontFamily"),
             controlType: "DROP_DOWN",
             options: [
               {
-                label: "System Default",
+                label: textText("option.systemDefault"),
                 value: "System Default",
               },
               {
-                label: "Nunito Sans",
+                label: textText("option.nunitoSans"),
                 value: "Nunito Sans",
               },
               {
-                label: "Poppins",
+                label: textText("option.poppins"),
                 value: "Poppins",
               },
               {
-                label: "Inter",
+                label: textText("option.inter"),
                 value: "Inter",
               },
               {
-                label: "Montserrat",
+                label: textText("option.montserrat"),
                 value: "Montserrat",
               },
               {
-                label: "Noto Sans",
+                label: textText("option.notoSans"),
                 value: "Noto Sans",
               },
               {
-                label: "Open Sans",
+                label: textText("option.openSans"),
                 value: "Open Sans",
               },
               {
-                label: "Roboto",
+                label: textText("option.roboto"),
                 value: "Roboto",
               },
               {
-                label: "Rubik",
+                label: textText("option.rubik"),
                 value: "Rubik",
               },
               {
-                label: "Ubuntu",
+                label: textText("option.ubuntu"),
                 value: "Ubuntu",
               },
             ],
@@ -313,38 +323,38 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "fontSize",
-            label: "Font size",
-            helpText: "Controls the size of the font used",
+            label: textText("style.fontSize"),
+            helpText: textText("help.fontSize"),
             controlType: "DROP_DOWN",
             defaultValue: "1rem",
             options: [
               {
-                label: "S",
+                label: textText("option.small"),
                 value: "0.875rem",
                 subText: "0.875rem",
               },
               {
-                label: "M",
+                label: textText("option.medium"),
                 value: "1rem",
                 subText: "1rem",
               },
               {
-                label: "L",
+                label: textText("option.large"),
                 value: "1.25rem",
                 subText: "1.25rem",
               },
               {
-                label: "XL",
+                label: textText("option.extraLarge"),
                 value: "1.875rem",
                 subText: "1.875rem",
               },
               {
-                label: "XXL",
+                label: textText("option.doubleExtraLarge"),
                 value: "3rem",
                 subText: "3rem",
               },
               {
-                label: "3XL",
+                label: textText("option.tripleExtraLarge"),
                 value: "3.75rem",
                 subText: "3.75rem",
               },
@@ -359,12 +369,12 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Color",
+        sectionName: textText("style.color"),
         children: [
           {
             propertyName: "textColor",
-            label: "Text color",
-            helpText: "Controls the color of the text displayed",
+            label: textText("style.textColor"),
+            helpText: textText("help.textColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -378,8 +388,8 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "backgroundColor",
-            label: "Background color",
-            helpText: "Background color of the text added",
+            label: textText("style.backgroundColor"),
+            helpText: textText("help.backgroundColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -397,10 +407,10 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
             },
           },
           {
-            helpText: "Use a html color name, HEX, RGB or RGBA value",
-            placeholderText: "#FFFFFF / Gray / rgb(255, 99, 71)",
+            helpText: textText("help.borderColor"),
+            placeholderText: textText("placeholder.borderColor"),
             propertyName: "borderColor",
-            label: "Border color",
+            label: textText("style.borderColor"),
             controlType: "COLOR_PICKER",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -408,8 +418,8 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "truncateButtonColor",
-            label: "Truncate button color",
-            helpText: "Controls the color of the truncate button",
+            label: textText("style.truncateButtonColor"),
+            helpText: textText("help.truncateButtonColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -428,12 +438,12 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Text formatting",
+        sectionName: textText("style.textFormatting"),
         children: [
           {
             propertyName: "textAlign",
-            label: "Alignment",
-            helpText: "Controls the horizontal alignment of the text",
+            label: textText("style.alignment"),
+            helpText: textText("help.alignment"),
             controlType: "ICON_TABS",
             fullWidth: true,
             options: [
@@ -458,8 +468,8 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
           },
           {
             propertyName: "fontStyle",
-            label: "Emphasis",
-            helpText: "Controls the font emphasis of the text displayed",
+            label: textText("style.emphasis"),
+            helpText: textText("help.emphasis"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -479,14 +489,13 @@ class TextWidget extends BaseWidget<TextWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Border and shadow",
+        sectionName: textText("style.borderAndShadow"),
         children: [
           {
-            helpText:
-              "Enter value for border width which can also use as margin",
+            helpText: textText("help.borderWidth"),
             propertyName: "borderWidth",
-            label: "Border width",
-            placeholderText: "Enter value in px",
+            label: textText("style.borderWidth"),
+            placeholderText: textText("placeholder.borderWidth"),
             controlType: "INPUT_TEXT",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -614,6 +623,14 @@ export interface TextWidgetProps extends WidgetProps, TextStyles {
   borderColor?: Color;
   borderWidth?: number;
   overflow: OverflowTypes;
+}
+
+export function getTextPropertyPaneContentConfig() {
+  return TextWidget.getTextPropertyPaneContentConfig();
+}
+
+export function getTextPropertyPaneStyleConfig() {
+  return TextWidget.getTextPropertyPaneStyleConfig();
 }
 
 export default TextWidget;
