@@ -1371,6 +1371,39 @@ const enUS = {
         sixteenX: "16x",
       },
     },
+    container: {
+      content: {
+        general: "General",
+        visible: "Visible",
+        shouldScrollContents: "Scroll contents",
+        animateLoading: "Animate loading",
+      },
+      style: {
+        color: "Color",
+        backgroundColor: "Background color",
+        borderColor: "Border color",
+        borderAndShadow: "Border and shadow",
+        borderWidth: "Border width",
+        borderRadius: "Border radius",
+        boxShadow: "Box shadow",
+      },
+      help: {
+        visible: "Controls the visibility of the widget",
+        shouldScrollContents: "Enables scrolling for content inside the widget",
+        animateLoading: "Controls the loading of the widget",
+        backgroundColor: "Use a html color name, HEX, RGB or RGBA value",
+        borderColor: "Use a html color name, HEX, RGB or RGBA value",
+        borderWidth: "Enter value for border width",
+        borderRadius: "Rounds the corners of the widgets's outer border edge",
+        boxShadow:
+          "Enables you to cast a drop shadow from the frame of the widget",
+      },
+      placeholder: {
+        backgroundColor: "#FFFFFF / Gray / rgb(255, 99, 71)",
+        borderColor: "#FFFFFF / Gray / rgb(255, 99, 71)",
+        borderWidth: "Enter value in px",
+      },
+    },
     labels: {
       data: "Data",
       options: "Options",

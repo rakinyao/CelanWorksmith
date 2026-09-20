@@ -1323,6 +1323,38 @@ const zhCN = {
         sixteenX: "16x",
       },
     },
+    container: {
+      content: {
+        general: "常规",
+        visible: "可见",
+        shouldScrollContents: "滚动内容",
+        animateLoading: "加载动画",
+      },
+      style: {
+        color: "颜色",
+        backgroundColor: "背景颜色",
+        borderColor: "边框颜色",
+        borderAndShadow: "边框和阴影",
+        borderWidth: "边框宽度",
+        borderRadius: "边框圆角",
+        boxShadow: "阴影",
+      },
+      help: {
+        visible: "控制组件的可见性",
+        shouldScrollContents: "启用组件内容滚动",
+        animateLoading: "控制组件的加载状态",
+        backgroundColor: "使用 HTML 颜色名称、HEX、RGB 或 RGBA 值",
+        borderColor: "使用 HTML 颜色名称、HEX、RGB 或 RGBA 值",
+        borderWidth: "输入边框宽度值",
+        borderRadius: "设置组件外边框的圆角",
+        boxShadow: "启用从组件边框投射阴影",
+      },
+      placeholder: {
+        backgroundColor: "#FFFFFF / Gray / rgb(255, 99, 71)",
+        borderColor: "#FFFFFF / Gray / rgb(255, 99, 71)",
+        borderWidth: "输入像素值",
+      },
+    },
     labels: {
       data: "数据",
       options: "选项",

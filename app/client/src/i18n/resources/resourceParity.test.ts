@@ -234,6 +234,31 @@ describe("locale resources", () => {
       expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
     }
 
+    expect(flattenKeys(enUS.widgetProperty.container).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.container).sort(),
+    );
+    expect(
+      i18n.t("widgetProperty.container.content.general", { lng: "zh-CN" }),
+    ).toBe("常规");
+    expect(
+      i18n.t("widgetProperty.container.content.shouldScrollContents", {
+        lng: "zh-CN",
+      }),
+    ).toBe("滚动内容");
+    expect(
+      i18n.t("widgetProperty.container.style.color", { lng: "zh-CN" }),
+    ).toBe("颜色");
+    expect(
+      i18n.t("widgetProperty.container.style.backgroundColor", {
+        lng: "zh-CN",
+      }),
+    ).toBe("背景颜色");
+    expect(
+      i18n.t("widgetProperty.container.placeholder.backgroundColor", {
+        lng: "zh-CN",
+      }),
+    ).toBe("#FFFFFF / Gray / rgb(255, 99, 71)");
+
     expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(47);
     expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(24);
     expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(34);

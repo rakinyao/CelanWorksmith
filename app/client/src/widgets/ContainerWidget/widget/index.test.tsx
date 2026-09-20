@@ -15,6 +15,8 @@ import { MockApplication } from "test/testCommon";
 import { UpdateAppViewer, UpdatedEditor } from "test/testMockedWidgets";
 import { render, waitFor } from "test/testUtils";
 import { generateReactKey } from "widgets/WidgetUtils";
+import i18n from "i18n";
+import ContainerWidget from ".";
 
 const pageId = "0123456789abcdef00000000";
 
@@ -26,6 +28,44 @@ describe("ContainerWidget tests", () => {
     .mockImplementation(() => true);
 
   const pushState = jest.spyOn(window.history, "pushState");
+
+  afterEach(async () => {
+    await i18n.changeLanguage("en-US");
+  });
+
+  it("localizes the Container property pane while preserving technical values", async () => {
+    await i18n.changeLanguage("zh-CN");
+
+    const contentConfig = ContainerWidget.getPropertyPaneContentConfig();
+    const styleConfig = ContainerWidget.getPropertyPaneStyleConfig();
+    const contentSection = contentConfig.find(
+      (section) => section.sectionName === "常规",
+    );
+    const styleSection = styleConfig.find(
+      (section) => section.sectionName === "颜色",
+    );
+    const scrollContents = contentSection?.children?.find(
+      (child) => child.propertyName === "shouldScrollContents",
+    );
+    const backgroundColor = styleSection?.children?.find(
+      (child) => child.propertyName === "backgroundColor",
+    );
+
+    expect(contentSection).toBeDefined();
+    expect(scrollContents?.label).toBe("滚动内容");
+    expect(scrollContents?.propertyName).toBe("shouldScrollContents");
+    expect(styleSection).toBeDefined();
+    expect(backgroundColor?.label).toBe("背景颜色");
+    expect(backgroundColor?.propertyName).toBe("backgroundColor");
+    expect(backgroundColor?.placeholderText).toBe(
+      "#FFFFFF / Gray / rgb(255, 99, 71)",
+    );
+
+    await i18n.changeLanguage("en-US");
+    expect(ContainerWidget.getPropertyPaneContentConfig()[0].sectionName).toBe(
+      "General",
+    );
+  });
 
   // TODO: Fix this the next time the file is edited
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

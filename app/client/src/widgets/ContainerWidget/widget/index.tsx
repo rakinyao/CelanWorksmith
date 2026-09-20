@@ -43,6 +43,10 @@ import type { CanvasWidgetsReduxState } from "ee/reducers/entityReducers/canvasW
 import { LayoutSystemTypes } from "layoutSystems/types";
 import type { LayoutProps } from "layoutSystems/anvil/utils/anvilTypes";
 import { getWidgetBluePrintUpdates } from "utils/WidgetBlueprintUtils";
+import i18n from "i18n";
+
+const containerText = (path: string) =>
+  i18n.t(`widgetProperty.container.${path}`);
 
 export class ContainerWidget extends BaseWidget<
   ContainerWidgetProps<WidgetProps>,
@@ -210,14 +214,18 @@ export class ContainerWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
+    return getContainerPropertyPaneContentConfig();
+  }
+
+  static getContainerPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "General",
+        sectionName: containerText("content.general"),
         children: [
           {
-            helpText: "Controls the visibility of the widget",
+            helpText: containerText("help.visible"),
             propertyName: "isVisible",
-            label: "Visible",
+            label: containerText("content.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -225,18 +233,18 @@ export class ContainerWidget extends BaseWidget<
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Enables scrolling for content inside the widget",
+            helpText: containerText("help.shouldScrollContents"),
             propertyName: "shouldScrollContents",
-            label: "Scroll contents",
+            label: containerText("content.shouldScrollContents"),
             controlType: "SWITCH",
             isBindProperty: false,
             isTriggerProperty: false,
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: containerText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: containerText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -249,15 +257,19 @@ export class ContainerWidget extends BaseWidget<
   }
 
   static getPropertyPaneStyleConfig() {
+    return getContainerPropertyPaneStyleConfig();
+  }
+
+  static getContainerPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Color",
+        sectionName: containerText("style.color"),
         children: [
           {
-            helpText: "Use a html color name, HEX, RGB or RGBA value",
-            placeholderText: "#FFFFFF / Gray / rgb(255, 99, 71)",
+            helpText: containerText("help.backgroundColor"),
+            placeholderText: containerText("placeholder.backgroundColor"),
             propertyName: "backgroundColor",
-            label: "Background color",
+            label: containerText("style.backgroundColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -265,10 +277,10 @@ export class ContainerWidget extends BaseWidget<
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Use a html color name, HEX, RGB or RGBA value",
-            placeholderText: "#FFFFFF / Gray / rgb(255, 99, 71)",
+            helpText: containerText("help.borderColor"),
+            placeholderText: containerText("placeholder.borderColor"),
             propertyName: "borderColor",
-            label: "Border color",
+            label: containerText("style.borderColor"),
             controlType: "COLOR_PICKER",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -277,13 +289,13 @@ export class ContainerWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Border and shadow",
+        sectionName: containerText("style.borderAndShadow"),
         children: [
           {
-            helpText: "Enter value for border width",
+            helpText: containerText("help.borderWidth"),
             propertyName: "borderWidth",
-            label: "Border width",
-            placeholderText: "Enter value in px",
+            label: containerText("style.borderWidth"),
+            placeholderText: containerText("placeholder.borderWidth"),
             controlType: "INPUT_TEXT",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -292,8 +304,8 @@ export class ContainerWidget extends BaseWidget<
           },
           {
             propertyName: "borderRadius",
-            label: "Border radius",
-            helpText: "Rounds the corners of the widgets's outer border edge",
+            label: containerText("style.borderRadius"),
+            helpText: containerText("help.borderRadius"),
             controlType: "BORDER_RADIUS_OPTIONS",
             isJSConvertible: true,
             isBindProperty: true,
@@ -302,9 +314,8 @@ export class ContainerWidget extends BaseWidget<
           },
           {
             propertyName: "boxShadow",
-            label: "Box shadow",
-            helpText:
-              "Enables you to cast a drop shadow from the frame of the widget",
+            label: containerText("style.boxShadow"),
+            helpText: containerText("help.boxShadow"),
             controlType: "BOX_SHADOW_OPTIONS",
             isJSConvertible: true,
             isBindProperty: true,
@@ -417,6 +428,14 @@ export interface ContainerWidgetProps<T extends WidgetProps>
   noPad?: boolean;
   positioning?: Positioning;
   forceFullOpacity?: boolean; // used to force full opacity for ui module instance meta widgets
+}
+
+export function getContainerPropertyPaneContentConfig() {
+  return ContainerWidget.getContainerPropertyPaneContentConfig();
+}
+
+export function getContainerPropertyPaneStyleConfig() {
+  return ContainerWidget.getContainerPropertyPaneStyleConfig();
 }
 
 export default ContainerWidget;
