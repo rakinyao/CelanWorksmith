@@ -209,6 +209,31 @@ describe("locale resources", () => {
       expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
     }
 
+    expect(flattenKeys(enUS.widgetProperty.image).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.image).sort(),
+    );
+    expect(
+      i18n.t("widgetProperty.image.content.objectFit", { lng: "zh-CN" }),
+    ).toBe("对象适应");
+    expect(
+      i18n.t("widgetProperty.image.option.contain", { lng: "zh-CN" }),
+    ).toBe("包含");
+    const imageResources = flattenResourceLeaves(enUS.widgetProperty.image);
+    const chineseImageResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.image).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of imageResources) {
+      const path = `widgetProperty.image.${resource.path}`;
+
+      expect(chineseImageResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(47);
     expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(24);
     expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(34);

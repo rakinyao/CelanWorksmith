@@ -19,6 +19,9 @@ import ThumbnailSVG from "../thumbnail.svg";
 import { getAssetUrl } from "ee/utils/airgapHelpers";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { FlexVerticalAlignment } from "layoutSystems/common/utils/constants";
+import i18n from "i18n";
+
+const imageText = (path: string) => i18n.t(`widgetProperty.image.${path}`);
 
 class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
   constructor(props: ImageWidgetProps) {
@@ -109,26 +112,30 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    return getImagePropertyPaneContentConfig();
+  }
+
+  static getImagePropertyPaneContentConfig() {
     return [
       {
-        sectionName: "Data",
+        sectionName: imageText("content.data"),
         children: [
           {
-            helpText: "Sets the image to be displayed",
+            helpText: imageText("help.image"),
             propertyName: "image",
-            label: "Image",
+            label: imageText("content.image"),
             controlType: "INPUT_TEXT",
-            placeholderText: "URL / Base64",
+            placeholderText: imageText("placeholder.image"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.IMAGE_URL },
           },
           {
-            helpText: "Sets the default image to be displayed when load fails",
+            helpText: imageText("help.defaultImage"),
             propertyName: "defaultImage",
-            label: "Default image",
+            label: imageText("content.defaultImage"),
             controlType: "INPUT_TEXT",
-            placeholderText: "URL / Base64",
+            placeholderText: imageText("placeholder.defaultImage"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.IMAGE_URL },
@@ -136,26 +143,25 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "General",
+        sectionName: imageText("content.general"),
         children: [
           {
-            helpText:
-              "Sets how the Image should be resized to fit its container.",
+            helpText: imageText("help.objectFit"),
             propertyName: "objectFit",
-            label: "Object fit",
+            label: imageText("content.objectFit"),
             controlType: "DROP_DOWN",
             defaultValue: "contain",
             options: [
               {
-                label: "Contain",
+                label: imageText("option.contain"),
                 value: "contain",
               },
               {
-                label: "Cover",
+                label: imageText("option.cover"),
                 value: "cover",
               },
               {
-                label: "Auto",
+                label: imageText("option.auto"),
                 value: "auto",
               },
             ],
@@ -170,29 +176,29 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
             },
           },
           {
-            helpText: "Controls the max zoom of the widget",
+            helpText: imageText("help.maxZoomLevel"),
             propertyName: "maxZoomLevel",
-            label: "Max zoom level",
+            label: imageText("content.maxZoomLevel"),
             controlType: "DROP_DOWN",
             options: [
               {
-                label: "1x (No Zoom)",
+                label: imageText("option.oneXNoZoom"),
                 value: 1,
               },
               {
-                label: "2x",
+                label: imageText("option.twoX"),
                 value: 2,
               },
               {
-                label: "4x",
+                label: imageText("option.fourX"),
                 value: 4,
               },
               {
-                label: "8x",
+                label: imageText("option.eightX"),
                 value: 8,
               },
               {
-                label: "16x",
+                label: imageText("option.sixteenX"),
                 value: 16,
               },
             ],
@@ -205,9 +211,9 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
             },
           },
           {
-            helpText: "Controls the visibility of the widget",
+            helpText: imageText("help.visible"),
             propertyName: "isVisible",
-            label: "Visible",
+            label: imageText("content.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -216,9 +222,9 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: imageText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: imageText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -226,9 +232,9 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Controls if the image is allowed to rotate",
+            helpText: imageText("help.enableRotation"),
             propertyName: "enableRotation",
-            label: "Enable rotation",
+            label: imageText("content.enableRotation"),
             controlType: "SWITCH",
             isJSConvertible: false,
             isBindProperty: true,
@@ -236,9 +242,9 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Controls if the image is allowed to download",
+            helpText: imageText("help.enableDownload"),
             propertyName: "enableDownload",
-            label: "Enable download",
+            label: imageText("content.enableDownload"),
             controlType: "SWITCH",
             isJSConvertible: false,
             isBindProperty: true,
@@ -248,10 +254,10 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: imageText("content.events"),
         children: [
           {
-            helpText: "when user clicks on an image",
+            helpText: imageText("help.onClick"),
             propertyName: "onClick",
             label: "onClick",
             controlType: "ACTION_SELECTOR",
@@ -265,15 +271,18 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneStyleConfig() {
+    return getImagePropertyPaneStyleConfig();
+  }
+
+  static getImagePropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Border and shadow",
+        sectionName: imageText("style.borderAndShadow"),
         children: [
           {
             propertyName: "borderRadius",
-            label: "Border radius",
-            helpText:
-              "Rounds the corners of the icon button's outer border edge",
+            label: imageText("style.borderRadius"),
+            helpText: imageText("help.borderRadius"),
             controlType: "BORDER_RADIUS_OPTIONS",
             isJSConvertible: true,
             isBindProperty: true,
@@ -282,9 +291,8 @@ class ImageWidget extends BaseWidget<ImageWidgetProps, WidgetState> {
           },
           {
             propertyName: "boxShadow",
-            label: "Box shadow",
-            helpText:
-              "Enables you to cast a drop shadow from the frame of the widget",
+            label: imageText("style.boxShadow"),
+            helpText: imageText("help.boxShadow"),
             controlType: "BOX_SHADOW_OPTIONS",
             isJSConvertible: true,
             isBindProperty: true,
@@ -368,6 +376,14 @@ export interface ImageWidgetProps extends WidgetProps {
   onClick?: string;
   borderRadius: string;
   boxShadow?: string;
+}
+
+export function getImagePropertyPaneContentConfig() {
+  return ImageWidget.getImagePropertyPaneContentConfig();
+}
+
+export function getImagePropertyPaneStyleConfig() {
+  return ImageWidget.getImagePropertyPaneStyleConfig();
 }
 
 export default ImageWidget;
