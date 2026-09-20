@@ -173,13 +173,38 @@ describe("locale resources", () => {
       "数据类型",
     );
     expect(i18n.t("widgetProperty.button.label", { lng: "zh-CN" })).toBe(
-      "按钮文本",
+      "标签",
     );
+    expect(i18n.t("widgetProperty.button.help.label", { lng: "zh-CN" })).toBe(
+      "设置按钮标签",
+    );
+    expect(
+      i18n.t("widgetProperty.button.options.primary", { lng: "zh-CN" }),
+    ).toBe("主要");
+    expect(
+      i18n.t("widgetProperty.button.placeholders.text", { lng: "zh-CN" }),
+    ).toBe("提交");
     expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(47);
     expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(24);
     expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(34);
     expect(flattenKeys(enUS.widgetProperty.input.labels).length).toBe(37);
-    expect(flattenKeys(enUS.widgetProperty.button.labels).length).toBe(27);
+    expect(flattenKeys(enUS.widgetProperty.button.labels).length).toBe(29);
+    const buttonResources = flattenResourceLeaves(enUS.widgetProperty.button);
+    const chineseButtonResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.button).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of buttonResources) {
+      const path = `widgetProperty.button.${resource.path}`;
+
+      expect(chineseButtonResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     const requiredTableLabels = [
       "columnControl",
       "columnType",

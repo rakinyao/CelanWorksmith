@@ -35,6 +35,9 @@ import type {
   SnipingModeProperty,
 } from "WidgetProvider/types";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
+import i18n from "i18n";
+
+const buttonText = (path: string) => i18n.t(`widgetProperty.button.${path}`);
 
 class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
   onButtonClickBound: (event: React.MouseEvent<HTMLElement>) => void;
@@ -151,22 +154,26 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    return getButtonPropertyPaneContentConfig();
+  }
+
+  static getButtonPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "Basic",
+        sectionName: buttonText("basic"),
         children: [
           {
             propertyName: "text",
-            label: "Label",
-            helpText: "Sets the label of the button",
+            label: buttonText("label"),
+            helpText: buttonText("help.label"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Submit",
+            placeholderText: buttonText("placeholders.text"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "when the button is clicked",
+            helpText: buttonText("help.onClick"),
             propertyName: "onClick",
             label: "onClick",
             controlType: "ACTION_SELECTOR",
@@ -177,22 +184,22 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
         ],
       },
       {
-        sectionName: "General",
+        sectionName: buttonText("labels.general"),
         children: [
           {
-            helpText: "Show helper text with button on hover",
+            helpText: buttonText("help.tooltip"),
             propertyName: "tooltip",
-            label: "Tooltip",
+            label: buttonText("labels.tooltip"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Submits Form",
+            placeholderText: buttonText("placeholders.tooltip"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
             propertyName: "isVisible",
-            label: "Visible",
-            helpText: "Controls the visibility of the widget",
+            label: buttonText("labels.visible"),
+            helpText: buttonText("help.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -201,9 +208,9 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
           },
           {
             propertyName: "isDisabled",
-            label: "Disabled",
+            label: buttonText("labels.disabled"),
             controlType: "SWITCH",
-            helpText: "Disables clicks to this widget",
+            helpText: buttonText("help.disabled"),
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
@@ -211,9 +218,9 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: buttonText("labels.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: buttonText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -223,31 +230,31 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
         ],
       },
       {
-        sectionName: "Validation",
+        sectionName: buttonText("labels.validation"),
         hidden: isAirgapped,
         children: [
           {
             propertyName: "googleRecaptchaKey",
-            label: "Google reCAPTCHA key",
-            helpText: "Sets Google reCAPTCHA site key for the button",
+            label: buttonText("labels.recaptchaKey"),
+            helpText: buttonText("help.recaptchaKey"),
             controlType: "INPUT_TEXT",
-            placeholderText: "reCAPTCHA Key",
+            placeholderText: buttonText("placeholders.recaptchaKey"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
             propertyName: "recaptchaType",
-            label: "Google reCAPTCHA version",
+            label: buttonText("labels.recaptchaVersion"),
             controlType: "DROP_DOWN",
-            helpText: "Select reCAPTCHA version",
+            helpText: buttonText("help.recaptchaVersion"),
             options: [
               {
-                label: "reCAPTCHA v3",
+                label: buttonText("options.recaptchaV3"),
                 value: RecaptchaTypes.V3,
               },
               {
-                label: "reCAPTCHA v2",
+                label: buttonText("options.recaptchaV2"),
                 value: RecaptchaTypes.V2,
               },
             ],
@@ -265,13 +272,12 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
       },
       // TODO: refactor widgetParentProps implementation when we address #10659
       {
-        sectionName: "Form settings",
+        sectionName: buttonText("labels.formSettings"),
         children: [
           {
-            helpText:
-              "Disabled if the form is invalid, if this widget exists directly within a Form widget.",
+            helpText: buttonText("help.disableWhenFormInvalid"),
             propertyName: "disabledWhenInvalid",
-            label: "Disable when form is invalid",
+            label: buttonText("labels.disableWhenFormInvalid"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -279,10 +285,9 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText:
-              "Resets the fields of the form, on click, if this widget exists directly within a Form widget.",
+            helpText: buttonText("help.resetFormOnSuccess"),
             propertyName: "resetFormOnClick",
-            label: "Reset form on success",
+            label: buttonText("labels.resetFormOnSuccess"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -295,28 +300,32 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
   }
 
   static getPropertyPaneStyleConfig() {
+    return getButtonPropertyPaneStyleConfig();
+  }
+
+  static getButtonPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "General",
+        sectionName: buttonText("labels.general"),
         children: [
           {
             propertyName: "buttonVariant",
-            label: "Button variant",
+            label: buttonText("labels.buttonVariant"),
             controlType: "ICON_TABS",
             defaultValue: ButtonVariantTypes.PRIMARY,
             fullWidth: true,
-            helpText: "Sets the variant of the icon button",
+            helpText: buttonText("help.buttonVariant"),
             options: [
               {
-                label: "Primary",
+                label: buttonText("options.primary"),
                 value: ButtonVariantTypes.PRIMARY,
               },
               {
-                label: "Secondary",
+                label: buttonText("options.secondary"),
                 value: ButtonVariantTypes.SECONDARY,
               },
               {
-                label: "Tertiary",
+                label: buttonText("options.tertiary"),
                 value: ButtonVariantTypes.TERTIARY,
               },
             ],
@@ -338,12 +347,12 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
         ],
       },
       {
-        sectionName: "Icon",
+        sectionName: buttonText("labels.icon"),
         children: [
           {
             propertyName: "iconName",
-            label: "Select icon",
-            helpText: "Sets the icon to be used for the button",
+            label: buttonText("labels.selectIcon"),
+            helpText: buttonText("help.selectIcon"),
             controlType: "ICON_SELECT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -371,8 +380,8 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
           },
           {
             propertyName: "iconAlign",
-            label: "Position",
-            helpText: "Sets the icon alignment of the button",
+            label: buttonText("labels.position"),
+            helpText: buttonText("help.position"),
             controlType: "ICON_TABS",
             defaultValue: "left",
             fullWidth: false,
@@ -397,21 +406,21 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
           },
           {
             propertyName: "placement",
-            label: "Placement",
+            label: buttonText("labels.placement"),
             controlType: "ICON_TABS",
             fullWidth: true,
-            helpText: "Sets the space between items",
+            helpText: buttonText("help.placement"),
             options: [
               {
-                label: "Start",
+                label: buttonText("options.start"),
                 value: ButtonPlacementTypes.START,
               },
               {
-                label: "Between",
+                label: buttonText("options.between"),
                 value: ButtonPlacementTypes.BETWEEN,
               },
               {
-                label: "Center",
+                label: buttonText("options.center"),
                 value: ButtonPlacementTypes.CENTER,
               },
             ],
@@ -434,12 +443,12 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
         ],
       },
       {
-        sectionName: "Label styles",
+        sectionName: buttonText("labels.labelStyles"),
         children: [
           {
             propertyName: "labelTextColor",
-            label: "Font color",
-            helpText: "Control the color of the label associated",
+            label: buttonText("labels.fontColor"),
+            helpText: buttonText("help.fontColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -453,8 +462,8 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
           },
           {
             propertyName: "labelTextSize",
-            label: "Font size",
-            helpText: "Control the font size of the label associated",
+            label: buttonText("labels.fontSize"),
+            helpText: buttonText("help.fontSize"),
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
             options: [
@@ -496,8 +505,8 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
           },
           {
             propertyName: "labelStyle",
-            label: "Emphasis",
-            helpText: "Control if the label should be bold or italics",
+            label: buttonText("labels.emphasis"),
+            helpText: buttonText("help.emphasis"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -517,12 +526,12 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
         ],
       },
       {
-        sectionName: "Color",
+        sectionName: buttonText("labels.color"),
         children: [
           {
             propertyName: "buttonColor",
-            helpText: "Changes the color of the button",
-            label: "Button color",
+            helpText: buttonText("help.buttonColor"),
+            label: buttonText("labels.buttonColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -532,13 +541,12 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
         ],
       },
       {
-        sectionName: "Border and shadow",
+        sectionName: buttonText("labels.borderAndShadow"),
         children: [
           {
             propertyName: "borderRadius",
-            label: "Border radius",
-            helpText:
-              "Rounds the corners of the icon button's outer border edge",
+            label: buttonText("labels.borderRadius"),
+            helpText: buttonText("help.borderRadius"),
             controlType: "BORDER_RADIUS_OPTIONS",
             isBindProperty: true,
             isJSConvertible: true,
@@ -549,9 +557,8 @@ class ButtonWidget extends BaseWidget<ButtonWidgetProps, ButtonWidgetState> {
           },
           {
             propertyName: "boxShadow",
-            label: "Box shadow",
-            helpText:
-              "Enables you to cast a drop shadow from the frame of the widget",
+            label: buttonText("labels.boxShadow"),
+            helpText: buttonText("help.boxShadow"),
             controlType: "BOX_SHADOW_OPTIONS",
             isJSConvertible: true,
             isBindProperty: true,
@@ -723,6 +730,14 @@ export interface ButtonWidgetProps extends WidgetProps {
 
 interface ButtonWidgetState extends WidgetState {
   isLoading: boolean;
+}
+
+export function getButtonPropertyPaneContentConfig() {
+  return ButtonWidget.getButtonPropertyPaneContentConfig();
+}
+
+export function getButtonPropertyPaneStyleConfig() {
+  return ButtonWidget.getButtonPropertyPaneStyleConfig();
 }
 
 export default ButtonWidget;
