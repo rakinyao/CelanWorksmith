@@ -854,12 +854,50 @@ const zhCN = {
         maxDate: "设置允许的最大值",
         min: "设置允许的最小值",
         max: "设置允许的最大值",
+        infiniteScrollDisabled: "启用无限滚动后，此功能不可用",
+        customSortFunctionHelper:
+          "仅限客户端，自定义排序函数数据（覆盖默认排序）",
+        customSortFunction:
+          "函数应接收三个参数：tableData、columnId 和 order。返回排序后的 tableData。",
+        addNewRowSave: "点击添加新行的保存按钮时",
+        addNewRowDiscard: "点击添加新行的放弃按钮时",
+        defaultNewRow: "默认新行值",
+        cellBorders: "选择变体",
+        columnType: "根据列数据选择要显示的列类型",
+        columnAliasChange: "更改列名称会覆盖对此字段所做的任何更改",
+        currencyThousandSeparator: "使用千位分隔符格式化货币",
+        columnFreezeDirection: "选择要冻结在表格左侧或右侧的列",
+        menuButtonIcon: "设置菜单按钮使用的图标",
+        selectUseTopRow: "切换以在新行和编辑现有行时显示相同的列选项",
+        selectNewRowOptions: "仅在添加新行时显示在该列中的选项",
+        validationRegex: "为单元格值添加校验，失败时显示错误",
+        validationErrorMessage: "正则表达式或有效属性检查失败时显示的错误消息",
+        menuBindingLabel: "使用 {{currentItem}} 绑定设置菜单项标签。",
+        menuBindingVisible:
+          "控制小部件的可见性。也可以使用 {{currentItem}} 绑定进行配置。",
+        menuBindingDisabled:
+          "禁用小部件输入。也可以使用 {{currentItem}} 绑定进行配置。",
+        menuBindingOnClick:
+          "菜单项点击时。也可以使用 {{currentItem}} 绑定进行配置。",
+        menuBindingIcon:
+          "设置菜单项使用的图标。也可以使用 {{currentItem}} 绑定进行配置。",
+        menuBindingIconAlignment:
+          "设置菜单项图标对齐方式。也可以使用 {{currentItem}} 绑定进行配置。",
+        menuBindingIconColor:
+          "设置菜单项图标颜色。也可以使用 {{currentItem}} 绑定进行配置。",
+        menuBindingBackgroundColor:
+          "设置菜单项背景颜色。也可以使用 {{currentItem}} 绑定进行配置。",
+        menuBindingTextColor:
+          "设置菜单项文本颜色。也可以使用 {{currentItem}} 绑定进行配置。",
       },
       placeholder: {
         menuLabel: "输入标签",
         totalRecords: "输入记录总数",
         csvSeparator: "输入 CSV 分隔符",
         placeholder: "输入占位文本",
+        borderWidth: "输入像素值",
+        currencySearch: "按代码或名称搜索",
+        validationErrorMessage: "不是有效值！",
       },
       option: {
         singleRow: "单行",

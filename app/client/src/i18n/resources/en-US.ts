@@ -882,12 +882,60 @@ const enUS = {
         maxDate: "Sets the maximum allowed value",
         min: "Sets the minimum allowed value",
         max: "Sets the maximum allowed value",
+        infiniteScrollDisabled:
+          "This feature is disabled because infinite scroll is enabled",
+        customSortFunctionHelper:
+          "Client side only, custom sort function data(overrides default sorting)",
+        customSortFunction:
+          "Function should expect three arguments: tableData, columnId, and order. Return the sorted tableData.",
+        addNewRowSave: "when a add new row save button is clicked",
+        addNewRowDiscard: "when a add new row discard button is clicked",
+        defaultNewRow: "Default new row values",
+        cellBorders: "Selects the variant",
+        columnType:
+          "Type of column to be shown corresponding to the data of the column",
+        columnAliasChange:
+          "Changing the name of the column overrides any changes to this field",
+        currencyThousandSeparator:
+          "formats the currency with a thousand separator",
+        columnFreezeDirection:
+          "Choose column that needs to be frozen left or right of the table",
+        menuButtonIcon: "Sets the icon to be used for the menu button",
+        selectUseTopRow:
+          "Toggle to display same choices for new row and editing existing row in column",
+        selectNewRowOptions:
+          "Options exclusively displayed in the column for new row addition",
+        validationRegex:
+          "Adds a validation to the cell value which displays an error on failure",
+        validationErrorMessage:
+          "The error message to display if the regex or valid property check fails",
+        menuBindingLabel:
+          "Sets the label of a menu item using the {{currentItem}} binding.",
+        menuBindingVisible:
+          "Controls the visibility of the widget. Can also be configured the using {{currentItem}} binding.",
+        menuBindingDisabled:
+          "Disables input to the widget. Can also be configured the using {{currentItem}} binding.",
+        menuBindingOnClick:
+          "when the menu item is clicked. Can also be configured the using {{currentItem}} binding.",
+        menuBindingIcon:
+          "Sets the icon to be used for a menu item. Can also be configured the using {{currentItem}} binding.",
+        menuBindingIconAlignment:
+          "Sets the icon alignment of a menu item. Can also be configured the using {{currentItem}} binding.",
+        menuBindingIconColor:
+          "Sets the icon color of a menu item. Can also be configured the using {{currentItem}} binding.",
+        menuBindingBackgroundColor:
+          "Sets the background color of a menu item. Can also be configured the using {{currentItem}} binding.",
+        menuBindingTextColor:
+          "Sets the text color of a menu item. Can also be configured the using {{currentItem}} binding.",
       },
       placeholder: {
         menuLabel: "Enter label",
         totalRecords: "Enter total record count",
         csvSeparator: "Enter CSV separator",
         placeholder: "Enter placeholder text",
+        borderWidth: "Enter value in px",
+        currencySearch: "Search by code or name",
+        validationErrorMessage: "Not a valid value!",
       },
       option: {
         singleRow: "Single Row",
