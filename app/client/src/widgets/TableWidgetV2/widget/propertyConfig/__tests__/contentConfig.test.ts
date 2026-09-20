@@ -14,6 +14,7 @@ interface TestConfig {
   helpText?: string;
   children?: TestConfig[];
   panelConfig?: { contentChildren?: TestConfig[] };
+  styleChildren?: TestConfig[];
   options?: Array<{ label?: string; value?: unknown }>;
 }
 
@@ -232,5 +233,49 @@ describe("TableWidgetV2 contentConfig tests", () => {
         (section) => section.sectionName === "文本格式",
       ),
     ).toBe(true);
+  });
+
+  it("resolves column style and edit-action copy from the current locale", async () => {
+    await i18n.changeLanguage("zh-CN");
+    const content = getContentConfig();
+    const data = content.find((section) => section.sectionName === "数据");
+    const primaryColumns = data?.children?.find(
+      (child) => child.propertyName === "primaryColumns",
+    ) as TestConfig;
+    const panelConfig = primaryColumns?.panelConfig as TestConfig;
+    const styleChildren = panelConfig?.styleChildren ?? [];
+    const generalStyle = styleChildren.find(
+      (section) => section.sectionName === "常规",
+    );
+    const textFormatting = styleChildren.find(
+      (section) => section.sectionName === "文本格式",
+    );
+    const textAlign = textFormatting?.children?.find(
+      (child) => child.propertyName === "horizontalAlignment",
+    );
+    const leftOption = textAlign?.options?.find(
+      (option) => option.value === "LEFT",
+    );
+    const saveButton = panelConfig?.contentChildren?.find(
+      (section) => section.sectionName === "保存按钮",
+    );
+    const saveLabel = saveButton?.children
+      ?.find((section) => section.sectionName === "标签")
+      ?.children?.find((child) => child.propertyName === "saveActionLabel");
+    const discardButton = panelConfig?.contentChildren?.find(
+      (section) => section.sectionName === "放弃按钮",
+    );
+    const discardLabel = discardButton?.children
+      ?.find((section) => section.sectionName === "标签")
+      ?.children?.find((child) => child.propertyName === "discardActionLabel");
+
+    expect(textFormatting).toBeDefined();
+    expect(generalStyle?.children?.[0]?.label).toBe("按钮变体");
+    expect(textAlign?.label).toBe("文本对齐");
+    expect(leftOption?.value).toBe("LEFT");
+    expect(saveLabel?.label).toBe("文本");
+    expect(saveLabel?.propertyName).toBe("saveActionLabel");
+    expect(discardLabel?.label).toBe("文本");
+    expect(discardLabel?.propertyName).toBe("discardActionLabel");
   });
 });

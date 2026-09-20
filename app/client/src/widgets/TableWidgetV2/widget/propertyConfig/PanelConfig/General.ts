@@ -179,127 +179,131 @@ export function getTableV2ColumnGeneralConfig() {
   };
 }
 
-export const GeneralStyle = {
-  sectionName: "General",
-  children: [
-    {
-      propertyName: "buttonVariant",
-      label: "Button variant",
-      controlType: "ICON_TABS",
-      fullWidth: true,
-      customJSControl: "TABLE_COMPUTE_VALUE",
-      isJSConvertible: true,
-      helpText: "Sets the variant",
-      hidden: (props: TableWidgetProps, propertyPath: string) => {
-        return hideByColumnType(props, propertyPath, [
-          ColumnTypes.ICON_BUTTON,
-          ColumnTypes.BUTTON,
-        ]);
-      },
-      dependencies: ["primaryColumns", "columnOrder"],
-      options: [
-        {
-          label: "Primary",
-          value: ButtonVariantTypes.PRIMARY,
+export function getTableV2ColumnGeneralStyleConfig() {
+  return {
+    sectionName: tableV2Text("style.general"),
+    children: [
+      {
+        propertyName: "buttonVariant",
+        label: tableV2Text("menu.buttonVariant"),
+        controlType: "ICON_TABS",
+        fullWidth: true,
+        customJSControl: "TABLE_COMPUTE_VALUE",
+        isJSConvertible: true,
+        helpText: tableV2Text("help.buttonVariant"),
+        hidden: (props: TableWidgetProps, propertyPath: string) => {
+          return hideByColumnType(props, propertyPath, [
+            ColumnTypes.ICON_BUTTON,
+            ColumnTypes.BUTTON,
+          ]);
         },
-        {
-          label: "Secondary",
-          value: ButtonVariantTypes.SECONDARY,
-        },
-        {
-          label: "Tertiary",
-          value: ButtonVariantTypes.TERTIARY,
-        },
-      ],
-      defaultValue: ButtonVariantTypes.PRIMARY,
-      isBindProperty: true,
-      isTriggerProperty: false,
-      validation: {
-        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
-        params: {
-          type: ValidationTypes.TEXT,
+        dependencies: ["primaryColumns", "columnOrder"],
+        options: [
+          {
+            label: tableV2Text("option.primary"),
+            value: ButtonVariantTypes.PRIMARY,
+          },
+          {
+            label: tableV2Text("option.secondary"),
+            value: ButtonVariantTypes.SECONDARY,
+          },
+          {
+            label: tableV2Text("option.tertiary"),
+            value: ButtonVariantTypes.TERTIARY,
+          },
+        ],
+        defaultValue: ButtonVariantTypes.PRIMARY,
+        isBindProperty: true,
+        isTriggerProperty: false,
+        validation: {
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
-            default: ButtonVariantTypes.PRIMARY,
-            allowedValues: [
-              ButtonVariantTypes.PRIMARY,
-              ButtonVariantTypes.SECONDARY,
-              ButtonVariantTypes.TERTIARY,
-            ],
+            type: ValidationTypes.TEXT,
+            params: {
+              default: ButtonVariantTypes.PRIMARY,
+              allowedValues: [
+                ButtonVariantTypes.PRIMARY,
+                ButtonVariantTypes.SECONDARY,
+                ButtonVariantTypes.TERTIARY,
+              ],
+            },
           },
         },
       },
-    },
-    {
-      propertyName: "menuVariant",
-      label: "Button variant",
-      controlType: "ICON_TABS",
-      fullWidth: true,
-      customJSControl: "TABLE_COMPUTE_VALUE",
-      helpText: "Sets the variant of the menu button",
-      options: [
-        {
-          label: "Primary",
-          value: ButtonVariantTypes.PRIMARY,
+      {
+        propertyName: "menuVariant",
+        label: tableV2Text("menu.buttonVariant"),
+        controlType: "ICON_TABS",
+        fullWidth: true,
+        customJSControl: "TABLE_COMPUTE_VALUE",
+        helpText: tableV2Text("help.menuButtonVariant"),
+        options: [
+          {
+            label: tableV2Text("option.primary"),
+            value: ButtonVariantTypes.PRIMARY,
+          },
+          {
+            label: tableV2Text("option.secondary"),
+            value: ButtonVariantTypes.SECONDARY,
+          },
+          {
+            label: tableV2Text("option.tertiary"),
+            value: ButtonVariantTypes.TERTIARY,
+          },
+        ],
+        isJSConvertible: true,
+        dependencies: ["primaryColumns", "columnOrder"],
+        hidden: (props: TableWidgetProps, propertyPath: string) => {
+          return hideByColumnType(props, propertyPath, [
+            ColumnTypes.MENU_BUTTON,
+          ]);
         },
-        {
-          label: "Secondary",
-          value: ButtonVariantTypes.SECONDARY,
-        },
-        {
-          label: "Tertiary",
-          value: ButtonVariantTypes.TERTIARY,
-        },
-      ],
-      isJSConvertible: true,
-      dependencies: ["primaryColumns", "columnOrder"],
-      hidden: (props: TableWidgetProps, propertyPath: string) => {
-        return hideByColumnType(props, propertyPath, [ColumnTypes.MENU_BUTTON]);
-      },
-      isBindProperty: true,
-      isTriggerProperty: false,
-      defaultValue: ButtonVariantTypes.PRIMARY,
-      validation: {
-        type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
-        params: {
-          type: ValidationTypes.TEXT,
+        isBindProperty: true,
+        isTriggerProperty: false,
+        defaultValue: ButtonVariantTypes.PRIMARY,
+        validation: {
+          type: ValidationTypes.ARRAY_OF_TYPE_OR_TYPE,
           params: {
-            default: ButtonVariantTypes.PRIMARY,
-            allowedValues: [
-              ButtonVariantTypes.PRIMARY,
-              ButtonVariantTypes.SECONDARY,
-              ButtonVariantTypes.TERTIARY,
-            ],
+            type: ValidationTypes.TEXT,
+            params: {
+              default: ButtonVariantTypes.PRIMARY,
+              allowedValues: [
+                ButtonVariantTypes.PRIMARY,
+                ButtonVariantTypes.SECONDARY,
+                ButtonVariantTypes.TERTIARY,
+              ],
+            },
           },
         },
       },
-    },
-    {
-      propertyName: "imageSize",
-      dependencies: ["primaryColumns", "columnType"],
-      label: "Image Size",
-      helpText: "Sets the size of the image",
-      defaultValue: "DEFAULT",
-      controlType: "ICON_TABS",
-      fullWidth: true,
-      options: [
-        {
-          label: "Default",
-          value: "DEFAULT",
+      {
+        propertyName: "imageSize",
+        dependencies: ["primaryColumns", "columnType"],
+        label: tableV2Text("help.imageSizeLabel"),
+        helpText: tableV2Text("help.imageSize"),
+        defaultValue: "DEFAULT",
+        controlType: "ICON_TABS",
+        fullWidth: true,
+        options: [
+          {
+            label: tableV2Text("option.default"),
+            value: "DEFAULT",
+          },
+          {
+            label: tableV2Text("option.medium"),
+            value: "MEDIUM",
+          },
+          {
+            label: tableV2Text("option.large"),
+            value: "LARGE",
+          },
+        ],
+        isBindProperty: false,
+        isTriggerProperty: false,
+        hidden: (props: TableWidgetProps, propertyPath: string) => {
+          return hideByColumnType(props, propertyPath, [ColumnTypes.IMAGE]);
         },
-        {
-          label: "Medium",
-          value: "MEDIUM",
-        },
-        {
-          label: "Large",
-          value: "LARGE",
-        },
-      ],
-      isBindProperty: false,
-      isTriggerProperty: false,
-      hidden: (props: TableWidgetProps, propertyPath: string) => {
-        return hideByColumnType(props, propertyPath, [ColumnTypes.IMAGE]);
       },
-    },
-  ],
-};
+    ],
+  };
+}

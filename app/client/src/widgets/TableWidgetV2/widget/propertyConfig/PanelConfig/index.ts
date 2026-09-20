@@ -1,21 +1,26 @@
 import { updateCustomColumnAliasOnLabelChange } from "../../propertyUtils";
-import Alignment from "./Alignment";
+import { getTableV2ColumnAlignmentConfig } from "./Alignment";
 import { getTableV2ColumnBasicConfig } from "./Basic";
-import BorderAndShadow from "./BorderAndShadow";
-import Color from "./Color";
+import { getTableV2ColumnBorderAndShadowConfig } from "./BorderAndShadow";
+import { getTableV2ColumnColorConfig } from "./Color";
 import { getTableV2ColumnDataConfig } from "./Data";
-import DateProperties from "./DateProperties";
-import DiscardButtonproperties, {
-  discardButtonStyleConfig,
+import { getTableV2ColumnDatePropertiesConfig } from "./DateProperties";
+import {
+  getTableV2ColumnDiscardButtonPropertiesConfig,
+  getTableV2ColumnDiscardButtonStyleConfig,
 } from "./DiscardButtonproperties";
 import { getTableV2ColumnEventsConfig } from "./Events";
-import { getTableV2ColumnGeneralConfig, GeneralStyle } from "./General";
-import Icon from "./Icon";
-import SaveButtonProperties, {
-  saveButtonStyleConfig,
+import {
+  getTableV2ColumnGeneralConfig,
+  getTableV2ColumnGeneralStyleConfig,
+} from "./General";
+import { getTableV2ColumnIconConfig } from "./Icon";
+import {
+  getTableV2ColumnSaveButtonPropertiesConfig,
+  getTableV2ColumnSaveButtonStyleConfig,
 } from "./SaveButtonProperties";
 import { getTableV2ColumnSelectConfig } from "./Select";
-import TextFormatting from "./TextFormatting";
+import { getTableV2ColumnTextFormattingConfig } from "./TextFormatting";
 import { getTableV2ColumnValidationConfig } from "./Validation";
 
 export function getTableV2ColumnPanelConfig() {
@@ -29,21 +34,21 @@ export function getTableV2ColumnPanelConfig() {
       getTableV2ColumnBasicConfig(),
       getTableV2ColumnGeneralConfig(),
       getTableV2ColumnValidationConfig(),
-      SaveButtonProperties,
-      DiscardButtonproperties,
+      getTableV2ColumnSaveButtonPropertiesConfig(),
+      getTableV2ColumnDiscardButtonPropertiesConfig(),
       getTableV2ColumnSelectConfig(),
       getTableV2ColumnEventsConfig(),
-      DateProperties,
+      getTableV2ColumnDatePropertiesConfig(),
     ],
     styleChildren: [
-      GeneralStyle,
-      Icon,
-      Alignment,
-      TextFormatting,
-      Color,
-      saveButtonStyleConfig,
-      discardButtonStyleConfig,
-      BorderAndShadow,
+      getTableV2ColumnGeneralStyleConfig(),
+      getTableV2ColumnIconConfig(),
+      getTableV2ColumnAlignmentConfig(),
+      getTableV2ColumnTextFormattingConfig(),
+      getTableV2ColumnColorConfig(),
+      getTableV2ColumnSaveButtonStyleConfig(),
+      getTableV2ColumnDiscardButtonStyleConfig(),
+      getTableV2ColumnBorderAndShadowConfig(),
     ],
     updateHook: updateCustomColumnAliasOnLabelChange,
   };
