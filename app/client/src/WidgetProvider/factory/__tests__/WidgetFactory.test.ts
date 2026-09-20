@@ -2,7 +2,17 @@ import WidgetFactory from "../index";
 import { clearAllWidgetFactoryCache } from "../decorators";
 import type BaseWidget from "widgets/BaseWidget";
 import TableWidget from "widgets/TableWidget/widget";
+import TableWidgetV2 from "widgets/TableWidgetV2/widget";
 import i18n from "i18n";
+import type { PropertyPaneConfig } from "constants/PropertyControlConstants";
+
+const firstSectionName = (config: readonly PropertyPaneConfig[]) =>
+  config[0]?.sectionName;
+
+const firstStyleSectionName = (config: readonly PropertyPaneConfig[]) =>
+  config.find((section) =>
+    section.children?.some((child) => child.propertyName === "compactMode"),
+  )?.sectionName;
 
 describe("WidgetFactory Cache Tests", () => {
   beforeAll(() => {
@@ -61,5 +71,31 @@ describe("WidgetFactory Cache Tests", () => {
     expect((chineseConfig[0] as { sectionName?: string }).sectionName).toBe(
       "常规",
     );
+  });
+
+  it("refreshes the real TableWidgetV2 combined config after a language switch", async () => {
+    WidgetFactory.widgetsMap.set(TableWidgetV2.type, TableWidgetV2);
+    clearAllWidgetFactoryCache();
+
+    try {
+      await i18n.changeLanguage("en-US");
+      const english = WidgetFactory.getWidgetPropertyPaneConfig(
+        TableWidgetV2.type,
+        {} as never,
+      );
+
+      await i18n.changeLanguage("zh-CN");
+      const chinese = WidgetFactory.getWidgetPropertyPaneConfig(
+        TableWidgetV2.type,
+        {} as never,
+      );
+
+      expect(firstSectionName(english)).toBe("Data");
+      expect(firstSectionName(chinese)).toBe("数据");
+      expect(firstStyleSectionName(chinese)).toBe("常规");
+    } finally {
+      await i18n.changeLanguage("en-US");
+      clearAllWidgetFactoryCache();
+    }
   });
 });
