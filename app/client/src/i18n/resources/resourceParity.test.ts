@@ -332,6 +332,33 @@ describe("locale resources", () => {
       expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
     }
 
+    expect(flattenKeys(enUS.widgetProperty.radioGroup).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.radioGroup).sort(),
+    );
+    expect(
+      i18n.t("widgetProperty.radioGroup.content.data", { lng: "zh-CN" }),
+    ).toBe("数据");
+    expect(
+      i18n.t("widgetProperty.radioGroup.option.auto", { lng: "zh-CN" }),
+    ).toBe("自动");
+    const radioGroupResources = flattenResourceLeaves(
+      enUS.widgetProperty.radioGroup,
+    );
+    const chineseRadioGroupResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.radioGroup).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of radioGroupResources) {
+      const path = `widgetProperty.radioGroup.${resource.path}`;
+
+      expect(chineseRadioGroupResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     const requiredTableLabels = [
       "columnControl",
       "columnType",

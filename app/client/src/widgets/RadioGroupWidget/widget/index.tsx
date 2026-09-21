@@ -32,6 +32,10 @@ import type {
 } from "WidgetProvider/types";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { FlexVerticalAlignment } from "layoutSystems/common/utils/constants";
+import i18n from "i18n";
+
+const radioGroupText = (path: string) =>
+  i18n.t(`widgetProperty.radioGroup.${path}`);
 
 /**
  * Validation rules:
@@ -323,14 +327,18 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    return getRadioGroupPropertyPaneContentConfig();
+  }
+
+  static getRadioGroupPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "Data",
+        sectionName: radioGroupText("content.data"),
         children: [
           {
-            helpText: "Displays a list of unique options",
+            helpText: radioGroupText("help.options"),
             propertyName: "options",
-            label: "Options",
+            label: radioGroupText("content.options"),
             controlType: "OPTION_INPUT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -350,9 +358,9 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
               EvaluationSubstitutionType.SMART_SUBSTITUTE,
           },
           {
-            helpText: "Sets a default selected option",
+            helpText: radioGroupText("help.defaultOptionValue"),
             propertyName: "defaultOptionValue",
-            label: "Default selected value",
+            label: radioGroupText("content.defaultOptionValue"),
             placeholderText: "Y",
             controlType: "INPUT_TEXT",
             isBindProperty: true,
@@ -377,29 +385,38 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Label",
+        sectionName: radioGroupText("content.label"),
         children: [
           {
-            helpText: "Sets the label text of the widget",
+            helpText: radioGroupText("help.label"),
             propertyName: "label",
-            label: "Text",
+            label: radioGroupText("content.text"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Enter label text",
+            placeholderText: radioGroupText("placeholder.label"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label position of the widget",
+            helpText: radioGroupText("help.labelPosition"),
             propertyName: "labelPosition",
-            label: "Position",
+            label: radioGroupText("content.position"),
             controlType: "ICON_TABS",
             fullWidth: true,
             hidden: isAutoLayout,
             options: [
-              { label: "Auto", value: LabelPosition.Auto },
-              { label: "Left", value: LabelPosition.Left },
-              { label: "Top", value: LabelPosition.Top },
+              {
+                label: radioGroupText("option.auto"),
+                value: LabelPosition.Auto,
+              },
+              {
+                label: radioGroupText("option.left"),
+                value: LabelPosition.Left,
+              },
+              {
+                label: radioGroupText("option.top"),
+                value: LabelPosition.Top,
+              },
             ],
             defaultValue: LabelPosition.Top,
             isBindProperty: false,
@@ -407,9 +424,9 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label alignment of the widget",
+            helpText: radioGroupText("help.alignment"),
             propertyName: "labelAlignment",
-            label: "Alignment",
+            label: radioGroupText("content.alignment"),
             controlType: "LABEL_ALIGNMENT_OPTIONS",
             fullWidth: false,
             options: [
@@ -430,10 +447,9 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
             dependencies: ["labelPosition"],
           },
           {
-            helpText:
-              "Sets the label width of the widget as the number of columns",
+            helpText: radioGroupText("help.labelWidth"),
             propertyName: "labelWidth",
-            label: "Width (in columns)",
+            label: radioGroupText("content.labelWidth"),
             controlType: "NUMERIC_INPUT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -452,12 +468,12 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Validations",
+        sectionName: radioGroupText("content.validations"),
         children: [
           {
             propertyName: "isRequired",
-            label: "Required",
-            helpText: "Makes input to the widget mandatory",
+            label: radioGroupText("content.required"),
+            helpText: radioGroupText("help.required"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -467,22 +483,22 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "General",
+        sectionName: radioGroupText("content.general"),
         children: [
           {
-            helpText: "Show help text or details about current input",
+            helpText: radioGroupText("help.tooltip"),
             propertyName: "labelTooltip",
-            label: "Tooltip",
+            label: radioGroupText("content.tooltip"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Value must be atleast 6 chars",
+            placeholderText: radioGroupText("placeholder.tooltip"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Controls the visibility of the widget",
+            helpText: radioGroupText("help.visible"),
             propertyName: "isVisible",
-            label: "Visible",
+            label: radioGroupText("content.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -491,8 +507,8 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           },
           {
             propertyName: "isDisabled",
-            label: "Disabled",
-            helpText: "Disables input to this widget",
+            label: radioGroupText("content.disabled"),
+            helpText: radioGroupText("help.disabled"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -501,9 +517,8 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           },
           {
             propertyName: "isInline",
-            helpText:
-              "Whether the radio buttons are to be displayed inline horizontally",
-            label: "Inline",
+            helpText: radioGroupText("help.inline"),
+            label: radioGroupText("content.inline"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -512,9 +527,9 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: radioGroupText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: radioGroupText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -524,10 +539,10 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: radioGroupText("content.events"),
         children: [
           {
-            helpText: "when a user changes the selected option",
+            helpText: radioGroupText("help.onSelectionChange"),
             propertyName: "onSelectionChange",
             label: "onSelectionChange",
             controlType: "ACTION_SELECTOR",
@@ -541,14 +556,18 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneStyleConfig() {
+    return getRadioGroupPropertyPaneStyleConfig();
+  }
+
+  static getRadioGroupPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Label styles",
+        sectionName: radioGroupText("style.labelStyles"),
         children: [
           {
             propertyName: "labelTextColor",
-            label: "Font color",
-            helpText: "Control the color of the label associated",
+            label: radioGroupText("style.fontColor"),
+            helpText: radioGroupText("help.fontColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -557,38 +576,38 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelTextSize",
-            label: "Font size",
-            helpText: "Control the font size of the label associated",
+            label: radioGroupText("style.fontSize"),
+            helpText: radioGroupText("help.fontSize"),
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
             options: [
               {
-                label: "S",
+                label: radioGroupText("option.small"),
                 value: "0.875rem",
                 subText: "0.875rem",
               },
               {
-                label: "M",
+                label: radioGroupText("option.medium"),
                 value: "1rem",
                 subText: "1rem",
               },
               {
-                label: "L",
+                label: radioGroupText("option.large"),
                 value: "1.25rem",
                 subText: "1.25rem",
               },
               {
-                label: "XL",
+                label: radioGroupText("option.extraLarge"),
                 value: "1.875rem",
                 subText: "1.875rem",
               },
               {
-                label: "XXL",
+                label: radioGroupText("option.doubleExtraLarge"),
                 value: "3rem",
                 subText: "3rem",
               },
               {
-                label: "3XL",
+                label: radioGroupText("option.tripleExtraLarge"),
                 value: "3.75rem",
                 subText: "3.75rem",
               },
@@ -600,8 +619,8 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelStyle",
-            label: "Emphasis",
-            helpText: "Control if the label should be bold or italics",
+            label: radioGroupText("style.emphasis"),
+            helpText: radioGroupText("help.emphasis"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -621,12 +640,12 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "General",
+        sectionName: radioGroupText("content.general"),
         children: [
           {
             propertyName: "alignment",
-            helpText: "Sets the alignment of the widget",
-            label: "Alignment",
+            helpText: radioGroupText("help.widgetAlignment"),
+            label: radioGroupText("content.alignment"),
             controlType: "ICON_TABS",
             defaultValue: Alignment.LEFT,
             fullWidth: true,
@@ -646,12 +665,12 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Color",
+        sectionName: radioGroupText("style.color"),
         children: [
           {
             propertyName: "accentColor",
-            helpText: "Sets the accent color of the widget",
-            label: "Accent color",
+            helpText: radioGroupText("help.accentColor"),
+            label: radioGroupText("style.accentColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -796,6 +815,14 @@ class RadioGroupWidget extends BaseWidget<RadioGroupWidgetProps, WidgetState> {
       },
     });
   };
+}
+
+export function getRadioGroupPropertyPaneContentConfig() {
+  return RadioGroupWidget.getRadioGroupPropertyPaneContentConfig();
+}
+
+export function getRadioGroupPropertyPaneStyleConfig() {
+  return RadioGroupWidget.getRadioGroupPropertyPaneStyleConfig();
 }
 
 export interface RadioGroupWidgetProps extends WidgetProps {
