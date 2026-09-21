@@ -259,6 +259,36 @@ describe("locale resources", () => {
       }),
     ).toBe("#FFFFFF / Gray / rgb(255, 99, 71)");
 
+    expect(flattenKeys(enUS.widgetProperty.tabs).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.tabs).sort(),
+    );
+    expect(i18n.t("widgetProperty.tabs.content.tabs", { lng: "zh-CN" })).toBe(
+      "标签页",
+    );
+    expect(
+      i18n.t("widgetProperty.tabs.content.showTabs", { lng: "zh-CN" }),
+    ).toBe("显示标签页");
+    expect(
+      i18n.t("widgetProperty.tabs.style.colorsBordersAndShadows", {
+        lng: "zh-CN",
+      }),
+    ).toBe("颜色、边框和阴影");
+    const tabsResources = flattenResourceLeaves(enUS.widgetProperty.tabs);
+    const chineseTabsResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.tabs).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of tabsResources) {
+      const path = `widgetProperty.tabs.${resource.path}`;
+
+      expect(chineseTabsResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     expect(flattenKeys(enUS.widgetProperty.table.labels).length).toBe(47);
     expect(flattenKeys(enUS.widgetProperty.select.labels).length).toBe(24);
     expect(flattenKeys(enUS.widgetProperty.multiSelect.labels).length).toBe(34);

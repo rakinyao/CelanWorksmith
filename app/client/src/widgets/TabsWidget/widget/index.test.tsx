@@ -9,6 +9,8 @@ import * as dataTreeSelectors from "selectors/dataTreeSelectors";
 import * as editorSelectors from "selectors/editorSelectors";
 import Canvas from "pages/Editor/Canvas";
 import React from "react";
+import i18n from "i18n";
+import TabsWidget from ".";
 import {
   mockCreateCanvasWidget,
   mockGetWidgetEvalValues,
@@ -26,6 +28,53 @@ describe("Tabs widget functional cases", () => {
   jest
     .spyOn(widgetRenderUtils, "createCanvasWidget")
     .mockImplementation(mockCreateCanvasWidget);
+
+  it("localizes the Tabs property pane while preserving technical values", async () => {
+    const previousLanguage = i18n.language;
+
+    try {
+      await i18n.changeLanguage("zh-CN");
+
+      const contentConfig = TabsWidget.getPropertyPaneContentConfig();
+      const styleConfig = TabsWidget.getPropertyPaneStyleConfig();
+      const tabsSection = contentConfig.find(
+        (section) => section.sectionName === "数据",
+      );
+      const tabs = tabsSection?.children?.find(
+        (property) => property.propertyName === "tabsObj",
+      );
+      const defaultTab = tabsSection?.children?.find(
+        (property) => property.propertyName === "defaultTab",
+      );
+      const nestedGeneral = tabs?.panelConfig?.children?.[0];
+      const showTabs = contentConfig
+        .flatMap((section) => section.children)
+        .find((property) => property.propertyName === "shouldShowTabs");
+
+      expect(tabsSection).toBeDefined();
+      expect(tabs?.label).toBe("标签页");
+      expect(tabs?.propertyName).toBe("tabsObj");
+      expect(defaultTab?.label).toBe("默认标签页");
+      expect(defaultTab?.placeholderText).toBe("Tab 1");
+      expect(nestedGeneral?.sectionName).toBe("常规");
+      expect(showTabs?.label).toBe("显示标签页");
+      expect(
+        contentConfig
+          .flatMap((section) => section.children)
+          .some((property) => property.propertyName === "onTabSelected"),
+      ).toBe(true);
+      expect(tabs?.panelConfig?.updateHook).toBeDefined();
+      expect(tabs?.updateRelatedWidgetProperties).toBeDefined();
+      expect(styleConfig[0].sectionName).toBe("颜色、边框和阴影");
+
+      await i18n.changeLanguage("en-US");
+      expect(TabsWidget.getPropertyPaneContentConfig()[0].sectionName).toBe(
+        "Data",
+      );
+    } finally {
+      await i18n.changeLanguage(previousLanguage);
+    }
+  });
 
   it("Should render 2 tabs by default", () => {
     // TODO: Fix this the next time the file is edited

@@ -1658,6 +1658,51 @@ const enUS = {
         borderWidth: "Enter value in px",
       },
     },
+    tabs: {
+      content: {
+        data: "Data",
+        tabs: "Tabs",
+        defaultTab: "Default tab",
+        general: "General",
+        visible: "Visible",
+        shouldScrollContents: "Scroll contents",
+        animateLoading: "Animate loading",
+        showTabs: "Show tabs",
+        events: "Events",
+      },
+      style: {
+        colorsBordersAndShadows: "Colors, Borders and Shadows",
+        accentColor: "Accent color",
+        backgroundColor: "Background color",
+        borderColor: "Border color",
+        borderWidth: "Border width",
+        borderRadius: "Border radius",
+        boxShadow: "Box shadow",
+      },
+      help: {
+        tabs: "Tabs",
+        tabVisible: "Controls the visibility of the tab",
+        defaultTab: "Selects a tab name specified by default",
+        visible: "Controls the visibility of the widget",
+        shouldScrollContents: "Enables scrolling for content inside the widget",
+        animateLoading: "Controls the loading of the widget",
+        shouldShowTabs:
+          "Hides the tabs so that different widgets can be displayed based on the default tab",
+        onTabSelected: "when the button is clicked",
+        accentColor: "Sets the color of the selected tab's underline ",
+        color: "Use a html color name, HEX, RGB or RGBA value",
+        borderWidth: "Enter value for border width",
+        borderRadius:
+          "Rounds the corners of the icon button's outer border edge",
+        boxShadow:
+          "Enables you to cast a drop shadow from the frame of the widget",
+      },
+      placeholder: {
+        defaultTab: "Tab 1",
+        color: "#FFFFFF / Gray / rgb(255, 99, 71)",
+        borderWidth: "Enter value in px",
+      },
+    },
     labels: {
       data: "Data",
       options: "Options",

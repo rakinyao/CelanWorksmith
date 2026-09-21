@@ -41,6 +41,9 @@ import { BlueprintOperationTypes } from "WidgetProvider/types";
 import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { renderAppsmithCanvas } from "layoutSystems/CanvasFactory";
+import i18n from "i18n";
+
+const tabsText = (path: string) => i18n.t(`widgetProperty.tabs.${path}`);
 
 export function selectedTabValidation(
   value: unknown,
@@ -255,15 +258,19 @@ class TabsWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
+    return getTabsPropertyPaneContentConfig();
+  }
+
+  static getTabsPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "Data",
+        sectionName: tabsText("content.data"),
         children: [
           {
             propertyName: "tabsObj",
             isJSConvertible: false,
-            label: "Tabs",
-            helpText: "Tabs",
+            label: tabsText("content.tabs"),
+            helpText: tabsText("help.tabs"),
             controlType: "TABS_INPUT",
             isBindProperty: false,
             isTriggerProperty: false,
@@ -315,12 +322,12 @@ class TabsWidget extends BaseWidget<
               },
               children: [
                 {
-                  sectionName: "General",
+                  sectionName: tabsText("content.general"),
                   children: [
                     {
                       propertyName: "isVisible",
-                      label: "Visible",
-                      helpText: "Controls the visibility of the tab",
+                      label: tabsText("content.visible"),
+                      helpText: tabsText("help.tabVisible"),
                       controlType: "SWITCH",
                       useValidationMessage: true,
                       isJSConvertible: true,
@@ -335,9 +342,9 @@ class TabsWidget extends BaseWidget<
           },
           {
             propertyName: "defaultTab",
-            helpText: "Selects a tab name specified by default",
-            placeholderText: "Tab 1",
-            label: "Default tab",
+            helpText: tabsText("help.defaultTab"),
+            placeholderText: tabsText("placeholder.defaultTab"),
+            label: tabsText("content.defaultTab"),
             controlType: "INPUT_TEXT",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -357,12 +364,12 @@ class TabsWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "General",
+        sectionName: tabsText("content.general"),
         children: [
           {
             propertyName: "isVisible",
-            label: "Visible",
-            helpText: "Controls the visibility of the widget",
+            label: tabsText("content.visible"),
+            helpText: tabsText("help.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -370,18 +377,18 @@ class TabsWidget extends BaseWidget<
             validation: { type: ValidationTypes.BOOLEAN },
           },
           {
-            helpText: "Enables scrolling for content inside the widget",
+            helpText: tabsText("help.shouldScrollContents"),
             propertyName: "shouldScrollContents",
-            label: "Scroll contents",
+            label: tabsText("content.shouldScrollContents"),
             controlType: "SWITCH",
             isBindProperty: false,
             isTriggerProperty: false,
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: tabsText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: tabsText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -390,9 +397,8 @@ class TabsWidget extends BaseWidget<
           },
           {
             propertyName: "shouldShowTabs",
-            helpText:
-              "Hides the tabs so that different widgets can be displayed based on the default tab",
-            label: "Show tabs",
+            helpText: tabsText("help.shouldShowTabs"),
+            label: tabsText("content.showTabs"),
             controlType: "SWITCH",
             isBindProperty: false,
             isTriggerProperty: false,
@@ -401,10 +407,10 @@ class TabsWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: tabsText("content.events"),
         children: [
           {
-            helpText: "when the button is clicked",
+            helpText: tabsText("help.onTabSelected"),
             propertyName: "onTabSelected",
             label: "onTabSelected",
             controlType: "ACTION_SELECTOR",
@@ -418,14 +424,18 @@ class TabsWidget extends BaseWidget<
   }
 
   static getPropertyPaneStyleConfig() {
+    return getTabsPropertyPaneStyleConfig();
+  }
+
+  static getTabsPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Colors, Borders and Shadows",
+        sectionName: tabsText("style.colorsBordersAndShadows"),
         children: [
           {
             propertyName: "accentColor",
-            helpText: "Sets the color of the selected tab's underline ",
-            label: "Accent color",
+            helpText: tabsText("help.accentColor"),
+            label: tabsText("style.accentColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -433,10 +443,10 @@ class TabsWidget extends BaseWidget<
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Use a html color name, HEX, RGB or RGBA value",
-            placeholderText: "#FFFFFF / Gray / rgb(255, 99, 71)",
+            helpText: tabsText("help.color"),
+            placeholderText: tabsText("placeholder.color"),
             propertyName: "backgroundColor",
-            label: "Background color",
+            label: tabsText("style.backgroundColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -444,20 +454,20 @@ class TabsWidget extends BaseWidget<
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Use a html color name, HEX, RGB or RGBA value",
-            placeholderText: "#FFFFFF / Gray / rgb(255, 99, 71)",
+            helpText: tabsText("help.color"),
+            placeholderText: tabsText("placeholder.color"),
             propertyName: "borderColor",
-            label: "Border color",
+            label: tabsText("style.borderColor"),
             controlType: "COLOR_PICKER",
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Enter value for border width",
+            helpText: tabsText("help.borderWidth"),
             propertyName: "borderWidth",
-            label: "Border width",
-            placeholderText: "Enter value in px",
+            label: tabsText("style.borderWidth"),
+            placeholderText: tabsText("placeholder.borderWidth"),
             controlType: "INPUT_TEXT",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -466,9 +476,8 @@ class TabsWidget extends BaseWidget<
           },
           {
             propertyName: "borderRadius",
-            label: "Border radius",
-            helpText:
-              "Rounds the corners of the icon button's outer border edge",
+            label: tabsText("style.borderRadius"),
+            helpText: tabsText("help.borderRadius"),
             controlType: "BORDER_RADIUS_OPTIONS",
 
             isJSConvertible: true,
@@ -478,9 +487,8 @@ class TabsWidget extends BaseWidget<
           },
           {
             propertyName: "boxShadow",
-            label: "Box shadow",
-            helpText:
-              "Enables you to cast a drop shadow from the frame of the widget",
+            label: tabsText("style.boxShadow"),
+            helpText: tabsText("help.boxShadow"),
             controlType: "BOX_SHADOW_OPTIONS",
             isJSConvertible: true,
             isBindProperty: true,
@@ -702,6 +710,14 @@ class TabsWidget extends BaseWidget<
     Object.keys(this.props.tabsObj || {}).length &&
       this.setDefaultSelectedTabWidgetId();
   }
+}
+
+export function getTabsPropertyPaneContentConfig() {
+  return TabsWidget.getTabsPropertyPaneContentConfig();
+}
+
+export function getTabsPropertyPaneStyleConfig() {
+  return TabsWidget.getTabsPropertyPaneStyleConfig();
 }
 
 export default TabsWidget;
