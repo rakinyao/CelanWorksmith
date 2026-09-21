@@ -1658,6 +1658,46 @@ const enUS = {
         borderWidth: "Enter value in px",
       },
     },
+    divider: {
+      content: {
+        general: "General",
+        visible: "Visible",
+        animateLoading: "Animate loading",
+      },
+      style: {
+        general: "General",
+        orientation: "Direction",
+        stroke: "Stroke",
+        color: "Color",
+        strokeStyle: "Style",
+        thickness: "Thickness",
+        cap: "Cap",
+        capPosition: "Cap position",
+      },
+      help: {
+        visible: "Controls the visibility of the widget",
+        animateLoading: "Controls the loading of the widget",
+        orientation: "Controls widget orientation",
+        dividerColor: "Controls the stroke color of divider",
+        strokeStyle: "Controls the style of the divider",
+        thickness: "Controls the thickness of divider",
+        capType: "Controls the type of divider cap",
+        capSide: "Changes the position of the cap if a valid cap is selected.",
+      },
+      placeholder: {
+        thickness: "5",
+      },
+      option: {
+        horizontal: "Horizontal",
+        vertical: "Vertical",
+        solid: "Solid",
+        dashed: "Dashed",
+        dotted: "Dotted",
+        noCap: "No cap",
+        arrow: "Arrow",
+        dot: "Dot",
+      },
+    },
     tabs: {
       content: {
         data: "Data",

@@ -17,6 +17,9 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 
 import { WIDGET_TAGS } from "constants/WidgetConstants";
+import i18n from "i18n";
+
+const dividerText = (path: string) => i18n.t(`widgetProperty.divider.${path}`);
 
 class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
   static type = "DIVIDER_WIDGET";
@@ -107,14 +110,18 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    return getDividerPropertyPaneContentConfig();
+  }
+
+  static getDividerPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "General",
+        sectionName: dividerText("content.general"),
         children: [
           {
-            helpText: "Controls the visibility of the widget",
+            helpText: dividerText("help.visible"),
             propertyName: "isVisible",
-            label: "Visible",
+            label: dividerText("content.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -123,9 +130,9 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: dividerText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: dividerText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -138,24 +145,28 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneStyleConfig() {
+    return getDividerPropertyPaneStyleConfig();
+  }
+
+  static getDividerPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "General",
+        sectionName: dividerText("style.general"),
         children: [
           {
-            helpText: "Controls widget orientation",
+            helpText: dividerText("help.orientation"),
             propertyName: "orientation",
-            label: "Direction",
+            label: dividerText("style.orientation"),
             controlType: "ICON_TABS",
             defaultValue: "horizontal",
             fullWidth: true,
             options: [
               {
-                label: "Horizontal",
+                label: dividerText("option.horizontal"),
                 value: "horizontal",
               },
               {
-                label: "Vertical",
+                label: dividerText("option.vertical"),
                 value: "vertical",
               },
             ],
@@ -168,12 +179,12 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Stroke",
+        sectionName: dividerText("style.stroke"),
         children: [
           {
-            helpText: "Controls the stroke color of divider",
+            helpText: dividerText("help.dividerColor"),
             propertyName: "dividerColor",
-            label: "Color",
+            label: dividerText("style.color"),
             controlType: "COLOR_PICKER",
             isBindProperty: true,
             isJSConvertible: true,
@@ -186,23 +197,23 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
             },
           },
           {
-            helpText: "Controls the style of the divider",
+            helpText: dividerText("help.strokeStyle"),
             propertyName: "strokeStyle",
-            label: "Style",
+            label: dividerText("style.strokeStyle"),
             controlType: "DROP_DOWN",
             options: [
               {
-                label: "Solid",
+                label: dividerText("option.solid"),
                 value: "solid",
                 icon: "cap-solid",
               },
               {
-                label: "Dashed",
+                label: dividerText("option.dashed"),
                 value: "dashed",
                 icon: "line-dashed",
               },
               {
-                label: "Dotted",
+                label: dividerText("option.dotted"),
                 value: "dotted",
                 icon: "line-dotted",
               },
@@ -213,11 +224,11 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Controls the thickness of divider",
+            helpText: dividerText("help.thickness"),
             propertyName: "thickness",
-            label: "Thickness",
+            label: dividerText("style.thickness"),
             controlType: "INPUT_TEXT",
-            placeholderText: "5",
+            placeholderText: dividerText("placeholder.thickness"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: {
@@ -228,27 +239,27 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Cap",
+        sectionName: dividerText("style.cap"),
         children: [
           {
-            helpText: "Controls the type of divider cap",
+            helpText: dividerText("help.capType"),
             propertyName: "capType",
-            label: "Cap",
+            label: dividerText("style.cap"),
             controlType: "DROP_DOWN",
             isJSConvertible: true,
             options: [
               {
-                label: "No cap",
+                label: dividerText("option.noCap"),
                 value: "nc",
                 icon: "cap-solid",
               },
               {
-                label: "Arrow",
+                label: dividerText("option.arrow"),
                 value: "arrow",
                 icon: "arrow-forward",
               },
               {
-                label: "Dot",
+                label: dividerText("option.dot"),
                 value: "dot",
                 icon: "cap-dot",
               },
@@ -265,10 +276,9 @@ class DividerWidget extends BaseWidget<DividerWidgetProps, WidgetState> {
             },
           },
           {
-            helpText:
-              "Changes the position of the cap if a valid cap is selected.",
+            helpText: dividerText("help.capSide"),
             propertyName: "capSide",
-            label: "Cap position",
+            label: dividerText("style.capPosition"),
             controlType: "ICON_TABS",
             fullWidth: true,
             options: [
@@ -316,6 +326,14 @@ export interface DividerWidgetProps extends WidgetProps {
   strokeStyle?: "solid" | "dashed" | "dotted";
   dividerColor?: string;
   thickness?: number;
+}
+
+export function getDividerPropertyPaneContentConfig() {
+  return DividerWidget.getDividerPropertyPaneContentConfig();
+}
+
+export function getDividerPropertyPaneStyleConfig() {
+  return DividerWidget.getDividerPropertyPaneStyleConfig();
 }
 
 export default DividerWidget;

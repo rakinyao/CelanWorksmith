@@ -6,6 +6,7 @@ import configureStore from "redux-mock-store";
 import { ThemeProvider } from "styled-components";
 import type { DividerWidgetProps } from "./";
 import DividerWidget from "./";
+import i18n from "i18n";
 
 describe("<DividerWidget />", () => {
   const initialState = {
@@ -96,5 +97,53 @@ describe("<DividerWidget />", () => {
     const { getByTestId } = renderDividerWidget({ orientation: "vertical" });
 
     expect(getByTestId("dividerVertical")).toBeTruthy();
+  });
+
+  test("localizes the Divider property pane while preserving technical values", async () => {
+    const previousLanguage = i18n.language;
+
+    try {
+      await i18n.changeLanguage("zh-CN");
+
+      const content = DividerWidget.getPropertyPaneContentConfig();
+      const style = DividerWidget.getPropertyPaneStyleConfig();
+      const orientation = style
+        .flatMap((section) => section.children)
+        .find((property) => property.propertyName === "orientation");
+      const strokeStyle = style
+        .flatMap((section) => section.children)
+        .find((property) => property.propertyName === "strokeStyle");
+
+      expect(content[0].sectionName).toBe("常规");
+      expect(
+        content[0].children.find(
+          (property) => property.propertyName === "isVisible",
+        )?.label,
+      ).toBe("可见");
+      expect(style[1].sectionName).toBe("描边");
+      expect(orientation?.label).toBe("方向");
+      expect(orientation?.propertyName).toBe("orientation");
+      expect(
+        orientation?.options?.find((option) => option.value === "horizontal"),
+      ).toEqual(
+        expect.objectContaining({ label: "水平", value: "horizontal" }),
+      );
+      expect(
+        strokeStyle?.options?.find((option) => option.value === "solid"),
+      ).toEqual(
+        expect.objectContaining({
+          label: "实线",
+          value: "solid",
+          icon: "cap-solid",
+        }),
+      );
+
+      await i18n.changeLanguage("en-US");
+      expect(DividerWidget.getPropertyPaneContentConfig()[0].sectionName).toBe(
+        "General",
+      );
+    } finally {
+      await i18n.changeLanguage(previousLanguage);
+    }
   });
 });

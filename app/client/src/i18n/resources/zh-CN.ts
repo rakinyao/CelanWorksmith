@@ -1602,6 +1602,46 @@ const zhCN = {
         borderWidth: "输入像素值",
       },
     },
+    divider: {
+      content: {
+        general: "常规",
+        visible: "可见",
+        animateLoading: "加载动画",
+      },
+      style: {
+        general: "常规",
+        orientation: "方向",
+        stroke: "描边",
+        color: "颜色",
+        strokeStyle: "样式",
+        thickness: "厚度",
+        cap: "端点",
+        capPosition: "端点位置",
+      },
+      help: {
+        visible: "控制组件的可见性",
+        animateLoading: "控制组件的加载状态",
+        orientation: "控制组件方向",
+        dividerColor: "控制分隔线颜色",
+        strokeStyle: "控制分隔线样式",
+        thickness: "控制分隔线厚度",
+        capType: "控制分隔线端点类型",
+        capSide: "选择有效端点后更改端点位置。",
+      },
+      placeholder: {
+        thickness: "5",
+      },
+      option: {
+        horizontal: "水平",
+        vertical: "垂直",
+        solid: "实线",
+        dashed: "虚线",
+        dotted: "点线",
+        noCap: "无端点",
+        arrow: "箭头",
+        dot: "圆点",
+      },
+    },
     tabs: {
       content: {
         data: "数据",

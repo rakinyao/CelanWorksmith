@@ -259,6 +259,34 @@ describe("locale resources", () => {
       }),
     ).toBe("#FFFFFF / Gray / rgb(255, 99, 71)");
 
+    expect(flattenKeys(enUS.widgetProperty.divider).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.divider).sort(),
+    );
+    expect(
+      i18n.t("widgetProperty.divider.style.stroke", { lng: "zh-CN" }),
+    ).toBe("描边");
+    expect(
+      i18n.t("widgetProperty.divider.option.horizontal", { lng: "zh-CN" }),
+    ).toBe("水平");
+    expect(
+      i18n.t("widgetProperty.divider.option.solid", { lng: "zh-CN" }),
+    ).toBe("实线");
+    const dividerResources = flattenResourceLeaves(enUS.widgetProperty.divider);
+    const chineseDividerResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.divider).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of dividerResources) {
+      const path = `widgetProperty.divider.${resource.path}`;
+
+      expect(chineseDividerResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     expect(flattenKeys(enUS.widgetProperty.tabs).sort()).toEqual(
       flattenKeys(zhCN.widgetProperty.tabs).sort(),
     );
