@@ -22,6 +22,69 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 
 import { WIDGET_TAGS } from "constants/WidgetConstants";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import i18n from "i18n";
+
+const iconButtonText = (path: string) =>
+  i18n.t(`widgetProperty.iconButton.${path}`);
+const iconButtonCopy: Record<string, string> = {
+  Basic: "basic",
+  Icon: "icon",
+  General: "general",
+  Tooltip: "tooltip",
+  Visible: "visible",
+  Disabled: "disabled",
+  "Animate loading": "animateLoading",
+  "Button variant": "buttonVariant",
+  Color: "color",
+  "Button color": "buttonColor",
+  "Border and shadow": "borderAndShadow",
+  "Border radius": "borderRadius",
+  "Box shadow": "boxShadow",
+  Primary: "primary",
+  Secondary: "secondary",
+  Tertiary: "tertiary",
+  "Sets the icon to be used for the icon button": "help.icon",
+  "when the button is clicked": "help.click",
+  "Show helper text with button on hover": "help.tooltip",
+  "Controls the visibility of the widget": "help.visible",
+  "Disables input to the widget": "help.disabled",
+  "Controls the loading of the widget": "help.animateLoading",
+  "Sets the variant of the icon button": "help.buttonVariant",
+  "Sets the style of the icon button": "help.buttonColor",
+  "Rounds the corners of the icon button's outer border edge":
+    "help.borderRadius",
+  "Enables you to cast a drop shadow from the frame of the widget":
+    "help.boxShadow",
+  "Add Input Field": "placeholder.tooltip",
+};
+const localizeIconButton = (sections: any[]) =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: iconButtonCopy[section.sectionName]
+      ? iconButtonText(iconButtonCopy[section.sectionName])
+      : section.sectionName,
+    children: section.children?.map((property: any) => ({
+      ...property,
+      label: iconButtonCopy[property.label]
+        ? iconButtonText(iconButtonCopy[property.label])
+        : property.label,
+      helpText: iconButtonCopy[property.helpText]
+        ? iconButtonText(iconButtonCopy[property.helpText])
+        : property.helpText,
+      placeholderText: iconButtonCopy[property.placeholderText]
+        ? iconButtonText(iconButtonCopy[property.placeholderText])
+        : property.placeholderText,
+      options: Array.isArray(property.options)
+        ? property.options.map((option: any) => ({
+            ...option,
+            label: iconButtonCopy[option.label]
+              ? iconButtonText(iconButtonCopy[option.label])
+              : option.label,
+          }))
+        : property.options,
+    })),
+  }));
 
 const ICON_BUTTON_SIZE_IN_AUTOLAYOUT = 32;
 
@@ -110,7 +173,7 @@ class IconButtonWidget extends BaseWidget<IconButtonWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
-    return [
+    return localizeIconButton([
       {
         sectionName: "Basic",
         children: [
@@ -189,11 +252,11 @@ class IconButtonWidget extends BaseWidget<IconButtonWidgetProps, WidgetState> {
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getPropertyPaneStyleConfig() {
-    return [
+    return localizeIconButton([
       {
         sectionName: "General",
         children: [
@@ -282,7 +345,7 @@ class IconButtonWidget extends BaseWidget<IconButtonWidgetProps, WidgetState> {
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getStylesheetConfig(): Stylesheet {

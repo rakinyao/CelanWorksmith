@@ -24,6 +24,94 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS, layoutConfigurations } from "constants/WidgetConstants";
 import { klonaFullWithTelemetry } from "utils/helpers";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import i18n from "i18n";
+
+const buttonGroupText = (path: string) =>
+  i18n.t(`widgetProperty.buttonGroup.${path}`);
+const buttonGroupCopy: Record<string, string> = {
+  Data: "data",
+  Buttons: "buttons",
+  "Button type": "buttonType",
+  Simple: "simple",
+  Menu: "menu",
+  "Menu items": "menuItems",
+  Label: "label",
+  Text: "text",
+  General: "general",
+  Visible: "visible",
+  Disabled: "disabled",
+  "Form settings": "formSettings",
+  "Disable when form is invalid": "disableWhenInvalid",
+  Events: "events",
+  Icon: "icon",
+  Position: "position",
+  Placement: "placement",
+  Color: "color",
+  "Button color": "buttonColor",
+  "Button variant": "buttonVariant",
+  Orientation: "orientation",
+  Horizontal: "horizontal",
+  Vertical: "vertical",
+  "Border and shadow": "borderAndShadow",
+  "Border radius": "borderRadius",
+  "Box shadow": "boxShadow",
+  Primary: "primary",
+  Secondary: "secondary",
+  Tertiary: "tertiary",
+  Start: "start",
+  Between: "between",
+  Center: "center",
+  "Group Buttons": "help.groupButtons",
+  "Sets button type": "help.buttonType",
+  "Sets the label of a menu item": "help.label",
+  "Controls the visibility of the widget": "help.visible",
+  "Disables menu item": "help.disabled",
+  "when the menu item is clicked": "help.onClick",
+  "Sets the icon to be used for a button": "help.icon",
+  "Sets the icon alignment of a button": "help.position",
+  "Changes the color of the button": "help.buttonColor",
+  "Controls widget orientation": "help.orientation",
+  "Sets the variant of the button": "help.buttonVariant",
+  "Sets the space between items": "help.placement",
+  "Disables the button when the form is invalid": "help.disableWhenInvalid",
+  "when the button is clicked": "help.buttonClick",
+  "Rounds the corners of the icon button's outer border edge":
+    "help.borderRadius",
+  "Enables you to cast a drop shadow from the frame of the widget":
+    "help.boxShadow",
+  "Enter label": "placeholder.label",
+};
+const localizeButtonGroup = (sections: any[]): any[] =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: buttonGroupCopy[section.sectionName]
+      ? buttonGroupText(buttonGroupCopy[section.sectionName])
+      : section.sectionName,
+    children: section.children?.map((property: any) => ({
+      ...property,
+      label: buttonGroupCopy[property.label]
+        ? buttonGroupText(buttonGroupCopy[property.label])
+        : property.label,
+      helpText: buttonGroupCopy[property.helpText]
+        ? buttonGroupText(buttonGroupCopy[property.helpText])
+        : property.helpText,
+      placeholderText: buttonGroupCopy[property.placeholderText]
+        ? buttonGroupText(buttonGroupCopy[property.placeholderText])
+        : property.placeholderText,
+      options: Array.isArray(property.options)
+        ? property.options.map((option: any) => ({
+            ...option,
+            label: buttonGroupCopy[option.label]
+              ? buttonGroupText(buttonGroupCopy[option.label])
+              : option.label,
+          }))
+        : property.options,
+      panelConfig: Array.isArray(property.panelConfig)
+        ? localizeButtonGroup(property.panelConfig)
+        : property.panelConfig,
+    })),
+  }));
 
 class ButtonGroupWidget extends BaseWidget<
   ButtonGroupWidgetProps,
@@ -247,7 +335,7 @@ class ButtonGroupWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
-    return [
+    return localizeButtonGroup([
       {
         sectionName: "Data",
         children: [
@@ -695,11 +783,11 @@ class ButtonGroupWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getPropertyPaneStyleConfig() {
-    return [
+    return localizeButtonGroup([
       {
         sectionName: "General",
         children: [
@@ -789,7 +877,7 @@ class ButtonGroupWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getStylesheetConfig(): Stylesheet {

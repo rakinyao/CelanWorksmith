@@ -37,6 +37,107 @@ import type {
   PropertyUpdates,
 } from "WidgetProvider/types";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import i18n from "i18n";
+
+const datePickerText = (path: string) =>
+  i18n.t(`widgetProperty.datePickerV2.${path}`);
+const datePickerCopy: Record<string, string> = {
+  Data: "data",
+  "Date format": "dateFormat",
+  "Default Date": "defaultDate",
+  "First Day Of Week": "firstDay",
+  "Time Precision": "timePrecision",
+  Label: "label",
+  Text: "text",
+  Position: "position",
+  Alignment: "alignment",
+  "Width (in columns)": "width",
+  Validation: "validation",
+  Required: "required",
+  "Min Date": "minDate",
+  "Max Date": "maxDate",
+  General: "general",
+  Tooltip: "tooltip",
+  Visible: "visible",
+  Disabled: "disabled",
+  "Animate loading": "animateLoading",
+  "Show Shortcuts": "shortcuts",
+  "Close On Selection": "closeOnSelection",
+  Events: "events",
+  "Label styles": "labelStyles",
+  "Font color": "fontColor",
+  "Font size": "fontSize",
+  Emphasis: "emphasis",
+  "Border and shadow": "borderAndShadow",
+  "Accent color": "accentColor",
+  "Border radius": "borderRadius",
+  "Box shadow": "boxShadow",
+  None: "none",
+  Minute: "minute",
+  Second: "second",
+  Auto: "auto",
+  Left: "left",
+  Top: "top",
+  "Enter Default Date": "enterDefaultDate",
+  "Enter label text": "enterLabel",
+  "Add tooltip text here": "tooltipPlaceholder",
+  "Sets the format of the selected date": "help.dateFormat",
+  "Sets the default date of the widget. The date is updated if the default date changes":
+    "help.defaultDate",
+  "Defines the first day of the week for calendar": "help.firstDay",
+  "Sets the different time picker or hide.": "help.timePrecision",
+  "Sets the label text of the widget": "help.label",
+  "Sets the label position of the widget": "help.position",
+  "Sets the label alignment of the widget": "help.alignment",
+  "Sets the label width of the widget as the number of columns": "help.width",
+  "Makes input to the widget mandatory": "help.required",
+  "Defines the min date for this widget": "help.minDate",
+  "Defines the max date for this widget": "help.maxDate",
+  "Show help text or details about current selection": "help.tooltip",
+  "Controls the visibility of the widget": "help.visible",
+  "Disables input to this widget": "help.disabled",
+  "Controls the loading of the widget": "help.animateLoading",
+  "Choose to show shortcut menu": "help.shortcuts",
+  "Calender should close when a date is selected": "help.closeOnSelection",
+  "when a date is selected in the calendar": "help.onDateSelected",
+  "when the date picker receives focus": "help.onFocus",
+  "when the date picker loses focus": "help.onBlur",
+  "Control the color of the label associated": "help.fontColor",
+  "Control the font size of the label associated": "help.fontSize",
+  "Control if the label should be bold or italics": "help.emphasis",
+  "Rounds the corners of the icon button's outer border edge":
+    "help.borderRadius",
+  "Enables you to cast a drop shadow from the frame of the widget":
+    "help.boxShadow",
+};
+const localizeDatePicker = (sections: any[]) =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: datePickerCopy[section.sectionName]
+      ? datePickerText(datePickerCopy[section.sectionName])
+      : section.sectionName,
+    children: section.children?.map((property: any) => ({
+      ...property,
+      label: datePickerCopy[property.label]
+        ? datePickerText(datePickerCopy[property.label])
+        : property.label,
+      helpText: datePickerCopy[property.helpText]
+        ? datePickerText(datePickerCopy[property.helpText])
+        : property.helpText,
+      placeholderText: datePickerCopy[property.placeholderText]
+        ? datePickerText(datePickerCopy[property.placeholderText])
+        : property.placeholderText,
+      options: Array.isArray(property.options)
+        ? property.options.map((option: any) => ({
+            ...option,
+            label: datePickerCopy[option.label]
+              ? datePickerText(datePickerCopy[option.label])
+              : option.label,
+          }))
+        : property.options,
+    })),
+  }));
 
 // TODO: Fix this the next time the file is edited
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -208,7 +309,7 @@ class DatePickerWidget extends BaseWidget<DatePickerWidget2Props, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
-    return [
+    return localizeDatePicker([
       {
         sectionName: "Data",
         children: [
@@ -507,11 +608,11 @@ class DatePickerWidget extends BaseWidget<DatePickerWidget2Props, WidgetState> {
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getPropertyPaneStyleConfig() {
-    return [
+    return localizeDatePicker([
       {
         sectionName: "Label styles",
         children: [
@@ -628,7 +729,7 @@ class DatePickerWidget extends BaseWidget<DatePickerWidget2Props, WidgetState> {
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getDerivedPropertiesMap(): DerivedPropertiesMap {

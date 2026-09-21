@@ -31,6 +31,89 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { klonaRegularWithTelemetry } from "utils/helpers";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import i18n from "i18n";
+
+const filePickerText = (path: string) =>
+  i18n.t(`widgetProperty.filePickerV2.${path}`);
+const filePickerCopy: Record<string, string> = {
+  Basic: "basic",
+  "Allowed file types": "allowedTypes",
+  "Data format": "dataFormat",
+  "Infer data-types from CSV": "dynamicTyping",
+  "Max no. of files": "maxFiles",
+  Label: "label",
+  Text: "text",
+  Validation: "validation",
+  Required: "required",
+  "Max file size(Mb)": "maxFileSize",
+  General: "general",
+  Visible: "visible",
+  Disable: "disabled",
+  "Animate loading": "animateLoading",
+  Events: "events",
+  Color: "color",
+  "Button color": "buttonColor",
+  "Border and shadow": "borderAndShadow",
+  "Border radius": "borderRadius",
+  "Box shadow": "boxShadow",
+  "Any File": "anyFile",
+  Images: "images",
+  Videos: "videos",
+  Audio: "audio",
+  "MS Word": "word",
+  JPEG: "jpeg",
+  PNG: "png",
+  Text: "textFile",
+  "Select File types": "selectTypes",
+  "Select Files": "selectFiles",
+  "Restricts the type of files which can be uploaded": "help.allowedTypes",
+  "Set the format of the data read from the files": "help.dataFormat",
+  "Controls if the arrays should try to infer the best possible data type based on the values in CSV file":
+    "help.dynamicTyping",
+  "Sets the maximum number of files that can be uploaded at once":
+    "help.maxFiles",
+  "Sets the label of the button": "help.label",
+  "Makes input to the widget mandatory": "help.required",
+  "Sets the maximum size of each file that can be uploaded": "help.maxFileSize",
+  "Controls the visibility of the widget": "help.visible",
+  "Disables input to this widget": "help.disabled",
+  "Controls the loading of the widget": "help.animateLoading",
+  "when the user selects a file. Upload files to a CDN and stores their URLs in filepicker.files":
+    "help.onFilesSelected",
+  "Changes the color of the button": "help.buttonColor",
+  "Rounds the corners of the icon button's outer border edge":
+    "help.borderRadius",
+  "Enables you to cast a drop shadow from the frame of the widget":
+    "help.boxShadow",
+};
+const localizeFilePicker = (sections: any[]) =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: filePickerCopy[section.sectionName]
+      ? filePickerText(filePickerCopy[section.sectionName])
+      : section.sectionName,
+    children: section.children?.map((property: any) => ({
+      ...property,
+      label: filePickerCopy[property.label]
+        ? filePickerText(filePickerCopy[property.label])
+        : property.label,
+      helpText: filePickerCopy[property.helpText]
+        ? filePickerText(filePickerCopy[property.helpText])
+        : property.helpText,
+      placeholderText: filePickerCopy[property.placeholderText]
+        ? filePickerText(filePickerCopy[property.placeholderText])
+        : property.placeholderText,
+      options: Array.isArray(property.options)
+        ? property.options.map((option: any) => ({
+            ...option,
+            label: filePickerCopy[option.label]
+              ? filePickerText(filePickerCopy[option.label])
+              : option.label,
+          }))
+        : property.options,
+    })),
+  }));
 
 const CSV_ARRAY_LABEL = "Array of Objects (CSV, XLS(X), JSON, TSV)";
 
@@ -142,7 +225,7 @@ class FilePickerWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
-    return [
+    return localizeFilePicker([
       {
         sectionName: "Basic",
         children: [
@@ -364,11 +447,11 @@ class FilePickerWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getPropertyPaneStyleConfig() {
-    return [
+    return localizeFilePicker([
       {
         sectionName: "Color",
         children: [
@@ -412,7 +495,7 @@ class FilePickerWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getDefaultPropertiesMap(): Record<string, string> {

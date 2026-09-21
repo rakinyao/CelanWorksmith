@@ -20,6 +20,99 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { ButtonPlacementTypes, ButtonVariantTypes } from "components/constants";
 import { WIDGET_TAGS, layoutConfigurations } from "constants/WidgetConstants";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import i18n from "i18n";
+
+const menuButtonText = (path: string) =>
+  i18n.t(`widgetProperty.menuButton.${path}`);
+const menuButtonCopy: Record<string, string> = {
+  Basic: "basic",
+  Label: "label",
+  "Menu items source": "menuItemsSource",
+  "Menu items": "menuItems",
+  "Source data": "sourceData",
+  Configure: "configure",
+  "Configure menu items": "configureMenuItems",
+  General: "general",
+  Visible: "visible",
+  Disabled: "disabled",
+  "Animate loading": "animateLoading",
+  Compact: "compact",
+  "Button variant": "buttonVariant",
+  Icon: "icon",
+  Position: "position",
+  Placement: "placement",
+  Color: "color",
+  "Button color": "buttonColor",
+  "Border and shadow": "borderAndShadow",
+  "Border radius": "borderRadius",
+  "Box shadow": "boxShadow",
+  Static: "static",
+  Dynamic: "dynamic",
+  Primary: "primary",
+  Secondary: "secondary",
+  Tertiary: "tertiary",
+  Start: "start",
+  Between: "between",
+  Center: "center",
+  "Sets the label of a menu": "help.label",
+  "Sets the source for the menu items": "help.menuItemsSource",
+  "Takes in an array of items to display the menu items.": "help.sourceData",
+  "Configure how each menu item will appear.": "help.configure",
+  "Controls the visibility of the widget": "help.visible",
+  "Disables input to the widget": "help.disabled",
+  "Controls the loading of the widget": "help.animateLoading",
+  "Decides if menu items will consume lesser space": "help.compact",
+  "Sets the variant of the menu button": "help.buttonVariant",
+  "Sets the icon to be used for the menu button": "help.icon",
+  "Sets the icon alignment of the menu button": "help.position",
+  "Sets the space between items": "help.placement",
+  "Sets the style of the Menu button": "help.buttonColor",
+  "Rounds the corners of the icon button's outer border edge":
+    "help.borderRadius",
+  "Enables you to cast a drop shadow from the frame of the widget":
+    "help.boxShadow",
+  Open: "placeholder.open",
+  "{{Query1.data}}": "placeholder.sourceData",
+};
+const localizeMenuButton = (sections: any[]): any[] =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: menuButtonCopy[section.sectionName]
+      ? menuButtonText(menuButtonCopy[section.sectionName])
+      : section.sectionName,
+    children: section.children?.map((property: any) => ({
+      ...property,
+      label: menuButtonCopy[property.label]
+        ? menuButtonText(menuButtonCopy[property.label])
+        : property.label,
+      helpText: menuButtonCopy[property.helpText]
+        ? menuButtonText(menuButtonCopy[property.helpText])
+        : property.helpText,
+      placeholderText: menuButtonCopy[property.placeholderText]
+        ? menuButtonText(menuButtonCopy[property.placeholderText])
+        : property.placeholderText,
+      buttonConfig: property.buttonConfig
+        ? {
+            ...property.buttonConfig,
+            label: menuButtonCopy[property.buttonConfig.label]
+              ? menuButtonText(menuButtonCopy[property.buttonConfig.label])
+              : property.buttonConfig.label,
+          }
+        : property.buttonConfig,
+      options: Array.isArray(property.options)
+        ? property.options.map((option: any) => ({
+            ...option,
+            label: menuButtonCopy[option.label]
+              ? menuButtonText(menuButtonCopy[option.label])
+              : option.label,
+          }))
+        : property.options,
+      panelConfig: Array.isArray(property.panelConfig)
+        ? localizeMenuButton(property.panelConfig)
+        : property.panelConfig,
+    })),
+  }));
 
 class MenuButtonWidget extends BaseWidget<MenuButtonWidgetProps, WidgetState> {
   static type = "MENU_BUTTON_WIDGET";
@@ -118,11 +211,11 @@ class MenuButtonWidget extends BaseWidget<MenuButtonWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
-    return contentConfig;
+    return localizeMenuButton(contentConfig);
   }
 
   static getPropertyPaneStyleConfig() {
-    return styleConfig;
+    return localizeMenuButton(styleConfig);
   }
 
   static getStylesheetConfig(): Stylesheet {

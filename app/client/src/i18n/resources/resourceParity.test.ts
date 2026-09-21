@@ -187,6 +187,21 @@ describe("locale resources", () => {
     expect(i18n.t("widgetProperty.input.dataType", { lng: "zh-CN" })).toBe(
       "数据类型",
     );
+    expect(
+      i18n.t("widgetProperty.datePickerV2.dateFormat", { lng: "zh-CN" }),
+    ).toBe("日期格式");
+    expect(
+      i18n.t("widgetProperty.filePickerV2.allowedTypes", { lng: "zh-CN" }),
+    ).toBe("允许的文件类型");
+    expect(i18n.t("widgetProperty.buttonGroup.buttons", { lng: "zh-CN" })).toBe(
+      "按钮",
+    );
+    expect(
+      i18n.t("widgetProperty.iconButton.buttonVariant", { lng: "zh-CN" }),
+    ).toBe("按钮变体");
+    expect(
+      i18n.t("widgetProperty.menuButton.menuItemsSource", { lng: "zh-CN" }),
+    ).toBe("菜单项来源");
     expect(i18n.t("widgetProperty.button.label", { lng: "zh-CN" })).toBe(
       "标签",
     );
