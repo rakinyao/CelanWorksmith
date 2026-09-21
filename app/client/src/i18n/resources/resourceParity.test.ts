@@ -307,6 +307,31 @@ describe("locale resources", () => {
       expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
     }
 
+    expect(flattenKeys(enUS.widgetProperty.switch).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.switch).sort(),
+    );
+    expect(
+      i18n.t("widgetProperty.switch.content.defaultState", { lng: "zh-CN" }),
+    ).toBe("默认状态");
+    expect(
+      i18n.t("widgetProperty.switch.style.accentColor", { lng: "zh-CN" }),
+    ).toBe("强调色");
+    const switchResources = flattenResourceLeaves(enUS.widgetProperty.switch);
+    const chineseSwitchResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.switch).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of switchResources) {
+      const path = `widgetProperty.switch.${resource.path}`;
+
+      expect(chineseSwitchResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     const requiredTableLabels = [
       "columnControl",
       "columnType",

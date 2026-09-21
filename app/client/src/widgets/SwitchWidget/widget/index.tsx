@@ -25,6 +25,9 @@ import type {
 import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
+import i18n from "i18n";
+
+const switchText = (path: string) => i18n.t(`widgetProperty.switch.${path}`);
 
 class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
   static type = "SWITCH_WIDGET";
@@ -116,29 +119,36 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    return getSwitchPropertyPaneContentConfig();
+  }
+
+  static getSwitchPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "Label",
+        sectionName: switchText("content.label"),
         children: [
           {
             propertyName: "label",
-            label: "Text",
+            label: switchText("content.text"),
             controlType: "INPUT_TEXT",
-            helpText: "Displays a label next to the widget",
-            placeholderText: "Enable Option",
+            helpText: switchText("help.label"),
+            placeholderText: switchText("placeholder.label"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label position of the widget",
+            helpText: switchText("help.labelPosition"),
             propertyName: "labelPosition",
-            label: "Position",
+            label: switchText("content.position"),
             controlType: "ICON_TABS",
             fullWidth: true,
             options: [
-              { label: "Left", value: LabelPosition.Left },
-              { label: "Right", value: LabelPosition.Right },
+              { label: switchText("option.left"), value: LabelPosition.Left },
+              {
+                label: switchText("option.right"),
+                value: LabelPosition.Right,
+              },
             ],
             defaultValue: LabelPosition.Left,
             isBindProperty: false,
@@ -147,8 +157,8 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
           },
           {
             propertyName: "alignWidget",
-            helpText: "Sets the alignment of the widget",
-            label: "Alignment",
+            helpText: switchText("help.alignment"),
+            label: switchText("content.alignment"),
             controlType: "LABEL_ALIGNMENT_OPTIONS",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -168,13 +178,12 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "General",
+        sectionName: switchText("content.general"),
         children: [
           {
             propertyName: "defaultSwitchState",
-            label: "Default state",
-            helpText:
-              "On / Off the Switch by default. Changes to the default selection update the widget state",
+            label: switchText("content.defaultState"),
+            helpText: switchText("help.defaultState"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -183,8 +192,8 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
           },
           {
             propertyName: "isVisible",
-            label: "Visible",
-            helpText: "Controls the visibility of the widget",
+            label: switchText("content.visible"),
+            helpText: switchText("help.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -193,9 +202,9 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
           },
           {
             propertyName: "isDisabled",
-            label: "Disabled",
+            label: switchText("content.disabled"),
             controlType: "SWITCH",
-            helpText: "Disables input to this widget",
+            helpText: switchText("help.disabled"),
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
@@ -203,9 +212,9 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: switchText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: switchText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -215,10 +224,10 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: switchText("content.events"),
         children: [
           {
-            helpText: "when the switch state is changed",
+            helpText: switchText("help.onChange"),
             propertyName: "onChange",
             label: "onChange",
             controlType: "ACTION_SELECTOR",
@@ -232,14 +241,18 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneStyleConfig() {
+    return getSwitchPropertyPaneStyleConfig();
+  }
+
+  static getSwitchPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Label styles",
+        sectionName: switchText("style.labelStyles"),
         children: [
           {
             propertyName: "labelTextColor",
-            label: "Font color",
-            helpText: "Control the color of the label associated",
+            label: switchText("style.fontColor"),
+            helpText: switchText("help.fontColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -253,39 +266,39 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelTextSize",
-            label: "Font size",
-            helpText: "Control the font size of the label associated",
+            label: switchText("style.fontSize"),
+            helpText: switchText("help.fontSize"),
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
             hidden: isAutoLayout,
             options: [
               {
-                label: "S",
+                label: switchText("option.small"),
                 value: "0.875rem",
                 subText: "0.875rem",
               },
               {
-                label: "M",
+                label: switchText("option.medium"),
                 value: "1rem",
                 subText: "1rem",
               },
               {
-                label: "L",
+                label: switchText("option.large"),
                 value: "1.25rem",
                 subText: "1.25rem",
               },
               {
-                label: "XL",
+                label: switchText("option.extraLarge"),
                 value: "1.875rem",
                 subText: "1.875rem",
               },
               {
-                label: "XXL",
+                label: switchText("option.doubleExtraLarge"),
                 value: "3rem",
                 subText: "3rem",
               },
               {
-                label: "3XL",
+                label: switchText("option.tripleExtraLarge"),
                 value: "3.75rem",
                 subText: "3.75rem",
               },
@@ -297,8 +310,8 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelStyle",
-            label: "Emphasis",
-            helpText: "Control if the label should be bold or italics",
+            label: switchText("style.emphasis"),
+            helpText: switchText("help.emphasis"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -318,12 +331,12 @@ class SwitchWidget extends BaseWidget<SwitchWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Color",
+        sectionName: switchText("style.color"),
         children: [
           {
             propertyName: "accentColor",
-            helpText: "Sets the background color of the widget",
-            label: "Accent color",
+            helpText: switchText("help.accentColor"),
+            label: switchText("style.accentColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -460,6 +473,14 @@ export interface SwitchWidgetProps extends WidgetProps {
   labelTextColor?: string;
   labelTextSize?: string;
   labelStyle?: string;
+}
+
+export function getSwitchPropertyPaneContentConfig() {
+  return SwitchWidget.getSwitchPropertyPaneContentConfig();
+}
+
+export function getSwitchPropertyPaneStyleConfig() {
+  return SwitchWidget.getSwitchPropertyPaneStyleConfig();
 }
 
 export default SwitchWidget;
