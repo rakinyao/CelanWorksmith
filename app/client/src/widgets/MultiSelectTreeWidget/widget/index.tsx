@@ -35,6 +35,133 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 
 import { WIDGET_TAGS, layoutConfigurations } from "constants/WidgetConstants";
+import i18n from "i18n";
+
+const multiSelectTreeText = (path: string) =>
+  i18n.t(`widgetProperty.multiSelectTree.${path}`);
+
+interface LocalizedOption {
+  label?: string;
+  [key: string]: unknown;
+}
+interface LocalizedProperty {
+  label?: string;
+  helpText?: string;
+  placeholderText?: string;
+  options?: LocalizedOption[];
+  [key: string]: unknown;
+}
+interface LocalizedSection {
+  sectionName: string;
+  children?: LocalizedProperty[];
+  [key: string]: unknown;
+}
+const multiSelectTreeCopy = new Map([
+  ["Data", "content.data"],
+  ["Options", "content.options"],
+  ["Default selected values", "content.defaultSelectedValues"],
+  ["Label", "content.label"],
+  ["Text", "content.text"],
+  ["Position", "content.position"],
+  ["Alignment", "content.alignment"],
+  ["Width (in columns)", "content.labelWidth"],
+  ["Validations", "content.validations"],
+  ["Required", "content.required"],
+  ["General", "content.general"],
+  ["Tooltip", "content.tooltip"],
+  ["Mode", "content.mode"],
+  ["Placeholder", "content.placeholder"],
+  ["Visible", "content.visible"],
+  ["Disabled", "content.disabled"],
+  ["Animate loading", "content.animateLoading"],
+  ["Allow clearing value", "content.allowClear"],
+  ["Expand all by default", "content.expandAll"],
+  ["Events", "content.events"],
+  ["Label styles", "style.labelStyles"],
+  ["Font color", "style.fontColor"],
+  ["Font size", "style.fontSize"],
+  ["Emphasis", "style.emphasis"],
+  ["Border and shadow", "style.borderAndShadow"],
+  ["Border radius", "style.borderRadius"],
+  ["Box shadow", "style.boxShadow"],
+  ["Accent color", "style.accentColor"],
+  ["Auto", "option.auto"],
+  ["Left", "option.left"],
+  ["Top", "option.top"],
+  ["Display only parent items", "option.showParent"],
+  ["Display only child items", "option.showChild"],
+  ["Display all items", "option.showAll"],
+  ["Enter option value", "placeholder.option"],
+  ["Enter label text", "placeholder.label"],
+  ["Add tooltip text here", "placeholder.tooltip"],
+  ["Enter placeholder text", "placeholder.text"],
+  [
+    "Allows users to select multiple options. Values must be unique",
+    "help.options",
+  ],
+  ["Selects the option with value by default", "help.defaultSelectedValues"],
+  ["Sets the label text of the widget", "help.label"],
+  ["Sets the label position of the widget", "help.position"],
+  ["Sets the label alignment of the widget", "help.alignment"],
+  [
+    "Sets the label width of the widget as the number of columns",
+    "help.labelWidth",
+  ],
+  ["Makes input to the widget mandatory", "help.required"],
+  ["Show help text or details about current selection", "help.tooltip"],
+  ["Mode to Display options", "help.mode"],
+  ["Sets a Placeholder Text", "help.placeholder"],
+  ["Controls the visibility of the widget", "help.visible"],
+  ["Disables input to this widget", "help.disabled"],
+  ["Controls the loading of the widget", "help.animateLoading"],
+  ["Enables Icon to clear all Selections", "help.allowClear"],
+  ["Expand All nested options", "help.expandAll"],
+  ["when a user selects an option", "help.onOptionChange"],
+  ["when the dropdown opens", "help.onDropdownOpen"],
+  ["when the dropdown closes", "help.onDropdownClose"],
+  ["Control the color of the label associated", "help.fontColor"],
+  ["Control the font size of the label associated", "help.fontSize"],
+  ["Control if the label should be bold or italics", "help.emphasis"],
+  [
+    "Rounds the corners of the icon button's outer border edge",
+    "help.borderRadius",
+  ],
+  [
+    "Enables you to cast a drop shadow from the frame of the widget",
+    "help.boxShadow",
+  ],
+]);
+const localizeMultiSelectTreePane = (sections: LocalizedSection[]) =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: multiSelectTreeCopy.has(section.sectionName)
+      ? multiSelectTreeText(
+          multiSelectTreeCopy.get(section.sectionName) as string,
+        )
+      : section.sectionName,
+    children: section.children?.map((property: LocalizedProperty) => ({
+      ...property,
+      label: multiSelectTreeCopy.has(property.label)
+        ? multiSelectTreeText(multiSelectTreeCopy.get(property.label) as string)
+        : property.label,
+      helpText: multiSelectTreeCopy.has(property.helpText)
+        ? multiSelectTreeText(
+            multiSelectTreeCopy.get(property.helpText) as string,
+          )
+        : property.helpText,
+      placeholderText: multiSelectTreeCopy.has(property.placeholderText)
+        ? multiSelectTreeText(
+            multiSelectTreeCopy.get(property.placeholderText) as string,
+          )
+        : property.placeholderText,
+      options: property.options?.map((option: LocalizedOption) => ({
+        ...option,
+        label: multiSelectTreeCopy.has(option.label)
+          ? multiSelectTreeText(multiSelectTreeCopy.get(option.label) as string)
+          : option.label,
+      })),
+    })),
+  }));
 
 function defaultOptionValueValidation(value: unknown): ValidationResponse {
   let values: string[] = [];
@@ -198,7 +325,7 @@ class MultiSelectTreeWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
-    return [
+    return localizeMultiSelectTreePane([
       {
         sectionName: "Data",
         children: [
@@ -515,11 +642,11 @@ class MultiSelectTreeWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getPropertyPaneStyleConfig() {
-    return [
+    return localizeMultiSelectTreePane([
       {
         sectionName: "Label styles",
         children: [
@@ -637,7 +764,7 @@ class MultiSelectTreeWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getDerivedPropertiesMap() {

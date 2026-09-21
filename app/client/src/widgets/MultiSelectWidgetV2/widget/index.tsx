@@ -50,6 +50,143 @@ import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS, layoutConfigurations } from "constants/WidgetConstants";
 import { FEATURE_FLAG } from "ee/entities/FeatureFlag";
 import type { DynamicPath } from "utils/DynamicBindingUtils";
+import i18n from "i18n";
+
+const multiSelectV2Text = (path: string) =>
+  i18n.t(`widgetProperty.multiSelectV2.${path}`);
+
+interface LocalizedOption {
+  label?: string;
+  [key: string]: unknown;
+}
+interface LocalizedProperty {
+  label?: string;
+  helpText?: string;
+  placeholderText?: string;
+  options?: LocalizedOption[] | unknown;
+  [key: string]: unknown;
+}
+interface LocalizedSection {
+  sectionName: string;
+  children?: LocalizedProperty[];
+  [key: string]: unknown;
+}
+
+const multiSelectV2Copy = new Map([
+  ["Data", "content.data"],
+  ["Source Data", "content.sourceData"],
+  ["Label key", "content.labelKey"],
+  ["Value key", "content.valueKey"],
+  ["Default selected values", "content.defaultSelectedValues"],
+  ["Label", "content.label"],
+  ["Text", "content.text"],
+  ["Position", "content.position"],
+  ["Alignment", "content.alignment"],
+  ["Width (in columns)", "content.labelWidth"],
+  ["Search & filters", "content.searchAndFilters"],
+  ["Allow searching", "content.allowSearching"],
+  ["Server side filtering", "content.serverSideFiltering"],
+  ["Validations", "content.validations"],
+  ["Required", "content.required"],
+  ["General", "content.general"],
+  ["Tooltip", "content.tooltip"],
+  ["Placeholder", "content.placeholder"],
+  ["Visible", "content.visible"],
+  ["Disabled", "content.disabled"],
+  ["Animate loading", "content.animateLoading"],
+  ["Allow select all", "content.allowSelectAll"],
+  ["Enable RTL", "content.enableRtl"],
+  ["Events", "content.events"],
+  ["Label styles", "style.labelStyles"],
+  ["Font color", "style.fontColor"],
+  ["Font size", "style.fontSize"],
+  ["Emphasis", "style.emphasis"],
+  ["Border and shadow", "style.borderAndShadow"],
+  ["Border radius", "style.borderRadius"],
+  ["Box shadow", "style.boxShadow"],
+  ["Accent color", "style.accentColor"],
+  ["Auto", "option.auto"],
+  ["Left", "option.left"],
+  ["Top", "option.top"],
+  ["Enter label text", "placeholder.label"],
+  ["Add tooltip text here", "placeholder.tooltip"],
+  ["Search", "placeholder.search"],
+  [
+    "Takes in an array of objects to display options. Bind data from an API using {{}}",
+    "help.sourceData",
+  ],
+  [
+    "Choose or set a field from source data as the display label",
+    "help.labelKey",
+  ],
+  ["Choose or set a field from source data as the value", "help.valueKey"],
+  ["Selects the option(s) with value by default", "help.defaultSelectedValues"],
+  ["Sets the label text of the widget", "help.label"],
+  ["Sets the label position of the widget", "help.position"],
+  ["Sets the label alignment of the widget", "help.alignment"],
+  [
+    "Sets the label width of the widget as the number of columns",
+    "help.labelWidth",
+  ],
+  ["Makes the dropdown list filterable", "help.allowSearching"],
+  ["Enables server side filtering of the data", "help.serverSideFiltering"],
+  ["Trigger an action on change of filterText", "help.onFilterUpdate"],
+  ["Makes input to the widget mandatory", "help.required"],
+  ["Show help text or details about current selection", "help.tooltip"],
+  ["Sets a Placeholder Text", "help.placeholder"],
+  ["Controls the visibility of the widget", "help.visible"],
+  ["Disables input to this widget", "help.disabled"],
+  ["Controls the loading of the widget", "help.animateLoading"],
+  [
+    "Controls the visibility of select all option in dropdown.",
+    "help.allowSelectAll",
+  ],
+  ["Enables right to left text direction", "help.enableRtl"],
+  ["when a user selects an option", "help.onOptionChange"],
+  ["when the dropdown opens", "help.onDropdownOpen"],
+  ["when the dropdown closes", "help.onDropdownClose"],
+  ["Control the color of the label associated", "help.fontColor"],
+  ["Control the font size of the label associated", "help.fontSize"],
+  ["Control if the label should be bold or italics", "help.emphasis"],
+  [
+    "Rounds the corners of the icon button's outer border edge",
+    "help.borderRadius",
+  ],
+  [
+    "Enables you to cast a drop shadow from the frame of the widget",
+    "help.boxShadow",
+  ],
+]);
+
+const localizeMultiSelectV2Pane = (sections: LocalizedSection[]) =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: multiSelectV2Copy.has(section.sectionName)
+      ? multiSelectV2Text(multiSelectV2Copy.get(section.sectionName) as string)
+      : section.sectionName,
+    children: section.children?.map((property: LocalizedProperty) => ({
+      ...property,
+      label: multiSelectV2Copy.has(property.label)
+        ? multiSelectV2Text(multiSelectV2Copy.get(property.label) as string)
+        : property.label,
+      helpText: multiSelectV2Copy.has(property.helpText)
+        ? multiSelectV2Text(multiSelectV2Copy.get(property.helpText) as string)
+        : property.helpText,
+      placeholderText: multiSelectV2Copy.has(property.placeholderText)
+        ? multiSelectV2Text(
+            multiSelectV2Copy.get(property.placeholderText) as string,
+          )
+        : property.placeholderText,
+      options: Array.isArray(property.options)
+        ? property.options.map((option: LocalizedOption) => ({
+            ...option,
+            label: multiSelectV2Copy.has(option.label)
+              ? multiSelectV2Text(multiSelectV2Copy.get(option.label) as string)
+              : option.label,
+          }))
+        : property.options,
+    })),
+  }));
 
 class MultiSelectWidget extends BaseWidget<
   MultiSelectWidgetProps,
@@ -228,7 +365,7 @@ class MultiSelectWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
-    return [
+    return localizeMultiSelectV2Pane([
       {
         sectionName: "Data",
         children: [
@@ -371,8 +508,7 @@ class MultiSelectWidget extends BaseWidget<
             dependencies: ["serverSideFiltering", "options"],
             helperText: (
               <div className="leading-5" style={{ marginTop: "10px" }}>
-                Make sure the default value(s) are present in the source data to
-                have it selected by default in the UI.
+                {multiSelectV2Text("help.defaultValueHelper")}
               </div>
             ),
           },
@@ -619,11 +755,11 @@ class MultiSelectWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getPropertyPaneStyleConfig() {
-    return [
+    return localizeMultiSelectV2Pane([
       {
         sectionName: "Label styles",
         children: [
@@ -742,7 +878,7 @@ class MultiSelectWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getStylesheetConfig(): Stylesheet {

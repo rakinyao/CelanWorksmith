@@ -34,6 +34,132 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 
 import { WIDGET_TAGS, layoutConfigurations } from "constants/WidgetConstants";
+import i18n from "i18n";
+
+const singleSelectTreeText = (path: string) =>
+  i18n.t(`widgetProperty.singleSelectTree.${path}`);
+
+interface LocalizedOption {
+  label?: string;
+  [key: string]: unknown;
+}
+interface LocalizedProperty {
+  label?: string;
+  helpText?: string;
+  placeholderText?: string;
+  options?: LocalizedOption[];
+  [key: string]: unknown;
+}
+interface LocalizedSection {
+  sectionName: string;
+  children?: LocalizedProperty[];
+  [key: string]: unknown;
+}
+const singleSelectTreeCopy = new Map([
+  ["Data", "content.data"],
+  ["Options", "content.options"],
+  ["Default selected value", "content.defaultSelectedValue"],
+  ["Label", "content.label"],
+  ["Text", "content.text"],
+  ["Position", "content.position"],
+  ["Alignment", "content.alignment"],
+  ["Width (in columns)", "content.labelWidth"],
+  ["Validations", "content.validations"],
+  ["Required", "content.required"],
+  ["General", "content.general"],
+  ["Tooltip", "content.tooltip"],
+  ["Placeholder", "content.placeholder"],
+  ["Visible", "content.visible"],
+  ["Disabled", "content.disabled"],
+  ["Animate loading", "content.animateLoading"],
+  ["Allow clearing value", "content.allowClear"],
+  ["Expand all by default", "content.expandAll"],
+  ["Events", "content.events"],
+  ["Label styles", "style.labelStyles"],
+  ["Font color", "style.fontColor"],
+  ["Font size", "style.fontSize"],
+  ["Emphasis", "style.emphasis"],
+  ["Border and shadow", "style.borderAndShadow"],
+  ["Border radius", "style.borderRadius"],
+  ["Box shadow", "style.boxShadow"],
+  ["Accent color", "style.accentColor"],
+  ["Auto", "option.auto"],
+  ["Left", "option.left"],
+  ["Top", "option.top"],
+  ["Enter option value", "placeholder.option"],
+  ["Enter label text", "placeholder.label"],
+  ["Add tooltip text here", "placeholder.tooltip"],
+  ["Enter placeholder text", "placeholder.text"],
+  [
+    "Allows users to select multiple options. Values must be unique",
+    "help.options",
+  ],
+  ["Selects the option with value by default", "help.defaultSelectedValue"],
+  ["Sets the label text of the widget", "help.label"],
+  ["Sets the label position of the widget", "help.position"],
+  ["Sets the label alignment of the widget", "help.alignment"],
+  [
+    "Sets the label width of the widget as the number of columns",
+    "help.labelWidth",
+  ],
+  ["Makes input to the widget mandatory", "help.required"],
+  ["Show help text or details about current selection", "help.tooltip"],
+  ["Sets a Placeholder Text", "help.placeholder"],
+  ["Controls the visibility of the widget", "help.visible"],
+  ["Disables input to this widget", "help.disabled"],
+  ["Controls the loading of the widget", "help.animateLoading"],
+  ["Enables Icon to clear all Selections", "help.allowClear"],
+  ["Expand All nested options", "help.expandAll"],
+  ["when a user selects an option", "help.onOptionChange"],
+  ["when the dropdown opens", "help.onDropdownOpen"],
+  ["when the dropdown closes", "help.onDropdownClose"],
+  ["Control the color of the label associated", "help.fontColor"],
+  ["Control the font size of the label associated", "help.fontSize"],
+  ["Control if the label should be bold or italics", "help.emphasis"],
+  [
+    "Rounds the corners of the icon button's outer border edge",
+    "help.borderRadius",
+  ],
+  [
+    "Enables you to cast a drop shadow from the frame of the widget",
+    "help.boxShadow",
+  ],
+]);
+const localizeSingleSelectTreePane = (sections: LocalizedSection[]) =>
+  sections.map((section) => ({
+    ...section,
+    sectionName: singleSelectTreeCopy.has(section.sectionName)
+      ? singleSelectTreeText(
+          singleSelectTreeCopy.get(section.sectionName) as string,
+        )
+      : section.sectionName,
+    children: section.children?.map((property: LocalizedProperty) => ({
+      ...property,
+      label: singleSelectTreeCopy.has(property.label)
+        ? singleSelectTreeText(
+            singleSelectTreeCopy.get(property.label) as string,
+          )
+        : property.label,
+      helpText: singleSelectTreeCopy.has(property.helpText)
+        ? singleSelectTreeText(
+            singleSelectTreeCopy.get(property.helpText) as string,
+          )
+        : property.helpText,
+      placeholderText: singleSelectTreeCopy.has(property.placeholderText)
+        ? singleSelectTreeText(
+            singleSelectTreeCopy.get(property.placeholderText) as string,
+          )
+        : property.placeholderText,
+      options: property.options?.map((option: LocalizedOption) => ({
+        ...option,
+        label: singleSelectTreeCopy.has(option.label)
+          ? singleSelectTreeText(
+              singleSelectTreeCopy.get(option.label) as string,
+            )
+          : option.label,
+      })),
+    })),
+  }));
 
 function defaultOptionValueValidation(value: unknown): ValidationResponse {
   if (typeof value === "string") return { isValid: true, parsed: value.trim() };
@@ -163,7 +289,7 @@ class SingleSelectTreeWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
-    return [
+    return localizeSingleSelectTreePane([
       {
         sectionName: "Data",
         children: [
@@ -458,7 +584,7 @@ class SingleSelectTreeWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getStylesheetConfig(): Stylesheet {
@@ -485,7 +611,7 @@ class SingleSelectTreeWidget extends BaseWidget<
   }
 
   static getPropertyPaneStyleConfig() {
-    return [
+    return localizeSingleSelectTreePane([
       {
         sectionName: "Label styles",
         children: [
@@ -603,7 +729,7 @@ class SingleSelectTreeWidget extends BaseWidget<
           },
         ],
       },
-    ];
+    ]);
   }
 
   static getAutocompleteDefinitions(): AutocompletionDefinitions {

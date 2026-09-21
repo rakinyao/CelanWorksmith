@@ -169,6 +169,21 @@ describe("locale resources", () => {
     expect(i18n.t("widgetProperty.select.options", { lng: "zh-CN" })).toBe(
       "选项",
     );
+    expect(
+      i18n.t("widgetProperty.multiSelectV2.content.sourceData", {
+        lng: "zh-CN",
+      }),
+    ).toBe("源数据");
+    expect(
+      i18n.t("widgetProperty.singleSelectTree.content.options", {
+        lng: "zh-CN",
+      }),
+    ).toBe("选项");
+    expect(
+      i18n.t("widgetProperty.multiSelectTree.option.showAll", {
+        lng: "zh-CN",
+      }),
+    ).toBe("显示所有项目");
     expect(i18n.t("widgetProperty.input.dataType", { lng: "zh-CN" })).toBe(
       "数据类型",
     );
