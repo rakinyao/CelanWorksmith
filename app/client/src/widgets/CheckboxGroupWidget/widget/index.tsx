@@ -32,6 +32,10 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { FlexVerticalAlignment } from "layoutSystems/common/utils/constants";
+import i18n from "i18n";
+
+const checkboxGroupText = (path: string) =>
+  i18n.t(`widgetProperty.checkboxGroup.${path}`);
 
 export function defaultSelectedValuesValidation(
   value: unknown,
@@ -183,14 +187,18 @@ class CheckboxGroupWidget extends BaseWidget<
   }
 
   static getPropertyPaneContentConfig() {
+    return getCheckboxGroupPropertyPaneContentConfig();
+  }
+
+  static getCheckboxGroupPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "Data",
+        sectionName: checkboxGroupText("content.data"),
         children: [
           {
-            helpText: "Displays a list of unique checkbox options",
+            helpText: checkboxGroupText("help.options"),
             propertyName: "options",
-            label: "Options",
+            label: checkboxGroupText("content.options"),
             controlType: "OPTION_INPUT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -229,10 +237,12 @@ class CheckboxGroupWidget extends BaseWidget<
               EvaluationSubstitutionType.SMART_SUBSTITUTE,
           },
           {
-            helpText: "Sets the values of the options checked by default",
+            helpText: checkboxGroupText("help.defaultSelectedValues"),
             propertyName: "defaultSelectedValues",
-            label: "Default selected values",
-            placeholderText: '["apple", "orange"]',
+            label: checkboxGroupText("content.defaultSelectedValues"),
+            placeholderText: checkboxGroupText(
+              "placeholder.defaultSelectedValues",
+            ),
             controlType: "INPUT_TEXT",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -251,29 +261,38 @@ class CheckboxGroupWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Label",
+        sectionName: checkboxGroupText("content.label"),
         children: [
           {
-            helpText: "Sets the label text of the widget",
+            helpText: checkboxGroupText("help.label"),
             propertyName: "labelText",
-            label: "Text",
+            label: checkboxGroupText("content.text"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Enter label text",
+            placeholderText: checkboxGroupText("placeholder.label"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label position of the widget",
+            helpText: checkboxGroupText("help.labelPosition"),
             propertyName: "labelPosition",
-            label: "Position",
+            label: checkboxGroupText("content.position"),
             controlType: "ICON_TABS",
             fullWidth: true,
             hidden: isAutoLayout,
             options: [
-              { label: "Auto", value: LabelPosition.Auto },
-              { label: "Left", value: LabelPosition.Left },
-              { label: "Top", value: LabelPosition.Top },
+              {
+                label: checkboxGroupText("option.auto"),
+                value: LabelPosition.Auto,
+              },
+              {
+                label: checkboxGroupText("option.left"),
+                value: LabelPosition.Left,
+              },
+              {
+                label: checkboxGroupText("option.top"),
+                value: LabelPosition.Top,
+              },
             ],
             defaultValue: LabelPosition.Top,
             isBindProperty: false,
@@ -281,9 +300,9 @@ class CheckboxGroupWidget extends BaseWidget<
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label alignment of the widget",
+            helpText: checkboxGroupText("help.alignment"),
             propertyName: "labelAlignment",
-            label: "Alignment",
+            label: checkboxGroupText("content.alignment"),
             controlType: "LABEL_ALIGNMENT_OPTIONS",
             fullWidth: false,
             options: [
@@ -304,10 +323,9 @@ class CheckboxGroupWidget extends BaseWidget<
             dependencies: ["labelPosition"],
           },
           {
-            helpText:
-              "Sets the label width of the widget as the number of columns",
+            helpText: checkboxGroupText("help.labelWidth"),
             propertyName: "labelWidth",
-            label: "Width (in columns)",
+            label: checkboxGroupText("content.labelWidth"),
             controlType: "NUMERIC_INPUT",
             isJSConvertible: true,
             isBindProperty: true,
@@ -326,12 +344,12 @@ class CheckboxGroupWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Validations",
+        sectionName: checkboxGroupText("content.validations"),
         children: [
           {
             propertyName: "isRequired",
-            label: "Required",
-            helpText: "Makes input to the widget mandatory",
+            label: checkboxGroupText("content.required"),
+            helpText: checkboxGroupText("help.required"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -343,22 +361,22 @@ class CheckboxGroupWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "General",
+        sectionName: checkboxGroupText("content.general"),
         children: [
           {
-            helpText: "Show help text or details about current input",
+            helpText: checkboxGroupText("help.tooltip"),
             propertyName: "labelTooltip",
-            label: "Tooltip",
+            label: checkboxGroupText("content.tooltip"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Value must be atleast 6 chars",
+            placeholderText: checkboxGroupText("placeholder.tooltip"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
             propertyName: "isVisible",
-            label: "Visible",
-            helpText: "Controls the visibility of the widget",
+            label: checkboxGroupText("content.visible"),
+            helpText: checkboxGroupText("help.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -369,9 +387,9 @@ class CheckboxGroupWidget extends BaseWidget<
           },
           {
             propertyName: "isDisabled",
-            label: "Disabled",
+            label: checkboxGroupText("content.disabled"),
             controlType: "SWITCH",
-            helpText: "Disables input to this widget",
+            helpText: checkboxGroupText("help.disabled"),
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
@@ -381,9 +399,9 @@ class CheckboxGroupWidget extends BaseWidget<
           },
           {
             propertyName: "isInline",
-            label: "Inline",
+            label: checkboxGroupText("content.inline"),
             controlType: "SWITCH",
-            helpText: "Displays the checkboxes horizontally",
+            helpText: checkboxGroupText("help.inline"),
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
@@ -393,9 +411,9 @@ class CheckboxGroupWidget extends BaseWidget<
           },
           {
             propertyName: "isSelectAll",
-            label: "Select all options",
+            label: checkboxGroupText("content.selectAll"),
             controlType: "SWITCH",
-            helpText: "Controls whether select all option is shown",
+            helpText: checkboxGroupText("help.selectAll"),
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
@@ -405,9 +423,9 @@ class CheckboxGroupWidget extends BaseWidget<
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: checkboxGroupText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: checkboxGroupText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -417,10 +435,10 @@ class CheckboxGroupWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: checkboxGroupText("content.events"),
         children: [
           {
-            helpText: "when the check state is changed",
+            helpText: checkboxGroupText("help.onSelectionChange"),
             propertyName: "onSelectionChange",
             label: "onSelectionChange",
             controlType: "ACTION_SELECTOR",
@@ -434,14 +452,18 @@ class CheckboxGroupWidget extends BaseWidget<
   }
 
   static getPropertyPaneStyleConfig() {
+    return getCheckboxGroupPropertyPaneStyleConfig();
+  }
+
+  static getCheckboxGroupPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Label styles",
+        sectionName: checkboxGroupText("style.labelStyles"),
         children: [
           {
             propertyName: "labelTextColor",
-            label: "Font color",
-            helpText: "Control the color of the label associated",
+            label: checkboxGroupText("style.fontColor"),
+            helpText: checkboxGroupText("help.fontColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -450,38 +472,38 @@ class CheckboxGroupWidget extends BaseWidget<
           },
           {
             propertyName: "labelTextSize",
-            label: "Font size",
-            helpText: "Control the font size of the label associated",
+            label: checkboxGroupText("style.fontSize"),
+            helpText: checkboxGroupText("help.fontSize"),
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
             options: [
               {
-                label: "S",
+                label: checkboxGroupText("option.small"),
                 value: "0.875rem",
                 subText: "0.875rem",
               },
               {
-                label: "M",
+                label: checkboxGroupText("option.medium"),
                 value: "1rem",
                 subText: "1rem",
               },
               {
-                label: "L",
+                label: checkboxGroupText("option.large"),
                 value: "1.25rem",
                 subText: "1.25rem",
               },
               {
-                label: "XL",
+                label: checkboxGroupText("option.extraLarge"),
                 value: "1.875rem",
                 subText: "1.875rem",
               },
               {
-                label: "XXL",
+                label: checkboxGroupText("option.doubleExtraLarge"),
                 value: "3rem",
                 subText: "3rem",
               },
               {
-                label: "3XL",
+                label: checkboxGroupText("option.tripleExtraLarge"),
                 value: "3.75rem",
                 subText: "3.75rem",
               },
@@ -493,8 +515,8 @@ class CheckboxGroupWidget extends BaseWidget<
           },
           {
             propertyName: "labelStyle",
-            label: "Emphasis",
-            helpText: "Control if the label should be bold or italics",
+            label: checkboxGroupText("style.emphasis"),
+            helpText: checkboxGroupText("help.emphasis"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -514,36 +536,36 @@ class CheckboxGroupWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "General",
+        sectionName: checkboxGroupText("content.general"),
         children: [
           {
             propertyName: "optionAlignment",
-            label: "Alignment",
+            label: checkboxGroupText("content.alignment"),
             controlType: "DROP_DOWN",
-            helpText: "Sets alignment between options.",
+            helpText: checkboxGroupText("help.optionAlignment"),
             options: [
               {
-                label: "None",
+                label: checkboxGroupText("option.none"),
                 value: CheckboxGroupAlignmentTypes.NONE,
               },
               {
-                label: "Start",
+                label: checkboxGroupText("option.start"),
                 value: CheckboxGroupAlignmentTypes.START,
               },
               {
-                label: "End",
+                label: checkboxGroupText("option.end"),
                 value: CheckboxGroupAlignmentTypes.END,
               },
               {
-                label: "Center",
+                label: checkboxGroupText("option.center"),
                 value: CheckboxGroupAlignmentTypes.CENTER,
               },
               {
-                label: "Between",
+                label: checkboxGroupText("option.between"),
                 value: CheckboxGroupAlignmentTypes.SPACE_BETWEEN,
               },
               {
-                label: "Around",
+                label: checkboxGroupText("option.around"),
                 value: CheckboxGroupAlignmentTypes.SPACE_AROUND,
               },
             ],
@@ -567,12 +589,12 @@ class CheckboxGroupWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Color",
+        sectionName: checkboxGroupText("style.color"),
         children: [
           {
             propertyName: "accentColor",
-            helpText: "Sets the checked state color of the checkbox",
-            label: "Accent color",
+            helpText: checkboxGroupText("help.accentColor"),
+            label: checkboxGroupText("style.accentColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -582,13 +604,12 @@ class CheckboxGroupWidget extends BaseWidget<
         ],
       },
       {
-        sectionName: "Border and shadow",
+        sectionName: checkboxGroupText("style.borderAndShadow"),
         children: [
           {
             propertyName: "borderRadius",
-            label: "Border radius",
-            helpText:
-              "Rounds the corners of the icon button's outer border edge",
+            label: checkboxGroupText("style.borderRadius"),
+            helpText: checkboxGroupText("help.borderRadius"),
             controlType: "BORDER_RADIUS_OPTIONS",
 
             isJSConvertible: true,
@@ -766,6 +787,14 @@ class CheckboxGroupWidget extends BaseWidget<
       });
     };
   };
+}
+
+export function getCheckboxGroupPropertyPaneContentConfig() {
+  return CheckboxGroupWidget.getCheckboxGroupPropertyPaneContentConfig();
+}
+
+export function getCheckboxGroupPropertyPaneStyleConfig() {
+  return CheckboxGroupWidget.getCheckboxGroupPropertyPaneStyleConfig();
 }
 
 export interface CheckboxGroupWidgetProps extends WidgetProps {
