@@ -27,6 +27,10 @@ import type {
 import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
+import i18n from "i18n";
+
+const checkboxText = (path: string) =>
+  i18n.t(`widgetProperty.checkbox.${path}`);
 
 class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
   static type = "CHECKBOX_WIDGET";
@@ -131,29 +135,39 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneContentConfig() {
+    return getCheckboxPropertyPaneContentConfig();
+  }
+
+  static getCheckboxPropertyPaneContentConfig() {
     return [
       {
-        sectionName: "Label",
+        sectionName: checkboxText("content.label"),
         children: [
           {
             propertyName: "label",
-            label: "Text",
+            label: checkboxText("content.text"),
             controlType: "INPUT_TEXT",
-            helpText: "Displays a label next to the widget",
-            placeholderText: "I agree to the T&C",
+            helpText: checkboxText("help.label"),
+            placeholderText: checkboxText("placeholder.label"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
-            helpText: "Sets the label position of the widget",
+            helpText: checkboxText("help.labelPosition"),
             propertyName: "labelPosition",
-            label: "Position",
+            label: checkboxText("content.position"),
             controlType: "ICON_TABS",
             fullWidth: true,
             options: [
-              { label: "Left", value: LabelPosition.Left },
-              { label: "Right", value: LabelPosition.Right },
+              {
+                label: checkboxText("option.left"),
+                value: LabelPosition.Left,
+              },
+              {
+                label: checkboxText("option.right"),
+                value: LabelPosition.Right,
+              },
             ],
             defaultValue: LabelPosition.Left,
             isBindProperty: false,
@@ -162,8 +176,8 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
           },
           {
             propertyName: "alignWidget",
-            helpText: "Sets the alignment of the widget",
-            label: "Alignment",
+            helpText: checkboxText("help.alignment"),
+            label: checkboxText("content.alignment"),
             controlType: "LABEL_ALIGNMENT_OPTIONS",
             isBindProperty: true,
             isTriggerProperty: false,
@@ -183,12 +197,12 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Validations",
+        sectionName: checkboxText("content.validations"),
         children: [
           {
             propertyName: "isRequired",
-            label: "Required",
-            helpText: "Makes input to the widget mandatory",
+            label: checkboxText("content.required"),
+            helpText: checkboxText("help.required"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -198,22 +212,22 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "General",
+        sectionName: checkboxText("content.general"),
         children: [
           {
-            helpText: "Show help text or details about current input",
+            helpText: checkboxText("help.tooltip"),
             propertyName: "labelTooltip",
-            label: "Tooltip",
+            label: checkboxText("content.tooltip"),
             controlType: "INPUT_TEXT",
-            placeholderText: "Add hints to guide the user",
+            placeholderText: checkboxText("placeholder.tooltip"),
             isBindProperty: true,
             isTriggerProperty: false,
             validation: { type: ValidationTypes.TEXT },
           },
           {
             propertyName: "defaultCheckedState",
-            label: "Default state",
-            helpText: "Sets the default checked state of the widget",
+            label: checkboxText("content.defaultState"),
+            helpText: checkboxText("help.defaultState"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -222,8 +236,8 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
           },
           {
             propertyName: "isVisible",
-            label: "Visible",
-            helpText: "Controls the visibility of the widget",
+            label: checkboxText("content.visible"),
+            helpText: checkboxText("help.visible"),
             controlType: "SWITCH",
             isJSConvertible: true,
             isBindProperty: true,
@@ -232,9 +246,9 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
           },
           {
             propertyName: "isDisabled",
-            label: "Disabled",
+            label: checkboxText("content.disabled"),
             controlType: "SWITCH",
-            helpText: "Disables input to this widget",
+            helpText: checkboxText("help.disabled"),
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
@@ -242,9 +256,9 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
           },
           {
             propertyName: "animateLoading",
-            label: "Animate loading",
+            label: checkboxText("content.animateLoading"),
             controlType: "SWITCH",
-            helpText: "Controls the loading of the widget",
+            helpText: checkboxText("help.animateLoading"),
             defaultValue: true,
             isJSConvertible: true,
             isBindProperty: true,
@@ -254,10 +268,10 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Events",
+        sectionName: checkboxText("content.events"),
         children: [
           {
-            helpText: "when the check state is changed",
+            helpText: checkboxText("help.onCheckChange"),
             propertyName: "onCheckChange",
             label: "onCheckChange",
             controlType: "ACTION_SELECTOR",
@@ -271,14 +285,18 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
   }
 
   static getPropertyPaneStyleConfig() {
+    return getCheckboxPropertyPaneStyleConfig();
+  }
+
+  static getCheckboxPropertyPaneStyleConfig() {
     return [
       {
-        sectionName: "Label styles",
+        sectionName: checkboxText("style.labelStyles"),
         children: [
           {
             propertyName: "labelTextColor",
-            label: "Font color",
-            helpText: "Control the color of the label associated",
+            label: checkboxText("style.fontColor"),
+            helpText: checkboxText("help.fontColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -292,39 +310,39 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelTextSize",
-            label: "Font size",
-            helpText: "Control the font size of the label associated",
+            label: checkboxText("style.fontSize"),
+            helpText: checkboxText("help.fontSize"),
             controlType: "DROP_DOWN",
             defaultValue: "0.875rem",
             hidden: isAutoLayout,
             options: [
               {
-                label: "S",
+                label: checkboxText("option.small"),
                 value: "0.875rem",
                 subText: "0.875rem",
               },
               {
-                label: "M",
+                label: checkboxText("option.medium"),
                 value: "1rem",
                 subText: "1rem",
               },
               {
-                label: "L",
+                label: checkboxText("option.large"),
                 value: "1.25rem",
                 subText: "1.25rem",
               },
               {
-                label: "XL",
+                label: checkboxText("option.extraLarge"),
                 value: "1.875rem",
                 subText: "1.875rem",
               },
               {
-                label: "XXL",
+                label: checkboxText("option.doubleExtraLarge"),
                 value: "3rem",
                 subText: "3rem",
               },
               {
-                label: "3XL",
+                label: checkboxText("option.tripleExtraLarge"),
                 value: "3.75rem",
                 subText: "3.75rem",
               },
@@ -336,8 +354,8 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
           },
           {
             propertyName: "labelStyle",
-            label: "Emphasis",
-            helpText: "Control if the label should be bold or italics",
+            label: checkboxText("style.emphasis"),
+            helpText: checkboxText("help.emphasis"),
             controlType: "BUTTON_GROUP",
             options: [
               {
@@ -357,12 +375,12 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Color",
+        sectionName: checkboxText("style.color"),
         children: [
           {
             propertyName: "accentColor",
-            helpText: "Sets the checked state color of the checkbox",
-            label: "Accent color",
+            helpText: checkboxText("help.accentColor"),
+            label: checkboxText("style.accentColor"),
             controlType: "COLOR_PICKER",
             isJSConvertible: true,
             isBindProperty: true,
@@ -372,13 +390,12 @@ class CheckboxWidget extends BaseWidget<CheckboxWidgetProps, WidgetState> {
         ],
       },
       {
-        sectionName: "Border and shadow",
+        sectionName: checkboxText("style.borderAndShadow"),
         children: [
           {
             propertyName: "borderRadius",
-            label: "Border radius",
-            helpText:
-              "Rounds the corners of the icon button's outer border edge",
+            label: checkboxText("style.borderRadius"),
+            helpText: checkboxText("help.borderRadius"),
             controlType: "BORDER_RADIUS_OPTIONS",
             isJSConvertible: true,
             isBindProperty: true,
@@ -516,6 +533,14 @@ export interface CheckboxWidgetProps extends WidgetProps {
   labelTextSize?: string;
   labelStyle?: string;
   labelTooltip?: string;
+}
+
+export function getCheckboxPropertyPaneContentConfig() {
+  return CheckboxWidget.getCheckboxPropertyPaneContentConfig();
+}
+
+export function getCheckboxPropertyPaneStyleConfig() {
+  return CheckboxWidget.getCheckboxPropertyPaneStyleConfig();
 }
 
 export default CheckboxWidget;

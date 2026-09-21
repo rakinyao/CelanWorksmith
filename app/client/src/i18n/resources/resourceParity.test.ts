@@ -280,6 +280,33 @@ describe("locale resources", () => {
       expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
     }
 
+    expect(flattenKeys(enUS.widgetProperty.checkbox).sort()).toEqual(
+      flattenKeys(zhCN.widgetProperty.checkbox).sort(),
+    );
+    expect(
+      i18n.t("widgetProperty.checkbox.content.label", { lng: "zh-CN" }),
+    ).toBe("标签");
+    expect(
+      i18n.t("widgetProperty.checkbox.style.accentColor", { lng: "zh-CN" }),
+    ).toBe("强调色");
+    const checkboxResources = flattenResourceLeaves(
+      enUS.widgetProperty.checkbox,
+    );
+    const chineseCheckboxResources = new Map(
+      flattenResourceLeaves(zhCN.widgetProperty.checkbox).map((resource) => [
+        resource.path,
+        resource.value,
+      ]),
+    );
+
+    for (const resource of checkboxResources) {
+      const path = `widgetProperty.checkbox.${resource.path}`;
+
+      expect(chineseCheckboxResources.get(resource.path)).toBeDefined();
+      expect(i18n.t(path, { lng: "en-US" })).not.toBe(path);
+      expect(i18n.t(path, { lng: "zh-CN" })).not.toBe(path);
+    }
+
     const requiredTableLabels = [
       "columnControl",
       "columnType",
