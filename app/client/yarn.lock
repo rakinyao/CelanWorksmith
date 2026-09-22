@@ -14018,7 +14018,8 @@ __metadata:
     dotenv: ^10.0.0
     dotenv-expand: ^5.1.0
     downloadjs: ^1.4.7
-    echarts: ^6.1.0
+    echarts: 6.1.0
+    echarts-gl: 2.1.0
     eslint: ^8.51.0
     eslint-config-prettier: ^9.0.0
     eslint-config-react-app: ^7.0.1
@@ -16042,6 +16043,13 @@ __metadata:
   version: 2.3.2
   resolution: "classnames@npm:2.3.2"
   checksum: 2c62199789618d95545c872787137262e741f9db13328e216b093eea91c85ef2bfb152c1f9e63027204e2559a006a92eb74147d46c800a9f96297ae1d9f96f4e
+  languageName: node
+  linkType: hard
+
+"claygl@npm:^1.2.1":
+  version: 1.3.0
+  resolution: "claygl@npm:1.3.0"
+  checksum: cbf3c4788b426ecc183e0fc5f7e3f88fae15d616ebf39467cb719c1f78efbef8bbe92f8def22c927a9d3cbb2a3ae6d1194755edae96d5f623b4dca0b78bdefa8
   languageName: node
   linkType: hard
 
@@ -18420,7 +18428,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"echarts@npm:^6.1.0":
+"echarts-gl@npm:2.1.0":
+  version: 2.1.0
+  resolution: "echarts-gl@npm:2.1.0"
+  dependencies:
+    claygl: ^1.2.1
+    zrender: ^5.1.1 || ^6.0.0
+  peerDependencies:
+    echarts: ^5.1.2 || ^6.0.0
+  checksum: 892f05522f8a00a015db2f55742db3cca5a0ecc7f1efeb123b72705e3827604b457edd12160a6bfd84323b915f90e9225b010ddf2c154aeb4c732f8462626b04
+  languageName: node
+  linkType: hard
+
+"echarts@npm:6.1.0":
   version: 6.1.0
   resolution: "echarts@npm:6.1.0"
   dependencies:
@@ -36466,7 +36486,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zrender@npm:6.1.0":
+"zrender@npm:6.1.0, zrender@npm:^5.1.1 || ^6.0.0":
   version: 6.1.0
   resolution: "zrender@npm:6.1.0"
   dependencies:
