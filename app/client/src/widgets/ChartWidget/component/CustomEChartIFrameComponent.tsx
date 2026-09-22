@@ -221,8 +221,8 @@ export function CustomEChartIFrameComponent(
                 }
             </style>
             
-            <script src="/libraries/echarts@5.4.3.js"></script>
-            <script src="/libraries/echarts-gl@2.0.9.js"></script>
+            <script src="/libraries/echarts@6.1.0.js"></script>
+            <script src="/libraries/echarts-gl@2.1.0.js"></script>
             <script src="/libraries/lodash@4.17.21.js"></script>
         </head>
 

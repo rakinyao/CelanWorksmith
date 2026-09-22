@@ -81,6 +81,16 @@ describe("CustomEChartIFrameComponent", () => {
     expect(iFrameElement).toBeInTheDocument();
     expect(iFrameElement).toHaveAttribute("sandbox", "allow-scripts");
 
+    const srcDoc = iFrameElement?.getAttribute("srcdoc") ?? "";
+
+    expect(srcDoc).toContain("/libraries/echarts@6.1.0.js");
+    expect(srcDoc).toContain("/libraries/echarts-gl@2.1.0.js");
+    expect(srcDoc.indexOf("/libraries/echarts@6.1.0.js")).toBeLessThan(
+      srcDoc.indexOf("/libraries/echarts-gl@2.1.0.js"),
+    );
+    expect(srcDoc).not.toContain("echarts@5.4.3.js");
+    expect(srcDoc).not.toContain("echarts-gl@2.0.9.js");
+
     const overlay = container.querySelector(
       "div[data-testid='iframe-overlay']",
     );
