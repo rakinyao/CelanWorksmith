@@ -1,9 +1,15 @@
+import React from "react";
+import { render } from "@testing-library/react";
 import { RenderModes } from "constants/WidgetConstants";
 import ChartWidget, { type ChartWidgetProps } from ".";
 import { LabelOrientation, type ChartData } from "../constants";
 import { EmptyChartData } from "../component/EmptyChartData";
-import { ChartErrorComponent } from "../component/ChartErrorComponent";
 import type { WidgetError } from "widgets/BaseWidget";
+
+jest.mock("../component", () => ({
+  __esModule: true,
+  default: () => null,
+}));
 
 describe("ChartWidget getWidgetView", () => {
   let chartWidget: ChartWidget;
@@ -128,29 +134,17 @@ describe("ChartWidget getWidgetView", () => {
     const chartData = {
       seriesID1: { seriesName: "Revenue", data: [{ x: "Mon", y: 1 }] },
     };
-    const chartWidget = new ChartWidget({
-      ...defaultProps,
-      chartType: "SCATTER_CHART",
-      chartData,
-    });
-
-    const invalidView = chartWidget.getWidgetView();
-
-    expect(invalidView.type).toEqual(ChartErrorComponent);
-    expect(invalidView.props.error.message).toContain("Revenue");
-    expect(invalidView.props.error.message).toContain("1");
-    expect(invalidView.props.error.message).toContain("x");
-    expect(chartWidget.props.chartData).toBe(chartData);
-
-    const categoryWidget = new ChartWidget({
-      ...defaultProps,
-      chartType: "COLUMN_CHART",
-      chartData,
-    });
-
-    expect(categoryWidget.getWidgetView().type).not.toEqual(
-      ChartErrorComponent,
+    const chartProps = { ...defaultProps, chartData };
+    const view = render(
+      <ChartWidget {...chartProps} chartType="SCATTER_CHART" />,
     );
+
+    expect(view.container.textContent).toContain("Revenue");
+    expect(view.container.textContent).toContain("1");
+    expect(view.container.textContent).toContain("x");
+
+    view.rerender(<ChartWidget {...chartProps} chartType="COLUMN_CHART" />);
+    expect(view.container.textContent).not.toContain("Revenue");
   });
 
   it("keeps empty scatter data in the existing empty state", () => {

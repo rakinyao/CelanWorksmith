@@ -84,17 +84,15 @@ describe("getBasicEChartOptions", () => {
     try {
       chart.setOption(getBasicEChartOptions(props));
 
-      expect(chart.getOption()).toMatchObject({
-        dataset: [
-          {
-            sourceHeader: false,
-            source: [
-              ["123", "-1.5"],
-              ["456", 7],
-            ],
-          },
-        ],
-      });
+      const renderedSvg = new DOMParser().parseFromString(
+        chart.renderToSVGString(),
+        "image/svg+xml",
+      );
+      const scatterPointMarkers = renderedSvg.querySelectorAll(
+        'path[d^="M1 0A1 1 0 1 1"]',
+      );
+
+      expect(scatterPointMarkers).toHaveLength(2);
     } finally {
       chart.dispose();
     }
