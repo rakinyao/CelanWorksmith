@@ -142,8 +142,15 @@ describe("ChartWidget getWidgetView", () => {
     expect(invalidView.props.error.message).toContain("x");
     expect(chartWidget.props.chartData).toBe(chartData);
 
-    chartWidget.props = { ...chartWidget.props, chartType: "COLUMN_CHART" };
-    expect(chartWidget.getWidgetView().type).not.toEqual(ChartErrorComponent);
+    const categoryWidget = new ChartWidget({
+      ...defaultProps,
+      chartType: "COLUMN_CHART",
+      chartData,
+    });
+
+    expect(categoryWidget.getWidgetView().type).not.toEqual(
+      ChartErrorComponent,
+    );
   });
 
   it("keeps empty scatter data in the existing empty state", () => {

@@ -84,7 +84,17 @@ describe("getBasicEChartOptions", () => {
     try {
       chart.setOption(getBasicEChartOptions(props));
 
-      expect(chart.getModel().getSeriesByIndex(0).getData().count()).toBe(2);
+      expect(chart.getOption()).toMatchObject({
+        dataset: [
+          {
+            sourceHeader: false,
+            source: [
+              ["123", "-1.5"],
+              ["456", 7],
+            ],
+          },
+        ],
+      });
     } finally {
       chart.dispose();
     }
