@@ -346,6 +346,8 @@ const zhCN = {
       stackedBarChart: "堆叠条形图",
       stackedAreaChart: "堆叠面积图",
       scatterChart: "散点图",
+      scatterInvalidCoordinate:
+        "散点图系列 {{series}} 的第 {{point}} 个点包含无效的 {{axis}} 坐标。请输入有限数字或数字字符串。",
     },
     datePickerV2: {
       data: "数据",

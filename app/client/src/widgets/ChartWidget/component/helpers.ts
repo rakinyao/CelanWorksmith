@@ -44,10 +44,29 @@ export const parseOnDataPointClickParams = (evt: any, chartType: ChartType) => {
     case "CUSTOM_ECHART": {
       return parseOnDataPointClickForCustomEChart(evt);
     }
+    case "SCATTER_CHART": {
+      return parseOnDataPointClickForScatterChart(evt);
+    }
     default: {
       return parseOnDataPointClickForBasicCharts(evt);
     }
   }
+};
+
+export const parseOnDataPointClickForScatterChart = (
+  evt: Record<string, unknown>,
+): ChartSelectedDataPoint => {
+  const pair = Array.isArray(evt.data)
+    ? evt.data
+    : Array.isArray(evt.value)
+      ? evt.value
+      : [];
+
+  return {
+    x: pair[0],
+    y: pair[1],
+    seriesTitle: evt.seriesName as string | undefined,
+  };
 };
 
 export const parseOnDataPointClickForCustomEChart = (

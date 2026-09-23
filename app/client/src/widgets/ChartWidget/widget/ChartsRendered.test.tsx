@@ -2,6 +2,7 @@ import { RenderModes } from "constants/WidgetConstants";
 import ChartWidget, { type ChartWidgetProps } from ".";
 import { LabelOrientation, type ChartData } from "../constants";
 import { EmptyChartData } from "../component/EmptyChartData";
+import { ChartErrorComponent } from "../component/ChartErrorComponent";
 import type { WidgetError } from "widgets/BaseWidget";
 
 describe("ChartWidget getWidgetView", () => {
@@ -121,5 +122,37 @@ describe("ChartWidget getWidgetView", () => {
       seriesID1: seriesData1,
       seriesID2: seriesData2,
     });
+  });
+
+  it("shows scatter coordinate errors without changing data and clears them for category charts", () => {
+    const chartData = {
+      seriesID1: { seriesName: "Revenue", data: [{ x: "Mon", y: 1 }] },
+    };
+    const chartWidget = new ChartWidget({
+      ...defaultProps,
+      chartType: "SCATTER_CHART",
+      chartData,
+    });
+
+    const invalidView = chartWidget.getWidgetView();
+
+    expect(invalidView.type).toEqual(ChartErrorComponent);
+    expect(invalidView.props.error.message).toContain("Revenue");
+    expect(invalidView.props.error.message).toContain("1");
+    expect(invalidView.props.error.message).toContain("x");
+    expect(chartWidget.props.chartData).toBe(chartData);
+
+    chartWidget.props = { ...chartWidget.props, chartType: "COLUMN_CHART" };
+    expect(chartWidget.getWidgetView().type).not.toEqual(ChartErrorComponent);
+  });
+
+  it("keeps empty scatter data in the existing empty state", () => {
+    chartWidget = new ChartWidget({
+      ...defaultProps,
+      chartType: "SCATTER_CHART",
+      chartData: {},
+    });
+
+    expect(chartWidget.getWidgetView().type).toEqual(EmptyChartData);
   });
 });

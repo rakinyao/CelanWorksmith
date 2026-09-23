@@ -36,6 +36,8 @@ import IconSVG from "../icon.svg";
 import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { EChartsDatasetBuilder } from "../component/EChartsDatasetBuilder";
+import i18n from "i18n";
+import { findInvalidScatterCoordinate } from "./scatterValidation";
 
 const ChartComponent = lazy(async () =>
   retryPromise(
@@ -239,6 +241,26 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
 
     if (emptyChartData(this.props)) {
       return <EmptyChartData />;
+    }
+
+    if (this.props.chartType === "SCATTER_CHART") {
+      const invalidCoordinate = findInvalidScatterCoordinate(
+        this.props.chartData,
+      );
+
+      if (invalidCoordinate) {
+        return (
+          <ChartErrorComponent
+            error={
+              new Error(
+                i18n.t("widgetProperty.chart.scatterInvalidCoordinate", {
+                  ...invalidCoordinate,
+                }),
+              )
+            }
+          />
+        );
+      }
     }
 
     return this.renderChartWithData();

@@ -117,6 +117,24 @@ describe("getObjectChartStateMessage", () => {
 });
 
 describe("parseOnDataPointClickParams", () => {
+  it("returns scatter click coordinates from the clicked pair for every series", () => {
+    expect(
+      parseOnDataPointClickParams(
+        { data: [123, 4], seriesIndex: 1, seriesName: "Second" },
+        "SCATTER_CHART",
+      ),
+    ).toEqual({ x: 123, y: 4, seriesTitle: "Second" });
+  });
+
+  it("uses the ECharts value pair when scatter event data is unavailable", () => {
+    expect(
+      parseOnDataPointClickParams(
+        { value: [" 2.5 ", -7], seriesName: "Coordinates" },
+        "SCATTER_CHART",
+      ),
+    ).toEqual({ x: " 2.5 ", y: -7, seriesTitle: "Coordinates" });
+  });
+
   it("returns appropriate chart selected point from user click data", () => {
     const chartType: ChartType = "CUSTOM_ECHART";
     const event = {

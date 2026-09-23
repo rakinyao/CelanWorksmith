@@ -194,6 +194,13 @@ describe("Chart Widget", () => {
 
     rerender(
       <Provider store={store}>
+        <ChartComponent {...defaultProps} chartType="SCATTER_CHART" />
+      </Provider>,
+    );
+    expect(getLatestOptions().series[0].type).toBe("scatter");
+
+    rerender(
+      <Provider store={store}>
         <ChartComponent {...defaultProps} chartType="STACKED_COLUMN_CHART" />
       </Provider>,
     );

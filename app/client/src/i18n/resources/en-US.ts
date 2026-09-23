@@ -355,6 +355,8 @@ const enUS = {
       stackedBarChart: "Stacked bar chart",
       stackedAreaChart: "Stacked area chart",
       scatterChart: "Scatter chart",
+      scatterInvalidCoordinate:
+        "Scatter chart series {{series}}, point {{point}} has an invalid {{axis}} coordinate. Use a finite number or numeric string.",
     },
     datePickerV2: {
       data: "Data",
