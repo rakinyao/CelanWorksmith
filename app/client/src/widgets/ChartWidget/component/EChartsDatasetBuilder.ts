@@ -105,9 +105,11 @@ export class EChartsDatasetBuilder {
   }
 
   scatterDatasetsFromData(): Array<{
+    sourceHeader: false;
     source: Array<[number | string, number | string]>;
   }> {
     return Object.values(this.filteredChartData).map((seriesData) => ({
+      sourceHeader: false,
       source: seriesData.data.map(({ x, y }) => {
         this.checkForLongestLabel(x, y);
 

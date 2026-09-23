@@ -62,3 +62,25 @@ Result: exit code 0, no errors; 13 lint warnings remain, primarily existing perf
 ## Concern
 
 The approved design also describes runtime rejection of invalid scatter points and error-overlay recovery. Those runtime validation/error-display behaviors were not part of the Task 2 brief and are not implemented here; coordinate values are passed through unchanged as requested.
+
+## Review Fix Round 1: Numeric-String Header Inference
+
+Added `sourceHeader: false` to each scatter dataset and an ECharts SVG integration regression in `helpers.test.ts`. The regression feeds a first row of numeric strings through `getBasicEChartOptions`, initializes ECharts 6, applies the options, and checks the parsed series data count.
+
+Red command:
+
+```sh
+yarn g:jest src/widgets/ChartWidget/component/helpers.test.ts
+```
+
+Result before the fix: 1 suite failed, 1 test failed / 11 passed. ECharts parsed 1 point instead of the expected 2 (`Expected: 2`, `Received: 1`), confirming it treated the leading numeric-string row as headers.
+
+Green command:
+
+```sh
+yarn g:jest src/widgets/ChartWidget/component/EChartsDatasetBuilder.test.ts src/widgets/ChartWidget/component/EChartsConfigurationBuilder.test.ts src/widgets/ChartWidget/component/helpers.test.ts src/widgets/ChartWidget/widget/propertyConfig.test.ts src/components/propertyControls/ChartDataControl.test.tsx
+```
+
+Result after the fix: 5 suites passed, 57 tests passed. Jest emitted the known `NO_COLOR`/`FORCE_COLOR` warning.
+
+Fix files: `EChartsDatasetBuilder.ts`, `EChartsDatasetBuilder.test.ts`, `helpers.test.ts`, and this report. Click payload handling remains owned by Task 3 and was not changed.

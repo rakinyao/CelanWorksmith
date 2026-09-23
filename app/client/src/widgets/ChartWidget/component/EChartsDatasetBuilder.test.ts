@@ -92,13 +92,14 @@ describe("EChartsConfigurationBuilder", () => {
 
       expect(builder.scatterDatasetsFromData()).toEqual([
         {
+          sourceHeader: false,
           source: [
             ["123", "-1.5"],
             ["123", 2],
             [0, 4],
           ],
         },
-        { source: [[8, "9"]] },
+        { sourceHeader: false, source: [[8, "9"]] },
       ]);
       expect(chartData).toEqual(original);
       expect(builder.longestDataLabels()).toEqual({ x: "123", y: "-1.5" });

@@ -1,4 +1,5 @@
 import type { ChartType } from "../constants";
+import * as echarts from "echarts";
 import {
   getObjectChartStateMessage,
   parseOnDataPointClickParams,
@@ -56,9 +57,37 @@ describe("getBasicEChartOptions", () => {
 
   it("uses one coordinate dataset per scatter series", () => {
     expect(getBasicEChartOptions(makeProps("SCATTER_CHART")).dataset).toEqual([
-      { source: [[1, 2]] },
-      { source: [[3, 4]] },
+      { sourceHeader: false, source: [[1, 2]] },
+      { sourceHeader: false, source: [[3, 4]] },
     ]);
+  });
+
+  it("renders a leading numeric-string coordinate row as data in ECharts", () => {
+    const props = makeProps("SCATTER_CHART");
+
+    props.chartData = {
+      numericStrings: {
+        seriesName: "Numeric strings",
+        data: [
+          { x: "123", y: "-1.5" },
+          { x: "456", y: 7 },
+        ],
+      },
+    };
+    const element = document.createElement("div");
+    const chart = echarts.init(element, undefined, {
+      renderer: "svg",
+      width: 300,
+      height: 200,
+    });
+
+    try {
+      chart.setOption(getBasicEChartOptions(props));
+
+      expect(chart.getModel().getSeriesByIndex(0).getData().count()).toBe(2);
+    } finally {
+      chart.dispose();
+    }
   });
 
   it("keeps the category-aligned dataset shape for columns", () => {
