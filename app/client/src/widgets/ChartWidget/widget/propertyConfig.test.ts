@@ -88,6 +88,24 @@ describe("Validate Chart Widget's data property config", () => {
     .map((sectionConfig) => sectionConfig.children)
     .flat();
 
+  it("offers the stacked chart types in the selector and allowed values", () => {
+    const chartType = propertyConfigs.find(
+      (propertyConfig) => propertyConfig.propertyName === "chartType",
+    );
+    const stackedTypes = [
+      "STACKED_COLUMN_CHART",
+      "STACKED_BAR_CHART",
+      "STACKED_AREA_CHART",
+    ];
+
+    stackedTypes.forEach((type) => {
+      expect(
+        chartType?.options?.map((option: { value: string }) => option.value),
+      ).toContain(type);
+      expect(chartType?.validation?.params?.allowedValues).toContain(type);
+    });
+  });
+
   it("Validates visibility of property fields customFusionChartConfig property is visible when chartType is CUSTOM_FUSION_CHART", () => {
     const visibleFields = propertyConfigs.filter((propertyConfig) => {
       return propertyConfig.propertyName == "customFusionChartConfig";

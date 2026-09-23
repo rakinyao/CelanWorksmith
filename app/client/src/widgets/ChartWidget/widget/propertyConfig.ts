@@ -7,6 +7,7 @@ import {
   LABEL_ORIENTATION_COMPATIBLE_CHARTS,
 } from "../constants";
 import type { WidgetProps } from "widgets/BaseWidget";
+import i18n from "i18n";
 
 export const isLabelOrientationApplicableFor = (chartType: string) =>
   LABEL_ORIENTATION_COMPATIBLE_CHARTS.includes(chartType);
@@ -28,6 +29,18 @@ const labelOptions = () => {
     {
       label: "Column chart",
       value: "COLUMN_CHART",
+    },
+    {
+      label: i18n.t("widgetProperty.chart.stackedColumnChart"),
+      value: "STACKED_COLUMN_CHART",
+    },
+    {
+      label: i18n.t("widgetProperty.chart.stackedBarChart"),
+      value: "STACKED_BAR_CHART",
+    },
+    {
+      label: i18n.t("widgetProperty.chart.stackedAreaChart"),
+      value: "STACKED_AREA_CHART",
     },
     {
       label: "Area chart",
@@ -69,6 +82,9 @@ export const contentConfig = () => {
                 "PIE_CHART",
                 "COLUMN_CHART",
                 "AREA_CHART",
+                "STACKED_COLUMN_CHART",
+                "STACKED_BAR_CHART",
+                "STACKED_AREA_CHART",
                 "CUSTOM_ECHART",
                 "CUSTOM_FUSION_CHART",
               ],

@@ -277,7 +277,7 @@ class ChartComponent extends React.Component<
       this.setState({ eChartsError: undefined, chartType: "CUSTOM_ECHART" });
     } else if (
       isBasicEChart(this.props.chartType) &&
-      !isBasicEChart(this.state.chartType)
+      this.props.chartType !== this.state.chartType
     ) {
       // User has selected one of the ECharts option
       this.echartConfiguration = {};

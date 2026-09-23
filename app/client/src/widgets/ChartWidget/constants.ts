@@ -6,6 +6,9 @@ export type ChartType =
   | "PIE_CHART"
   | "COLUMN_CHART"
   | "AREA_CHART"
+  | "STACKED_COLUMN_CHART"
+  | "STACKED_BAR_CHART"
+  | "STACKED_AREA_CHART"
   | "SCATTER_CHART"
   | "CUSTOM_ECHART"
   | "CUSTOM_FUSION_CHART";
@@ -208,6 +211,8 @@ export const LABEL_ORIENTATION_COMPATIBLE_CHARTS = [
   "LINE_CHART",
   "AREA_CHART",
   "COLUMN_CHART",
+  "STACKED_COLUMN_CHART",
+  "STACKED_AREA_CHART",
 ];
 
 export const DefaultEChartConfig = {

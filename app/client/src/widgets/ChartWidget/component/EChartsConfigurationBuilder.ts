@@ -83,18 +83,21 @@ export class EChartsConfigurationBuilder {
 
         switch (props.chartType) {
           case "BAR_CHART":
+          case "STACKED_BAR_CHART":
             config = { ...config, type: "bar" };
 
             // The series label should be on the right for bar chart
             (config.label as Record<string, unknown>).position = "right";
             break;
           case "COLUMN_CHART":
+          case "STACKED_COLUMN_CHART":
             config = { ...config, type: "bar" };
             break;
           case "LINE_CHART":
             config = { ...config, type: "line" };
             break;
           case "AREA_CHART":
+          case "STACKED_AREA_CHART":
             config = {
               ...config,
               type: "line",
@@ -109,6 +112,14 @@ export class EChartsConfigurationBuilder {
               layoutConfig,
             );
             break;
+        }
+
+        if (
+          props.chartType === "STACKED_COLUMN_CHART" ||
+          props.chartType === "STACKED_BAR_CHART" ||
+          props.chartType === "STACKED_AREA_CHART"
+        ) {
+          config.stack = "total";
         }
 
         configs.push(config);
@@ -186,7 +197,10 @@ export class EChartsConfigurationBuilder {
   }
 
   #configForLabelOrientation(props: ChartComponentProps) {
-    if (props.chartType == "BAR_CHART") {
+    if (
+      props.chartType == "BAR_CHART" ||
+      props.chartType == "STACKED_BAR_CHART"
+    ) {
       return 0;
     }
 
@@ -258,7 +272,10 @@ export class EChartsConfigurationBuilder {
       };
     }
 
-    if (props.chartType == "BAR_CHART") {
+    if (
+      props.chartType == "BAR_CHART" ||
+      props.chartType == "STACKED_BAR_CHART"
+    ) {
       config.type = "category";
     }
 
@@ -288,7 +305,10 @@ export class EChartsConfigurationBuilder {
     const config: Record<string, unknown> = {};
     let type = "category";
 
-    if (props.chartType == "BAR_CHART") {
+    if (
+      props.chartType == "BAR_CHART" ||
+      props.chartType == "STACKED_BAR_CHART"
+    ) {
       type = "value";
     }
 
@@ -301,7 +321,11 @@ export class EChartsConfigurationBuilder {
       ...(layoutConfig.xAxis.axisLabel as Record<string, unknown>),
     };
 
-    if (props.chartType == "BAR_CHART" && props.setAdaptiveYMin) {
+    if (
+      (props.chartType == "BAR_CHART" ||
+        props.chartType == "STACKED_BAR_CHART") &&
+      props.setAdaptiveYMin
+    ) {
       config.min = "dataMin";
     }
 

@@ -4,7 +4,17 @@ import {
   parseOnDataPointClickParams,
   parseOnDataPointClickForCustomEChart,
   parseOnDataPointClickForCustomFusionChart,
+  isBasicEChart,
 } from "./helpers";
+
+describe("isBasicEChart", () => {
+  it("recognizes stacked Builder charts but not Custom ECharts", () => {
+    expect(isBasicEChart("STACKED_COLUMN_CHART" as ChartType)).toBe(true);
+    expect(isBasicEChart("STACKED_BAR_CHART" as ChartType)).toBe(true);
+    expect(isBasicEChart("STACKED_AREA_CHART" as ChartType)).toBe(true);
+    expect(isBasicEChart("CUSTOM_ECHART")).toBe(false);
+  });
+});
 
 describe("getObjectChartStateMessage", () => {
   it("defines visible states for Object-backed Charts", () => {

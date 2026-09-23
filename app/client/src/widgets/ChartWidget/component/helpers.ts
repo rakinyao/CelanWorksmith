@@ -103,9 +103,11 @@ export const labelKeyForChart = (
   let labelKey: "x" | "y";
 
   if (axisName == "xAxis") {
-    labelKey = chartType == "BAR_CHART" ? "y" : "x";
+    labelKey =
+      chartType == "BAR_CHART" || chartType == "STACKED_BAR_CHART" ? "y" : "x";
   } else {
-    labelKey = chartType == "BAR_CHART" ? "x" : "y";
+    labelKey =
+      chartType == "BAR_CHART" || chartType == "STACKED_BAR_CHART" ? "x" : "y";
   }
 
   return labelKey;
@@ -177,6 +179,9 @@ export const isBasicEChart = (type: ChartType) => {
     "LINE_CHART",
     "BAR_CHART",
     "COLUMN_CHART",
+    "STACKED_COLUMN_CHART",
+    "STACKED_BAR_CHART",
+    "STACKED_AREA_CHART",
   ];
 
   return types.includes(type);

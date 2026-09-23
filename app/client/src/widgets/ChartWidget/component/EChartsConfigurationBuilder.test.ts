@@ -170,6 +170,47 @@ describe("EChartsConfigurationBuilder", () => {
     expect(output).toEqual(defaultExpectedConfig);
   });
 
+  it("builds stacked series and corresponding axes", () => {
+    const cases = [
+      { chartType: "STACKED_COLUMN_CHART", seriesType: "bar", axis: "column" },
+      { chartType: "STACKED_BAR_CHART", seriesType: "bar", axis: "bar" },
+      { chartType: "STACKED_AREA_CHART", seriesType: "line", axis: "column" },
+    ] as const;
+
+    cases.forEach(({ axis, chartType, seriesType }) => {
+      const output = builder.prepareEChartConfig(
+        {
+          ...defaultProps,
+          chartType: chartType as ChartComponentProps["chartType"],
+        },
+        chartData,
+        longestLabels,
+      );
+      const series = output.series as Record<string, unknown>[];
+
+      expect(series).toHaveLength(2);
+      expect(series.map((item) => item.stack)).toEqual(["total", "total"]);
+      expect(series.map((item) => item.type)).toEqual([seriesType, seriesType]);
+
+      if (chartType === "STACKED_AREA_CHART") {
+        expect(series.map((item) => item.areaStyle)).toEqual([{}, {}]);
+      }
+
+      expect((output.xAxis as Record<string, unknown>).type).toBe(
+        axis === "bar" ? "value" : "category",
+      );
+      expect((output.yAxis as Record<string, unknown>).type).toBe(
+        axis === "bar" ? "category" : undefined,
+      );
+
+      if (axis === "bar") {
+        expect((series[0].label as Record<string, unknown>).position).toBe(
+          "right",
+        );
+      }
+    });
+  });
+
   describe("2. Allow scroll variations", () => {
     it("2.1 data zoom property isn't present if allowScroll is false", () => {
       const props = JSON.parse(JSON.stringify(defaultProps));

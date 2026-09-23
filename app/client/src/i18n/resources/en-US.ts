@@ -350,6 +350,11 @@ const enUS = {
     importedSummary: "Imported {{name}} version {{version}}.",
   },
   widgetProperty: {
+    chart: {
+      stackedColumnChart: "Stacked column chart",
+      stackedBarChart: "Stacked bar chart",
+      stackedAreaChart: "Stacked area chart",
+    },
     datePickerV2: {
       data: "Data",
       dateFormat: "Date format",

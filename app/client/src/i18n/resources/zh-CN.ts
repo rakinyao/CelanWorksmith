@@ -341,6 +341,11 @@ const zhCN = {
     importedSummary: "已导入 {{name}}，版本 {{version}}。",
   },
   widgetProperty: {
+    chart: {
+      stackedColumnChart: "堆叠柱状图",
+      stackedBarChart: "堆叠条形图",
+      stackedAreaChart: "堆叠面积图",
+    },
     datePickerV2: {
       data: "数据",
       dateFormat: "日期格式",

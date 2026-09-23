@@ -8,6 +8,7 @@ import {
 } from "../constants";
 
 import React from "react";
+import * as echarts from "echarts";
 
 import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
@@ -79,6 +80,7 @@ describe("Chart Widget", () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     document.body.removeChild(container);
     container = null;
   });
@@ -157,6 +159,53 @@ describe("Chart Widget", () => {
 
     echartsContainer = container.querySelector("iframe");
     expect(echartsContainer).toBeInTheDocument();
+  });
+
+  it("updates the rendered ECharts series when switching between basic types", () => {
+    const setOption = jest.fn();
+
+    jest.spyOn(echarts, "init").mockReturnValue({
+      isDisposed: () => false,
+      getHeight: () => 1000,
+      getWidth: () => 1000,
+      setOption,
+      resize: jest.fn(),
+      off: jest.fn(),
+      on: jest.fn(),
+      dispose: jest.fn(),
+    } as unknown as echarts.ECharts);
+    const getLatestOptions = () =>
+      setOption.mock.calls[setOption.mock.calls.length - 1][0] as {
+        series: Array<{
+          type?: string;
+          stack?: string;
+          label: { position?: string };
+        }>;
+        xAxis: { type: string };
+      };
+
+    const { rerender } = render(
+      <Provider store={store}>
+        <ChartComponent {...defaultProps} chartType="COLUMN_CHART" />
+      </Provider>,
+    );
+
+    expect(getLatestOptions().series[0].type).toBe("bar");
+
+    rerender(
+      <Provider store={store}>
+        <ChartComponent {...defaultProps} chartType="STACKED_COLUMN_CHART" />
+      </Provider>,
+    );
+    expect(getLatestOptions().series[0].stack).toBe("total");
+
+    rerender(
+      <Provider store={store}>
+        <ChartComponent {...defaultProps} chartType="STACKED_BAR_CHART" />
+      </Provider>,
+    );
+    expect(getLatestOptions().xAxis.type).toBe("value");
+    expect(getLatestOptions().series[0].label.position).toBe("right");
   });
 
   it("2. successfully switches sequence of basic chart/custom fusion chart/basic chart/custom echart", async () => {
