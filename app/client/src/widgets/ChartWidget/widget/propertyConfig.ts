@@ -43,6 +43,10 @@ const labelOptions = () => {
       value: "STACKED_AREA_CHART",
     },
     {
+      label: i18n.t("widgetProperty.chart.scatterChart"),
+      value: "SCATTER_CHART",
+    },
+    {
       label: "Area chart",
       value: "AREA_CHART",
     },
@@ -85,6 +89,7 @@ export const contentConfig = () => {
                 "STACKED_COLUMN_CHART",
                 "STACKED_BAR_CHART",
                 "STACKED_AREA_CHART",
+                "SCATTER_CHART",
                 "CUSTOM_ECHART",
                 "CUSTOM_FUSION_CHART",
               ],

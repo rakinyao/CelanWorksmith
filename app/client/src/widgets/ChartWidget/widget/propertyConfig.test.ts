@@ -106,6 +106,19 @@ describe("Validate Chart Widget's data property config", () => {
     });
   });
 
+  it("offers scatter in the selector and allowed values", () => {
+    const chartType = propertyConfigs.find(
+      (propertyConfig) => propertyConfig.propertyName === "chartType",
+    );
+
+    expect(
+      chartType?.options?.map((option: { value: string }) => option.value),
+    ).toContain("SCATTER_CHART");
+    expect(chartType?.validation?.params?.allowedValues).toContain(
+      "SCATTER_CHART",
+    );
+  });
+
   it("Validates visibility of property fields customFusionChartConfig property is visible when chartType is CUSTOM_FUSION_CHART", () => {
     const visibleFields = propertyConfigs.filter((propertyConfig) => {
       return propertyConfig.propertyName == "customFusionChartConfig";

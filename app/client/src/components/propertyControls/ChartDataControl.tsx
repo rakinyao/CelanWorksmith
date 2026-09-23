@@ -96,6 +96,7 @@ interface RenderComponentProps {
   };
   theme: EditorTheme;
   isPieChart?: boolean;
+  expectedData?: CodeEditorExpected;
 }
 
 const expectedSeriesName: CodeEditorExpected = {
@@ -113,12 +114,18 @@ const expectedSeriesData: CodeEditorExpected = {
   ],
   autocompleteDataType: AutocompleteDataType.ARRAY,
 };
+const expectedScatterSeriesData: CodeEditorExpected = {
+  ...expectedSeriesData,
+  type: "Array<{ x: number Required, y: number Required }>",
+  example: [{ x: 0, y: 50 }],
+};
 
 function DataControlComponent(props: RenderComponentProps) {
   const {
     dataTreePath,
     deleteOption,
     evaluated,
+    expectedData = expectedSeriesData,
     index,
     isPieChart,
     item,
@@ -202,7 +209,7 @@ function DataControlComponent(props: RenderComponentProps) {
           AIAssisted
           dataTreePath={`${dataTreePath}.data`}
           evaluatedValue={evaluated?.data}
-          expected={expectedSeriesData}
+          expected={expectedData}
           hinting={[bindingHintHelper, slashCommandHintHelper]}
           input={{
             value: item.data,
@@ -233,6 +240,8 @@ function DataControlComponent(props: RenderComponentProps) {
 
 class ChartDataControl extends BaseControl<ControlProps> {
   render() {
+    const isScatterChart =
+      this.props.widgetProperties.chartType === "SCATTER_CHART";
     const chartData: AllChartData = isString(this.props.propertyValue)
       ? {}
       : this.props.propertyValue;
@@ -255,6 +264,9 @@ class ChartDataControl extends BaseControl<ControlProps> {
           dataTreePath={`${this.props.dataTreePath}.${firstKey}`}
           deleteOption={this.deleteOption}
           evaluated={get(evaluatedValue, `${firstKey}`)}
+          expectedData={
+            isScatterChart ? expectedScatterSeriesData : expectedSeriesData
+          }
           index={firstKey}
           isPieChart
           item={data}
@@ -276,6 +288,11 @@ class ChartDataControl extends BaseControl<ControlProps> {
                 dataTreePath={`${this.props.dataTreePath}.${key}`}
                 deleteOption={this.deleteOption}
                 evaluated={get(evaluatedValue, `${key}`)}
+                expectedData={
+                  isScatterChart
+                    ? expectedScatterSeriesData
+                    : expectedSeriesData
+                }
                 index={key}
                 item={data}
                 key={key}
@@ -323,7 +340,11 @@ class ChartDataControl extends BaseControl<ControlProps> {
 
     this.updateProperty(`${this.props.propertyName}.${randomString}`, {
       seriesName: "",
-      data: JSON.stringify([{ x: "label", y: 50 }]),
+      data: JSON.stringify(
+        this.props.widgetProperties.chartType === "SCATTER_CHART"
+          ? [{ x: 0, y: 50 }]
+          : [{ x: "label", y: 50 }],
+      ),
     });
   };
 

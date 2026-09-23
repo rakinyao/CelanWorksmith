@@ -5,14 +5,70 @@ import {
   parseOnDataPointClickForCustomEChart,
   parseOnDataPointClickForCustomFusionChart,
   isBasicEChart,
+  getBasicEChartOptions,
 } from "./helpers";
+import type { ChartComponentProps } from ".";
 
 describe("isBasicEChart", () => {
   it("recognizes stacked Builder charts but not Custom ECharts", () => {
     expect(isBasicEChart("STACKED_COLUMN_CHART" as ChartType)).toBe(true);
     expect(isBasicEChart("STACKED_BAR_CHART" as ChartType)).toBe(true);
     expect(isBasicEChart("STACKED_AREA_CHART" as ChartType)).toBe(true);
+    expect(isBasicEChart("SCATTER_CHART")).toBe(true);
     expect(isBasicEChart("CUSTOM_ECHART")).toBe(false);
+  });
+});
+
+describe("getBasicEChartOptions", () => {
+  const makeProps = (chartType: ChartType) =>
+    ({
+      chartType,
+      chartData: {
+        alpha: { seriesName: "Alpha", data: [{ x: 1, y: 2 }] },
+        beta: { seriesName: "Beta", data: [{ x: 3, y: 4 }] },
+      },
+      allowScroll: false,
+      showDataPointLabel: true,
+      chartName: "Chart",
+      customEChartConfig: {},
+      customFusionChartConfig: { type: "", dataSource: undefined },
+      hasOnDataPointClick: false,
+      isVisible: true,
+      isLoading: false,
+      setAdaptiveYMin: false,
+      labelOrientation: "AUTO",
+      onDataPointClick: jest.fn(),
+      widgetId: "widget",
+      xAxisName: "X",
+      yAxisName: "Y",
+      borderRadius: "1",
+      boxShadow: "1",
+      primaryColor: "#000",
+      fontFamily: "Arial",
+      dimensions: { componentWidth: 400, componentHeight: 300 },
+      parentColumnSpace: 1,
+      parentRowSpace: 1,
+      topRow: 0,
+      bottomRow: 0,
+      leftColumn: 0,
+      rightColumn: 0,
+    }) as unknown as ChartComponentProps;
+
+  it("uses one coordinate dataset per scatter series", () => {
+    expect(getBasicEChartOptions(makeProps("SCATTER_CHART")).dataset).toEqual([
+      { source: [[1, 2]] },
+      { source: [[3, 4]] },
+    ]);
+  });
+
+  it("keeps the category-aligned dataset shape for columns", () => {
+    expect(getBasicEChartOptions(makeProps("COLUMN_CHART")).dataset).toEqual({
+      source: [
+        ["Category", "alpha", "beta"],
+        ["1", 2, ""],
+        ["3", "", 4],
+      ],
+    });
   });
 });
 

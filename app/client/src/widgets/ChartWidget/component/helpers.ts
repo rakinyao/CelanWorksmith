@@ -132,7 +132,10 @@ export const getBasicEChartOptions = (props: ChartComponentProps) => {
     props.chartType,
     props.chartData,
   );
-  const dataset = datasetBuilder.datasetFromData();
+  const dataset =
+    props.chartType === "SCATTER_CHART"
+      ? datasetBuilder.scatterDatasetsFromData()
+      : datasetBuilder.datasetFromData();
   const echartsConfigurationBuilder = new EChartsConfigurationBuilder();
 
   const options = {
@@ -141,9 +144,7 @@ export const getBasicEChartOptions = (props: ChartComponentProps) => {
       datasetBuilder.filteredChartData,
       datasetBuilder.longestDataLabels(),
     ),
-    dataset: {
-      ...dataset,
-    },
+    dataset: props.chartType === "SCATTER_CHART" ? dataset : { ...dataset },
   };
 
   return options;
@@ -182,6 +183,7 @@ export const isBasicEChart = (type: ChartType) => {
     "STACKED_COLUMN_CHART",
     "STACKED_BAR_CHART",
     "STACKED_AREA_CHART",
+    "SCATTER_CHART",
   ];
 
   return types.includes(type);

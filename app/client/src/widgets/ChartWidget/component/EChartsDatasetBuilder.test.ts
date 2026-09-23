@@ -74,6 +74,45 @@ describe("EChartsConfigurationBuilder", () => {
     });
   });
 
+  describe("scatterDatasetsFromData", () => {
+    it("keeps each series as ordered coordinate pairs without mutating chart data", () => {
+      const chartData = {
+        first: {
+          seriesName: "First",
+          data: [
+            { x: "123", y: "-1.5" },
+            { x: "123", y: 2 },
+            { x: 0, y: 4 },
+          ],
+        },
+        second: { seriesName: "Second", data: [{ x: 8, y: "9" }] },
+      };
+      const original = JSON.parse(JSON.stringify(chartData));
+      const builder = new EChartsDatasetBuilder("SCATTER_CHART", chartData);
+
+      expect(builder.scatterDatasetsFromData()).toEqual([
+        {
+          source: [
+            ["123", "-1.5"],
+            ["123", 2],
+            [0, 4],
+          ],
+        },
+        { source: [[8, "9"]] },
+      ]);
+      expect(chartData).toEqual(original);
+      expect(builder.longestDataLabels()).toEqual({ x: "123", y: "-1.5" });
+      expect(builder.datasetFromData()).toEqual({
+        source: [
+          ["Category", "first", "second"],
+          ["0", 4, ""],
+          ["8", "", "9"],
+          ["123", 2, ""],
+        ],
+      });
+    });
+  });
+
   describe("longestDataLabels", () => {
     it("returns the x and y values with longest number of characters in chart data", () => {
       const longestXLabel = "longestXLabel";

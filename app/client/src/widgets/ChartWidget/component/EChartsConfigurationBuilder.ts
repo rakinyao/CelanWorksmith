@@ -104,6 +104,14 @@ export class EChartsConfigurationBuilder {
               areaStyle: {},
             };
             break;
+          case "SCATTER_CHART":
+            config = {
+              ...config,
+              type: "scatter",
+              datasetIndex: index,
+              encode: { x: 0, y: 1 },
+            };
+            break;
           case "PIE_CHART":
             config = this.#seriesConfigurationForPieChart(
               String(seriesID),
@@ -277,6 +285,8 @@ export class EChartsConfigurationBuilder {
       props.chartType == "STACKED_BAR_CHART"
     ) {
       config.type = "category";
+    } else if (props.chartType == "SCATTER_CHART") {
+      config.type = "value";
     }
 
     if (props.setAdaptiveYMin) {
@@ -309,6 +319,8 @@ export class EChartsConfigurationBuilder {
       props.chartType == "BAR_CHART" ||
       props.chartType == "STACKED_BAR_CHART"
     ) {
+      type = "value";
+    } else if (props.chartType == "SCATTER_CHART") {
       type = "value";
     }
 

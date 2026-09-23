@@ -345,6 +345,7 @@ const zhCN = {
       stackedColumnChart: "堆叠柱状图",
       stackedBarChart: "堆叠条形图",
       stackedAreaChart: "堆叠面积图",
+      scatterChart: "散点图",
     },
     datePickerV2: {
       data: "数据",

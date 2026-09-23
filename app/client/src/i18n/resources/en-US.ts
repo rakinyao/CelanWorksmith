@@ -354,6 +354,7 @@ const enUS = {
       stackedColumnChart: "Stacked column chart",
       stackedBarChart: "Stacked bar chart",
       stackedAreaChart: "Stacked area chart",
+      scatterChart: "Scatter chart",
     },
     datePickerV2: {
       data: "Data",

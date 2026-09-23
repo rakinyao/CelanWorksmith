@@ -103,4 +103,16 @@ export class EChartsDatasetBuilder {
 
     return { source: chartDatasource };
   }
+
+  scatterDatasetsFromData(): Array<{
+    source: Array<[number | string, number | string]>;
+  }> {
+    return Object.values(this.filteredChartData).map((seriesData) => ({
+      source: seriesData.data.map(({ x, y }) => {
+        this.checkForLongestLabel(x, y);
+
+        return [x, y];
+      }),
+    }));
+  }
 }

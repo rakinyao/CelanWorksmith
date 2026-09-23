@@ -211,6 +211,35 @@ describe("EChartsConfigurationBuilder", () => {
     });
   });
 
+  it("configures scatter series with value axes and per-series datasets", () => {
+    const output = builder.prepareEChartConfig(
+      { ...defaultProps, chartType: "SCATTER_CHART" },
+      chartData,
+      longestLabels,
+    );
+    const series = output.series as Record<string, unknown>[];
+
+    expect((output.xAxis as Record<string, unknown>).type).toBe("value");
+    expect((output.yAxis as Record<string, unknown>).type).toBe("value");
+    expect(series).toEqual([
+      expect.objectContaining({
+        type: "scatter",
+        name: "series1",
+        itemStyle: { color: "series1color" },
+        label: { show: true, position: "top" },
+        datasetIndex: 0,
+        encode: { x: 0, y: 1 },
+      }),
+      expect.objectContaining({
+        type: "scatter",
+        name: "series2",
+        itemStyle: { color: "series2color" },
+        datasetIndex: 1,
+        encode: { x: 0, y: 1 },
+      }),
+    ]);
+  });
+
   describe("2. Allow scroll variations", () => {
     it("2.1 data zoom property isn't present if allowScroll is false", () => {
       const props = JSON.parse(JSON.stringify(defaultProps));
