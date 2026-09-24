@@ -1,5 +1,8 @@
 import * as echarts from "echarts";
-import { CHINA_NATIONWIDE_MAP_ID } from "../chinaMapManifest";
+import {
+  CHINA_NATIONWIDE_MAP_ID,
+  getChinaMapResource,
+} from "../chinaMapManifest";
 import { getChartOption, loadMapGenerator } from "./utilities";
 
 describe("Map Chart local resource loader", () => {
@@ -66,5 +69,41 @@ describe("Map Chart local resource loader", () => {
     );
 
     expect(option.series[0].nameProperty).toBe("adcode");
+  });
+
+  it("keeps zero values visible in tooltip and labels", () => {
+    const option = getChartOption(
+      "中国",
+      true,
+      [],
+      [{ name: "330000", value: 0 }],
+      CHINA_NATIONWIDE_MAP_ID,
+      300,
+      300,
+    );
+    const series = option.series[0];
+    const tooltip = series.tooltip.formatter as (datum: unknown) => string;
+    const label = series.label.formatter as (datum: unknown) => string;
+
+    expect(tooltip({ name: "330000", data: { value: 0 } })).toContain(", 0");
+    expect(label({ name: "330000", data: { value: 0 } })).toContain(": 0");
+  });
+
+  it("uses a safe fallback for an unknown or childless region", () => {
+    const option = getChartOption(
+      "中国",
+      true,
+      [],
+      [{ name: "999999", value: 1 }],
+      CHINA_NATIONWIDE_MAP_ID,
+      300,
+      300,
+    );
+    const tooltip = option.series[0].tooltip.formatter as (
+      datum: unknown,
+    ) => string;
+
+    expect(tooltip({ name: "999999", data: { value: 1 } })).toBe("999999, 1");
+    expect(getChinaMapResource("CHINA_710000")).toBeUndefined();
   });
 });
