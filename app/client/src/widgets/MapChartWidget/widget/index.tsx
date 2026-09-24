@@ -8,18 +8,11 @@ import { AutocompleteDataType } from "utils/autocomplete/AutocompleteDataType";
 import type { WidgetProps, WidgetState } from "widgets/BaseWidget";
 import BaseWidget from "widgets/BaseWidget";
 import type { MapColorObject } from "../constants";
+import { dataSetForChina, MapTypes } from "../constants";
 import {
-  dataSetForAfrica,
-  dataSetForAsia,
-  dataSetForEurope,
-  dataSetForNorthAmerica,
-  dataSetForOceania,
-  dataSetForSouthAmerica,
-  dataSetForUSA,
-  dataSetForWorld,
-  dataSetForWorldWithAntarctica,
-  MapTypes,
-} from "../constants";
+  CHINA_NATIONWIDE_MAP_ID,
+  CHINA_PROVINCE_MAPS,
+} from "../chinaMapManifest";
 import { DefaultAutocompleteDefinitions } from "widgets/WidgetUtils";
 import type {
   AnvilConfig,
@@ -43,33 +36,30 @@ const MapChartComponent = lazy(async () =>
   ),
 );
 
-// TODO: Fix this the next time the file is edited
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dataSetMapping: Record<MapType, any> = {
-  [MapTypes.WORLD]: dataSetForWorld,
-  [MapTypes.WORLD_WITH_ANTARCTICA]: dataSetForWorldWithAntarctica,
-  [MapTypes.EUROPE]: dataSetForEurope,
-  [MapTypes.NORTH_AMERICA]: dataSetForNorthAmerica,
-  [MapTypes.SOURTH_AMERICA]: dataSetForSouthAmerica,
-  [MapTypes.ASIA]: dataSetForAsia,
-  [MapTypes.OCEANIA]: dataSetForOceania,
-  [MapTypes.AFRICA]: dataSetForAfrica,
-  [MapTypes.USA]: dataSetForUSA,
+const dataSetMapping: Record<string, typeof dataSetForChina> = {
+  [CHINA_NATIONWIDE_MAP_ID]: dataSetForChina,
 };
 
 // A hook to update the corresponding dataset when map type is changed
-const updateDataSet = (
+export const updateDataSet = (
   props: MapChartWidgetProps,
   propertyPath: string,
   propertyValue: MapType,
 ) => {
-  const propertiesToUpdate = [
-    { propertyPath, propertyValue },
-    {
+  const propertiesToUpdate: Array<{
+    propertyPath: string;
+    propertyValue: unknown;
+  }> = [{ propertyPath, propertyValue }];
+  const dataIsBound = props.dynamicPropertyPathList?.some(
+    (path) => path.key === "data",
+  );
+
+  if (!dataIsBound) {
+    propertiesToUpdate.push({
       propertyPath: "data",
-      propertyValue: dataSetMapping[propertyValue],
-    },
-  ];
+      propertyValue: dataSetMapping[CHINA_NATIONWIDE_MAP_ID],
+    });
+  }
 
   return propertiesToUpdate;
 };
@@ -95,10 +85,10 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
       columns: 24,
       widgetName: "MapChart",
       version: 1,
-      mapType: MapTypes.WORLD,
-      mapTitle: "Global Population",
+      mapType: MapTypes.CHINA_PROVINCES,
+      mapTitle: "China Population",
       showLabels: true,
-      data: dataSetForWorld,
+      data: dataSetForChina,
       colorRange: [
         {
           minValue: 0.5,
@@ -189,41 +179,15 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
             controlType: "DROP_DOWN",
             options: [
               {
-                label: "World",
-                value: MapTypes.WORLD,
+                label: "China provinces",
+                value: CHINA_NATIONWIDE_MAP_ID,
               },
-              {
-                label: "World with Antarctica",
-                value: MapTypes.WORLD_WITH_ANTARCTICA,
-              },
-              {
-                label: "Europe",
-                value: MapTypes.EUROPE,
-              },
-              {
-                label: "North America",
-                value: MapTypes.NORTH_AMERICA,
-              },
-              {
-                label: "South America",
-                value: MapTypes.SOURTH_AMERICA,
-              },
-              {
-                label: "Asia",
-                value: MapTypes.ASIA,
-              },
-              {
-                label: "Oceania",
-                value: MapTypes.OCEANIA,
-              },
-              {
-                label: "Africa",
-                value: MapTypes.AFRICA,
-              },
-              {
-                label: "USA",
-                value: MapTypes.USA,
-              },
+              ...CHINA_PROVINCE_MAPS.filter(
+                (resource) => resource.childAvailable,
+              ).map((resource) => ({
+                label: resource.name,
+                value: resource.mapId,
+              })),
             ],
             isJSconvertible: true,
             isBindProperty: true,
@@ -233,15 +197,10 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
               type: ValidationTypes.TEXT,
               params: {
                 allowedValues: [
-                  MapTypes.WORLD,
-                  MapTypes.WORLD_WITH_ANTARCTICA,
-                  MapTypes.EUROPE,
-                  MapTypes.NORTH_AMERICA,
-                  MapTypes.SOURTH_AMERICA,
-                  MapTypes.ASIA,
-                  MapTypes.OCEANIA,
-                  MapTypes.AFRICA,
-                  MapTypes.USA,
+                  CHINA_NATIONWIDE_MAP_ID,
+                  ...CHINA_PROVINCE_MAPS.filter(
+                    (resource) => resource.childAvailable,
+                  ).map((resource) => resource.mapId),
                 ],
               },
             },

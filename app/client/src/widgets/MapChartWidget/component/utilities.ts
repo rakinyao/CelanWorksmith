@@ -1,10 +1,13 @@
 import * as echarts from "echarts";
 import countryDetails from "./countryDetails";
-import { MapTypes } from "../constants";
-import { geoAlbers, geoAzimuthalEqualArea, geoMercator } from "d3-geo";
 import log from "loglevel";
 import { appsmithTelemetry } from "instrumentation";
 import { retryPromise } from "utils/AppsmithUtils";
+import { getChinaMapResource } from "../chinaMapManifest";
+import {
+  getUnavailableMapResourceError,
+  isBusinessRegionFeature,
+} from "./resourceState";
 
 interface GeoSpecialAreas {
   [areaName: string]: {
@@ -15,29 +18,8 @@ interface GeoSpecialAreas {
   };
 }
 
-export function getSpecialAreas(map: MapTypes): GeoSpecialAreas {
-  switch (map) {
-    case MapTypes.USA:
-      return {
-        AK: {
-          left: -131,
-          top: 25,
-          width: 15,
-        },
-        HI: {
-          left: -110,
-          top: 25,
-          width: 5,
-        },
-        PR: {
-          left: -76,
-          top: 26,
-          width: 2,
-        },
-      };
-    default:
-      return {};
-  }
+export function getSpecialAreas(): GeoSpecialAreas {
+  return {};
 }
 
 /*
@@ -46,8 +28,14 @@ export function getSpecialAreas(map: MapTypes): GeoSpecialAreas {
 export const loadMapGenerator = () => {
   let abortController: AbortController | null = null;
 
-  return async (type: MapTypes) => {
-    if (!echarts.getMap(type)) {
+  return async (mapType: string) => {
+    const resource = getChinaMapResource(mapType);
+
+    if (!resource) {
+      throw getUnavailableMapResourceError(mapType);
+    }
+
+    if (!echarts.getMap(resource.mapId)) {
       if (abortController && abortController.abort) {
         abortController.abort();
       }
@@ -58,9 +46,15 @@ export const loadMapGenerator = () => {
 
       return retryPromise(
         async () => {
-          return fetch(`/static/maps/${type}.json`, {
+          const response = await fetch(resource.file, {
             signal: abortController?.signal,
           });
+
+          if (!response.ok) {
+            throw new Error(`Unable to load map resource (${response.status})`);
+          }
+
+          return response;
         },
         3,
         0,
@@ -68,22 +62,31 @@ export const loadMapGenerator = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (error: any) => error.code !== 20,
       )
-        .then(
-          (response) => response.json(),
-          (error) => {
-            abortController = null;
-
-            if (error.code !== 20) {
-              log.error({ error });
-              appsmithTelemetry.captureException(error, {
-                errorName: "MapChartWidget_utilities",
-              });
-            }
-          },
-        )
+        .then((response) => response.json())
         .then((geoJson) => {
+          if (
+            !geoJson ||
+            geoJson.type !== "FeatureCollection" ||
+            !Array.isArray(geoJson.features) ||
+            !geoJson.features.some(isBusinessRegionFeature)
+          ) {
+            throw new Error(`Invalid map resource ${resource.mapId}`);
+          }
+
           abortController = null;
-          echarts.registerMap(type, geoJson, getSpecialAreas(type));
+          echarts.registerMap(resource.mapId, geoJson, getSpecialAreas());
+        })
+        .catch((error) => {
+          abortController = null;
+
+          if (error?.code !== 20) {
+            log.error({ error });
+            appsmithTelemetry.captureException(error, {
+              errorName: "MapChartWidget_utilities",
+            });
+          }
+
+          throw error;
         });
     } else {
       return Promise.resolve();
@@ -91,74 +94,11 @@ export const loadMapGenerator = () => {
   };
 };
 
-function getProjection(type: string) {
-  switch (type) {
-    case "OCEANIA":
-      return geoAzimuthalEqualArea()
-        .scale(242)
-        .center([22, -39])
-        .translate([480, 319])
-        .rotate([-165, 18, 0]);
-    case "ASIA":
-      return geoAzimuthalEqualArea()
-        .scale(400)
-        .center([-17, -26])
-        .translate([480, 303])
-        .rotate([-103, -55, 7]);
-    case "AFRICA":
-      return geoMercator()
-        .scale(278)
-        .center([110, 4])
-        .translate([936, 288])
-        .rotate([180, 180, 180]);
-    case "SOURTH_AMERICA":
-      return geoAlbers()
-        .scale(363)
-        .center([-15, 24])
-        .translate([450, 271])
-        .rotate([51, 55, 9]);
-    case "NORTH_AMERICA":
-      return geoAzimuthalEqualArea()
-        .scale(400)
-        .center([13, 25])
-        .translate([539, 415])
-        .rotate([-84, 174, -180]);
-  }
-}
-
-export function getPositionOffset(
-  type: MapTypes,
-  width: number,
-  height: number,
-) {
-  switch (type) {
-    case MapTypes.SOURTH_AMERICA:
-    case MapTypes.NORTH_AMERICA:
-    case MapTypes.AFRICA:
-      return {
-        layoutSize: Math.min(width, height - 130),
-        layoutCenter: ["50%", height / 2 + 30],
-      };
-    case MapTypes.ASIA:
-      return {
-        layoutSize: Math.min(width, height - 65),
-        layoutCenter: ["50%", height / 2 + 30],
-      };
-    case MapTypes.EUROPE:
-    case MapTypes.USA:
-      return {
-        layoutSize: Math.min(width, height),
-        layoutCenter: ["50%", height / 2 + 30],
-      };
-    case MapTypes.WORLD:
-    case MapTypes.WORLD_WITH_ANTARCTICA:
-      return {
-        layoutSize: Math.min(width, height),
-        layoutCenter: ["50%", height / 2 + 40],
-      };
-    default:
-      return {};
-  }
+export function getPositionOffset(type: string, width: number, height: number) {
+  return {
+    layoutSize: Math.min(width, height),
+    layoutCenter: ["50%", height / 2 + 30],
+  };
 }
 
 export const getChartOption = (
@@ -170,12 +110,12 @@ export const getChartOption = (
     color: string;
   }[],
   data: { name: string; value: number }[],
-  type: MapTypes,
+  type: string,
   height: number,
   width: number,
   fontFamily?: string,
 ) => {
-  const projection = getProjection(type);
+  const projection = undefined;
 
   let projectionConfig = {};
 
@@ -251,7 +191,7 @@ export const getChartOption = (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter: (d: any) => {
             const key = d?.name as string;
-            const label = countryDetails[type][key]?.["label"];
+            const label = countryDetails[type]?.[key]?.["label"] || key;
 
             return `${label}, ${d.data?.value || "-"}`;
           },
@@ -269,7 +209,7 @@ export const getChartOption = (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter: (d: any) => {
             const key = d?.name as string;
-            const label = countryDetails[type][key]["short_label"];
+            const label = countryDetails[type]?.[key]?.["short_label"] || key;
 
             return `${label}: ${d.data?.value || "-"}`;
           },

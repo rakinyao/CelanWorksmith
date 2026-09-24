@@ -6,6 +6,7 @@ import { getChartOption, loadMapGenerator } from "./utilities";
 import * as echarts from "echarts";
 import countryDetails from "./countryDetails";
 import clsx from "clsx";
+import type { MapResourceUnavailableError } from "./resourceState";
 
 const MapChartContainer = styled.div<{
   borderRadius?: string;
@@ -26,6 +27,9 @@ const MapChartContainer = styled.div<{
 
 export default function EchartComponent(props: MapChartComponentProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [resourceError, setResourceError] = useState<
+    MapResourceUnavailableError | Error | null
+  >(null);
 
   const loadMap = useMemo(loadMapGenerator, []);
 
@@ -80,7 +84,11 @@ export default function EchartComponent(props: MapChartComponentProps) {
     const handler = (event: any) => {
       const id = event.data.name;
 
-      const regionDetail = countryDetails[type][id];
+      const regionDetail = countryDetails[type]?.[id];
+
+      if (!regionDetail) {
+        return;
+      }
 
       onDataPointClick({
         value: parseFloat(event.data.value),
@@ -100,13 +108,19 @@ export default function EchartComponent(props: MapChartComponentProps) {
 
   useEffect(() => {
     setIsLoading(true);
+    setResourceError(null);
 
-    loadMap(type).then(() => {
-      setIsLoading(false);
-      // we are using Math.random to force the chart to set options again
-      // to avoid the race conditions while loading maps
-      setKey(Math.random());
-    });
+    loadMap(type)
+      .then(() => {
+        setIsLoading(false);
+        // we are using Math.random to force the chart to set options again
+        // to avoid the race conditions while loading maps
+        setKey(Math.random());
+      })
+      .catch((error: MapResourceUnavailableError | Error) => {
+        setIsLoading(false);
+        setResourceError(error);
+      });
   }, [type]);
 
   useEffect(() => {
@@ -156,10 +170,26 @@ export default function EchartComponent(props: MapChartComponentProps) {
       data-testid="t--map-chart-container"
       onClick={(e) => e.stopPropagation()}
     >
-      <div ref={chartContainer} />
+      {resourceError ? (
+        <MapResourceError role="alert">
+          {resourceError.message}
+        </MapResourceError>
+      ) : (
+        <div ref={chartContainer} />
+      )}
     </MapChartContainer>
   );
 }
+
+const MapResourceError = styled.div`
+  align-items: center;
+  color: #4c5664;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  width: 100%;
+`;
 
 export interface MapChartComponentProps {
   caption: string;
