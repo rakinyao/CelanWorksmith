@@ -8,10 +8,15 @@
 - Added static resource checks for the nationwide GeoJSON, child resources, old
   bundled map removal, and local-only manifest paths.
 - Added chart option coverage for zero values and unknown-region fallbacks.
+- Added component-level runtime coverage for local resource loading and ECharts
+  registration, known-region click payloads, unavailable-resource recovery, and
+  ignored special/unknown region clicks.
 
 ## Verification
 
-- `yarn g:jest src/widgets/MapChartWidget`: **6 suites, 17 tests passed**.
+- `yarn g:jest src/widgets/MapChartWidget`: **7 suites, 21 tests passed**.
+- `yarn g:jest src/widgets/MapChartWidget/component/index.test.tsx`:
+  **1 suite, 4 tests passed** (included in the aggregate above).
 - `yarn exec prettier --check src/widgets/MapChartWidget`: **passed**.
 - `yarn exec eslint src/widgets/MapChartWidget`: **passed with 12 existing
   warnings, 0 errors**. Warnings are in the existing component/widget code
@@ -25,8 +30,10 @@
 
 ## Browser acceptance
 
-The automated tests exercise the same local fetch and ECharts registration
-boundary with a mocked offline fetch. Full browser acceptance with network
-disabled was not run in this task because no running frontend browser session
-was available; the static bundle and loader checks provide the offline artifact
+The component tests exercise the local fetch and ECharts registration boundary,
+successful rendering, known-region click payloads, unknown-region click
+filtering, and the recoverable unavailable-resource overlay with a mocked
+offline fetch. Full browser acceptance with network disabled was not run in this
+task because no running frontend browser session was available; the static
+bundle and component-level loader checks provide the offline artifact
 verification.
