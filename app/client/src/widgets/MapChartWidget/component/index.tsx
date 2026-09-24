@@ -19,6 +19,7 @@ const MapChartContainer = styled.div<{
   border-radius: ${({ borderRadius }) => borderRadius};
   box-shadow: ${({ boxShadow }) => `${boxShadow}`};
   overflow: hidden;
+  position: relative;
 
   & > div {
     width: 100%;
@@ -170,12 +171,11 @@ export default function EchartComponent(props: MapChartComponentProps) {
       data-testid="t--map-chart-container"
       onClick={(e) => e.stopPropagation()}
     >
-      {resourceError ? (
+      <div ref={chartContainer} />
+      {resourceError && (
         <MapResourceError role="alert">
           {resourceError.message}
         </MapResourceError>
-      ) : (
-        <div ref={chartContainer} />
       )}
     </MapChartContainer>
   );
@@ -183,10 +183,13 @@ export default function EchartComponent(props: MapChartComponentProps) {
 
 const MapResourceError = styled.div`
   align-items: center;
+  background: white;
   color: #4c5664;
   display: flex;
+  inset: 0;
   justify-content: center;
   padding: 24px;
+  position: absolute;
   text-align: center;
   width: 100%;
 `;

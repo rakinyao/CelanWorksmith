@@ -54,7 +54,7 @@ export const updateDataSet = (
     (path) => path.key === "data",
   );
 
-  if (!dataIsBound) {
+  if (!dataIsBound && propertyValue === CHINA_NATIONWIDE_MAP_ID) {
     propertiesToUpdate.push({
       propertyPath: "data",
       propertyValue: dataSetMapping[CHINA_NATIONWIDE_MAP_ID],
