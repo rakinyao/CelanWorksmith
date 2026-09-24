@@ -7,7 +7,8 @@
 - Updated the map loader to resolve manifest resources, fetch only local static paths, validate HTTP/GeoJSON responses, retry transient failures, and never register invalid/undefined data.
 - Added recoverable unavailable-resource state for saved removed map IDs.
 - Added business-region filtering that excludes the `100000_JD` special boundary.
-- Preserved bound `data` when the map type update hook runs; unbound updates receive the China sample dataset.
+- Preserved bound `data` when the map type update hook runs; unbound nationwide updates receive the China sample dataset, while child selections preserve existing IDs until child-specific samples are available.
+- Kept the ECharts host DOM mounted while displaying resource errors so a later successful retry can reuse the live chart instance.
 
 ## Verification
 
@@ -25,6 +26,9 @@ PASS: 3 suites, 7 tests
 
 yarn exec eslint src/widgets/MapChartWidget/component/resourceState.ts src/widgets/MapChartWidget/component/utilities.test.ts
 PASS (Browserslist freshness warning only)
+
+yarn g:jest src/widgets/MapChartWidget/widget/updateDataSet.test.ts --no-cache
+PASS (2 tests)
 ```
 
 The repository-wide type check was not run because the plan explicitly excludes it and the existing `countryDetails.ts` is scheduled for the Task 3 metadata migration after the enum change.
