@@ -203,6 +203,7 @@ export const isBasicEChart = (type: ChartType) => {
     "STACKED_BAR_CHART",
     "STACKED_AREA_CHART",
     "SCATTER_CHART",
+    "COMBO_CHART",
   ];
 
   return types.includes(type);

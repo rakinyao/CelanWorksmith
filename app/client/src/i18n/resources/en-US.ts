@@ -357,6 +357,12 @@ const enUS = {
       columnChart: "Column chart",
       areaChart: "Area chart",
       customEchart: "Custom EChart",
+      comboChart: "Combination chart",
+      seriesDisplayType: "Series type",
+      barSeries: "Bar",
+      lineSeries: "Line",
+      comboInvalidSeriesType:
+        "Series {{series}} has an invalid seriesType. Use bar or line.",
       stackedColumnChart: "Stacked column chart",
       stackedBarChart: "Stacked bar chart",
       stackedAreaChart: "Stacked area chart",

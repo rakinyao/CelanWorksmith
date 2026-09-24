@@ -211,6 +211,51 @@ describe("EChartsConfigurationBuilder", () => {
     });
   });
 
+  it("renders legacy bar and explicit line on one category/value axis without stacking", () => {
+    const comboData = {
+      first: {
+        seriesName: "Revenue",
+        color: "#123456",
+        data: [{ x: "Mon", y: 3 }],
+      },
+      second: {
+        seriesName: "Costs",
+        seriesType: "line" as const,
+        data: [{ x: "Mon", y: 4 }],
+      },
+    };
+    const output = builder.prepareEChartConfig(
+      {
+        ...defaultProps,
+        chartType: "COMBO_CHART" as ChartComponentProps["chartType"],
+        chartData: comboData,
+      },
+      comboData,
+      longestLabels,
+    );
+    const series = output.series as Record<string, unknown>[];
+
+    expect(series.map((item) => item.type)).toEqual(["bar", "line"]);
+    expect(series.every((item) => !("stack" in item))).toBe(true);
+    expect(series[0]).toMatchObject({
+      name: "Revenue",
+      itemStyle: { color: "#123456" },
+      label: { show: true, position: "top" },
+    });
+    expect((output.xAxis as Record<string, unknown>).type).toBe("category");
+    expect((output.yAxis as Record<string, unknown>).type).toBe("value");
+
+    const line = builder.prepareEChartConfig(
+      { ...defaultProps, chartType: "LINE_CHART", chartData: comboData },
+      comboData,
+      longestLabels,
+    );
+
+    expect(
+      (line.series as Record<string, unknown>[]).map((item) => item.type),
+    ).toEqual(["line", "line"]);
+  });
+
   it("configures scatter series with value axes and per-series datasets", () => {
     const output = builder.prepareEChartConfig(
       { ...defaultProps, chartType: "SCATTER_CHART" },

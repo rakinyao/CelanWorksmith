@@ -10,6 +10,7 @@ export type ChartType =
   | "STACKED_BAR_CHART"
   | "STACKED_AREA_CHART"
   | "SCATTER_CHART"
+  | "COMBO_CHART"
   | "CUSTOM_ECHART"
   | "CUSTOM_FUSION_CHART";
 
@@ -26,6 +27,7 @@ export interface LongestLabelParams {
 
 export interface ChartData {
   seriesName?: string;
+  seriesType?: "bar" | "line";
   data: ChartDataPoint[];
   color?: string;
 }
@@ -213,6 +215,7 @@ export const LABEL_ORIENTATION_COMPATIBLE_CHARTS = [
   "COLUMN_CHART",
   "STACKED_COLUMN_CHART",
   "STACKED_AREA_CHART",
+  "COMBO_CHART",
 ];
 
 export const DefaultEChartConfig = {

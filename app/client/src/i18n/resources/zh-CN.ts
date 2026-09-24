@@ -348,6 +348,12 @@ const zhCN = {
       columnChart: "柱状图",
       areaChart: "面积图",
       customEchart: "自定义 ECharts",
+      comboChart: "组合图",
+      seriesDisplayType: "展示类型",
+      barSeries: "柱形",
+      lineSeries: "折线",
+      comboInvalidSeriesType:
+        "序列 {{series}} 的 seriesType 无效，请使用 bar 或 line。",
       stackedColumnChart: "堆叠柱状图",
       stackedBarChart: "堆叠条形图",
       stackedAreaChart: "堆叠面积图",

@@ -47,6 +47,10 @@ const labelOptions = () => {
       value: "SCATTER_CHART",
     },
     {
+      label: i18n.t("widgetProperty.chart.comboChart"),
+      value: "COMBO_CHART",
+    },
+    {
       label: i18n.t("widgetProperty.chart.areaChart"),
       value: "AREA_CHART",
     },
@@ -86,6 +90,7 @@ export const contentConfig = () => {
                 "STACKED_BAR_CHART",
                 "STACKED_AREA_CHART",
                 "SCATTER_CHART",
+                "COMBO_CHART",
                 "CUSTOM_ECHART",
                 "CUSTOM_FUSION_CHART",
               ],

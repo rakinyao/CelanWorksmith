@@ -156,4 +156,59 @@ describe("ChartWidget getWidgetView", () => {
 
     expect(chartWidget.getWidgetView().type).toEqual(EmptyChartData);
   });
+
+  it("reports invalid combo types only in combo mode without modifying saved data", () => {
+    const chartData = {
+      seriesID1: {
+        seriesName: "Revenue",
+        seriesType: "area",
+        data: [{ x: "Mon", y: 4 }],
+      },
+    } as unknown as ChartWidgetProps["chartData"];
+    const props = { ...defaultProps, chartData };
+    const widget = new ChartWidget({
+      ...props,
+      chartType: "COMBO_CHART" as ChartWidgetProps["chartType"],
+    });
+
+    expect(widget.getWidgetView().props.error.message).toContain("Revenue");
+    const column = new ChartWidget({ ...props, chartType: "COLUMN_CHART" });
+
+    expect(column.getWidgetView().props.children.props.chartData).toBe(
+      chartData,
+    );
+    expect(
+      (chartData.seriesID1 as unknown as { seriesType: string }).seriesType,
+    ).toBe("area");
+  });
+
+  it("retains empty data and syntax error precedence for combo charts", () => {
+    const empty = new ChartWidget({
+      ...defaultProps,
+      chartType: "COMBO_CHART" as ChartWidgetProps["chartType"],
+      chartData: {},
+    });
+
+    expect(empty.getWidgetView().type).toBe(EmptyChartData);
+
+    const legacy = new ChartWidget({
+      ...defaultProps,
+      chartType: "COMBO_CHART" as ChartWidgetProps["chartType"],
+    });
+
+    expect(legacy.getWidgetView().props.children.props.chartData).toBe(
+      defaultProps.chartData,
+    );
+
+    const broken = new ChartWidget({
+      ...defaultProps,
+      chartType: "COMBO_CHART" as ChartWidgetProps["chartType"],
+      chartData: {
+        first: { seriesType: "area", data: [{ x: "Mon", y: 1 }] },
+      } as unknown as ChartWidgetProps["chartData"],
+      errors,
+    });
+
+    expect(broken.getWidgetView().props.error.message).toBe("We have a error");
+  });
 });

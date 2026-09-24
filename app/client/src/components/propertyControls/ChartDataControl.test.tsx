@@ -5,6 +5,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { theme } from "constants/DefaultTheme";
 import ChartDataControl from "./ChartDataControl";
+import type { ControlProps } from "./BaseControl";
+import i18n from "i18n";
 
 jest.mock("components/editorComponents/LazyCodeEditor", () => {
   const React = jest.requireActual<ReactTypes>("react");
@@ -37,7 +39,7 @@ const makeProps = (chartType: string, propertyValue = {}) =>
     deleteProperties: jest.fn(),
     onPropertyChange: jest.fn(),
     theme: "LIGHT",
-  }) as never;
+  }) as unknown as ControlProps;
 
 const testTheme = {
   ...theme,
@@ -50,7 +52,7 @@ const dataExpected = () =>
     .map((node) => JSON.parse(node.textContent || "{}"))
     .find((expected) => expected.example?.[0]?.x !== undefined);
 
-const renderControl = (props: never) =>
+const renderControl = (props: ControlProps) =>
   render(
     <ThemeProvider theme={testTheme}>
       <ChartDataControl {...props} />
@@ -121,5 +123,87 @@ describe("ChartDataControl", () => {
       </ThemeProvider>,
     );
     expect(onPropertyChange).not.toHaveBeenCalled();
+  });
+
+  it("edits only the selected combo series and does not rewrite data on chart switches", () => {
+    const onPropertyChange = jest.fn();
+    const existing = {
+      first: { seriesName: "Revenue", data: '[{"x":"Mon","y":4}]' },
+      second: {
+        seriesName: "Costs",
+        seriesType: "line",
+        data: '[{"x":"Mon","y":2}]',
+      },
+    };
+    const props = (chartType: string) => ({
+      ...makeProps(chartType, existing),
+      onPropertyChange,
+    });
+    const { rerender } = renderControl(props("COMBO_CHART") as never);
+
+    expect(screen.getAllByRole("combobox")).toHaveLength(2);
+    expect(
+      screen.getByText(i18n.t("widgetProperty.chart.barSeries")),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t("widgetProperty.chart.lineSeries")),
+    ).toBeInTheDocument();
+
+    fireEvent.mouseDown(
+      screen
+        .getAllByRole("combobox")[0]
+        .closest(".rc-select-selector") as HTMLElement,
+    );
+    fireEvent.click(
+      screen
+        .getAllByText(i18n.t("widgetProperty.chart.lineSeries"))
+        .at(-1) as HTMLElement,
+    );
+    expect(onPropertyChange).toHaveBeenCalledWith(
+      "chartData.first.seriesType",
+      "line",
+      undefined,
+    );
+
+    onPropertyChange.mockClear();
+    rerender(
+      <ThemeProvider theme={testTheme}>
+        <ChartDataControl {...props("COLUMN_CHART")} />
+      </ThemeProvider>,
+    );
+    expect(screen.queryAllByRole("combobox")).toHaveLength(0);
+    rerender(
+      <ThemeProvider theme={testTheme}>
+        <ChartDataControl {...props("COMBO_CHART")} />
+      </ThemeProvider>,
+    );
+    expect(onPropertyChange).not.toHaveBeenCalled();
+    expect(existing.first).not.toHaveProperty("seriesType");
+  });
+
+  it("defaults new combo series to bar without changing other chart defaults", () => {
+    const onPropertyChange = jest.fn();
+    const { rerender } = renderControl({
+      ...makeProps("COMBO_CHART"),
+      onPropertyChange,
+    } as never);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add series" }));
+    expect(onPropertyChange.mock.calls[0][1]).toEqual({
+      seriesName: "",
+      data: '[{"x":"label","y":50}]',
+      seriesType: "bar",
+    });
+
+    onPropertyChange.mockClear();
+    rerender(
+      <ThemeProvider theme={testTheme}>
+        <ChartDataControl
+          {...{ ...makeProps("COLUMN_CHART"), onPropertyChange }}
+        />
+      </ThemeProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add series" }));
+    expect(onPropertyChange.mock.calls[0][1]).not.toHaveProperty("seriesType");
   });
 });

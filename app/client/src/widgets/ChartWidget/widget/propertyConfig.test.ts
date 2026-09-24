@@ -163,6 +163,30 @@ describe("Validate Chart Widget's data property config", () => {
     );
   });
 
+  it("offers a localized combo chart while retaining saved chart compatibility", async () => {
+    const previousLanguage = i18n.language;
+
+    try {
+      await i18n.changeLanguage("zh-CN");
+      const chartType = (
+        contentConfig()[0].children as PropertyPaneControlConfig[]
+      ).find((propertyConfig) => propertyConfig.propertyName === "chartType");
+
+      expect(chartType?.options).toContainEqual({
+        value: "COMBO_CHART",
+        label: "组合图",
+      });
+      expect(chartType?.validation?.params?.allowedValues).toContain(
+        "COMBO_CHART",
+      );
+      expect(chartType?.validation?.params?.allowedValues).toContain(
+        "CUSTOM_FUSION_CHART",
+      );
+    } finally {
+      await i18n.changeLanguage(previousLanguage);
+    }
+  });
+
   it("Validates visibility of property fields customFusionChartConfig property is visible when chartType is CUSTOM_FUSION_CHART", () => {
     const visibleFields = propertyConfigs.filter((propertyConfig) => {
       return propertyConfig.propertyName == "customFusionChartConfig";

@@ -11,7 +11,8 @@ import {
   EditorSize,
   TabBehaviour,
 } from "components/editorComponents/CodeEditor/EditorConfig";
-import { Button } from "@appsmith/ads";
+import { Button, Select, Option } from "@appsmith/ads";
+import i18n from "i18n";
 import type { AllChartData, ChartData } from "widgets/ChartWidget/constants";
 import { generateReactKey } from "utils/generators";
 import { AutocompleteDataType } from "utils/autocomplete/AutocompleteDataType";
@@ -96,6 +97,7 @@ interface RenderComponentProps {
   };
   theme: EditorTheme;
   isPieChart?: boolean;
+  isComboChart?: boolean;
   expectedData?: CodeEditorExpected;
 }
 
@@ -127,6 +129,7 @@ function DataControlComponent(props: RenderComponentProps) {
     evaluated,
     expectedData = expectedSeriesData,
     index,
+    isComboChart,
     isPieChart,
     item,
     length,
@@ -178,6 +181,27 @@ function DataControlComponent(props: RenderComponentProps) {
           theme={props.theme}
         />
       </StyledOptionControlWrapper>
+      {isComboChart && (
+        <>
+          <StyledLabel>
+            {i18n.t("widgetProperty.chart.seriesDisplayType")}
+          </StyledLabel>
+          <Select
+            aria-label={i18n.t("widgetProperty.chart.seriesDisplayType")}
+            onSelect={(value?: string) => {
+              if (value) updateOption(index, "seriesType", value);
+            }}
+            value={item.seriesType ?? "bar"}
+          >
+            <Option key="bar" value="bar">
+              {i18n.t("widgetProperty.chart.barSeries")}
+            </Option>
+            <Option key="line" value="line">
+              {i18n.t("widgetProperty.chart.lineSeries")}
+            </Option>
+          </Select>
+        </>
+      )}
       {!isPieChart && (
         <>
           <StyledLabel>Series color</StyledLabel>
@@ -242,6 +266,8 @@ class ChartDataControl extends BaseControl<ControlProps> {
   render() {
     const isScatterChart =
       this.props.widgetProperties.chartType === "SCATTER_CHART";
+    const isComboChart =
+      this.props.widgetProperties.chartType === "COMBO_CHART";
     const chartData: AllChartData = isString(this.props.propertyValue)
       ? {}
       : this.props.propertyValue;
@@ -294,6 +320,7 @@ class ChartDataControl extends BaseControl<ControlProps> {
                     : expectedSeriesData
                 }
                 index={key}
+                isComboChart={isComboChart}
                 item={data}
                 key={key}
                 length={dataLength}
@@ -340,6 +367,9 @@ class ChartDataControl extends BaseControl<ControlProps> {
 
     this.updateProperty(`${this.props.propertyName}.${randomString}`, {
       seriesName: "",
+      ...(this.props.widgetProperties.chartType === "COMBO_CHART"
+        ? { seriesType: "bar" }
+        : {}),
       data: JSON.stringify(
         this.props.widgetProperties.chartType === "SCATTER_CHART"
           ? [{ x: 0, y: 50 }]

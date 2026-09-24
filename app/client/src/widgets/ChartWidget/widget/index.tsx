@@ -38,6 +38,7 @@ import { WIDGET_TAGS } from "constants/WidgetConstants";
 import { EChartsDatasetBuilder } from "../component/EChartsDatasetBuilder";
 import i18n from "i18n";
 import { findInvalidScatterCoordinate } from "./scatterValidation";
+import { findInvalidComboSeries } from "./comboValidation";
 
 const ChartComponent = lazy(async () =>
   retryPromise(
@@ -256,6 +257,25 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
                 i18n.t("widgetProperty.chart.scatterInvalidCoordinate", {
                   ...invalidCoordinate,
                 }),
+              )
+            }
+          />
+        );
+      }
+    }
+
+    if (this.props.chartType === "COMBO_CHART") {
+      const invalidSeries = findInvalidComboSeries(this.props.chartData);
+
+      if (invalidSeries) {
+        return (
+          <ChartErrorComponent
+            error={
+              new Error(
+                i18n.t(
+                  "widgetProperty.chart.comboInvalidSeriesType",
+                  invalidSeries,
+                ),
               )
             }
           />

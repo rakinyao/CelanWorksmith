@@ -16,6 +16,7 @@ describe("isBasicEChart", () => {
     expect(isBasicEChart("STACKED_BAR_CHART" as ChartType)).toBe(true);
     expect(isBasicEChart("STACKED_AREA_CHART" as ChartType)).toBe(true);
     expect(isBasicEChart("SCATTER_CHART")).toBe(true);
+    expect(isBasicEChart("COMBO_CHART" as ChartType)).toBe(true);
     expect(isBasicEChart("CUSTOM_ECHART")).toBe(false);
   });
 });
@@ -107,6 +108,18 @@ describe("getBasicEChartOptions", () => {
       ],
     });
   });
+
+  it("uses the existing category-aligned dataset for combo series", () => {
+    expect(
+      getBasicEChartOptions(makeProps("COMBO_CHART" as ChartType)).dataset,
+    ).toEqual({
+      source: [
+        ["Category", "alpha", "beta"],
+        ["1", 2, ""],
+        ["3", "", 4],
+      ],
+    });
+  });
 });
 
 describe("getObjectChartStateMessage", () => {
@@ -125,6 +138,14 @@ describe("getObjectChartStateMessage", () => {
 });
 
 describe("parseOnDataPointClickParams", () => {
+  it("reports the clicked combo series value with the existing event shape", () => {
+    expect(
+      parseOnDataPointClickParams(
+        { data: ["Mon", 3, 4], seriesIndex: 1, seriesName: "Costs" },
+        "COMBO_CHART" as ChartType,
+      ),
+    ).toEqual({ x: "Mon", y: 4, seriesTitle: "Costs" });
+  });
   it("returns scatter click coordinates from the clicked pair for every series", () => {
     expect(
       parseOnDataPointClickParams(

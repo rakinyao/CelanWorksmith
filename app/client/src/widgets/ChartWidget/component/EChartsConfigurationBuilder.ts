@@ -93,6 +93,9 @@ export class EChartsConfigurationBuilder {
           case "STACKED_COLUMN_CHART":
             config = { ...config, type: "bar" };
             break;
+          case "COMBO_CHART":
+            config = { ...config, type: seriesData.seriesType ?? "bar" };
+            break;
           case "LINE_CHART":
             config = { ...config, type: "line" };
             break;
@@ -285,7 +288,10 @@ export class EChartsConfigurationBuilder {
       props.chartType == "STACKED_BAR_CHART"
     ) {
       config.type = "category";
-    } else if (props.chartType == "SCATTER_CHART") {
+    } else if (
+      props.chartType == "SCATTER_CHART" ||
+      props.chartType == "COMBO_CHART"
+    ) {
       config.type = "value";
     }
 
