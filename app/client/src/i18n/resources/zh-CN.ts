@@ -342,6 +342,12 @@ const zhCN = {
   },
   widgetProperty: {
     chart: {
+      lineChart: "折线图",
+      barChart: "条形图",
+      pieChart: "饼图",
+      columnChart: "柱状图",
+      areaChart: "面积图",
+      customEchart: "自定义 ECharts",
       stackedColumnChart: "堆叠柱状图",
       stackedBarChart: "堆叠条形图",
       stackedAreaChart: "堆叠面积图",

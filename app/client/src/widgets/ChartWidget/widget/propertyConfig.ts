@@ -15,19 +15,19 @@ export const isLabelOrientationApplicableFor = (chartType: string) =>
 const labelOptions = () => {
   const options = [
     {
-      label: "Line chart",
+      label: i18n.t("widgetProperty.chart.lineChart"),
       value: "LINE_CHART",
     },
     {
-      label: "Bar chart",
+      label: i18n.t("widgetProperty.chart.barChart"),
       value: "BAR_CHART",
     },
     {
-      label: "Pie chart",
+      label: i18n.t("widgetProperty.chart.pieChart"),
       value: "PIE_CHART",
     },
     {
-      label: "Column chart",
+      label: i18n.t("widgetProperty.chart.columnChart"),
       value: "COLUMN_CHART",
     },
     {
@@ -47,16 +47,12 @@ const labelOptions = () => {
       value: "SCATTER_CHART",
     },
     {
-      label: "Area chart",
+      label: i18n.t("widgetProperty.chart.areaChart"),
       value: "AREA_CHART",
     },
     {
-      label: "Custom EChart",
+      label: i18n.t("widgetProperty.chart.customEchart"),
       value: "CUSTOM_ECHART",
-    },
-    {
-      label: "Custom Fusion Charts (deprecated)",
-      value: "CUSTOM_FUSION_CHART",
     },
   ];
 

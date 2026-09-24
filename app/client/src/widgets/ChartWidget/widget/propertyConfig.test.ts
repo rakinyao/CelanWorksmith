@@ -3,6 +3,7 @@ import { isString } from "lodash";
 
 import { styleConfig, contentConfig } from "./propertyConfig";
 import type { PropertyPaneControlConfig } from "constants/PropertyControlConstants";
+import i18n from "i18n";
 
 const config = [...contentConfig(), ...styleConfig];
 
@@ -116,6 +117,49 @@ describe("Validate Chart Widget's data property config", () => {
     ).toContain("SCATTER_CHART");
     expect(chartType?.validation?.params?.allowedValues).toContain(
       "SCATTER_CHART",
+    );
+  });
+
+  it("uses Chinese labels for the existing chart types", async () => {
+    const previousLanguage = i18n.language;
+
+    try {
+      await i18n.changeLanguage("zh-CN");
+      const chartType = (
+        contentConfig()[0].children as PropertyPaneControlConfig[]
+      ).find((propertyConfig) => propertyConfig.propertyName === "chartType");
+      const labels = Object.fromEntries(
+        (chartType?.options ?? []).map(
+          (option: { label: string; value: string }) => [
+            option.value,
+            option.label,
+          ],
+        ),
+      );
+
+      expect(labels).toMatchObject({
+        LINE_CHART: "折线图",
+        BAR_CHART: "条形图",
+        PIE_CHART: "饼图",
+        COLUMN_CHART: "柱状图",
+        AREA_CHART: "面积图",
+        CUSTOM_ECHART: "自定义 ECharts",
+      });
+    } finally {
+      await i18n.changeLanguage(previousLanguage);
+    }
+  });
+
+  it("hides deprecated Fusion from new choices but accepts saved charts", () => {
+    const chartType = (
+      contentConfig()[0].children as PropertyPaneControlConfig[]
+    ).find((propertyConfig) => propertyConfig.propertyName === "chartType");
+
+    expect(
+      chartType?.options?.map((option: { value: string }) => option.value),
+    ).not.toContain("CUSTOM_FUSION_CHART");
+    expect(chartType?.validation?.params?.allowedValues).toContain(
+      "CUSTOM_FUSION_CHART",
     );
   });
 

@@ -351,6 +351,12 @@ const enUS = {
   },
   widgetProperty: {
     chart: {
+      lineChart: "Line chart",
+      barChart: "Bar chart",
+      pieChart: "Pie chart",
+      columnChart: "Column chart",
+      areaChart: "Area chart",
+      customEchart: "Custom EChart",
       stackedColumnChart: "Stacked column chart",
       stackedBarChart: "Stacked bar chart",
       stackedAreaChart: "Stacked area chart",
