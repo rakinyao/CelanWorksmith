@@ -227,7 +227,8 @@ export const getChartOption = (
             hideOverlap: true,
           };
         },
-        nameProperty: "id",
+        // DataV GeoJSON identifies regions with properties.adcode.
+        nameProperty: "adcode",
         data,
         ...projectionConfig,
       },

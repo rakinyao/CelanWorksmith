@@ -1,6 +1,6 @@
 import * as echarts from "echarts";
 import { CHINA_NATIONWIDE_MAP_ID } from "../chinaMapManifest";
-import { loadMapGenerator } from "./utilities";
+import { getChartOption, loadMapGenerator } from "./utilities";
 
 describe("Map Chart local resource loader", () => {
   afterEach(() => {
@@ -52,5 +52,19 @@ describe("Map Chart local resource loader", () => {
       recoverable: true,
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("matches DataV regions by their adcode property", () => {
+    const option = getChartOption(
+      "中国",
+      true,
+      [],
+      [{ name: "330000", value: 1 }],
+      CHINA_NATIONWIDE_MAP_ID,
+      300,
+      300,
+    );
+
+    expect(option.series[0].nameProperty).toBe("adcode");
   });
 });
