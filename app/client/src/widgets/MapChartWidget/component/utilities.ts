@@ -1,5 +1,5 @@
 import * as echarts from "echarts";
-import countryDetails from "./countryDetails";
+import { getChinaRegionDetail } from "../chinaRegionDetails";
 import log from "loglevel";
 import { appsmithTelemetry } from "instrumentation";
 import { retryPromise } from "utils/AppsmithUtils";
@@ -191,9 +191,9 @@ export const getChartOption = (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter: (d: any) => {
             const key = d?.name as string;
-            const label = countryDetails[type]?.[key]?.["label"] || key;
+            const label = getChinaRegionDetail(type, key)?.label || key;
 
-            return `${label}, ${d.data?.value || "-"}`;
+            return `${label}, ${d.data?.value ?? "-"}`;
           },
           textStyle: {
             fontSize: 14,
@@ -209,9 +209,9 @@ export const getChartOption = (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter: (d: any) => {
             const key = d?.name as string;
-            const label = countryDetails[type]?.[key]?.["short_label"] || key;
+            const label = getChinaRegionDetail(type, key)?.shortLabel || key;
 
-            return `${label}: ${d.data?.value || "-"}`;
+            return `${label}: ${d.data?.value ?? "-"}`;
           },
           textStyle: {
             fontSize: 12,

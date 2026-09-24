@@ -4,7 +4,7 @@ import type { MapColorObject, MapTypes } from "../constants";
 import type { MapData } from "./types";
 import { getChartOption, loadMapGenerator } from "./utilities";
 import * as echarts from "echarts";
-import countryDetails from "./countryDetails";
+import { getChinaRegionDetail } from "../chinaRegionDetails";
 import clsx from "clsx";
 import type { MapResourceUnavailableError } from "./resourceState";
 
@@ -85,7 +85,7 @@ export default function EchartComponent(props: MapChartComponentProps) {
     const handler = (event: any) => {
       const id = event.data.name;
 
-      const regionDetail = countryDetails[type]?.[id];
+      const regionDetail = getChinaRegionDetail(type, id);
 
       if (!regionDetail) {
         return;
@@ -94,9 +94,9 @@ export default function EchartComponent(props: MapChartComponentProps) {
       onDataPointClick({
         value: parseFloat(event.data.value),
         label: regionDetail.label,
-        shortLabel: regionDetail.short_label,
-        originalId: id,
-        id: id.toLowerCase(),
+        shortLabel: regionDetail.shortLabel,
+        originalId: regionDetail.originalId,
+        id: regionDetail.id,
       });
     };
 
