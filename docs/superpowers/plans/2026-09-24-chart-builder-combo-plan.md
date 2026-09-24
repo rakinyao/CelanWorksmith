@@ -96,4 +96,5 @@
 - ChartWidget, ChartDataControl and locale parity regression: 18 suites, 178 tests passed.
 - Prettier applied to changed TypeScript files. ESLint autofix cleared five errors; existing JSX performance/object-key warnings remain.
 - Repository-wide `yarn check-types` remains failing (5,831 TypeScript errors, including pre-existing React/JSX and duplicate resource-key diagnostics); it is not a passing gate for this change.
-- Browser editor save/reopen and bound-data acceptance: not run in this session; requires an authenticated editor session.
+- Browser acceptance was not run by the implementation agent. The user subsequently confirmed that the combination chart passed their manual verification; individual save/reopen, bound-data and invalid-series scenarios were not reported separately.
+- ChartWidget phase closeout: keep the single shared Y axis. Do not expand ChartWidget themes in this phase; the current application-theme font inheritance and fixed axis-text colors are acceptable. Revisit dual axes or richer theming only for a concrete need.
