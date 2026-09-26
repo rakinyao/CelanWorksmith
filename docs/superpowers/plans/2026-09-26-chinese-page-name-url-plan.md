@@ -106,7 +106,7 @@ assertThat(PageSlugAllocator.allocate("", reserved)).isEqualTo("page-3");
 
 ```bash
 cd app/server
-./mvnw -pl appsmith-server -am -Dtest=PageSlugAllocatorTest,StaticUrlServiceImplTest,NewPageServiceTest,ApplicationPageServiceTest -Dsurefire.failIfNoSpecifiedTests=false test
+mvn -pl appsmith-server -am -Dtest=PageSlugAllocatorTest,StaticUrlServiceImplTest,NewPageServiceTest,ApplicationPageServiceTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 - [ ] 6. 审查并提交仅相关入口修改。测试基础设施不可用时明确标记未验证，不能宣告静态模式验收完成。
