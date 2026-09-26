@@ -1182,55 +1182,56 @@ export const splitPathPreview = (
   url: string,
   customSlug?: string,
 ): string | string[] => {
-  const slugMatch = matchPath<{ pageId: string; pageSlug: string }>(
-    url,
+  const pathname = url.split(/[?#]/, 1)[0];
+  const slugMatch = matchPath<{ basePageId: string; pageSlug: string }>(
+    pathname,
     VIEWER_PATH,
   );
 
-  const customSlugMatch = matchPath<{ pageId: string; customSlug: string }>(
-    url,
+  const customSlugMatch = matchPath<{ basePageId: string; customSlug: string }>(
+    pathname,
     VIEWER_CUSTOM_PATH,
   );
 
   const staticUrlMatch = matchPath<{
-    applicationSlug: string;
-    pageSlug: string;
-  }>(url, VIEWER_PATH_STATIC);
+    staticApplicationSlug: string;
+    staticPageSlug: string;
+  }>(pathname, VIEWER_PATH_STATIC);
+
+  let start: number;
+  let length: number;
 
   if (!customSlug && slugMatch?.isExact) {
-    const { pageSlug } = slugMatch.params;
-    const splitUrl = url.split(pageSlug);
+    const { basePageId, pageSlug } = slugMatch.params;
 
-    splitUrl.splice(
-      1,
-      0,
-      pageSlug.slice(0, pageSlug.length - 1), // to split -
-      pageSlug.slice(pageSlug.length - 1),
-    );
-
-    return splitUrl;
+    start =
+      slugMatch.url.replace(/\/$/, "").length -
+      basePageId.length -
+      pageSlug.length;
+    length = pageSlug.length - 1;
   } else if (customSlug && customSlugMatch?.isExact) {
-    const { customSlug } = customSlugMatch.params;
-    const splitUrl = url.split(customSlug);
+    const { basePageId, customSlug } = customSlugMatch.params;
 
-    splitUrl.splice(
-      1,
-      0,
-      customSlug.slice(0, customSlug.length - 1), // to split -
-      customSlug.slice(customSlug.length - 1),
-    );
-
-    return splitUrl;
+    start =
+      customSlugMatch.url.replace(/\/$/, "").length -
+      basePageId.length -
+      customSlug.length;
+    length = customSlug.length - 1;
   } else if (staticUrlMatch?.isExact) {
-    const { pageSlug } = staticUrlMatch.params;
-    const splitUrl = url.split(pageSlug);
+    const { staticPageSlug } = staticUrlMatch.params;
 
-    splitUrl.splice(1, 0, pageSlug);
-
-    return splitUrl;
+    start =
+      staticUrlMatch.url.replace(/\/$/, "").length - staticPageSlug.length;
+    length = staticPageSlug.length;
+  } else {
+    return url;
   }
 
-  return url;
+  return [
+    url.slice(0, start),
+    url.slice(start, start + length),
+    url.slice(start + length),
+  ];
 };
 
 export const updateSlugNamesInURL = (params: Record<string, string>) => {

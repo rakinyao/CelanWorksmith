@@ -470,6 +470,18 @@ public class NewPageServiceCEImpl extends BaseService<NewPageRepository, NewPage
                 .switchIfEmpty(
                         Mono.error(new AppsmithException(AppsmithError.NO_RESOURCE_FOUND, FieldName.PAGE, pageId)))
                 .flatMap(dbPage -> {
+                    if (StringUtils.isEmpty(page.getName())) {
+                        return Mono.just(dbPage);
+                    }
+                    return repository
+                            .findByNameAndApplicationIdAndViewMode(
+                                    page.getName(), dbPage.getApplicationId(), null, false)
+                            .filter(existingPage -> !pageId.equals(existingPage.getId()))
+                            .flatMap(existingPage -> Mono.<NewPage>error(new AppsmithException(
+                                    AppsmithError.DUPLICATE_KEY_USER_ERROR, page.getName(), FieldName.NAME)))
+                            .switchIfEmpty(Mono.just(dbPage));
+                })
+                .flatMap(dbPage -> {
                     copyNewFieldValuesIntoOldObject(page, dbPage.getUnpublishedPage());
                     if (!StringUtils.isEmpty(page.getName())) {
                         dbPage.getUnpublishedPage().setSlug(TextUtils.makeSlug(page.getName()));

@@ -13,10 +13,68 @@ import {
   isNameValid,
   pushToArray,
   concatWithArray,
+  splitPathPreview,
 } from "./helpers";
 import WidgetFactory from "../WidgetProvider/factory";
 import { Colors } from "constants/Colors";
 import { appsmithTelemetry } from "instrumentation";
+
+describe("splitPathPreview", () => {
+  it.each([
+    [
+      "/app/ontdemo1-2-0/-0123456789abcdef01234567",
+      "",
+      undefined,
+      "/app/ontdemo1-2-0/",
+    ],
+    [
+      "/app/order-list-demo/order-list-0123456789abcdef01234567",
+      "order-list",
+      undefined,
+      "/app/order-list-demo/",
+    ],
+    [
+      "/app/ontdemo1-2-0/order-list-12345678-1234-1234-1234-123456789abc",
+      "order-list",
+      undefined,
+      "/app/ontdemo1-2-0/",
+    ],
+    [
+      "/app/order-list-demo/order-list",
+      "order-list",
+      undefined,
+      "/app/order-list-demo/",
+    ],
+    [
+      "/app/custom-orders-0123456789abcdef01234567",
+      "custom-orders",
+      "custom-orders",
+      "/app/",
+    ],
+    [
+      "/app/ontdemo1-2-0/page-0123456789abcdef01234567?branch=page-#page-",
+      "page",
+      undefined,
+      "/app/ontdemo1-2-0/",
+    ],
+    [
+      "/app/order-list-demo/order-list?branch=order-list#order-list",
+      "order-list",
+      undefined,
+      "/app/order-list-demo/",
+    ],
+  ])(
+    "preserves and highlights only the page in %s",
+    (url, highlighted, customSlug, prefix) => {
+      const parts = splitPathPreview(url as string, customSlug);
+
+      expect(Array.isArray(parts)).toBe(true);
+      expect(parts[0]).toBe(prefix);
+      expect(parts[1]).toBe(highlighted);
+      expect(Array.isArray(parts) ? parts.join("") : parts).toBe(url);
+    },
+  );
+});
 
 // Mock appsmithTelemetry
 jest.mock("instrumentation", () => ({

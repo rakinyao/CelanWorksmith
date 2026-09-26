@@ -60,6 +60,27 @@ const PAGE_SLUG_WITH_MONGO_ID = /^.*\-[0-9a-f]{24}$/;
 const PAGE_SLUG_WITH_UUID =
   /^.*\-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+export function hasPageNameSlugConflict(
+  pageName: string,
+  pages: Pick<Page, "pageId" | "slug" | "uniqueSlug">[],
+  currentPageId: string,
+): boolean {
+  const filteredValue = filterAccentedAndSpecialCharacters(pageName);
+
+  // An empty derived slug (e.g. a Chinese name) is not a conflicting URL.
+  if (!filteredValue) return false;
+
+  return pages.some((existingPage) => {
+    if (existingPage.pageId === currentPageId) return false;
+
+    const existingSlug = existingPage.uniqueSlug?.trim().length
+      ? existingPage.uniqueSlug
+      : existingPage.slug;
+
+    return existingSlug === filteredValue;
+  });
+}
+
 function PageSettings(props: { page: Page }) {
   const dispatch = useDispatch();
   const page = props.page;
@@ -335,33 +356,8 @@ function PageSettings(props: { page: Page }) {
   );
 
   const checkPageNameSlugConflict = useCallback(
-    (pageName: string): boolean => {
-      const filteredValue = filterAccentedAndSpecialCharacters(pageName);
-
-      // Check against existing pages for slug conflicts
-      return pageList.some((existingPage) => {
-        // Skip the current page
-        if (existingPage.pageId === page.pageId) return false;
-
-        // If the existing page has a uniqueSlug, check against it
-        if (
-          existingPage.uniqueSlug &&
-          existingPage.uniqueSlug.trim().length > 0
-        ) {
-          return existingPage.uniqueSlug === filteredValue;
-        }
-
-        // If uniqueSlug is empty or not present, check against slug
-        if (
-          !existingPage.uniqueSlug ||
-          existingPage.uniqueSlug.trim().length === 0
-        ) {
-          return existingPage.slug === filteredValue;
-        }
-
-        return false;
-      });
-    },
+    (pageName: string): boolean =>
+      hasPageNameSlugConflict(pageName, pageList, page.pageId),
     [pageList, page.pageId],
   );
 

@@ -96,6 +96,37 @@ public class NewPageServiceTest {
 
     @Test
     @WithUserDetails("api_user")
+    public void updatePage_DuplicateChineseName_IsRejected() {
+        Application application = new Application();
+        application.setName("duplicate_name_" + UUID.randomUUID());
+        Mono<PageDTO> update = applicationPageService
+                .createApplication(application, workspaceId)
+                .flatMap(created -> {
+                    PageDTO first = new PageDTO();
+                    first.setName("订单管理");
+                    first.setApplicationId(created.getId());
+                    PageDTO second = new PageDTO();
+                    second.setName("合同管理");
+                    second.setApplicationId(created.getId());
+                    return applicationPageService.createPage(first).then(applicationPageService.createPage(second));
+                })
+                .flatMap(second -> {
+                    PageDTO renamed = new PageDTO();
+                    renamed.setName("订单管理");
+                    return newPageService.updatePage(second.getId(), renamed);
+                });
+
+        StepVerifier.create(update)
+                .expectErrorSatisfies(error -> {
+                    assertThat(error).isInstanceOf(AppsmithException.class);
+                    assertThat(((AppsmithException) error).getError())
+                            .isEqualTo(AppsmithError.DUPLICATE_KEY_USER_ERROR);
+                })
+                .verify();
+    }
+
+    @Test
+    @WithUserDetails("api_user")
     public void findApplicationPages_WhenApplicationIdAndPageIdNotPresent_ThrowsException() {
         StepVerifier.create(newPageService.findApplicationPages(null, null, ApplicationMode.EDIT))
                 .expectError(AppsmithException.class)

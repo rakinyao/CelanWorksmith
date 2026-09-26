@@ -3,6 +3,37 @@ import urlBuilder, {
   getQueryStringfromObject,
 } from "./URLAssembly";
 import { APP_MODE } from "entities/App";
+import { ApplicationVersion } from "ee/actions/applicationActions";
+
+describe("page URL previews", () => {
+  const builder = new URLBuilder();
+  const pageId = "0123456789abcdef01234567";
+
+  beforeEach(() => {
+    builder.updateURLParams({
+      applicationSlug: "ontdemo1-2-0",
+      applicationVersion: ApplicationVersion.SLUG_URL,
+    });
+  });
+
+  it("uses an ID-qualified fallback for an empty readable page slug", () => {
+    expect(builder.getPagePathPreview(pageId, "")).toBe(
+      `/app/ontdemo1-2-0/page-${pageId}`,
+    );
+    expect(builder.getPagePathPreview("1123456789abcdef01234567", "")).toBe(
+      "/app/ontdemo1-2-0/page-1123456789abcdef01234567",
+    );
+  });
+
+  it("preserves English page and custom slug previews", () => {
+    expect(builder.getPagePathPreview(pageId, "order-list")).toBe(
+      `/app/ontdemo1-2-0/order-list-${pageId}`,
+    );
+    expect(builder.getCustomSlugPathPreview(pageId, "custom-orders")).toBe(
+      `/app/custom-orders-${pageId}`,
+    );
+  });
+});
 
 describe("URLBuilder", () => {
   beforeEach(() => {

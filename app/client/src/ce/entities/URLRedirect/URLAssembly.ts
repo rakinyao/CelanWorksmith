@@ -301,7 +301,7 @@ export class URLBuilder {
       APP_MODE.PUBLISHED,
     );
 
-    formattedParams.pageSlug = `${pageName}-`;
+    formattedParams.pageSlug = `${pageName || PLACEHOLDER_PAGE_SLUG}-`;
 
     return generatePath(urlPattern, formattedParams).toLowerCase();
   }
