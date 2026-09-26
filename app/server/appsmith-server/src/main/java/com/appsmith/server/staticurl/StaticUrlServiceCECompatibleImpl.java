@@ -98,4 +98,14 @@ public class StaticUrlServiceCECompatibleImpl implements StaticUrlServiceCECompa
 
         return;
     }
+
+    @Override
+    public Mono<PageDTO> preparePageForCreate(PageDTO page, Application application) {
+        return Mono.just(page);
+    }
+
+    @Override
+    public Mono<Application> preparePagesForPublish(Application application) {
+        return Mono.just(application);
+    }
 }

@@ -29,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -952,23 +953,6 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
     }
 
     /**
-     * Generates a unique page slug for the given base ID and current slug.
-     *
-     * <p>If the current slug is already taken, this method appends an incremental
-     * number suffix until a unique slug is found.</p>
-     *
-     * @param baseId the base ID used for uniqueness tracking
-     * @param currentSlug the desired slug (may be modified if not unique)
-     * @param uniqueSlugToBaseId map tracking existing slugs and their base IDs
-     * @return String a unique slug
-     */
-    private String generateUniquePageSlug(String baseId, String currentSlug, Map<String, String> uniqueSlugToBaseId) {
-        String slug = PageSlugAllocator.allocate(currentSlug, new HashSet<>(uniqueSlugToBaseId.keySet()));
-        uniqueSlugToBaseId.put(slug, baseId);
-        return slug;
-    }
-
-    /**
      * Generates unique page slugs for all pages in an application.
      *
      * <p>This method processes all pages in an application and generates unique slugs
@@ -1250,83 +1234,167 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
 
         log.info("Updating unique page slugs before import - {} pages to process", pagesToImport.size());
 
-        Map<String, String> uniqueSlugToGitSyncId = new HashMap<>();
-        Set<String> gitSyncIds = new HashSet<>();
-
-        pagesFromDb.stream()
-                .filter(page -> page.getUnpublishedPage() != null
-                        && StringUtils.hasText(page.getGitSyncId())
-                        && StringUtils.hasText(page.getUnpublishedPage().getUniqueSlug()))
-                .forEach(page -> {
-                    gitSyncIds.add(page.getGitSyncId());
-                    uniqueSlugToGitSyncId.put(page.getUnpublishedPage().getUniqueSlug(), page.getGitSyncId());
-                });
-
-        log.debug(
-                "Git connected application: {}",
-                GitUtils.isArtifactConnectedToGit(importedApplication.getGitArtifactMetadata()));
-        log.debug("Found {} existing page slugs", uniqueSlugToGitSyncId.size());
-
-        // If it's not git connected,  update all the slugs
-        if (!GitUtils.isArtifactConnectedToGit(importedApplication.getGitArtifactMetadata())) {
-            log.debug("Non-Git application, updating all page slugs");
-            pagesToImport.stream()
-                    .filter(page -> {
-                        return page.getUnpublishedPage() != null
-                                && StringUtils.hasText(page.getUnpublishedPage().getUniqueSlug());
-                    })
-                    .forEach(page -> {
-                        String gitSyncId = StringUtils.hasText(page.getGitSyncId()) ? page.getGitSyncId() : "gitSync";
-                        String newUniqueSlug = generateUniquePageSlug(
-                                gitSyncId, page.getUnpublishedPage().getUniqueSlug(), uniqueSlugToGitSyncId);
-                        page.getUnpublishedPage().setUniqueSlug(newUniqueSlug);
-                        uniqueSlugToGitSyncId.put(newUniqueSlug, gitSyncId);
-                    });
-
+        if (!isStaticUrlEnabled(importedApplication)) {
             return Mono.just(pagesToImport);
         }
-
-        log.debug("Git-connected application, processing page slugs");
-        pagesToImport.stream()
-                .filter(page -> {
-                    PageDTO editPageDTO = page.getUnpublishedPage();
-                    if (editPageDTO == null || !StringUtils.hasText(editPageDTO.getUniqueSlug())) {
-                        return false;
-                    }
-
-                    // if the git sync ids is matching then it should simply override
-                    return !StringUtils.hasText(page.getGitSyncId()) || !gitSyncIds.contains(page.getGitSyncId());
-                })
-                .forEach(page -> {
-                    String gitSyncId = StringUtils.hasText(page.getGitSyncId()) ? page.getGitSyncId() : "gitSync";
-                    String newUniqueSlug = generateUniquePageSlug(
-                            page.getGitSyncId(), page.getUnpublishedPage().getUniqueSlug(), uniqueSlugToGitSyncId);
-                    page.getUnpublishedPage().setUniqueSlug(newUniqueSlug);
-                    uniqueSlugToGitSyncId.put(newUniqueSlug, gitSyncId);
-                });
-
-        log.info("Page slugs updated successfully for import");
+        Set<String> reserved = new HashSet<>();
+        Map<String, NewPage> existingByGitSyncId = new HashMap<>();
+        for (NewPage page : pagesFromDb) {
+            if (!importedApplication.getId().equals(page.getApplicationId())) {
+                continue;
+            }
+            reserveSlugs(page, reserved);
+            if (StringUtils.hasText(page.getGitSyncId())) {
+                existingByGitSyncId.put(page.getGitSyncId(), page);
+            }
+        }
+        List<PageDTO> needsAllocation = new ArrayList<>();
+        for (NewPage page : pagesToImport) {
+            PageDTO draft = page.getUnpublishedPage();
+            if (draft == null || draft.getDeletedAt() != null) {
+                continue;
+            }
+            NewPage existing = existingByGitSyncId.get(page.getGitSyncId());
+            String existingSlug = existing == null ? null : stableSlug(existing);
+            if (TextUtils.isSlugFormatValid(existingSlug)) {
+                draft.setUniqueSlug(existingSlug);
+            } else if (!TextUtils.isSlugFormatValid(draft.getUniqueSlug()) || !reserved.add(draft.getUniqueSlug())) {
+                needsAllocation.add(draft);
+            }
+        }
+        // Reserve every supplied identifier before allocating missing values in import order.
+        for (PageDTO draft : needsAllocation) {
+            draft.setUniqueSlug(PageSlugAllocator.allocate(preferredSlug(draft), reserved));
+        }
         return Mono.just(pagesToImport);
     }
 
     @Override
     @FeatureFlagged(featureFlagName = FeatureFlagEnum.license_static_url_enabled)
     public Mono<PageDTO> updateUniqueSlugBeforeClone(PageDTO incomingPageDTO, List<NewPage> existingPagesFromApp) {
-        if (!StringUtils.hasText(incomingPageDTO.getUniqueSlug())) {
-            return Mono.just(incomingPageDTO);
+        return applicationService.findById(incomingPageDTO.getApplicationId()).map(application -> {
+            if (isStaticUrlEnabled(application)) {
+                Set<String> reserved = new HashSet<>();
+                existingPagesFromApp.stream()
+                        .filter(page -> application.getId().equals(page.getApplicationId()))
+                        .forEach(page -> reserveSlugs(page, reserved));
+                incomingPageDTO.setUniqueSlug(PageSlugAllocator.allocate(preferredSlug(incomingPageDTO), reserved));
+            }
+            return incomingPageDTO;
+        });
+    }
+
+    private boolean isStaticUrlEnabled(Application application) {
+        return application.getStaticUrlSettings() != null
+                && Boolean.TRUE.equals(application.getStaticUrlSettings().getEnabled());
+    }
+
+    @Override
+    @FeatureFlagged(featureFlagName = FeatureFlagEnum.license_static_url_enabled)
+    public Mono<PageDTO> preparePageForCreate(PageDTO page, Application application) {
+        if (!isStaticUrlEnabled(application)) {
+            return Mono.just(page);
         }
-
-        Map<String, String> uniqueSlugToGitSyncId = new HashMap<>();
-
-        existingPagesFromApp.stream()
-                .filter(page -> page.getUnpublishedPage() != null
-                        && StringUtils.hasText(page.getUnpublishedPage().getUniqueSlug()))
-                .forEach(page -> {
-                    uniqueSlugToGitSyncId.put(page.getUnpublishedPage().getUniqueSlug(), "placeholder");
+        return pageService
+                .findNewPagesByApplicationId(application.getId(), null)
+                .collectList()
+                .map(existingPages -> {
+                    Set<String> reserved = new HashSet<>();
+                    existingPages.forEach(existing -> reserveSlugs(existing, reserved));
+                    page.setUniqueSlug(PageSlugAllocator.allocate(preferredSlug(page), reserved));
+                    return page;
                 });
+    }
 
-        String updatedUniqueSlug = generateUniquePageSlug(null, incomingPageDTO.getUniqueSlug(), uniqueSlugToGitSyncId);
-        incomingPageDTO.setUniqueSlug(updatedUniqueSlug);
-        return Mono.just(incomingPageDTO);
+    @Override
+    @FeatureFlagged(featureFlagName = FeatureFlagEnum.license_static_url_enabled)
+    public Mono<Application> preparePagesForPublish(Application application) {
+        if (!isStaticUrlEnabled(application)) {
+            return Mono.just(application);
+        }
+        return pageService
+                .findNewPagesByApplicationId(application.getId(), null)
+                .collectList()
+                .flatMap(pages -> {
+                    Map<String, String> owners = new HashMap<>();
+                    // Diagnose historical ownership conflicts before changing any draft.
+                    for (NewPage page : pages) {
+                        PageDTO published = page.getPublishedPage();
+                        if (published != null && TextUtils.isSlugFormatValid(published.getUniqueSlug())) {
+                            String previous = owners.putIfAbsent(published.getUniqueSlug(), page.getId());
+                            if (previous != null && !previous.equals(page.getId())) {
+                                return Mono.error(new AppsmithException(
+                                        AppsmithError.INVALID_PARAMETER,
+                                        "published slug " + published.getUniqueSlug() + " belongs to pages " + previous
+                                                + ", " + page.getId()));
+                            }
+                        }
+                    }
+                    for (NewPage page : pages) {
+                        PageDTO draft = page.getUnpublishedPage();
+                        if (draft == null) {
+                            return Mono.error(new AppsmithException(
+                                    AppsmithError.INVALID_PARAMETER, "unpublishedPage for page " + page.getId()));
+                        }
+                        if (draft.getDeletedAt() != null) {
+                            continue;
+                        }
+                        String slug = stableSlug(page);
+                        if (TextUtils.isSlugFormatValid(slug)) {
+                            String previous = owners.putIfAbsent(slug, page.getId());
+                            if (previous != null && !previous.equals(page.getId())) {
+                                return Mono.error(new AppsmithException(
+                                        AppsmithError.INVALID_PARAMETER,
+                                        "slug " + slug + " belongs to pages " + previous + ", " + page.getId()));
+                            }
+                        }
+                    }
+                    Set<String> reserved = new HashSet<>(owners.keySet());
+                    List<NewPage> changed = new ArrayList<>();
+                    for (NewPage page : pages) {
+                        PageDTO draft = page.getUnpublishedPage();
+                        if (draft == null
+                                || draft.getDeletedAt() != null
+                                || TextUtils.isSlugFormatValid(draft.getUniqueSlug())) {
+                            continue;
+                        }
+                        String slug = stableSlug(page);
+                        draft.setUniqueSlug(
+                                TextUtils.isSlugFormatValid(slug)
+                                        ? slug
+                                        : PageSlugAllocator.allocate(preferredSlug(draft), reserved));
+                        changed.add(page);
+                    }
+                    return changed.isEmpty()
+                            ? Mono.just(application)
+                            : pageService.saveAll(changed).then(Mono.just(application));
+                });
+    }
+
+    private String preferredSlug(PageDTO page) {
+        if (TextUtils.isSlugFormatValid(page.getUniqueSlug())) {
+            return page.getUniqueSlug();
+        }
+        String slug = TextUtils.isSlugFormatValid(page.getSlug()) ? page.getSlug() : TextUtils.makeSlug(page.getName());
+        return TextUtils.isSlugFormatValid(slug) ? slug : null;
+    }
+
+    private String stableSlug(NewPage page) {
+        if (page.getUnpublishedPage() != null
+                && TextUtils.isSlugFormatValid(page.getUnpublishedPage().getUniqueSlug())) {
+            return page.getUnpublishedPage().getUniqueSlug();
+        }
+        return page.getPublishedPage() == null ? null : page.getPublishedPage().getUniqueSlug();
+    }
+
+    private void reserveSlugs(NewPage page, Set<String> reserved) {
+        if (page.getUnpublishedPage() != null
+                && TextUtils.isSlugFormatValid(page.getUnpublishedPage().getUniqueSlug())) {
+            reserved.add(page.getUnpublishedPage().getUniqueSlug());
+        }
+        if (page.getPublishedPage() != null
+                && TextUtils.isSlugFormatValid(page.getPublishedPage().getUniqueSlug())) {
+            reserved.add(page.getPublishedPage().getUniqueSlug());
+        }
     }
 }

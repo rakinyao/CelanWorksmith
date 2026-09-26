@@ -178,13 +178,13 @@ public class ApplicationPageServiceCEImpl implements ApplicationPageServiceCE {
                         AppsmithError.NO_RESOURCE_FOUND, FieldName.APPLICATION, page.getApplicationId())))
                 .cache();
 
-        Mono<PageDTO> pageMono = applicationMono.map(application -> {
+        Mono<PageDTO> pageMono = applicationMono.flatMap(application -> {
             generateAndSetPagePolicies(application, page);
             if (application.getGitArtifactMetadata() != null) {
                 page.setRefType(application.getGitArtifactMetadata().getRefType());
                 page.setRefName(application.getGitArtifactMetadata().getRefName());
             }
-            return page;
+            return staticUrlService.preparePageForCreate(page, application);
         });
 
         return pageMono.flatMap(newPageService::createDefault)
@@ -684,11 +684,11 @@ public class ApplicationPageServiceCEImpl implements ApplicationPageServiceCE {
                             NewPage.Fields.unpublishedPage_name,
                             NewPage.Fields.unpublishedPage_slug,
                             NewPage.Fields.unpublishedPage_customSlug,
-                            NewPage.Fields.unpublishedPage_uniqueSlug);
+                            NewPage.Fields.unpublishedPage_uniqueSlug,
+                            NewPage.Fields.publishedPage_uniqueSlug);
 
                     Mono<List<NewPage>> editModePagesMono = newPageService
-                            .findNewPagesByApplicationId(
-                                    page.getApplicationId(), pagePermission.getReadPermission(), pageFields)
+                            .findNewPagesByApplicationId(applicationId, pagePermission.getReadPermission(), pageFields)
                             .collectList();
 
                     Mono<Application> destinationApplicationMono = applicationService
@@ -1134,6 +1134,7 @@ public class ApplicationPageServiceCEImpl implements ApplicationPageServiceCE {
                 .findById(applicationId, applicationPermission.getEditPermission())
                 .switchIfEmpty(Mono.error(
                         new AppsmithException(AppsmithError.NO_RESOURCE_FOUND, FieldName.APPLICATION, applicationId)))
+                .flatMap(staticUrlService::preparePagesForPublish)
                 .cache();
 
         Mono<Theme> publishThemeMono =

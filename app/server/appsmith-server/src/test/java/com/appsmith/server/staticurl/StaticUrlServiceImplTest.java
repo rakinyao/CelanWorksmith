@@ -1,7 +1,9 @@
 package com.appsmith.server.staticurl;
 
 import com.appsmith.external.dtos.UniqueSlugDTO;
+import com.appsmith.external.enums.FeatureFlagEnum;
 import com.appsmith.server.applications.base.ApplicationService;
+import com.appsmith.server.aspect.FeatureFlaggedMethodInvokerAspect;
 import com.appsmith.server.domains.Application;
 import com.appsmith.server.domains.ApplicationPage;
 import com.appsmith.server.domains.NewPage;
@@ -9,16 +11,20 @@ import com.appsmith.server.dtos.PageDTO;
 import com.appsmith.server.exceptions.AppsmithException;
 import com.appsmith.server.helpers.TextUtils;
 import com.appsmith.server.newpages.base.NewPageService;
+import com.appsmith.server.services.FeatureFlagService;
 import com.appsmith.server.solutions.ApplicationPermission;
 import com.appsmith.server.solutions.PagePermission;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
+import org.springframework.context.ApplicationContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -159,6 +165,155 @@ class StaticUrlServiceImplTest {
         UniqueSlugDTO dto = new UniqueSlugDTO();
         dto.setUniqueApplicationSlug("application");
         service.autoGenerateStaticUrl("app", dto).block();
+    }
+
+    @Test
+    void cloningMissingChineseIdentifierAllocatesWithinDestinationApplication() {
+        application.getStaticUrlSettings().setEnabled(true);
+        PageDTO incoming = page("new", "\u9996\u9875", "", null).getUnpublishedPage();
+        incoming.setApplicationId("app");
+        service.updateUniqueSlugBeforeClone(incoming, List.of(page("old", "Old", "old", "page")))
+                .block();
+        assertThat(incoming.getUniqueSlug()).isEqualTo("page-1");
+    }
+
+    @Test
+    void importReservesDatabaseAndWholeBatchBeforeFillingChinesePages() {
+        application.getStaticUrlSettings().setEnabled(true);
+        NewPage missing = page("new", "\u9996\u9875", "", null);
+        NewPage supplied = page("supplied", "Other", "other", "page");
+        NewPage existing = page("existing", "Existing", "existing", "page-1");
+        service.updateUniquePageSlugsBeforeImport(List.of(missing, supplied), List.of(existing), application)
+                .block();
+        assertThat(missing.getUnpublishedPage().getUniqueSlug()).isEqualTo("page-2");
+        assertThat(supplied.getUnpublishedPage().getUniqueSlug()).isEqualTo("page");
+        assertThat(existing.getUnpublishedPage().getUniqueSlug()).isEqualTo("page-1");
+    }
+
+    @Test
+    void publishRepairRestoresOwnPublishedSlugAndOnlySavesDraft() {
+        application.getStaticUrlSettings().setEnabled(true);
+        NewPage missing = page("a", "\u9996\u9875", "", null);
+        pages(List.of(missing), List.of(missing));
+        service.preparePagesForPublish(application).block();
+        assertThat(storedPages).hasSize(1);
+        assertThat(storedPages.get(0).getUnpublishedPage().getUniqueSlug()).isEqualTo("published-a");
+        assertThat(storedPages.get(0).getPublishedPage().getUniqueSlug()).isEqualTo("published-a");
+        assertThat(storedApplications).isEmpty();
+    }
+
+    @Test
+    void publishRepairRejectsPublishedDuplicatesBeforeSavingDrafts() {
+        application.getStaticUrlSettings().setEnabled(true);
+        NewPage first = page("a", "\u9996\u9875", "", null);
+        NewPage second = page("b", "Other", "other", null);
+        second.getPublishedPage().setUniqueSlug("published-a");
+        pages(List.of(first, second), List.of(first, second));
+        assertThatThrownBy(() -> service.preparePagesForPublish(application).block())
+                .isInstanceOf(AppsmithException.class)
+                .hasMessageContaining("published-a");
+        assertThat(storedPages).isEmpty();
+        assertThat(first.getUnpublishedPage().getUniqueSlug()).isNull();
+    }
+
+    @Test
+    void prepareCreateAllocatesChineseIdentifierOnlyForEnabledSettings() {
+        NewPage existing = page("a", "Home", "home", "page");
+        pages(List.of(existing), List.of(existing));
+        PageDTO draft = page("new", "\u9996\u9875", "", null).getUnpublishedPage();
+        service.preparePageForCreate(draft, application).block();
+        assertThat(draft.getUniqueSlug()).isNull();
+        application.getStaticUrlSettings().setEnabled(true);
+        service.preparePageForCreate(draft, application).block();
+        assertThat(draft.getUniqueSlug()).isEqualTo("page-1");
+        assertThat(draft.getSlug()).isEmpty();
+    }
+
+    @Test
+    void importPreservesMatchedGitIdentityAndIgnoresOtherApplications() {
+        application.getStaticUrlSettings().setEnabled(true);
+        NewPage existing = page("existing", "Before", "before", "stable");
+        existing.setGitSyncId("identity");
+        NewPage incoming = page("incoming", "\u9996\u9875", "", null);
+        incoming.setGitSyncId("identity");
+        NewPage unrelated = page("other", "Other", "other", "page");
+        unrelated.setApplicationId("other-branch");
+        NewPage fresh = page("fresh", "\u8be6\u60c5", "", null);
+        service.updateUniquePageSlugsBeforeImport(List.of(incoming, fresh), List.of(existing, unrelated), application)
+                .block();
+        assertThat(incoming.getUnpublishedPage().getUniqueSlug()).isEqualTo("stable");
+        assertThat(fresh.getUnpublishedPage().getUniqueSlug()).isEqualTo("page");
+        assertThat(existing.getId()).isEqualTo("existing");
+    }
+
+    @Test
+    void disabledSettingsLeaveImportCloneAndPublishUnchanged() {
+        NewPage page = page("new", "\u9996\u9875", "", null);
+        page.getUnpublishedPage().setApplicationId("app");
+        service.updateUniquePageSlugsBeforeImport(List.of(page), List.of(), application)
+                .block();
+        service.updateUniqueSlugBeforeClone(page.getUnpublishedPage(), List.of())
+                .block();
+        service.preparePagesForPublish(application).block();
+        assertThat(page.getUnpublishedPage().getUniqueSlug()).isNull();
+        assertThat(application.getStaticUrlSettings().getEnabled()).isNotEqualTo(true);
+        assertThat(storedPages).isEmpty();
+    }
+
+    @Test
+    void compatibleLifecycleHooksDoNotEnableSettingsOrAllocateIdentifiers() {
+        StaticUrlServiceCECompatible compatible = new StaticUrlServiceCECompatibleImpl();
+        application.getStaticUrlSettings().setEnabled(true);
+        PageDTO page = page("new", "\u9996\u9875", "", null).getUnpublishedPage();
+        compatible.preparePageForCreate(page, application).block();
+        compatible.preparePagesForPublish(application).block();
+        assertThat(page.getUniqueSlug()).isNull();
+        assertThat(storedPages).isEmpty();
+        assertThatThrownBy(() -> compatible
+                        .autoGenerateStaticUrl("app", new UniqueSlugDTO())
+                        .block())
+                .isInstanceOf(AppsmithException.class);
+    }
+
+    @Test
+    void featureFlagOffRoutesLifecycleHooksThroughCompatibleService() {
+        FeatureFlagService flags = mock(FeatureFlagService.class);
+        ApplicationContext context = mock(ApplicationContext.class);
+        when(flags.check(FeatureFlagEnum.license_static_url_enabled)).thenReturn(Mono.just(false));
+        when(context.getBeansOfType(StaticUrlServiceCECompatibleImpl.class))
+                .thenReturn(Map.of("staticUrlServiceCECompatibleImpl", new StaticUrlServiceCECompatibleImpl()));
+        AspectJProxyFactory factory = new AspectJProxyFactory(service);
+        factory.setProxyTargetClass(true);
+        factory.addAspect(new FeatureFlaggedMethodInvokerAspect(flags, context));
+        StaticUrlService gated = factory.getProxy();
+        application.getStaticUrlSettings().setEnabled(true);
+        PageDTO draft = page("new", "\u9996\u9875", "", null).getUnpublishedPage();
+        gated.preparePageForCreate(draft, application).block();
+        gated.preparePagesForPublish(application).block();
+        assertThat(draft.getUniqueSlug()).isNull();
+        assertThat(storedPages).isEmpty();
+    }
+
+    @Test
+    void creatingPageWhoseNameLooksLikeMongoIdUsesValidFallback() {
+        application.getStaticUrlSettings().setEnabled(true);
+        pages(List.of(), List.of());
+        PageDTO draft = page("new", "0123456789abcdef01234567", null, null).getUnpublishedPage();
+        service.preparePageForCreate(draft, application).block();
+        assertThat(draft.getUniqueSlug()).isEqualTo("page");
+    }
+
+    @Test
+    void publishRejectsMissingDraftBeforeSavingRepairs() {
+        application.getStaticUrlSettings().setEnabled(true);
+        NewPage missingIdentifier = page("a", "\u9996\u9875", "", null);
+        NewPage malformed = page("b", "Other", "other", null);
+        malformed.setUnpublishedPage(null);
+        pages(List.of(missingIdentifier, malformed), List.of(missingIdentifier, malformed));
+        assertThatThrownBy(() -> service.preparePagesForPublish(application).block())
+                .isInstanceOf(AppsmithException.class);
+        assertThat(storedPages).isEmpty();
+        assertThat(missingIdentifier.getUnpublishedPage().getUniqueSlug()).isNull();
     }
 
     private void pages(List<NewPage> orderedPages, List<NewPage> repositoryPages) {

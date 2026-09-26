@@ -46,5 +46,9 @@ public interface StaticUrlServiceCECompatible {
 
     Mono<PageDTO> updateUniqueSlugBeforeClone(PageDTO incomingPageDTO, List<NewPage> newPages);
 
+    Mono<PageDTO> preparePageForCreate(PageDTO page, Application application);
+
+    Mono<Application> preparePagesForPublish(Application application);
+
     void deleteUniqueSlugFromDbWhenAbsentFromPageJson(NewPage pageFromJson, NewPage pageFromDb);
 }
