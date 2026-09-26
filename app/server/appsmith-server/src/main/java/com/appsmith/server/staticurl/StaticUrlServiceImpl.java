@@ -29,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -218,16 +219,10 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
                 .switchIfEmpty(Mono.error(new AppsmithException(
                         AppsmithError.ACL_NO_RESOURCE_FOUND, FieldName.APPLICATION, branchedApplicationId)))
                 .flatMap(application -> {
-                    StaticUrlSettings staticUrlSettings;
-                    if (application.getStaticUrlSettings() == null) {
-                        application.setStaticUrlSettings(new StaticUrlSettings());
-                    }
+                    StaticUrlSettings staticUrlSettings = application.getStaticUrlSettings();
 
-                    staticUrlSettings = application.getStaticUrlSettings();
-
-                    log.debug("Static URL already enabled: {}", staticUrlSettings.getEnabled());
                     // No action required for already enabled static urls
-                    if (Boolean.TRUE.equals(staticUrlSettings.getEnabled())) {
+                    if (staticUrlSettings != null && Boolean.TRUE.equals(staticUrlSettings.getEnabled())) {
                         log.info("Static URL already enabled for applicationId: {}", branchedApplicationId);
                         return Mono.just(application);
                     }
@@ -257,18 +252,11 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
 
                                 return applicationService
                                         .findById(application.getId())
-                                        .flatMap(dbApplication -> {
-                                            modifyStaticUrlSettings(dbApplication, slugDTO);
-                                            return applicationService.save(dbApplication);
-                                        })
-                                        .flatMap(dbApplication -> {
-                                            log.debug(
-                                                    "Generating unique page slugs for application: {}",
-                                                    dbApplication.getId());
-                                            // add static url to all pages for current app.
-                                            return generateUniquePageSlugsForApplication(dbApplication)
-                                                    .then(Mono.just(dbApplication));
-                                        })
+                                        .flatMap(dbApplication -> generateUniquePageSlugsForApplication(dbApplication)
+                                                .then(Mono.defer(() -> {
+                                                    modifyStaticUrlSettings(dbApplication, slugDTO);
+                                                    return applicationService.save(dbApplication);
+                                                })))
                                         .flatMap(savedApp -> staticUrlAnalyticsUtils
                                                 .sendApplicationStaticUrlEvent(
                                                         AnalyticsEvents.STATIC_URL_ENABLED,
@@ -975,32 +963,17 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
      * @return String a unique slug
      */
     private String generateUniquePageSlug(String baseId, String currentSlug, Map<String, String> uniqueSlugToBaseId) {
-        log.debug("Generating unique page slug for baseId: {}, currentSlug: {}", baseId, currentSlug);
-
-        // let's use this to generate the pageId
-        if (!uniqueSlugToBaseId.containsKey(currentSlug)) {
-            log.debug("Slug is unique: {}", currentSlug);
-            return currentSlug;
-        }
-
-        int iteration = 1;
-        String iterativeSlug;
-        while (true) {
-            iterativeSlug = String.format(SLUG_APPEND_FORMAT, currentSlug, iteration);
-            iteration += 1;
-
-            if (!uniqueSlugToBaseId.containsKey(iterativeSlug)) {
-                log.debug("Generated unique slug with iteration: {}", iterativeSlug);
-                return iterativeSlug;
-            }
-        }
+        String slug = PageSlugAllocator.allocate(currentSlug, new HashSet<>(uniqueSlugToBaseId.keySet()));
+        uniqueSlugToBaseId.put(slug, baseId);
+        return slug;
     }
 
     /**
      * Generates unique page slugs for all pages in an application.
      *
      * <p>This method processes all pages in an application and generates unique slugs
-     * for each page. It skips pages that don't have valid names or slugs.</p>
+     * for pages missing valid static slugs. Existing valid slugs are reserved before allocation,
+     * and duplicate slugs or missing unpublished pages are rejected before saving.</p>
      *
      * @param dbApplication the application containing the pages
      * @return Flux&lt;NewPage&gt; the updated pages with unique slugs
@@ -1010,38 +983,46 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
 
         return pageService
                 .findNewPagesByApplicationId(dbApplication.getId(), null)
+                .filter(page -> page.getUnpublishedPage() == null
+                        || page.getUnpublishedPage().getDeletedAt() == null)
                 .collectList()
                 .flatMapMany(pages -> {
-                    log.debug("Processing {} pages", pages.size());
-                    Map<String, String> uniquePageSlugToBaseId = new HashMap<>();
+                    Set<String> reservedSlugs = new HashSet<>();
+                    // Preflight the full collection before mutating any page or enabling static URLs.
+                    for (NewPage page : pages) {
+                        PageDTO editPageDTO = page.getUnpublishedPage();
+                        if (editPageDTO == null) {
+                            return Flux.error(new AppsmithException(
+                                    AppsmithError.INVALID_PARAMETER, "unpublishedPage for page " + page.getId()));
+                        }
+                        String uniqueSlug = editPageDTO.getUniqueSlug();
+                        if (TextUtils.isSlugFormatValid(uniqueSlug) && !reservedSlugs.add(uniqueSlug)) {
+                            return Flux.error(new AppsmithException(
+                                    AppsmithError.UNIQUE_SLUG_UNAVAILABLE, FieldName.PAGE, uniqueSlug));
+                        }
+                    }
+
+                    Map<String, Integer> pageOrder = new HashMap<>();
+                    if (dbApplication.getPages() != null) {
+                        for (int index = 0; index < dbApplication.getPages().size(); index++) {
+                            pageOrder.putIfAbsent(
+                                    dbApplication.getPages().get(index).getId(), index);
+                        }
+                    }
+                    pages.sort(Comparator.comparingInt(
+                                    (NewPage page) -> pageOrder.getOrDefault(page.getId(), Integer.MAX_VALUE))
+                            .thenComparing(NewPage::getId, Comparator.nullsLast(Comparator.naturalOrder())));
 
                     for (NewPage page : pages) {
-                        String baseId = page.getBaseIdOrFallback();
-                        String uniquePageSlug;
-
                         PageDTO editPageDTO = page.getUnpublishedPage();
-                        // If edit DTO is null or page doesn't have a page name or page slug,
-                        // we cannot move further with this page as we don't have a base name
-                        // for generating unique page slugs
-                        if (editPageDTO == null
-                                || !StringUtils.hasText(editPageDTO.getSlug())
-                                || !StringUtils.hasText(editPageDTO.getName())) {
-                            log.debug("Skipping page due to missing data: {}", page.getId());
+                        if (TextUtils.isSlugFormatValid(editPageDTO.getUniqueSlug())) {
                             continue;
                         }
-
-                        String pageSlug = StringUtils.hasText(editPageDTO.getSlug())
+                        String preferredSlug = TextUtils.isSlugFormatValid(editPageDTO.getSlug())
                                 ? editPageDTO.getSlug()
                                 : TextUtils.makeSlug(editPageDTO.getName());
-
-                        if (!TextUtils.isSlugFormatValid(pageSlug)) {
-                            log.debug("Skipping page due to invalid slug format: {}", page.getId());
-                            continue;
-                        }
-
-                        uniquePageSlug = generateUniquePageSlug(baseId, pageSlug, uniquePageSlugToBaseId);
-                        uniquePageSlugToBaseId.put(uniquePageSlug, baseId);
-                        editPageDTO.setUniqueSlug(uniquePageSlug);
+                        editPageDTO.setUniqueSlug(PageSlugAllocator.allocate(
+                                TextUtils.isSlugFormatValid(preferredSlug) ? preferredSlug : null, reservedSlugs));
                     }
 
                     log.info("Generated unique slugs for {} pages", pages.size());
