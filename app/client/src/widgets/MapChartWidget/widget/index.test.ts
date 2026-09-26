@@ -20,6 +20,7 @@ describe("Map Chart China configuration", () => {
     const optionValues = options.map((option) => option.value);
 
     expect(optionValues[0]).toBe(CHINA_NATIONWIDE_MAP_ID);
+    expect(options[0]?.label).toBe("全国");
     expect(optionValues).toHaveLength(34);
     expect(optionValues).toEqual([
       CHINA_NATIONWIDE_MAP_ID,

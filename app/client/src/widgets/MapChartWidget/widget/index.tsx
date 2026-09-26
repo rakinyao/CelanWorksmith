@@ -179,7 +179,7 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
             controlType: "DROP_DOWN",
             options: [
               {
-                label: "China provinces",
+                label: "全国",
                 value: CHINA_NATIONWIDE_MAP_ID,
               },
               ...CHINA_PROVINCE_MAPS.filter(
@@ -427,8 +427,7 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
       getEditorCallouts(): WidgetCallout[] {
         return [
           {
-            message:
-              "Map chart widget switched from using Fusion chart library to Echarts. Please verify that the chart is displaying properly",
+            message: "数据来源于阿里云，该版本数据更新于2021.5。仅供展示使用。",
           },
         ];
       },
