@@ -127,14 +127,15 @@ mvn -pl appsmith-server -am -Dtest=PageSlugAllocatorTest,StaticUrlServiceImplTes
 
 ## 状态
 
-截至 2026-09-26，Task 1-3 的实现及任务级审查已完成；相关提交为 `e6a9821848`、`e556874cba`、`290e031cee`。Task 4 已完成定向自动验证和证据整理，等待整体最终审查及已登录环境验收。勾选项只表示其注明范围已完成，不代表普通或静态发布环境验收通过。
+截至 2026-09-26，Task 1-3 的实现及任务级审查已完成；相关提交为 `e6a9821848`、`e556874cba`、`290e031cee`。Task 4 已完成定向自动验证和证据整理；整体最终审查提出的问题已完成统一修复，等待最终复审及已登录环境验收。勾选项只表示其注明范围已完成，不代表普通或静态发布环境验收通过。
 
 ### 自动验证证据
 
 - 客户端：`yarn g:jest src/pages/AppIDE/components/AppSettings src/ce/entities/URLRedirect/URLAssembly.test.ts src/utils/helpers.test.ts --maxWorkers=2`，5 suites / 44 tests 通过。
-- 服务端：在 `app/server` 运行 `mvn -q -pl appsmith-server -am -Dtest=PageSlugAllocatorTest,PageStaticUrlLifecycleTest,StaticUrlServiceImplTest,NewPageNameValidationTest -Dsurefire.failIfNoSpecifiedTests=false test`，3 + 4 + 17 + 4 = 28 tests 通过，0 failures/errors/skips，已检查 Surefire 报告。以上两项由主代理在收尾阶段重新执行。
+- 服务端：在 `app/server` 运行 `mvn -q -pl appsmith-server -am -Dtest=PageSlugAllocatorTest,PageStaticUrlLifecycleTest,StaticUrlServiceImplTest,NewPageNameValidationTest -Dsurefire.failIfNoSpecifiedTests=false test`，最终修复轮次为 3 + 5 + 18 + 4 = 30 tests 通过，0 failures/errors/skips，已检查 Surefire 报告。客户端 44 tests 及修复前服务端 28 tests 由主代理在收尾阶段重新执行；本轮服务端新增手动地址分阶段转移、原生复制目标已发布地址与查询投影回归。
 - 7 个变更客户端文件的直接 Prettier 检查通过；ESLint 0 errors / 21 existing warnings。`yarn prettier` 包脚本意外检查全部 `src`，报告 4 个无关既有格式问题；未修改这些文件，随后限定文件检查通过。
 - 11 个变更 Java 文件的 `spotless:check` 通过，过滤参数为 `'-DspotlessFiles=.*(NewPageServiceCEImpl|ApplicationPageServiceCEImpl|PageSlugAllocator|StaticUrlServiceCECompatible|StaticUrlServiceCECompatibleImpl|StaticUrlServiceImpl|NewPageNameValidationTest|NewPageServiceTest|PageStaticUrlLifecycleTest|PageSlugAllocatorTest|StaticUrlServiceImplTest)\.java'`，命令前缀为 `mvn -q -pl appsmith-server spotless:check`。
+- 最终修复轮次的 5 个 Java 文件已执行 scoped `spotless:apply` / `spotless:check` 并通过，过滤参数为 `'-DspotlessFiles=.*(AppsmithError|StaticUrlServiceImpl|StaticUrlServiceImplTest|PageStaticUrlLifecycleTest|NewPageServiceTest)\.java'`；格式化后再次执行上述服务端 30 tests，全部通过。
 - `git diff --check bba4d481a9..HEAD` 及本次文档差异检查通过。既有 Browserslist、JVM/Unsafe、SLF4J、Jest 颜色变量警告仍存在，不声称输出无警告；未执行仓库全量 TypeScript 或全量测试。
 
 ### 环境限制与待验收项
@@ -144,6 +145,6 @@ mvn -pl appsmith-server -am -Dtest=PageSlugAllocatorTest,StaticUrlServiceImplTes
 - Spring `NewPageServiceTest` 新增用例在 ApplicationContext 初始化阶段因缺少 `APPSMITH_MONGODB_URI` 失败，未执行断言；Docker/Redis Testcontainers 不可用。完整 `NewPageServiceTest` / `ApplicationPageServiceTest` 集成验收仍待隔离基础设施；未连接业务 Mongo 27017。
 - 在隔离 Mongo 27129 重现 migration 074 的编辑/发布唯一索引：同应用相同 slug 并发插入均为 1 成功、1 duplicate-key 11000；其他应用相同 slug 成功。仅证明索引定义语义；未证明部署索引已存在、服务竞争可重试或完整持久化生命周期。未新增索引或锁，竞争失败仍使用原生 duplicate-key 错误。隔离 Mongo 已正常停止（exit 0），业务服务未变更。
 - 业务库存量缺失/重复映射诊断未执行；仅使用受控测试对象验证草稿补全、发布版本不变及重复所有权阻断。真实持久化导入和成功发布未验证。
-- 整体最终审查尚未执行。待审查项包括：集成重名测试应在单独成功的初始化后断言更新；原生复制目标查询/投影的直接回归覆盖不足；并发显示名检查与写入不具备原子性。前三项实现的任务级审查不替代最终审查。
+- 整体最终审查已执行，统一修复轮次完成，待最终复审。手动编辑现在检查其他页面的草稿和已发布地址，并在冲突提示中解释先发布原页面的新地址或删除、再转移旧地址；当前页面自身地址仍允许使用。原生发布保守预检保留，同一次发布不支持跨页面地址转移。集成重名测试已将两个页面的成功创建与重命名错误断言分开；该修订测试 `NewPageServiceTest.updatePage_DuplicateChineseName_IsRejected` 仅编译、未在本轮运行，不能声称持久化重名集成验收通过。原生复制新增目标应用仅已发布地址冲突的保存对象与查询投影回归。并发显示名检查与写入仍不具备原子性。详细证据见 `.superpowers/sdd/2026-09-26-chinese-page-name-url-plan/final-fix-report.md`。
 
 下一步是在最终审查后，使用授权的已登录测试环境和隔离 Spring 测试基础设施完成仍未勾选项。分支保留在 `feat/ontology-datasource-plugin`，不推送、不合并、不清理历史 worktree；未创建测试应用，因此无测试应用清理操作。

@@ -80,7 +80,8 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
             NewPage.Fields.refType,
             NewPage.Fields.branchName,
             NewPage.Fields.gitSyncId,
-            NewPage.Fields.unpublishedPage_uniqueSlug);
+            NewPage.Fields.unpublishedPage_uniqueSlug,
+            NewPage.Fields.publishedPage_uniqueSlug);
 
     /**
      * Updates the unique slug for an application.
@@ -742,7 +743,7 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
                                 if (!Boolean.TRUE.equals(isUniquePageSlugAvailable)) {
                                     log.error("Page slug not available: {}", normalizedPageSlug);
                                     return Mono.error(new AppsmithException(
-                                            AppsmithError.UNIQUE_SLUG_UNAVAILABLE, FieldName.PAGE, normalizedPageSlug));
+                                            AppsmithError.PAGE_SLUG_UNAVAILABLE, normalizedPageSlug));
                                 }
 
                                 return pageService.findById(pageId, null).flatMap(pageFromDB -> {
@@ -782,8 +783,9 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
     /**
      * Checks if a page slug is unique within an application.
      *
-     * <p>This method ensures that page slugs are unique within the same application.
-     * It excludes the current page from the uniqueness check.</p>
+     * <p>This method reserves both draft and published slugs within the same application.
+     * It excludes the current page from the uniqueness check. A published reservation is
+     * released only after publishing its owner's new slug or removal.</p>
      *
      * @param application the application containing the pages
      * @param newPage the page for which to check slug uniqueness
@@ -810,9 +812,11 @@ public class StaticUrlServiceImpl extends StaticUrlServiceCECompatibleImpl imple
                 .filter(page -> {
                     boolean isDifferentPage = !page.getId().equals(newPage.getId());
                     PageDTO editPageDTO = page.getUnpublishedPage();
-                    // unique-page slug utilized by any other page of same app should result in a clash
+                    PageDTO publishedPageDTO = page.getPublishedPage();
                     boolean haveSameUniqueSlug =
-                            editPageDTO != null && normalizedUniquePageSlug.equals(editPageDTO.getUniqueSlug());
+                            (editPageDTO != null && normalizedUniquePageSlug.equals(editPageDTO.getUniqueSlug()))
+                                    || (publishedPageDTO != null
+                                            && normalizedUniquePageSlug.equals(publishedPageDTO.getUniqueSlug()));
                     return isDifferentPage && haveSameUniqueSlug;
                 })
                 .hasElements()

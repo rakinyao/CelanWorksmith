@@ -7,6 +7,7 @@ import com.appsmith.server.applications.base.ApplicationService;
 import com.appsmith.server.domains.Application;
 import com.appsmith.server.domains.Layout;
 import com.appsmith.server.domains.NewPage;
+import com.appsmith.server.dtos.ClonePageMetaDTO;
 import com.appsmith.server.dtos.PageDTO;
 import com.appsmith.server.exceptions.AppsmithException;
 import com.appsmith.server.newactions.base.NewActionService;
@@ -37,6 +38,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -132,6 +134,42 @@ class PageStaticUrlLifecycleTest {
         service.createPage(page).block();
         assertThat(saved.get(0).getUniqueSlug()).isNull();
         assertThat(application.getStaticUrlSettings()).isNull();
+    }
+
+    @Test
+    void nativeCloneReservesDestinationPublishedSlugAndRequestsItsProjection() {
+        PageDTO source = new PageDTO();
+        source.setId("source-page");
+        source.setApplicationId("source-app");
+        source.setName("\u9996\u9875");
+        source.setSlug("");
+        source.setLayouts(List.of());
+        NewPage destination = conflictingPage("destination-page");
+        destination.getUnpublishedPage().setName("Existing");
+        destination.getUnpublishedPage().setUniqueSlug("existing");
+        destination.getPublishedPage().setUniqueSlug("page");
+        when(pages.findPageById("source-page", pagePermission.getEditPermission(), false))
+                .thenReturn(Mono.just(source));
+        when(pages.findNewPagesByApplicationId(eq("app"), any(), anyList())).thenAnswer(invocation -> {
+            List<String> fields = invocation.getArgument(2);
+            assertThat(fields).contains(NewPage.Fields.publishedPage_uniqueSlug);
+            return Flux.just(destination);
+        });
+        when(pages.findNewPagesByApplicationId(eq("source-app"), any(), anyList()))
+                .thenReturn(Flux.empty());
+        when(applications.findById("app")).thenReturn(Mono.just(application));
+        when(applications.save(application)).thenReturn(Mono.just(application));
+        ApplicationPageServiceCEImpl cloning = spy(service);
+        doReturn(Mono.empty()).when(cloning).clonePageDependentEntities(any());
+
+        PageDTO cloned = cloning.clonePageGivenApplicationId("source-page", "app", null, new ClonePageMetaDTO())
+                .block();
+
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0).getApplicationId()).isEqualTo("app");
+        assertThat(saved.get(0).getUniqueSlug()).isEqualTo("page-1");
+        assertThat(cloned.getUniqueSlug()).isEqualTo("page-1");
+        assertThat(destination.getPublishedPage().getUniqueSlug()).isEqualTo("page");
     }
 
     @Test

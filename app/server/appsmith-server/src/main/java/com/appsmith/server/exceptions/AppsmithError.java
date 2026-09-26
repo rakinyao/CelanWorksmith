@@ -1065,6 +1065,14 @@ public enum AppsmithError {
             "Slug already in use",
             ErrorType.ARGUMENT_ERROR,
             null),
+    PAGE_SLUG_UNAVAILABLE(
+            409,
+            AppsmithErrorCode.UNIQUE_SLUG_UNAVAILABLE.getCode(),
+            "Page slug {0} is already in use by another page. Choose a different slug. If the other page still uses this slug in its published version, publish its new slug or removal first, then assign this slug.",
+            AppsmithErrorAction.DEFAULT,
+            "Slug already in use",
+            ErrorType.ARGUMENT_ERROR,
+            null),
     GIT_ROUTE_METADATA_NOT_FOUND(
             404,
             AppsmithErrorCode.GIT_ROUTE_METADATA_NOT_FOUND.getCode(),

@@ -168,6 +168,61 @@ class StaticUrlServiceImplTest {
     }
 
     @Test
+    void manualSlugTransferRequiresPublishingOriginalPagesMoveFirst() {
+        NewPage first = page("a", "First", "first", "old");
+        first.getPublishedPage().setUniqueSlug("old");
+        NewPage second = page("b", "Second", "second", "second");
+        List<NewPage> existing = List.of(first, second);
+        List<String> requestedFields = new ArrayList<>();
+        when(pageService.findAllByApplicationIds(eq(List.of("app")), anyList())).thenAnswer(invocation -> {
+            List<String> fields = invocation.getArgument(1);
+            requestedFields.addAll(fields);
+            return Flux.fromIterable(existing);
+        });
+        for (NewPage page : existing) {
+            when(pageService.findById(eq(page.getId()), any())).thenReturn(Mono.just(page));
+        }
+        when(pageService.save(any(NewPage.class))).thenAnswer(invocation -> {
+            NewPage page = invocation.getArgument(0);
+            storedPages.add(page);
+            return Mono.just(page);
+        });
+        when(analytics.sendPageStaticUrlEvent(any(), any(), eq("app"), any(), any()))
+                .thenAnswer(invocation -> Mono.just(invocation.<NewPage>getArgument(1)));
+
+        assertThat(service.isUniquePageSlugAvailable(application, first, "old").block())
+                .isTrue();
+        updateSlug(first, "new");
+        assertThat(first.getUnpublishedPage().getUniqueSlug()).isEqualTo("new");
+        assertThat(first.getPublishedPage().getUniqueSlug()).isEqualTo("old");
+        assertThat(service.isUniquePageSlugAvailable(application, first, "old").block())
+                .isTrue();
+        assertThat(service.isUniquePageSlugAvailable(application, second, "old").block())
+                .isFalse();
+        assertThatThrownBy(() -> updateSlug(second, "old"))
+                .isInstanceOf(AppsmithException.class)
+                .hasMessageContaining("old")
+                .hasMessageContaining("publish")
+                .hasMessageContaining("first");
+        assertThat(second.getUnpublishedPage().getUniqueSlug()).isEqualTo("second");
+        assertThat(storedPages).containsExactly(first);
+
+        // Model the reservation released by a separate successful native publication.
+        first.getPublishedPage().setUniqueSlug("new");
+        updateSlug(second, "old");
+        assertThat(second.getUnpublishedPage().getUniqueSlug()).isEqualTo("old");
+        assertThat(storedPages).containsExactly(first, second);
+        assertThat(requestedFields).contains(NewPage.Fields.publishedPage_uniqueSlug);
+    }
+
+    private void updateSlug(NewPage page, String slug) {
+        UniqueSlugDTO dto = new UniqueSlugDTO();
+        dto.setBranchedPageId(page.getId());
+        dto.setUniquePageSlug(slug);
+        service.updatePageSlug(dto).block();
+    }
+
+    @Test
     void cloningMissingChineseIdentifierAllocatesWithinDestinationApplication() {
         application.getStaticUrlSettings().setEnabled(true);
         PageDTO incoming = page("new", "\u9996\u9875", "", null).getUnpublishedPage();
