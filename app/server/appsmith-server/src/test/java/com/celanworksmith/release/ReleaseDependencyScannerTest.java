@@ -3,11 +3,28 @@ package com.celanworksmith.release;
 import com.appsmith.external.models.ActionConfiguration;
 import com.appsmith.external.models.ActionDTO;
 import com.appsmith.external.models.Datasource;
+import com.appsmith.external.models.DatasourceConfiguration;
+import com.appsmith.external.models.PluginType;
+import com.appsmith.external.models.Property;
+import com.appsmith.server.acl.AclPermission;
 import com.appsmith.server.domains.Application;
 import com.appsmith.server.domains.NewAction;
+import com.appsmith.server.domains.Plugin;
+import com.appsmith.server.plugins.base.PluginService;
+import com.appsmith.server.repositories.NewActionRepository;
+import com.celanworksmith.ontology.datasource.OntologyDatasourceService;
+import com.celanworksmith.ontology.datasource.OntologyMetadataSnapshot;
+import com.celanworksmith.ontology.datasource.OntologySnapshotService;
+import com.celanworksmith.ontology.datasource.RuntimeProviderCompatibilityValidator;
+import com.celanworksmith.ontology.datasource.RuntimeProviderRegistry;
+import com.celanworksmith.ontology.dto.ObjectTypeDTO;
+import com.celanworksmith.ontology.project.OntologyProjectDefinition;
 import com.celanworksmith.release.model.ReleaseDatasourcePin;
 import com.celanworksmith.release.model.ReleaseDependency;
+import com.celanworksmith.runtime.port.RuntimeProvider;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,8 +32,155 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 class ReleaseDependencyScannerTest {
+    @Test
+    void retainsAllMixedActionsAndOnlyRealStandaloneDatasourceDependencies() {
+        MixedResources mixed = new MixedResources();
+        var extraction = mixed.extractor.extract(mixed.candidate).block();
+        var scan = new ReleaseDependencyScanner().scan(mixed.candidate, extraction.pins());
+
+        assertThat(extraction.diagnostics()).isEmpty();
+        assertThat(extraction.pins())
+                .extracting(ReleaseDatasourcePin::datasourceId, ReleaseDatasourcePin::kind)
+                .containsExactly(tuple("db-1", "NATIVE"), tuple("ontology-1", "ONTOLOGY"));
+        assertThat(scan.diagnostics()).isEmpty();
+        assertThat(scan.dependencies())
+                .filteredOn(d -> "ACTION".equals(d.kind()))
+                .extracting(ReleaseDependency::referenceId)
+                .containsExactly("db-action", "inline-api-action", "js-action", "ontology-action");
+        assertThat(scan.dependencies())
+                .filteredOn(d -> "DATASOURCE".equals(d.kind()))
+                .extracting(ReleaseDependency::datasourceId)
+                .doesNotContainNull()
+                .containsExactly("db-1", "ontology-1");
+        assertThat(scan.dependencies())
+                .filteredOn(d -> "OBJECT_TYPE".equals(d.kind()))
+                .extracting(ReleaseDependency::datasourceId, ReleaseDependency::referenceId)
+                .containsExactly(tuple("ontology-1", "Order"));
+    }
+
+    // Shared candidate keeps scanner, snapshot, validation and coordinator regressions on the same resources.
+    static final class MixedResources {
+        final NewActionRepository actions = mock(NewActionRepository.class);
+        final ApplicationReleaseCandidate candidate;
+        final ReleaseDatasourcePinExtractor extractor;
+        final OntologyReleaseValidator ontologyValidator;
+        final ApplicationReleaseValidationService validation;
+        final ApplicationReleaseProviderHealthGate healthGate;
+
+        MixedResources() {
+            PluginService plugins = mock(PluginService.class);
+            Plugin ontologyPlugin = new Plugin();
+            ontologyPlugin.setId("ontology-plugin");
+            when(plugins.findByPackageName(OntologyDatasourceService.PLUGIN_PACKAGE_NAME))
+                    .thenReturn(Mono.just(ontologyPlugin));
+            registerPlugin(plugins, "js-plugin-id", "js-plugin", PluginType.JS);
+            registerPlugin(plugins, "rest-plugin-id", "restapi-plugin", PluginType.API);
+
+            NewAction js = action("js-action", new ActionConfiguration(), null);
+            js.getUnpublishedAction().getDatasource().setPluginId("js-plugin-id");
+            js.setPluginId("js-plugin-id");
+            js.setPluginType(PluginType.JS);
+            js.getUnpublishedAction().setName("ComputeOrders");
+            js.getUnpublishedAction().getActionConfiguration().setTimeoutInMillisecond("4321");
+            js.getUnpublishedAction().getActionConfiguration().setBody("return 'private-js-source';");
+
+            NewAction api = action("inline-api-action", new ActionConfiguration(), null);
+            api.getUnpublishedAction().getDatasource().setPluginId("rest-plugin-id");
+            api.getUnpublishedAction().getDatasource().setDatasourceConfiguration(new DatasourceConfiguration());
+            api.getUnpublishedAction()
+                    .getDatasource()
+                    .getDatasourceConfiguration()
+                    .setUrl("https://example.test/items");
+            api.setPluginId("rest-plugin-id");
+            api.setPluginType(PluginType.API);
+            api.getUnpublishedAction().setName("FetchOrders");
+            api.getUnpublishedAction()
+                    .getActionConfiguration()
+                    .setHeaders(List.of(new Property("X-Public", "public-marker")));
+
+            NewAction database = action("db-action", new ActionConfiguration(), "db-1");
+            database.getUnpublishedAction().getDatasource().setDatasourceConfiguration(new DatasourceConfiguration());
+            NewAction ontology =
+                    action("ontology-action", formData("OBJECT_QUERY", "{\"objectTypeId\":\"Order\"}", Map.of()));
+            Datasource ontologyDatasource = ontology.getUnpublishedAction().getDatasource();
+            ontologyDatasource.setPluginId("ontology-plugin");
+            DatasourceConfiguration config = new DatasourceConfiguration();
+            config.setProperties(List.of(
+                    new Property("projectId", "project-1"),
+                    new Property("projectVersion", "1"),
+                    new Property("metadataSnapshotId", "snapshot-1"),
+                    new Property("metadataDigest", "sha256:" + "a".repeat(64)),
+                    new Property("providerContractVersion", "1")));
+            ontologyDatasource.setDatasourceConfiguration(config);
+            Application application = new Application();
+            application.setId("app-1");
+            application.setWorkspaceId("workspace-1");
+            candidate = new ApplicationReleaseCandidate(
+                    application,
+                    List.of(js, api, database, ontology),
+                    List.of(),
+                    List.of(database.getUnpublishedAction().getDatasource(), ontologyDatasource),
+                    "revision-1");
+            when(actions.findByApplicationId("app-1", AclPermission.READ_ACTIONS))
+                    .thenReturn(Flux.fromIterable(candidate.unpublishedActions()));
+
+            OntologyProjectDefinition definition = new OntologyProjectDefinition(
+                    "project-1",
+                    "1",
+                    1,
+                    List.of(new ObjectTypeDTO("Order", "Order", List.of())),
+                    List.of(),
+                    List.of(),
+                    List.of());
+            OntologyMetadataSnapshot snapshot = new OntologyMetadataSnapshot(
+                    "snapshot-1",
+                    "project-1",
+                    "1",
+                    "demo",
+                    null,
+                    "provider-1",
+                    "test",
+                    java.time.Instant.EPOCH,
+                    "sha256:" + "a".repeat(64),
+                    definition);
+            OntologySnapshotService snapshots = mock(OntologySnapshotService.class);
+            when(snapshots.getRequiredSnapshot("snapshot-1", "sha256:" + "a".repeat(64)))
+                    .thenReturn(Mono.just(snapshot));
+            RuntimeProvider provider = mock(RuntimeProvider.class);
+            when(provider.providerId()).thenReturn("provider-1");
+            when(provider.metadataCapabilities(definition))
+                    .thenReturn(Mono.just(new RuntimeProvider.RuntimeMetadataCapabilities(Map.of("Order", Map.of()))));
+            extractor = new ReleaseDatasourcePinExtractor(actions, plugins, snapshots);
+            var compatibility =
+                    new RuntimeProviderCompatibilityValidator(new RuntimeProviderRegistry(List.of(provider)));
+            ontologyValidator = spy(new OntologyReleaseValidator(snapshots, null, compatibility));
+            healthGate = spy(new ApplicationReleaseProviderHealthGate(snapshots, compatibility));
+            validation = new ApplicationReleaseValidationService(
+                    extractor, new ReleaseDependencyScanner(), ontologyValidator);
+        }
+
+        void referenceMissingObject() {
+            candidate
+                    .unpublishedActions()
+                    .get(3)
+                    .getUnpublishedAction()
+                    .setActionConfiguration(formData("OBJECT_QUERY", "{\"objectTypeId\":\"MissingOrder\"}", Map.of()));
+        }
+
+        private static void registerPlugin(PluginService plugins, String id, String packageName, PluginType type) {
+            Plugin plugin = new Plugin();
+            plugin.setId(id);
+            plugin.setPackageName(packageName);
+            plugin.setType(type);
+            when(plugins.findById(id)).thenReturn(Mono.just(plugin));
+        }
+    }
+
     @Test
     void scansNativeUqiJsonDefinitionAndNestedObjectProperties() {
         String definition = "{\"objectTypeId\":\"PurchaseOrder\",\"projection\":[\"status\"],"
@@ -153,7 +317,7 @@ class ReleaseDependencyScannerTest {
     private static NewAction action(String id, ActionConfiguration configuration, String datasourceId) {
         Datasource datasource = new Datasource();
         datasource.setId(datasourceId);
-        datasource.setPluginId(datasourceId.equals("ontology-1") ? "opaque-plugin-id" : "postgres");
+        datasource.setPluginId("ontology-1".equals(datasourceId) ? "opaque-plugin-id" : "postgres");
         ActionDTO dto = new ActionDTO();
         dto.setDatasource(datasource);
         dto.setActionConfiguration(configuration);

@@ -37,6 +37,71 @@ class ApplicationReleaseSnapshotBuilderTest {
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @Test
+    void mixedSnapshotRetainsUnpinnedActionsAndPublicConfigurationWithoutInlineSecrets() throws Exception {
+        var mixed = new ReleaseDependencyScannerTest.MixedResources();
+        ActionDTO inlineApi = mixed.candidate.unpublishedActions().get(1).getUnpublishedAction();
+        DatasourceConfiguration datasource = inlineApi.getDatasource().getDatasourceConfiguration();
+        datasource.setAuthentication(
+                ApiKeyAuth.builder().value("secret-auth-marker").build());
+        datasource.setUrl(
+                "https://user:secret-url-marker@example.test/items?api_key=secret-query-marker&safe=public-marker");
+        inlineApi
+                .getActionConfiguration()
+                .setHeaders(List.of(
+                        new Property("Authorization", "secret-header-marker"),
+                        new Property("X-Public", "public-marker")));
+        var extraction = mixed.extractor.extract(mixed.candidate).block();
+
+        ApplicationReleaseSnapshot snapshot = new ApplicationReleaseSnapshotBuilder(objectMapper)
+                .build(mixed.candidate, extraction.pins(), "actor-1", "mixed release")
+                .block();
+
+        JsonNode actions =
+                objectMapper.valueToTree(snapshot.applicationContent()).path("actions");
+        assertThat(actions.size()).isEqualTo(4);
+        JsonNode js = actions.get(0);
+        assertThat(js.path("id").asText()).isEqualTo("js-action");
+        assertThat(js.path("unpublishedAction").path("name").asText()).isEqualTo("ComputeOrders");
+        assertThat(js.path("unpublishedAction")
+                        .path("actionConfiguration")
+                        .path("timeoutInMillisecond")
+                        .asInt())
+                .isEqualTo(4321);
+        assertThat(js.path("unpublishedAction")
+                        .path("actionConfiguration")
+                        .path("body")
+                        .asText())
+                .isEqualTo("REDACTED_BODY");
+        JsonNode api = actions.get(1);
+        assertThat(api.path("id").asText()).isEqualTo("inline-api-action");
+        assertThat(api.path("unpublishedAction").path("name").asText()).isEqualTo("FetchOrders");
+        assertThat(api.path("unpublishedAction")
+                        .path("datasource")
+                        .path("datasourceConfiguration")
+                        .path("url")
+                        .asText())
+                .isEqualTo("https://example.test/items?safe=public-marker");
+        for (JsonNode action : List.of(js, api)) {
+            JsonNode id = action.path("unpublishedAction").path("datasource").path("id");
+            assertThat(id.isMissingNode() || id.isNull()).isTrue();
+        }
+        assertThat(snapshot.datasourcePins())
+                .extracting(ReleaseDatasourcePin::datasourceId)
+                .containsExactly("db-1", "ontology-1");
+        String serialized = objectMapper.writeValueAsString(snapshot.applicationContent());
+        assertThat(serialized)
+                .contains("js-action", "inline-api-action", "db-action", "ontology-action", "public-marker", "X-Public")
+                .doesNotContain(
+                        "secret-auth-marker",
+                        "secret-header-marker",
+                        "secret-url-marker",
+                        "secret-query-marker",
+                        "private-js-source");
+        assertThat(inlineApi.getDatasource().getId()).isNull();
+        assertThat(datasource.getUrl()).contains("secret-url-marker");
+    }
+
+    @Test
     void canonicalizerSortsObjectKeysRecursivelyAndPreservesArrayOrder() throws Exception {
         JsonNode input = objectMapper.readTree(
                 "{\"z\":1,\"nested\":{\"b\":2,\"deep\":{\"z\":4,\"a\":5},\"a\":3},\"items\":[{\"z\":4,\"a\":5},2]}");

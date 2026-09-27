@@ -22,6 +22,35 @@ import static org.mockito.Mockito.when;
 
 class ApplicationReleaseValidationServiceTest {
     @Test
+    void validatesOnlyOntologyPinsFromRealMixedResourceExtraction() {
+        var mixed = new ReleaseDependencyScannerTest.MixedResources();
+
+        ReleaseValidationResult result =
+                mixed.validation.validate(mixed.candidate).block();
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.diagnostics()).isEmpty();
+        var pins = org.mockito.ArgumentCaptor.forClass(ReleaseDatasourcePin.class);
+        verify(mixed.ontologyValidator).validate(pins.capture(), any());
+        assertThat(pins.getAllValues())
+                .extracting(ReleaseDatasourcePin::datasourceId, ReleaseDatasourcePin::kind)
+                .containsExactly(org.assertj.core.api.Assertions.tuple("ontology-1", "ONTOLOGY"));
+        org.mockito.Mockito.verifyNoMoreInteractions(mixed.ontologyValidator);
+    }
+
+    @Test
+    void missingOntologyMetadataStillBlocksMixedNativeResources() {
+        var mixed = new ReleaseDependencyScannerTest.MixedResources();
+        mixed.referenceMissingObject();
+
+        ReleaseValidationResult result =
+                mixed.validation.validate(mixed.candidate).block();
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.diagnostics()).extracting("code").containsExactly("RELEASE_ONTOLOGY_METADATA_NOT_FOUND");
+    }
+
+    @Test
     void collectsAllDiagnosticsAndSortsBySeverityCodeAndPath() {
         ReleaseDatasourcePinExtractor extractor = mock(ReleaseDatasourcePinExtractor.class);
         ReleaseDependencyScanner scanner = mock(ReleaseDependencyScanner.class);

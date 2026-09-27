@@ -1,16 +1,24 @@
 package com.celanworksmith.release;
 
+import com.appsmith.server.acl.AclPermission;
+import com.appsmith.server.applications.base.ApplicationService;
+import com.appsmith.server.datasources.base.DatasourceService;
 import com.appsmith.server.dtos.ResponseDTO;
+import com.appsmith.server.newpages.base.NewPageService;
+import com.appsmith.server.solutions.ApplicationPermission;
+import com.appsmith.server.solutions.DatasourcePermission;
 import com.celanworksmith.release.dto.ReleasePreflightResponse;
 import com.celanworksmith.release.model.ApplicationReleaseSnapshot;
 import com.celanworksmith.release.model.ApplicationReleaseStatus;
 import com.celanworksmith.release.model.ReleaseDiagnostic;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -23,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,6 +59,89 @@ class ApplicationReleasePublishCoordinatorTest {
         coordinator = new ApplicationReleasePublishCoordinator(releaseService, healthGate, releaseRepository);
         snapshot = snapshot("release-1");
         nativeResponse = new ResponseDTO<>(200, true, null);
+    }
+
+    @Test
+    void mixedResourcesReachNativePublishWithOnlyStandalonePins() {
+        var mixed = new ReleaseDependencyScannerTest.MixedResources();
+        coordinator = mixedCoordinator(mixed);
+        when(releaseRepository.save(any())).thenAnswer(call -> Mono.just(call.getArgument(0)));
+        when(nativePublish.get()).thenReturn(Mono.just(nativeResponse));
+        when(releaseRepository.activate(eq("app-1"), any(), eq("actor@example.com"), any()))
+                .thenReturn(Mono.just(new ApplicationReleaseRepository.ActivationResult(null, "release-1")));
+
+        ResponseDTO<Boolean> response = coordinator
+                .publishWithRelease("app-1", "actor@example.com", nativePublish)
+                .block();
+
+        assertThat(response).isSameAs(nativeResponse);
+        var saved = org.mockito.ArgumentCaptor.forClass(ApplicationReleaseSnapshot.class);
+        InOrder order = inOrder(releaseRepository, nativePublish, healthGate);
+        order.verify(releaseRepository).save(saved.capture());
+        order.verify(nativePublish).get();
+        order.verify(healthGate).check(saved.getValue().datasourcePins());
+        order.verify(releaseRepository)
+                .activate(eq("app-1"), eq(saved.getValue().releaseId()), eq("actor@example.com"), any());
+        assertThat(saved.getValue().datasourcePins())
+                .extracting("datasourceId", "kind")
+                .containsExactly(
+                        org.assertj.core.api.Assertions.tuple("db-1", "NATIVE"),
+                        org.assertj.core.api.Assertions.tuple("ontology-1", "ONTOLOGY"));
+        var actions = new ObjectMapper()
+                .valueToTree(saved.getValue().applicationContent())
+                .path("actions");
+        assertThat(actions.findValuesAsText("id"))
+                .contains("js-action", "inline-api-action", "db-action", "ontology-action");
+        verify(nativePublish).get();
+    }
+
+    @Test
+    void invalidOntologyInMixedResourcesBlocksNativePublishAndSnapshotCreation() {
+        var mixed = new ReleaseDependencyScannerTest.MixedResources();
+        mixed.referenceMissingObject();
+        coordinator = mixedCoordinator(mixed);
+
+        ResponseDTO<Boolean> response = coordinator
+                .publishWithRelease("app-1", "actor@example.com", nativePublish)
+                .block();
+
+        assertThat(response.getData()).isFalse();
+        assertThat(response.getResponseMeta().getStatus()).isEqualTo(422);
+        assertThat(response.getResponseMeta().getMessage()).contains("RELEASE_ONTOLOGY_METADATA_NOT_FOUND");
+        verify(nativePublish, never()).get();
+        verify(releaseRepository, never()).save(any());
+        verify(releaseRepository, never()).activate(any(), any(), any(), any());
+        verify(healthGate, never()).check(any());
+    }
+
+    private ApplicationReleasePublishCoordinator mixedCoordinator(ReleaseDependencyScannerTest.MixedResources mixed) {
+        healthGate = mixed.healthGate;
+        ApplicationService applications = mock(ApplicationService.class);
+        ApplicationPermission applicationPermission = mock(ApplicationPermission.class);
+        DatasourceService datasources = mock(DatasourceService.class);
+        DatasourcePermission datasourcePermission = mock(DatasourcePermission.class);
+        NewPageService pages = mock(NewPageService.class);
+        when(applicationPermission.getReadPermission()).thenReturn(AclPermission.READ_APPLICATIONS);
+        org.mockito.Mockito.lenient()
+                .when(applicationPermission.getEditPermission())
+                .thenReturn(AclPermission.MANAGE_APPLICATIONS);
+        when(applications.findById(eq("app-1"), any())).thenReturn(Mono.just(mixed.candidate.application()));
+        when(datasourcePermission.getReadPermission()).thenReturn(AclPermission.READ_DATASOURCES);
+        when(datasources.getAllByWorkspaceIdWithStorages("workspace-1", AclPermission.READ_DATASOURCES))
+                .thenReturn(Flux.fromIterable(mixed.candidate.usedDatasources()));
+        when(pages.findNewPagesByApplicationId(eq("app-1"), any())).thenReturn(Flux.empty());
+        ApplicationReleaseService service = new ApplicationReleaseService(
+                applications,
+                applicationPermission,
+                mixed.actions,
+                datasources,
+                datasourcePermission,
+                pages,
+                new ApplicationReleaseSnapshotBuilder(new ObjectMapper().findAndRegisterModules()),
+                mixed.validation,
+                healthGate,
+                releaseRepository);
+        return new ApplicationReleasePublishCoordinator(service, healthGate, releaseRepository);
     }
 
     @Test
