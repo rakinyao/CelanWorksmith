@@ -90,7 +90,8 @@ public class ReleaseDatasourcePinExtractor {
                         diagnostics,
                         "RELEASE_DATASOURCE_REFERENCE_MALFORMED",
                         path,
-                        "Unpublished action configuration is missing");
+                        "Unpublished action configuration is missing",
+                        indexed.action());
                 continue;
             }
             Datasource datasource = indexed.action().getUnpublishedAction().getDatasource();
@@ -99,7 +100,8 @@ public class ReleaseDatasourcePinExtractor {
                         diagnostics,
                         "RELEASE_DATASOURCE_REFERENCE_MALFORMED",
                         path + ".datasource",
-                        "Datasource reference is missing");
+                        "Datasource reference is missing",
+                        indexed.action());
                 continue;
             }
             try {
@@ -120,46 +122,56 @@ public class ReleaseDatasourcePinExtractor {
                             diagnostics,
                             "RELEASE_DATASOURCE_PLUGIN_NOT_FOUND",
                             path + ".datasource.pluginId",
-                            "Ontology datasource plugin is not available");
+                            "Ontology datasource plugin is not available",
+                            indexed.action());
                     continue;
                 }
                 requireConsistentPlugin(action.getPluginId(), datasource.getPluginId(), path);
                 requireConsistentPlugin(datasource.getPluginId(), effective.getPluginId(), path);
                 requireConsistentPlugin(action.getPluginId(), effective.getPluginId(), path);
                 if ((ontologyMetadata || ontologyPackage) && !ontology) {
-                    throw new IllegalArgumentException(
-                            path + ".datasource.pluginId does not identify the ontology plugin");
+                    throw new ConfigurationException(
+                            path + ".datasource.pluginId", "Datasource plugin does not identify the ontology plugin");
                 }
                 if (plugin != null && action.getPluginType() != null && action.getPluginType() != plugin.getType()) {
-                    throw new IllegalArgumentException(
-                            path + ".datasource.pluginId conflicts with the action plugin type");
+                    throw new ConfigurationException(
+                            path + ".datasource.pluginId", "Datasource plugin conflicts with the action plugin type");
                 }
                 if (!ontology && isNativeInlineResource(action, datasource, plugin)) {
                     continue;
                 }
-                require(datasource.getId(), path + ".datasource.id");
+                require(datasource.getId(), path + ".datasource.id", "Datasource identifier is missing");
                 if (ontology && !ontologyPluginId.equals(effective.getPluginId())) {
-                    throw new IllegalArgumentException(
-                            path + ".datasource.pluginId does not identify the ontology plugin");
+                    throw new ConfigurationException(
+                            path + ".datasource.pluginId", "Datasource plugin does not identify the ontology plugin");
                 }
                 if (resolved == null && !hasInlineConfiguration(datasource) && ontology) {
                     diagnostic(
                             diagnostics,
                             "RELEASE_DATASOURCE_REFERENCE_NOT_FOUND",
                             path + ".datasource.id",
-                            "Referenced datasource is not present in the release candidate");
+                            "Referenced datasource is not present in the release candidate",
+                            indexed.action());
                     continue;
                 }
                 ReleaseDatasourcePin pin = pin(effective, path + ".datasource", ontologyPluginId);
                 candidates
                         .computeIfAbsent(datasource.getId(), ignored -> new ArrayList<>())
-                        .add(new CandidatePin(pin, path + ".datasource"));
+                        .add(new CandidatePin(pin, path + ".datasource", indexed.action()));
+            } catch (ConfigurationException exception) {
+                diagnostic(
+                        diagnostics,
+                        "RELEASE_DATASOURCE_CONFIGURATION_MALFORMED",
+                        exception.path,
+                        exception.getMessage(),
+                        indexed.action());
             } catch (IllegalArgumentException exception) {
                 diagnostic(
                         diagnostics,
                         "RELEASE_DATASOURCE_CONFIGURATION_MALFORMED",
-                        diagnosticPath(path + ".datasource", exception),
-                        exception.getMessage());
+                        path + ".datasource.datasourceConfiguration.properties",
+                        "Datasource configuration is malformed",
+                        indexed.action());
             }
         }
 
@@ -172,7 +184,8 @@ public class ReleaseDatasourcePinExtractor {
                         diagnostics,
                         "RELEASE_DATASOURCE_CONFLICT",
                         values.get(1).path(),
-                        "Conflicting datasource definitions were referenced by unpublished actions");
+                        "Conflicting datasource definitions were referenced by unpublished actions",
+                        values.get(1).action());
             } else {
                 pins.add(first);
             }
@@ -206,8 +219,9 @@ public class ReleaseDatasourcePinExtractor {
 
     private void requireConsistentPlugin(String first, String second, String path) {
         if (!isBlank(first) && !isBlank(second) && !first.equals(second)) {
-            throw new IllegalArgumentException(
-                    path + ".datasource.pluginId conflicts with the action or resolved datasource");
+            throw new ConfigurationException(
+                    path + ".datasource.pluginId",
+                    "Datasource plugin conflicts with the action or resolved datasource");
         }
     }
 
@@ -232,7 +246,7 @@ public class ReleaseDatasourcePinExtractor {
     }
 
     private ReleaseDatasourcePin pin(Datasource datasource, String path, String ontologyPluginId) {
-        require(datasource.getPluginId(), path + ".pluginId");
+        require(datasource.getPluginId(), path + ".pluginId", "Datasource plugin identifier is missing");
         if (!datasource.getPluginId().equals(ontologyPluginId)) {
             return new ReleaseDatasourcePin(
                     datasource.getId(), datasource.getPluginId(), "NATIVE", null, null, null, null);
@@ -246,15 +260,13 @@ public class ReleaseDatasourcePinExtractor {
                 }
             }
         }
-        String projectId = required(properties, "projectId");
-        String projectVersion = required(properties, "projectVersion");
-        String snapshotId = required(properties, "metadataSnapshotId");
-        String digest = required(properties, "metadataDigest");
-        String contractVersion = required(properties, "providerContractVersion");
-        String providerId = snapshotService == null ? legacyProviderId(properties) : null;
-        if (projectId.isBlank() || projectVersion.isBlank()) {
-            throw new IllegalArgumentException("project identity must not be blank");
-        }
+        String propertiesPath = path + ".datasourceConfiguration.properties";
+        String projectId = required(properties, "projectId", propertiesPath);
+        String projectVersion = required(properties, "projectVersion", propertiesPath);
+        String snapshotId = required(properties, "metadataSnapshotId", propertiesPath);
+        String digest = required(properties, "metadataDigest", propertiesPath);
+        String contractVersion = required(properties, "providerContractVersion", propertiesPath);
+        String providerId = snapshotService == null ? legacyProviderId(properties, propertiesPath) : null;
         return new ReleaseDatasourcePin(
                 datasource.getId(),
                 datasource.getPluginId(),
@@ -292,11 +304,11 @@ public class ReleaseDatasourcePinExtractor {
                 .map(pins -> new ReleaseDatasourcePinExtractionResult(pins, extraction.diagnostics()));
     }
 
-    private String legacyProviderId(Map<String, String> properties) {
+    private String legacyProviderId(Map<String, String> properties, String path) {
         String providerId = properties.get("runtimeProviderId");
         if (providerId == null || providerId.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Provider-free ontology datasources require snapshot-backed release extraction");
+            throw new ConfigurationException(
+                    path, "Provider-free ontology datasources require snapshot-backed release extraction");
         }
         return providerId;
     }
@@ -349,17 +361,17 @@ public class ReleaseDatasourcePinExtractor {
         return datasource.getDatasourceConfiguration();
     }
 
-    private String required(Map<String, String> properties, String key) {
+    private String required(Map<String, String> properties, String key, String path) {
         String value = properties.get(key);
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(key + " must not be blank");
+            throw new ConfigurationException(path + "." + key, key + " must not be blank");
         }
         return value;
     }
 
-    private void require(String value, String path) {
+    private void require(String value, String path, String message) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(path + " must not be blank");
+            throw new ConfigurationException(path, message);
         }
     }
 
@@ -382,35 +394,36 @@ public class ReleaseDatasourcePinExtractor {
         }
     }
 
-    private String diagnosticPath(String path, IllegalArgumentException exception) {
-        String message = exception.getMessage();
-        if (message != null) {
-            for (String key : List.of(
-                    "projectId", "projectVersion", "metadataSnapshotId", "metadataDigest", "providerContractVersion")) {
-                if (message.startsWith(key + " ")) {
-                    return path + ".datasourceConfiguration.properties." + key;
-                }
+    private void diagnostic(
+            List<ReleaseDiagnostic> diagnostics, String code, String path, String message, NewAction action) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        if (action != null) {
+            if (!isBlank(action.getId())) {
+                details.put("actionId", action.getId());
             }
-            if (message.contains(".id ")) {
-                return path + ".id";
-            }
-            if (message.contains(".pluginId ")) {
-                return path + ".pluginId";
+            if (action.getUnpublishedAction() != null
+                    && !isBlank(action.getUnpublishedAction().getName())) {
+                details.put("actionName", action.getUnpublishedAction().getName());
             }
         }
-        return path + ".datasourceConfiguration.properties";
-    }
-
-    private void diagnostic(List<ReleaseDiagnostic> diagnostics, String code, String path, String message) {
         diagnostics.add(new ReleaseDiagnostic(
                 ReleaseDiagnostic.Severity.BLOCKING,
                 code,
                 path,
                 message == null || message.isBlank() ? code : message,
-                Map.of()));
+                details));
+    }
+
+    private static final class ConfigurationException extends IllegalArgumentException {
+        private final String path;
+
+        private ConfigurationException(String path, String message) {
+            super(message);
+            this.path = path;
+        }
     }
 
     private record IndexedAction(int index, NewAction action, String id, String digest) {}
 
-    private record CandidatePin(ReleaseDatasourcePin pin, String path) {}
+    private record CandidatePin(ReleaseDatasourcePin pin, String path, NewAction action) {}
 }

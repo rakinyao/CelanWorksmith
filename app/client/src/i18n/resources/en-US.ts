@@ -2407,6 +2407,7 @@ const enUS = {
     warningAcknowledgementRequired: "Acknowledge warnings to continue.",
     activeRelease: "Active release",
     resourcePath: "Resource path",
+    actionName: "Action",
     acknowledgeWarning: "I acknowledge these warnings.",
     history: "Release history",
     historyEmpty: "No releases created yet.",

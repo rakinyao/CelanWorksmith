@@ -1,8 +1,12 @@
 import React from "react";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ApplicationReleasesAPI from "api/ApplicationReleasesAPI";
 import { ReduxActionTypes } from "ee/constants/ReduxActionConstants";
 import { useDispatch, useSelector } from "react-redux";
+import type * as ReactRedux from "react-redux";
+import { combineReducers, createStore } from "redux";
+import applicationReleaseReducer from "reducers/uiReducers/applicationReleaseReducer";
 import ApplicationReleasePanel from ".";
 
 jest.mock("api/ApplicationReleasesAPI", () => ({
@@ -30,6 +34,7 @@ jest.mock("react-i18next", () => ({
         "release.severity.INFO": "Info",
         "release.statusLabel": "Status",
         "release.status.SNAPSHOT_CREATED": "Snapshot created",
+        "release.actionName": "Action",
       })[key] || key,
   }),
 }));
@@ -103,6 +108,7 @@ const renderPanel = (applicationRelease = {}, onPublish = jest.fn()) => {
 describe("ApplicationReleasePanel", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    dispatch.mockReset();
     (useDispatch as jest.Mock).mockReturnValue(dispatch);
     api.preflight.mockResolvedValue(response(preflight) as never);
     api.list.mockResolvedValue(response([release]) as never);
@@ -111,6 +117,122 @@ describe("ApplicationReleasePanel", () => {
     api.activate.mockResolvedValue(response(release) as never);
     api.rollback.mockResolvedValue(response(release) as never);
   });
+
+  it("renders structured blocking diagnostics and restores commands after successful preflight", async () => {
+    const longPath = `unpublishedActions[actionId=${"long-action-id".repeat(30)}].unpublishedAction.datasource.id`;
+    const diagnostic = {
+      severity: "BLOCKING",
+      code: "RELEASE_DATASOURCE_CONFIGURATION_MALFORMED",
+      path: longPath,
+      message: "Datasource identifier is missing",
+      details: {
+        actionId: "query-id",
+        actionName: "queryWithMissingReference",
+      },
+    };
+
+    api.preflight.mockResolvedValueOnce(
+      response({
+        ...preflight,
+        valid: false,
+        diagnostics: [diagnostic],
+      }) as never,
+    );
+    const redux = jest.requireActual<typeof ReactRedux>("react-redux");
+    const store = createStore(
+      combineReducers({
+        ui: combineReducers({ applicationRelease: applicationReleaseReducer }),
+      }),
+    );
+    const onPublish = jest.fn();
+
+    (useDispatch as jest.Mock).mockImplementation(redux.useDispatch);
+    useSelectorMock.mockImplementation(redux.useSelector);
+    render(
+      <redux.Provider store={store}>
+        <ApplicationReleasePanel
+          applicationId="app-1"
+          isOpen
+          onClose={jest.fn()}
+          onPublish={onPublish}
+        />
+      </redux.Provider>,
+    );
+
+    expect(
+      await screen.findByText("Datasource identifier is missing"),
+    ).toBeVisible();
+    expect(screen.getAllByText(longPath, { exact: false })).toHaveLength(1);
+    expect(screen.getByText("Action: queryWithMissingReference")).toBeVisible();
+    expect(screen.getByText("Blocking")).toBeVisible();
+    expect(screen.getByText(diagnostic.code)).toBeVisible();
+
+    for (const name of [
+      "release.publish",
+      "release.create",
+      "release.activate",
+      "release.rollback",
+    ]) {
+      expect(screen.getByRole("button", { name })).toHaveProperty(
+        "disabled",
+        true,
+      );
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "release.preflight" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "release.publish" }),
+      ).toHaveProperty("disabled", false),
+    );
+    expect(screen.queryByText("Datasource identifier is missing")).toBeNull();
+    expect(screen.queryByText(longPath, { exact: false })).toBeNull();
+
+    for (const name of [
+      "release.create",
+      "release.activate",
+      "release.rollback",
+    ]) {
+      expect(screen.getByRole("button", { name })).toHaveProperty(
+        "disabled",
+        false,
+      );
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "release.publish" }));
+    expect(onPublish).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    undefined,
+    {},
+    { actionName: { name: "invalid" } },
+    { actionName: 42 },
+    { actionName: " " },
+  ])(
+    "renders diagnostics without an optional string action name: %p",
+    async (details) => {
+      renderPanel({
+        preflight: {
+          ...preflight,
+          valid: false,
+          diagnostics: [
+            {
+              severity: "BLOCKING",
+              code: "LEGACY",
+              path: "datasources.old",
+              message: "Historical diagnostic",
+              details,
+            },
+          ],
+        },
+      });
+      expect(await screen.findByText("Historical diagnostic")).toBeVisible();
+      expect(screen.queryByText(/^Action:/)).toBeNull();
+      expect(screen.queryByText(/\[object Object\]/)).toBeNull();
+    },
+  );
 
   it("loads preflight and history on open and dispatches success actions", async () => {
     renderPanel();

@@ -2322,6 +2322,7 @@ const zhCN = {
     warningAcknowledgementRequired: "请确认警告后继续。",
     activeRelease: "当前发布版本",
     resourcePath: "资源路径",
+    actionName: "操作",
     acknowledgeWarning: "我确认已了解这些警告。",
     history: "发布历史",
     historyEmpty: "尚未创建发布版本。",

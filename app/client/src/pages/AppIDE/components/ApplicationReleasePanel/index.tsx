@@ -43,8 +43,28 @@ import styled from "styled-components";
 
 const DiagnosticList = styled.div`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 12px 0;
+  min-width: 0;
+  max-width: 100%;
+
+  .ads-v2-callout,
+  .ads-v2-callout__children,
+  .ads-v2-callout__children-child {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+`;
+
+const DiagnosticText = styled(Text)`
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 `;
 
 const HistoryList = styled.div`
@@ -322,15 +342,23 @@ function ApplicationReleasePanel({
                   key={`${diagnostic.code}-${diagnostic.path || "root"}`}
                   kind={getDiagnosticKind(diagnostic.severity)}
                 >
-                  <Text kind="body-m-bold">
+                  <DiagnosticText kind="body-m-bold">
                     {getSeverityLabel(diagnostic.severity, t)}
-                  </Text>
+                  </DiagnosticText>
+                  <DiagnosticText>{diagnostic.code}</DiagnosticText>
+                  {typeof diagnostic.details?.actionName === "string" &&
+                    diagnostic.details.actionName.trim() && (
+                      <DiagnosticText>
+                        {t("release.actionName")}:{" "}
+                        {diagnostic.details.actionName}
+                      </DiagnosticText>
+                    )}
                   {diagnostic.path && (
-                    <Text>
+                    <DiagnosticText>
                       {t("release.resourcePath")}: {diagnostic.path}
-                    </Text>
+                    </DiagnosticText>
                   )}
-                  <Text>{diagnostic.message}</Text>
+                  <DiagnosticText>{diagnostic.message}</DiagnosticText>
                 </Callout>
               ))}
             </DiagnosticList>
