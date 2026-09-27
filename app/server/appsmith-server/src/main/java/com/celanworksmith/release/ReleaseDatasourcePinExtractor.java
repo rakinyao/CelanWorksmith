@@ -3,6 +3,7 @@ package com.celanworksmith.release;
 import com.appsmith.external.models.Datasource;
 import com.appsmith.external.models.DatasourceConfiguration;
 import com.appsmith.external.models.DatasourceStorageDTO;
+import com.appsmith.external.models.PluginType;
 import com.appsmith.external.models.Property;
 import com.appsmith.server.acl.AclPermission;
 import com.appsmith.server.domains.NewAction;
@@ -15,6 +16,7 @@ import com.celanworksmith.release.model.ReleaseDatasourcePin;
 import com.celanworksmith.release.model.ReleaseDatasourcePinExtractionResult;
 import com.celanworksmith.release.model.ReleaseDiagnostic;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -59,12 +61,17 @@ public class ReleaseDatasourcePinExtractor {
                 .flatMap(ontologyPluginId -> actionRepository
                         .findByApplicationId(candidate.application().getId(), AclPermission.READ_ACTIONS)
                         .collectList()
-                        .map(actions -> extractPins(actions, ontologyPluginId, candidate.usedDatasources()))
+                        .flatMap(actions -> resolveActionPlugins(actions)
+                                .map(plugins ->
+                                        extractPins(actions, ontologyPluginId, candidate.usedDatasources(), plugins)))
                         .flatMap(this::resolvePinnedProviders));
     }
 
     private ReleaseDatasourcePinExtractionResult extractPins(
-            List<NewAction> actions, String ontologyPluginId, List<Datasource> usedDatasources) {
+            List<NewAction> actions,
+            String ontologyPluginId,
+            List<Datasource> usedDatasources,
+            Map<String, Plugin> plugins) {
         List<IndexedAction> sortedActions = new ArrayList<>();
         for (int index = 0; index < actions.size(); index++) {
             NewAction action = actions.get(index);
@@ -96,9 +103,19 @@ public class ReleaseDatasourcePinExtractor {
                 continue;
             }
             try {
-                require(datasource.getId(), path + ".datasource.id");
                 Datasource resolved = resolve(datasource, usedDatasources);
-                if (ontologyPluginId.isBlank() && looksLikeOntologyDatasource(datasource)) {
+                Datasource effective = resolved == null ? datasource : resolved;
+                NewAction action = indexed.action();
+                Plugin plugin = plugins.get(actionPluginId(action));
+                boolean ontologyMetadata =
+                        looksLikeOntologyDatasource(datasource) || looksLikeOntologyDatasource(effective);
+                boolean ontology = !ontologyPluginId.isBlank()
+                        && (ontologyPluginId.equals(datasource.getPluginId())
+                                || ontologyPluginId.equals(effective.getPluginId())
+                                || ontologyPluginId.equals(action.getPluginId()));
+                boolean ontologyPackage =
+                        plugin != null && OntologyDatasourceService.PLUGIN_PACKAGE_NAME.equals(plugin.getPackageName());
+                if (ontologyPluginId.isBlank() && (ontologyMetadata || ontologyPackage)) {
                     diagnostic(
                             diagnostics,
                             "RELEASE_DATASOURCE_PLUGIN_NOT_FOUND",
@@ -106,9 +123,26 @@ public class ReleaseDatasourcePinExtractor {
                             "Ontology datasource plugin is not available");
                     continue;
                 }
-                if (resolved == null
-                        && !hasInlineConfiguration(datasource)
-                        && ontologyPluginId.equals(datasource.getPluginId())) {
+                requireConsistentPlugin(action.getPluginId(), datasource.getPluginId(), path);
+                requireConsistentPlugin(datasource.getPluginId(), effective.getPluginId(), path);
+                requireConsistentPlugin(action.getPluginId(), effective.getPluginId(), path);
+                if ((ontologyMetadata || ontologyPackage) && !ontology) {
+                    throw new IllegalArgumentException(
+                            path + ".datasource.pluginId does not identify the ontology plugin");
+                }
+                if (plugin != null && action.getPluginType() != null && action.getPluginType() != plugin.getType()) {
+                    throw new IllegalArgumentException(
+                            path + ".datasource.pluginId conflicts with the action plugin type");
+                }
+                if (!ontology && isNativeInlineResource(action, datasource, plugin)) {
+                    continue;
+                }
+                require(datasource.getId(), path + ".datasource.id");
+                if (ontology && !ontologyPluginId.equals(effective.getPluginId())) {
+                    throw new IllegalArgumentException(
+                            path + ".datasource.pluginId does not identify the ontology plugin");
+                }
+                if (resolved == null && !hasInlineConfiguration(datasource) && ontology) {
                     diagnostic(
                             diagnostics,
                             "RELEASE_DATASOURCE_REFERENCE_NOT_FOUND",
@@ -116,8 +150,7 @@ public class ReleaseDatasourcePinExtractor {
                             "Referenced datasource is not present in the release candidate");
                     continue;
                 }
-                ReleaseDatasourcePin pin =
-                        pin(resolved == null ? datasource : resolved, path + ".datasource", ontologyPluginId);
+                ReleaseDatasourcePin pin = pin(effective, path + ".datasource", ontologyPluginId);
                 candidates
                         .computeIfAbsent(datasource.getId(), ignored -> new ArrayList<>())
                         .add(new CandidatePin(pin, path + ".datasource"));
@@ -147,6 +180,55 @@ public class ReleaseDatasourcePinExtractor {
         pins.sort(Comparator.comparing(ReleaseDatasourcePin::datasourceId));
         diagnostics.sort(Comparator.comparing(ReleaseDiagnostic::path).thenComparing(ReleaseDiagnostic::code));
         return new ReleaseDatasourcePinExtractionResult(pins, diagnostics);
+    }
+
+    private Mono<Map<String, Plugin>> resolveActionPlugins(List<NewAction> actions) {
+        // Resolve each identity once per extraction, including empty results, without a global cache.
+        return Flux.fromIterable(actions)
+                .filter(action -> action.getUnpublishedAction() != null
+                        && action.getUnpublishedAction().getDatasource() != null)
+                .filter(action -> action.getPluginType() != null
+                        || isBlank(action.getUnpublishedAction().getDatasource().getId()))
+                .map(this::actionPluginId)
+                .filter(id -> !id.isBlank())
+                .distinct()
+                .concatMap(id -> pluginService.findById(id).map(plugin -> Map.entry(id, plugin)))
+                .collectMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    private String actionPluginId(NewAction action) {
+        if (!isBlank(action.getPluginId())) {
+            return action.getPluginId();
+        }
+        String id = action.getUnpublishedAction().getDatasource().getPluginId();
+        return id == null ? "" : id;
+    }
+
+    private void requireConsistentPlugin(String first, String second, String path) {
+        if (!isBlank(first) && !isBlank(second) && !first.equals(second)) {
+            throw new IllegalArgumentException(
+                    path + ".datasource.pluginId conflicts with the action or resolved datasource");
+        }
+    }
+
+    private boolean isNativeInlineResource(NewAction action, Datasource datasource, Plugin plugin) {
+        if (plugin == null || isBlank(plugin.getPackageName()) || !isBlank(datasource.getId())) {
+            return false;
+        }
+        if (action.getPluginType() == PluginType.JS
+                && plugin.getType() == PluginType.JS
+                && "js-plugin".equals(plugin.getPackageName())) {
+            return Boolean.TRUE.equals(datasource.getIsAutoGenerated()) || !isBlank(datasource.getPluginId());
+        }
+        return action.getPluginType() == PluginType.API
+                && plugin.getType() == PluginType.API
+                && !Boolean.TRUE.equals(datasource.getIsAutoGenerated())
+                && !isBlank(datasource.getPluginId())
+                && datasource.getDatasourceConfiguration() != null;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private ReleaseDatasourcePin pin(Datasource datasource, String path, String ontologyPluginId) {
@@ -220,7 +302,7 @@ public class ReleaseDatasourcePinExtractor {
     }
 
     private Datasource resolve(Datasource reference, List<Datasource> usedDatasources) {
-        if (usedDatasources == null) {
+        if (isBlank(reference.getId()) || usedDatasources == null) {
             return null;
         }
         return usedDatasources.stream()
