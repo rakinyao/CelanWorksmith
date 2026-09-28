@@ -29,6 +29,15 @@ describe("Map Chart China configuration", () => {
     expect(optionValues).not.toEqual(expect.arrayContaining(["WORLD", "USA"]));
     expect(optionValues).not.toContain("CHINA_710000");
     expect(mapType?.validation?.params.allowedValues).toEqual(optionValues);
+    expect(mapType?.isJSConvertible).toBe(true);
+  });
+
+  it("allows map type and chart data to be driven by expressions", () => {
+    const mapType = findProperty("mapType");
+    const chartData = findProperty("data");
+
+    expect(mapType?.isJSConvertible).toBe(true);
+    expect(chartData?.isJSConvertible).toBe(true);
   });
 
   it("keeps the { id, value } data contract and all nationwide regions", () => {

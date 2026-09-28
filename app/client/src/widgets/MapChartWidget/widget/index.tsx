@@ -189,7 +189,7 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
                 value: resource.mapId,
               })),
             ],
-            isJSconvertible: true,
+            isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
             updateHook: updateDataSet,
@@ -212,6 +212,7 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
             controlType: "INPUT_TEXT",
             isBindProperty: true,
             isTriggerProperty: false,
+            isJSConvertible: true,
             validation: {
               type: ValidationTypes.ARRAY,
               params: {
