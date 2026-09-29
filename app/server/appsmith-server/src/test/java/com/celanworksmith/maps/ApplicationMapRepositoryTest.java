@@ -66,6 +66,41 @@ class ApplicationMapRepositoryTest {
                 .isEqualTo("Campus");
     }
 
+    @Test
+    void legacyDocumentWithoutStoredCountStillReadsAndListsCorrectly() {
+        byte[] bytes = "{\"type\":\"FeatureCollection\"}".getBytes(StandardCharsets.UTF_8);
+        org.bson.Document oldShape = new org.bson.Document("_id", "old-map")
+                .append("applicationId", "app-1")
+                .append("name", "Old campus")
+                .append("geoJson", bytes)
+                .append("sha256", "old-digest")
+                .append(
+                        "regionOptions",
+                        List.of(
+                                new org.bson.Document("label", "Library").append("value", "library"),
+                                new org.bson.Document("label", "Hall").append("value", "hall")))
+                .append("createdAt", java.util.Date.from(Instant.parse("2026-09-29T00:00:00Z")));
+        new ReactiveMongoTemplate(client, database)
+                .insert(oldShape, "celanworksmith_application_maps")
+                .block();
+
+        ApplicationMapResource retrieved =
+                repository.findByApplicationIdAndId("app-1", "old-map").block();
+        assertThat(retrieved.geoJson()).isEqualTo(bytes);
+        assertThat(retrieved.sha256()).isEqualTo("old-digest");
+        assertThat(retrieved.regionCount()).isEqualTo(2);
+        ApplicationMapCatalogRecord catalog =
+                repository.findByApplicationId("app-1").next().block();
+        assertThat(catalog.regionCount()).isEqualTo(2);
+        assertThat(catalog.regionOptions()).isNull();
+        ApplicationMapCatalogRecord metadata =
+                repository.findMetadataByApplicationIdAndId("app-1", "old-map").block();
+        assertThat(metadata.regionOptions())
+                .containsExactly(
+                        new MapGeoJsonValidator.RegionOption("Library", "library"),
+                        new MapGeoJsonValidator.RegionOption("Hall", "hall"));
+    }
+
     private ApplicationMapResource resource(String id, String appId) {
         return new ApplicationMapResource(
                 id,

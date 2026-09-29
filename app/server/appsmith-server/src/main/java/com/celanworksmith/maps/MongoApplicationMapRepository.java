@@ -2,6 +2,9 @@ package com.celanworksmith.maps;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
+import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
@@ -24,10 +27,14 @@ public class MongoApplicationMapRepository implements ApplicationMapRepository {
 
     @Override
     public Flux<ApplicationMapCatalogRecord> findByApplicationId(String applicationId) {
-        Query query = Query.query(Criteria.where("applicationId").is(applicationId))
-                .with(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("_id")));
-        query.fields().include("name").include("regionCount");
-        return template.find(query, ApplicationMapCatalogRecord.class, COLLECTION);
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("applicationId").is(applicationId)),
+                Aggregation.sort(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("_id"))),
+                Aggregation.project("name")
+                        .and(ConditionalOperators.IfNull.ifNull("regionCount")
+                                .thenValueOf(ArrayOperators.Size.lengthOfArray("regionOptions")))
+                        .as("regionCount"));
+        return template.aggregate(aggregation, COLLECTION, ApplicationMapCatalogRecord.class);
     }
 
     @Override

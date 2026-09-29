@@ -12,12 +12,14 @@ public record ApplicationMapResource(
         byte[] geoJson,
         String sha256,
         List<MapGeoJsonValidator.RegionOption> regionOptions,
-        int regionCount,
+        Integer regionCount,
         Instant createdAt) {
     public ApplicationMapResource {
         geoJson = geoJson.clone();
         regionOptions = List.copyOf(regionOptions);
-        if (regionCount != regionOptions.size()) {
+        if (regionCount == null) {
+            regionCount = regionOptions.size();
+        } else if (regionCount != regionOptions.size()) {
             throw new IllegalArgumentException("Region count does not match options");
         }
     }
