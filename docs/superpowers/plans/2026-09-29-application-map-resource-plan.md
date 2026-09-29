@@ -1,5 +1,7 @@
 # Application Map Resource Implementation Plan
 
+> Superseded by `2026-09-29-application-map-resource-reference-plan.md`. The original Task 1 feasibility gate found native publication is not atomic. The user narrowed Map Chart's contract to preserving a reference in native page DSL without introducing separate pins or changing native publication. Do not resume this plan's Tasks 1-5.
+
 > **For agentic workers:** Use `executing-plans` for inline execution, or `subagent-driven-development` if explicitly selected by the user. Execute tasks in order with focused review gates and checkbox tracking.
 
 **Goal:** Allow application authors to upload versioned GeoJSON maps, reuse their region options, and publish without changing maps in already-published applications.
