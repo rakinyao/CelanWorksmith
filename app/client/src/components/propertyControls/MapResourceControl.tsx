@@ -48,7 +48,14 @@ export default class MapResourceControl extends BaseControl<
     this.active = false;
   }
 
+  private isMapTypeDynamic = () =>
+    this.props.widgetProperties.dynamicPropertyPathList?.some(
+      (path: { key: string }) => path.key === "mapType",
+    ) ?? false;
+
   private select = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (this.isMapTypeDynamic()) return;
+
     const value = event.target.value;
 
     if (value.startsWith("application:")) {
@@ -77,8 +84,10 @@ export default class MapResourceControl extends BaseControl<
   render() {
     const { customMapResourceId, mapSource, mapType } =
       this.props.widgetProperties;
-    const selected =
-      mapSource === "custom"
+    const isMapTypeDynamic = this.isMapTypeDynamic();
+    const selected = isMapTypeDynamic
+      ? "dynamic"
+      : mapSource === "custom"
         ? `application:${customMapResourceId || ""}`
         : `builtin:${mapType || CHINA_NATIONWIDE_MAP_ID}`;
     const missing =
@@ -95,9 +104,15 @@ export default class MapResourceControl extends BaseControl<
         <select
           aria-label={i18n.t("mapResources.mapType")}
           className="w-full border px-2 py-1"
+          disabled={isMapTypeDynamic}
           onChange={this.select}
           value={selected}
         >
+          {isMapTypeDynamic && (
+            <option value="dynamic">
+              {i18n.t("mapResources.jsModeActive")}
+            </option>
+          )}
           <optgroup label={i18n.t("mapResources.builtInMaps")}>
             <option value={`builtin:${CHINA_NATIONWIDE_MAP_ID}`}>
               {i18n.t("mapResources.china")}

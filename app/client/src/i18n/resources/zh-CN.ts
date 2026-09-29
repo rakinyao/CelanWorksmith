@@ -19,6 +19,7 @@ const zhCN = {
     mapTypeHelp: "选择内置地图或应用地图",
     dynamicMapType: "地图类型表达式",
     dynamicMapTypeHelp: "编辑已保存的内置地图表达式",
+    jsModeActive: "JS 模式已启用。请在下方编辑地图类型表达式。",
     builtInMaps: "内置地图",
     applicationMaps: "应用地图",
     china: "中国",

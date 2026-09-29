@@ -13,7 +13,7 @@ jest.mock("selectors/editorSelectors", () => ({
 
 const api = ApplicationMapsApi as jest.Mocked<typeof ApplicationMapsApi>;
 
-function renderControl(widgetProperties: Record<string, string>) {
+function renderControl(widgetProperties: Record<string, unknown>) {
   const onBatchUpdateProperties = jest.fn();
 
   render(
@@ -106,4 +106,30 @@ it("shows a recoverable error when a saved custom resource is missing", async ()
   });
   await screen.findByRole("alert");
   expect(screen.getByRole("combobox")).toHaveValue("application:missing-1");
+});
+
+it("preserves a saved map type expression while JS mode is active", () => {
+  api.list.mockResolvedValue([]);
+  const widgetProperties = {
+    mapSource: "builtin",
+    customMapResourceId: "",
+    mapType: "{{MapChoice.selectedOptionValue}}",
+    dynamicPropertyPathList: [{ key: "mapType" }],
+  };
+  const onChange = renderControl(widgetProperties);
+  const selector = screen.getByRole("combobox");
+
+  expect(selector).toBeDisabled();
+  expect(selector).toHaveValue("dynamic");
+  expect(
+    screen.getByRole("option", {
+      name: "JS mode active. Edit the Map Type expression below.",
+    }),
+  ).toBeInTheDocument();
+  fireEvent.change(selector, { target: { value: "builtin:CHINA_PROVINCES" } });
+  expect(onChange).not.toHaveBeenCalled();
+  expect(widgetProperties.mapType).toBe("{{MapChoice.selectedOptionValue}}");
+  expect(widgetProperties.dynamicPropertyPathList).toEqual([
+    { key: "mapType" },
+  ]);
 });

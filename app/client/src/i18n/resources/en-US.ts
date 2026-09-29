@@ -20,6 +20,7 @@ const enUS = {
     mapTypeHelp: "Select a built-in or application map",
     dynamicMapType: "Map Type expression",
     dynamicMapTypeHelp: "Edit the saved built-in map expression",
+    jsModeActive: "JS mode active. Edit the Map Type expression below.",
     builtInMaps: "Built-in maps",
     applicationMaps: "Application maps",
     china: "China",
