@@ -1,0 +1,81 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "campus-001",
+        "name": "示例园区"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [121.5000, 31.2000],
+            [121.5040, 31.2000],
+            [121.5040, 31.2030],
+            [121.5000, 31.2030],
+            [121.5000, 31.2000]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "building-a",
+        "name": "研发楼 A"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [121.5005, 31.2016],
+            [121.5014, 31.2016],
+            [121.5014, 31.2025],
+            [121.5005, 31.2025],
+            [121.5005, 31.2016]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "building-b",
+        "name": "运营楼 B"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [121.5023, 31.2017],
+            [121.5034, 31.2017],
+            [121.5034, 31.2025],
+            [121.5023, 31.2025],
+            [121.5023, 31.2017]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "building-c",
+        "name": "实验楼 C"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [121.5015, 31.2004],
+            [121.5025, 31.2004],
+            [121.5025, 31.2012],
+            [121.5015, 31.2012],
+            [121.5015, 31.2004]
+          ]
+        ]
+      }
+    }
+  ]
+}
