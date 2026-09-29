@@ -36,6 +36,9 @@ import { ImportAppSettings } from "./components/ImportAppSettings";
 import { getIsAnvilLayout } from "layoutSystems/anvil/integrations/selectors";
 import { getIsAiAgentApp } from "ee/selectors/aiAgentSelectors";
 import { AppSettingsTabs } from "./types";
+import ApplicationMapResources from "../ApplicationMapResources";
+import { getCurrentApplicationId } from "selectors/editorSelectors";
+import { useTranslation } from "react-i18next";
 
 export interface SelectedTab {
   type: AppSettingsTabs;
@@ -78,6 +81,8 @@ function AppSettings() {
   const pages: Page[] = useSelector(selectAllPages);
   const dispatch = useDispatch();
   const isAnvilLayout = useSelector(getIsAnvilLayout);
+  const applicationId = useSelector(getCurrentApplicationId);
+  const { t } = useTranslation();
 
   const [selectedTab, setSelectedTab] = useState<SelectedTab>({
     type: context?.type || AppSettingsTabs.General,
@@ -184,6 +189,14 @@ function AppSettings() {
       },
       subText: createMessage(UPDATE_VIA_IMPORT_SETTING.settingDesc),
     },
+    {
+      id: "t--map-resources",
+      icon: "map",
+      isSelected: selectedTab.type === AppSettingsTabs.MapResources,
+      name: t("mapResources.title"),
+      onClick: () => setSelectedTab({ type: AppSettingsTabs.MapResources }),
+      subText: t("mapResources.sectionDescription"),
+    },
   ];
 
   const isAgentApp = useSelector(getIsAiAgentApp);
@@ -266,6 +279,10 @@ function AppSettings() {
               return <NavigationSettings />;
             case AppSettingsTabs.Import:
               return <ImportAppSettings />;
+            case AppSettingsTabs.MapResources:
+              return applicationId ? (
+                <ApplicationMapResources applicationId={applicationId} />
+              ) : null;
           }
         })()}
       </SectionContent>

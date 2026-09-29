@@ -2,6 +2,7 @@ import type { InputControlProps } from "components/propertyControls/InputTextCon
 import InputTextControl from "components/propertyControls/InputTextControl";
 import type { DropDownControlProps } from "components/propertyControls/DropDownControl";
 import DropDownControl from "components/propertyControls/DropDownControl";
+import MapResourceControl from "components/propertyControls/MapResourceControl";
 import type { SwitchControlProps } from "components/propertyControls/SwitchControl";
 import SwitchControl from "components/propertyControls/SwitchControl";
 import OptionControl from "components/propertyControls/OptionControl";
@@ -87,6 +88,7 @@ import EEPropertyControls from "ee/components/propertyControls";
 export const PropertyControls = {
   InputTextControl,
   DropDownControl,
+  MapResourceControl,
   SwitchControl,
   OptionControl,
   ArrayControl,

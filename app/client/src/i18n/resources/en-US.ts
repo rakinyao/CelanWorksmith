@@ -1,4 +1,31 @@
 const enUS = {
+  mapResources: {
+    title: "Map resources",
+    sectionDescription: "Upload GeoJSON maps for this application",
+    name: "Map name",
+    file: "GeoJSON file",
+    upload: "Upload map",
+    uploading: "Uploading...",
+    regionCount_one: "{{count}} region",
+    regionCount_other: "{{count}} regions",
+    nameAndFileRequired: "Enter a map name and choose a GeoJSON file.",
+    fileTooLarge: "GeoJSON file must be 10 MiB or smaller.",
+    invalidGeoJson:
+      "Choose a valid GeoJSON FeatureCollection with unique region IDs and names.",
+    uploadFailed: "Map upload failed. Try again.",
+    loadFailed: "Could not load map resources. Reopen App Settings to retry.",
+    missingResource:
+      "This map is unavailable. Choose another map or restore access to this resource.",
+    mapType: "Map Type",
+    mapTypeHelp: "Select a built-in or application map",
+    dynamicMapType: "Map Type expression",
+    dynamicMapTypeHelp: "Edit the saved built-in map expression",
+    builtInMaps: "Built-in maps",
+    applicationMaps: "Application maps",
+    china: "China",
+    uploadInSettings: "Upload a new map in App Settings, then select it here.",
+    customProvenance: "Uploaded map for this application.",
+  },
   common: {
     yes: "Yes",
     no: "No",

@@ -17,4 +17,5 @@ export enum AppSettingsTabs {
   Navigation,
   Page,
   Import,
+  MapResources,
 }

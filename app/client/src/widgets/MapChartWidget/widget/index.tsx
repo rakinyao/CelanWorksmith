@@ -32,6 +32,7 @@ import type { MapType } from "../component/types";
 import type { RegionOption } from "../mapRegionMetadata";
 import store from "store";
 import { getCurrentApplicationId } from "selectors/editorSelectors";
+import i18n from "i18n";
 
 const MapChartComponent = lazy(async () =>
   retryPromise(
@@ -179,13 +180,22 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
         sectionName: "Data",
         children: [
           {
-            helpText: "Sets the map type",
+            helpText: i18n.t("mapResources.mapTypeHelp"),
+            propertyName: "mapSource",
+            label: i18n.t("mapResources.mapType"),
+            controlType: "MAP_RESOURCE",
+            isBindProperty: false,
+            isTriggerProperty: false,
+            validation: { type: ValidationTypes.TEXT },
+          },
+          {
+            helpText: i18n.t("mapResources.dynamicMapTypeHelp"),
             propertyName: "mapType",
-            label: "Map Type",
+            label: i18n.t("mapResources.dynamicMapType"),
             controlType: "DROP_DOWN",
             options: [
               {
-                label: "全国",
+                label: i18n.t("mapResources.china"),
                 value: CHINA_NATIONWIDE_MAP_ID,
               },
               ...CHINA_PROVINCE_MAPS.filter(
@@ -195,21 +205,15 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
                 value: resource.mapId,
               })),
             ],
+            hidden: (props: MapChartWidgetProps) =>
+              !props.dynamicPropertyPathList?.some(
+                (path) => path.key === "mapType",
+              ),
             isJSConvertible: true,
             isBindProperty: true,
             isTriggerProperty: false,
             updateHook: updateDataSet,
-            validation: {
-              type: ValidationTypes.TEXT,
-              params: {
-                allowedValues: [
-                  CHINA_NATIONWIDE_MAP_ID,
-                  ...CHINA_PROVINCE_MAPS.filter(
-                    (resource) => resource.childAvailable,
-                  ).map((resource) => resource.mapId),
-                ],
-              },
-            },
+            validation: { type: ValidationTypes.TEXT },
           },
           {
             helpText: "Populates the map with the data",
@@ -432,7 +436,11 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
 
   static getMethods() {
     return {
-      getEditorCallouts(): WidgetCallout[] {
+      getEditorCallouts(props: WidgetProps): WidgetCallout[] {
+        if (props.mapSource === "custom") {
+          return [{ message: i18n.t("mapResources.customProvenance") }];
+        }
+
         return [
           {
             message: "数据来源于阿里云，该版本数据更新于2021.5。仅供展示使用。",
