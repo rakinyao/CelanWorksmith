@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import type { MapColorObject, MapTypes } from "../constants";
+import type { MapColorObject } from "../constants";
 import type { MapData } from "./types";
-import { getChartOption, loadMapGenerator } from "./utilities";
+import { getChartOption } from "./utilities";
 import * as echarts from "echarts";
 import { getChinaRegionDetail } from "../chinaRegionDetails";
+import { getRegionDetail, type RegionOption } from "../mapRegionMetadata";
+import {
+  resolveMapResource,
+  type ResolvedMapResource,
+} from "../mapResourceResolver";
 import clsx from "clsx";
 import type { MapResourceUnavailableError } from "./resourceState";
 
@@ -32,12 +37,23 @@ export default function EchartComponent(props: MapChartComponentProps) {
     MapResourceUnavailableError | Error | null
   >(null);
 
-  const loadMap = useMemo(loadMapGenerator, []);
+  const [resolvedMap, setResolvedMap] = useState<ResolvedMapResource | null>(
+    null,
+  );
 
-  const [key, setKey] = useState(0);
-
-  const { caption, colorRange, data, onDataPointClick, showLabels, type } =
-    props;
+  const {
+    applicationId,
+    caption,
+    colorRange,
+    customMapResourceId,
+    data,
+    mapSource,
+    onDataPointClick,
+    onMapChange,
+    onRegionOptionsChange,
+    showLabels,
+    type,
+  } = props;
 
   const fontFamily =
     props.fontFamily === "System Default" ? "" : props.fontFamily;
@@ -83,9 +99,14 @@ export default function EchartComponent(props: MapChartComponentProps) {
     // TODO: Fix this the next time the file is edited
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler = (event: any) => {
+      if (!resolvedMap) return;
+
       const id = event.data.name;
 
-      const regionDetail = getChinaRegionDetail(type, id);
+      const regionDetail =
+        resolvedMap?.regionKey === "id"
+          ? getRegionDetail(resolvedMap.regionOptions, id)
+          : getChinaRegionDetail(type, id);
 
       if (!regionDetail) {
         return;
@@ -105,37 +126,67 @@ export default function EchartComponent(props: MapChartComponentProps) {
     return () => {
       chartInstance.current?.off("click", handler);
     };
-  }, [onDataPointClick, chartInstance.current, type]);
+  }, [onDataPointClick, chartInstance.current, type, resolvedMap]);
 
   useEffect(() => {
+    let active = true;
+    const abortController = new AbortController();
+
     setIsLoading(true);
     setResourceError(null);
+    setResolvedMap(null);
+    chartInstance.current?.clear();
+    onRegionOptionsChange?.([]);
+    onMapChange?.();
 
-    loadMap(type)
-      .then(() => {
+    resolveMapResource(
+      mapSource,
+      customMapResourceId,
+      applicationId,
+      type,
+      abortController.signal,
+    )
+      .then((resource) => {
+        if (!active) return;
+
         setIsLoading(false);
-        // we are using Math.random to force the chart to set options again
-        // to avoid the race conditions while loading maps
-        setKey(Math.random());
+        setResolvedMap(resource);
+        onRegionOptionsChange?.(resource.regionOptions);
       })
       .catch((error: MapResourceUnavailableError | Error) => {
+        if (!active) return;
+
         setIsLoading(false);
         setResourceError(error);
       });
-  }, [type]);
+
+    return () => {
+      active = false;
+      abortController.abort();
+    };
+  }, [
+    type,
+    mapSource,
+    customMapResourceId,
+    applicationId,
+    onRegionOptionsChange,
+    onMapChange,
+  ]);
 
   useEffect(() => {
-    if (!isLoading && !!echarts.getMap(type)) {
+    if (!isLoading && resolvedMap && !!echarts.getMap(resolvedMap.mapKey)) {
       chartInstance.current?.setOption(
         getChartOption(
           caption,
           showLabels,
           colorRangePieces,
           transformedData,
-          type,
+          resolvedMap.mapKey,
           props.height,
           props.width,
           fontFamily,
+          resolvedMap.regionKey,
+          resolvedMap.regionOptions,
         ),
         true,
       );
@@ -148,8 +199,7 @@ export default function EchartComponent(props: MapChartComponentProps) {
     transformedData,
     fontFamily,
     chartInstance.current,
-    type,
-    key,
+    resolvedMap,
     props.height,
     props.width,
   ]);
@@ -203,7 +253,12 @@ export interface MapChartComponentProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onDataPointClick: (evt: any) => void;
   showLabels: boolean;
-  type: MapTypes;
+  type: string;
+  mapSource?: "builtin" | "custom";
+  customMapResourceId?: string;
+  applicationId?: string;
+  onRegionOptionsChange?: (options: RegionOption[]) => void;
+  onMapChange?: () => void;
   borderRadius?: string;
   boxShadow?: string;
   fontFamily?: string;

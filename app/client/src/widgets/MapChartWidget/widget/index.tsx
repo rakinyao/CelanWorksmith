@@ -29,6 +29,9 @@ import ThumbnailSVG from "../thumbnail.svg";
 import { WIDGET_TAGS } from "constants/WidgetConstants";
 import Skeleton from "components/utils/Skeleton";
 import type { MapType } from "../component/types";
+import type { RegionOption } from "../mapRegionMetadata";
+import store from "store";
+import { getCurrentApplicationId } from "selectors/editorSelectors";
 
 const MapChartComponent = lazy(async () =>
   retryPromise(
@@ -86,6 +89,8 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
       widgetName: "MapChart",
       version: 1,
       mapType: MapTypes.CHINA_PROVINCES,
+      mapSource: "builtin",
+      customMapResourceId: "",
       mapTitle: "China Population",
       showLabels: true,
       data: dataSetForChina,
@@ -153,6 +158,7 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
         shortLabel: "string",
         value: "number",
       },
+      regionOptions: [{ label: "string", value: "string" }],
     };
   }
 
@@ -412,6 +418,7 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
   static getMetaPropertiesMap(): Record<string, any> {
     return {
       selectedDataPoint: undefined,
+      regionOptions: [],
     };
   }
 
@@ -452,6 +459,14 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
     });
   };
 
+  handleRegionOptionsChange = (options: RegionOption[]) => {
+    this.props.updateWidgetMetaProperty("regionOptions", options);
+  };
+
+  handleMapChange = () => {
+    this.props.updateWidgetMetaProperty("selectedDataPoint", undefined);
+  };
+
   getWidgetView() {
     const { colorRange, data, isVisible, mapTitle, mapType, showLabels } =
       this.props;
@@ -459,15 +474,20 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
     return (
       <Suspense fallback={<Skeleton />}>
         <MapChartComponent
+          applicationId={getCurrentApplicationId(store.getState())}
           borderRadius={this.props.borderRadius}
           boxShadow={this.props.boxShadow}
           caption={mapTitle || ""}
           colorRange={colorRange}
+          customMapResourceId={this.props.customMapResourceId}
           data={data}
           fontFamily={this.props.fontFamily ?? "Nunito Sans"}
           height={this.props.componentHeight}
           isVisible={isVisible}
+          mapSource={this.props.mapSource}
           onDataPointClick={this.handleDataPointClick}
+          onMapChange={this.handleMapChange}
+          onRegionOptionsChange={this.handleRegionOptionsChange}
           showLabels={showLabels}
           type={mapType}
           width={this.props.componentWidth}
@@ -480,6 +500,8 @@ class MapChartWidget extends BaseWidget<MapChartWidgetProps, WidgetState> {
 export interface MapChartWidgetProps extends WidgetProps {
   mapTitle?: string;
   mapType: MapType;
+  mapSource?: "builtin" | "custom";
+  customMapResourceId?: string;
   onDataPointClick?: string;
   showLabels: boolean;
   colorRange: MapColorObject[];

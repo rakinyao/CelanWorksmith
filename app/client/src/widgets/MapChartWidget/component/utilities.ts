@@ -1,5 +1,10 @@
 import * as echarts from "echarts";
 import { getChinaRegionDetail } from "../chinaRegionDetails";
+import {
+  escapeMapLabel,
+  getRegionDetail,
+  type RegionOption,
+} from "../mapRegionMetadata";
 import log from "loglevel";
 import { appsmithTelemetry } from "instrumentation";
 import { retryPromise } from "utils/AppsmithUtils";
@@ -114,6 +119,8 @@ export const getChartOption = (
   height: number,
   width: number,
   fontFamily?: string,
+  regionKey: "adcode" | "id" = "adcode",
+  regionOptions: RegionOption[] = [],
 ) => {
   const projection = undefined;
 
@@ -191,9 +198,12 @@ export const getChartOption = (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter: (d: any) => {
             const key = d?.name as string;
-            const label = getChinaRegionDetail(type, key)?.label || key;
+            const label =
+              regionKey === "id"
+                ? getRegionDetail(regionOptions, key)?.label || key
+                : getChinaRegionDetail(type, key)?.label || key;
 
-            return `${label}, ${d.data?.value ?? "-"}`;
+            return `${escapeMapLabel(label)}, ${escapeMapLabel(d.data?.value ?? "-")}`;
           },
           textStyle: {
             fontSize: 14,
@@ -209,7 +219,10 @@ export const getChartOption = (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter: (d: any) => {
             const key = d?.name as string;
-            const label = getChinaRegionDetail(type, key)?.shortLabel || key;
+            const label =
+              regionKey === "id"
+                ? getRegionDetail(regionOptions, key)?.shortLabel || key
+                : getChinaRegionDetail(type, key)?.shortLabel || key;
 
             return `${label}: ${d.data?.value ?? "-"}`;
           },
@@ -228,7 +241,7 @@ export const getChartOption = (
           };
         },
         // DataV GeoJSON identifies regions with properties.adcode.
-        nameProperty: "adcode",
+        nameProperty: regionKey,
         data,
         ...projectionConfig,
       },

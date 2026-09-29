@@ -106,4 +106,26 @@ describe("Map Chart local resource loader", () => {
     expect(tooltip({ name: "999999", data: { value: 1 } })).toBe("999999, 1");
     expect(getChinaMapResource("CHINA_710000")).toBeUndefined();
   });
+
+  it("escapes custom region labels in tooltip HTML", () => {
+    const option = getChartOption(
+      "Campus",
+      true,
+      [],
+      [{ name: "Building-A", value: 0 }],
+      "application:app:resource",
+      300,
+      300,
+      undefined,
+      "id",
+      [{ label: "<North & Hall>", value: "Building-A" }],
+    );
+    const tooltip = option.series[0].tooltip.formatter as (
+      datum: unknown,
+    ) => string;
+
+    expect(tooltip({ name: "Building-A", data: { value: 0 } })).toBe(
+      "&lt;North &amp; Hall&gt;, 0",
+    );
+  });
 });

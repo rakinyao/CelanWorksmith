@@ -14,6 +14,14 @@ function findProperty(propertyName: string) {
 }
 
 describe("Map Chart China configuration", () => {
+  it("exposes empty region options as read-only widget metadata", () => {
+    expect(MapChartWidget.getMetaPropertiesMap()).toMatchObject({
+      regionOptions: [],
+    });
+    expect(MapChartWidget.getAutocompleteDefinitions()).toMatchObject({
+      regionOptions: [{ label: "string", value: "string" }],
+    });
+  });
   it("exposes the nationwide map and exactly the available child resources", () => {
     const mapType = findProperty("mapType");
     const options = mapType?.options ?? [];

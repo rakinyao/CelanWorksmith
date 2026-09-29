@@ -1,10 +1,12 @@
 import * as echarts from "echarts";
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import EchartComponent, { type MapChartComponentProps } from ".";
+import ApplicationMapsApi from "api/ApplicationMapsApi";
 
 const mapStore = new Map<string, unknown>();
 const chart = {
+  clear: jest.fn(),
   on: jest.fn(),
   off: jest.fn(),
   resize: jest.fn(),
@@ -85,8 +87,10 @@ describe("Map Chart component", () => {
 
     renderMap({ onDataPointClick });
 
-    await waitFor(() => expect(chart.on).toHaveBeenCalled());
-    const clickHandler = chart.on.mock.calls[0][2] as (event: unknown) => void;
+    await waitFor(() => expect(chart.setOption).toHaveBeenCalled());
+    const clickHandler = chart.on.mock.calls[
+      chart.on.mock.calls.length - 1
+    ][2] as (event: unknown) => void;
 
     clickHandler({ data: { name: "110000", value: 7 } });
 
@@ -114,11 +118,109 @@ describe("Map Chart component", () => {
 
     renderMap({ onDataPointClick });
 
-    await waitFor(() => expect(chart.on).toHaveBeenCalled());
-    const clickHandler = chart.on.mock.calls[0][2] as (event: unknown) => void;
+    await waitFor(() => expect(chart.setOption).toHaveBeenCalled());
+    const clickHandler = chart.on.mock.calls[
+      chart.on.mock.calls.length - 1
+    ][2] as (event: unknown) => void;
 
     clickHandler({ data: { name: "100000_JD", value: 1 } });
 
     expect(onDataPointClick).not.toHaveBeenCalled();
+  });
+
+  it("clears region options on switch and ignores a late prior map response", async () => {
+    let finishFirst!: (value: unknown) => void;
+    const first = new Promise((resolve) => {
+      finishFirst = resolve;
+    });
+
+    (global.fetch as jest.Mock).mockImplementationOnce(async () => first);
+    const onRegionOptionsChange = jest.fn();
+    const view = renderMap({ onRegionOptionsChange });
+
+    view.rerender(
+      <EchartComponent
+        {...defaultProps}
+        onRegionOptionsChange={onRegionOptionsChange}
+        type="CHINA_110000"
+      />,
+    );
+    expect(chart.clear).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(onRegionOptionsChange).toHaveBeenCalledWith(expect.any(Array)),
+    );
+    await act(async () => {
+      finishFirst({
+        ok: true,
+        json: async () => ({
+          type: "FeatureCollection",
+          features: [{ properties: { adcode: "stale", name: "Stale" } }],
+        }),
+      });
+    });
+    await waitFor(() => expect(chart.setOption).toHaveBeenCalled());
+    expect(onRegionOptionsChange).not.toHaveBeenCalledWith([
+      { label: "Stale", value: "stale" },
+    ]);
+  });
+
+  it("uses exact custom IDs for map data and click metadata", async () => {
+    jest.spyOn(ApplicationMapsApi, "get").mockResolvedValue({
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { id: "Building-A", name: "North Hall" },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [0, 0],
+                [1, 0],
+                [1, 1],
+                [0, 0],
+              ],
+            ],
+          },
+        },
+      ],
+    } as never);
+    const onDataPointClick = jest.fn();
+    const onRegionOptionsChange = jest.fn();
+
+    renderMap({
+      mapSource: "custom",
+      customMapResourceId: "resource-1",
+      applicationId: "app-1",
+      data: [{ id: "Building-A", value: 7 }],
+      onDataPointClick,
+      onRegionOptionsChange,
+    });
+
+    await waitFor(() => expect(chart.setOption).toHaveBeenCalled());
+    expect(onRegionOptionsChange).toHaveBeenLastCalledWith([
+      { label: "North Hall", value: "Building-A" },
+    ]);
+    const option = chart.setOption.mock.calls[0][0];
+
+    expect(option.series[0]).toMatchObject({
+      map: "application:app-1:resource-1",
+      nameProperty: "id",
+      data: [{ name: "Building-A", value: 7 }],
+    });
+    const clickHandler = chart.on.mock.calls[
+      chart.on.mock.calls.length - 1
+    ][2] as (event: unknown) => void;
+
+    clickHandler({ data: { name: "Building-A", value: 7 } });
+    clickHandler({ data: { name: "building-a", value: 3 } });
+    expect(onDataPointClick).toHaveBeenCalledTimes(1);
+    expect(onDataPointClick).toHaveBeenCalledWith({
+      value: 7,
+      label: "North Hall",
+      shortLabel: "North Hall",
+      originalId: "Building-A",
+      id: "building-a",
+    });
   });
 });
