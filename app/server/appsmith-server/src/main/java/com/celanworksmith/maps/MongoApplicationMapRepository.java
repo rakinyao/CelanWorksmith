@@ -26,7 +26,7 @@ public class MongoApplicationMapRepository implements ApplicationMapRepository {
     public Flux<ApplicationMapCatalogRecord> findByApplicationId(String applicationId) {
         Query query = Query.query(Criteria.where("applicationId").is(applicationId))
                 .with(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("_id")));
-        query.fields().include("name").include("regionOptions");
+        query.fields().include("name").include("regionCount");
         return template.find(query, ApplicationMapCatalogRecord.class, COLLECTION);
     }
 
@@ -45,7 +45,7 @@ public class MongoApplicationMapRepository implements ApplicationMapRepository {
     public Mono<ApplicationMapCatalogRecord> findMetadataByApplicationIdAndId(String applicationId, String resourceId) {
         Query query = Query.query(
                 Criteria.where("_id").is(resourceId).and("applicationId").is(applicationId));
-        query.fields().include("name").include("regionOptions");
+        query.fields().include("name").include("regionCount").include("regionOptions");
         return template.findOne(query, ApplicationMapCatalogRecord.class, COLLECTION);
     }
 }

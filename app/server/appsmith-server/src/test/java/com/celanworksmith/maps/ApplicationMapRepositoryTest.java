@@ -45,12 +45,14 @@ class ApplicationMapRepositoryTest {
                 .isEqualTo(first.geoJson());
         assertThat(repository.findByApplicationIdAndId("app-1", "map-2").block())
                 .isNull();
-        assertThat(repository
-                        .findByApplicationId("app-1")
-                        .map(ApplicationMapCatalogRecord::id)
-                        .collectList()
-                        .block())
-                .containsExactly("map-1");
+        ApplicationMapCatalogRecord catalog =
+                repository.findByApplicationId("app-1").next().block();
+        assertThat(catalog.regionCount()).isEqualTo(1);
+        assertThat(catalog.regionOptions()).isNull();
+        org.bson.Document stored = new ReactiveMongoTemplate(client, database)
+                .findById("map-1", org.bson.Document.class, "celanworksmith_application_maps")
+                .block();
+        assertThat(stored.getInteger("regionCount")).isEqualTo(1);
         assertThat(repository
                         .findMetadataByApplicationIdAndId("app-1", "map-1")
                         .block()

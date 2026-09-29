@@ -12,13 +12,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -143,6 +146,37 @@ class ApplicationMapControllerTest {
         allow(AclPermission.MANAGE_APPLICATIONS);
         upload("Campus", new byte[] {'{'}).expectStatus().isBadRequest();
         verify(repository, never()).insert(any());
+    }
+
+    @Test
+    void oversizedMultipartUploadIsRejectedAtIngress() {
+        allow(AclPermission.MANAGE_APPLICATIONS);
+
+        upload("Campus", new byte[MapGeoJsonValidator.MAX_BYTES + 1])
+                .expectStatus()
+                .isEqualTo(413);
+
+        verify(repository, never()).insert(any());
+    }
+
+    @Test
+    void deniedEditorDoesNotSubscribeToUploadBody() {
+        when(applications.findById("app-1", AclPermission.MANAGE_APPLICATIONS)).thenReturn(Mono.empty());
+        AtomicBoolean bodySubscribed = new AtomicBoolean();
+        MockServerHttpRequest request = MockServerHttpRequest.post("/api/v1/celanworksmith/applications/app-1/maps")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(Flux.defer(() -> {
+                    bodySubscribed.set(true);
+                    return Flux.just(DefaultDataBufferFactory.sharedInstance.wrap(new byte[] {'x'}));
+                }));
+        ApplicationMapService service = new ApplicationMapService(
+                applications, permissions, repository, new MapGeoJsonValidator(new ObjectMapper()));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new ApplicationMapController(service)
+                        .create("app-1", request)
+                        .block())
+                .isInstanceOf(RuntimeException.class);
+        org.assertj.core.api.Assertions.assertThat(bodySubscribed).isFalse();
     }
 
     private WebTestClient.ResponseSpec upload(String name, byte[] bytes) {

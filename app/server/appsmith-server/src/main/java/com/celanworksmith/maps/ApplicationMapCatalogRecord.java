@@ -5,8 +5,8 @@ import org.springframework.data.annotation.Id;
 import java.util.List;
 
 public record ApplicationMapCatalogRecord(
-        @Id String id, String name, List<MapGeoJsonValidator.RegionOption> regionOptions) {
-    public int regionCount() {
-        return regionOptions.size();
+        @Id String id, String name, int regionCount, List<MapGeoJsonValidator.RegionOption> regionOptions) {
+    public ApplicationMapCatalogRecord(String id, String name, List<MapGeoJsonValidator.RegionOption> regionOptions) {
+        this(id, name, regionOptions.size(), regionOptions);
     }
 }

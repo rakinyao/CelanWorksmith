@@ -98,7 +98,7 @@ public class ApplicationMapService {
         });
     }
 
-    private Mono<Void> requireEditor(String applicationId) {
+    Mono<Void> requireEditor(String applicationId) {
         return applications
                 .findById(applicationId, permissions.getEditPermission())
                 .switchIfEmpty(Mono.error(new CelanWorksmithException(

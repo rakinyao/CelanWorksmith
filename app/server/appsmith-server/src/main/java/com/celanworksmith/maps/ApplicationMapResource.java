@@ -12,18 +12,29 @@ public record ApplicationMapResource(
         byte[] geoJson,
         String sha256,
         List<MapGeoJsonValidator.RegionOption> regionOptions,
+        int regionCount,
         Instant createdAt) {
     public ApplicationMapResource {
         geoJson = geoJson.clone();
         regionOptions = List.copyOf(regionOptions);
+        if (regionCount != regionOptions.size()) {
+            throw new IllegalArgumentException("Region count does not match options");
+        }
+    }
+
+    public ApplicationMapResource(
+            String id,
+            String applicationId,
+            String name,
+            byte[] geoJson,
+            String sha256,
+            List<MapGeoJsonValidator.RegionOption> regionOptions,
+            Instant createdAt) {
+        this(id, applicationId, name, geoJson, sha256, regionOptions, regionOptions.size(), createdAt);
     }
 
     @Override
     public byte[] geoJson() {
         return geoJson.clone();
-    }
-
-    public int regionCount() {
-        return regionOptions.size();
     }
 }
