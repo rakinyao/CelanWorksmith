@@ -2,7 +2,8 @@
 
 Date: 2026-10-22
 Scope: current consumer contract on branch `feat/ontology-datasource-plugin`
-Source commit: `255197a9e9c910dacac1c6212664c2f7a9a4715c`
+Source snapshot/base commit inspected: `255197a9e9c910dacac1c6212664c2f7a9a4715c`
+Evidence ledger commit: `5ead8bfbd4`
 
 ## Branch and fixtures
 
@@ -61,15 +62,15 @@ Supported paths are `/spec/display_name`, `/spec/owner_object_type_ids[]`, `/spe
 
 ## Draft-only / not consumer-supported
 
-The source does not expose a general release importer named `OntologyReleaseJsonImporter`; `rg` found no such class or test. Lineage (`entity_source`, `entity_source_link`) is parsed and validated into `LineageElement` but is not mapped by `OntologyModelReleaseMapper`. Entity descriptions, semantic properties, source table metadata, field descriptions/properties, link confidence/entity-link-type/source-field-map compatibility fields, and function parameter definitions are not retained in the mapped project contract. Function implementation is restricted to `DEMO_HANDLER`; action execution requires a runtime adapter and pinned snapshot. These fields should remain provisional until a source-backed consumer and fixture/test coverage exist.
+The source does not expose a general release importer named `OntologyReleaseJsonImporter`; `rg` found no such class or test. The current importer-equivalent test is `LocalReleaseJsonOntologyProjectImporterTest`, which exercises local Release JSON import, runtime binding resolution, snapshot persistence, and the action fixture. Lineage (`entity_source`, `entity_source_link`) is parsed and validated into `LineageElement` but is not mapped by `OntologyModelReleaseMapper`. Entity descriptions, semantic properties, source table metadata, field descriptions/properties, link confidence/entity-link-type/source-field-map compatibility fields, and function parameter definitions are not retained in the mapped project contract. Function implementation is restricted to `DEMO_HANDLER`; action execution requires a runtime adapter and pinned snapshot. These fields should remain provisional until a source-backed consumer and fixture/test coverage exist.
 
 ## Focused verification
 
-Requested command adapted because `OntologyReleaseJsonImporterTest` is absent; the current equivalent parser/import boundary test is `OntologyModelReleaseParserTest`:
+Requested command adapted because `OntologyReleaseJsonImporterTest` is absent; the current equivalent importer test is `LocalReleaseJsonOntologyProjectImporterTest`:
 
 ```text
 cd app/server
-mvn -pl appsmith-server -Dtest=OntologyModelReleaseMapperTest,OntologyModelReleaseParserTest test
+mvn -pl appsmith-server -Dtest=OntologyModelReleaseMapperTest,LocalReleaseJsonOntologyProjectImporterTest test
 ```
 
-Result: exit status 1 before test execution. Maven could not resolve reactor sibling artifacts `com.appsmith:appsmith-git:1.0-SNAPSHOT`, `com.appsmith:interfaces:1.0-SNAPSHOT`, and `com.appsmith:reactiveCaching:1.0-SNAPSHOT`; test count: 0 executed. No source or fixture claims are upgraded by this failed run.
+Result: exit status 1 before test execution. Maven could not resolve reactor sibling artifacts `com.appsmith:appsmith-git:1.0-SNAPSHOT`, `com.appsmith:interfaces:1.0-SNAPSHOT`, and `com.appsmith:reactiveCaching:1.0-SNAPSHOT`; test count: 0 executed. No source or fixture claims are upgraded by this failed run. The original parser/mapper-only command was also attempted and failed at the same dependency-resolution step.
