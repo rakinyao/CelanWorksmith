@@ -40,6 +40,8 @@ The consumed Release members are:
 
 - `release.domain`, `release.model_id`, and strict SemVer `release.version`;
 - optional `release.previous_release_digest`;
+- optional `release.released_at` is accepted by the parser but ignored and not
+  retained in the mapped Release model;
 - nonblank `release.release_digest`;
 - `release.change_set.compatibility`, one of `INITIAL`,
   `BACKWARD_COMPATIBLE`, or `BREAKING`; and
@@ -273,8 +275,32 @@ to `true`, and uses adapter `demo-action-server` version `1.0.0`:
     "requires_confirmation": true,
     "implementation": { "adapter_id": "demo-action-server", "adapter_version": "1.0.0" },
     "parameters": [
-      { "name": "changeAmount", "type": "decimal", "required": true },
-      { "name": "changeReason", "type": "string", "required": true }
+      {
+        "name": "changeAmount",
+        "type": "decimal",
+        "display_name": { "en-US": "Change amount", "zh-CN": "变更金额" },
+        "description": {
+          "en-US": "Signed contract change amount.",
+          "zh-CN": "本次合同变更金额，可正可负。"
+        },
+        "required": true,
+        "read_only": false,
+        "derived": false,
+        "enum_values": []
+      },
+      {
+        "name": "changeReason",
+        "type": "string",
+        "display_name": { "en-US": "Change reason", "zh-CN": "变更说明" },
+        "description": {
+          "en-US": "Reason retained in the action audit record.",
+          "zh-CN": "变更说明仅保存在操作审计中。"
+        },
+        "required": true,
+        "read_only": false,
+        "derived": false,
+        "enum_values": []
+      }
     ]
   }
 }
@@ -356,4 +382,3 @@ The current evidence ledger records that the focused Maven command could not
 start because reactor sibling artifacts (`appsmith-git`, `interfaces`, and
 `reactiveCaching`) were unavailable. That dependency-resolution limitation does
 not expand the supported contract or turn draft fields into obligations.
-
